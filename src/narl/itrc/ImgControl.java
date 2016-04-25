@@ -4,13 +4,18 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXComboBox;
+import com.jfoenix.controls.JFXTabPane;
 
 import eu.hansolo.enzo.onoffswitch.OnOffSwitch;
 import eu.hansolo.enzo.onoffswitch.SelectionEvent;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.Parent;
+import javafx.scene.control.Control;
 import javafx.scene.control.Label;
+import javafx.scene.control.Tab;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.stage.WindowEvent;
 
@@ -21,13 +26,25 @@ public class ImgControl extends VBox {
 	private final int DEF_INDX = 0;
 	
 	private class BtnPanROI extends BtnPanel{
+		public Label txtMsgPoint = new Label();		
 		public BtnPanROI(){
 			super("設定ROI");
 		}
+		private Control layoutRoi(){
+			JFXTabPane pan = new JFXTabPane();
+			for(int i=0; i<CamBundle.ROI_SIZE; i++){
+				Tab tab = new Tab("ROI"+i);
+				tab.setContent(new Label("Content"));
+				pan.getTabs().add(tab);
+			}
+			return pan;
+		}		
 		@Override
 		Parent eventLayout() {
-			
-			return null;
+			BorderPane root = new BorderPane();
+			root.setCenter(layoutRoi());
+			root.setBottom(txtMsgPoint);
+			return root;
 		}
 		@Override
 		void eventShown(WindowEvent event) {

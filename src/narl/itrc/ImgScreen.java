@@ -1,16 +1,18 @@
 package narl.itrc;
 
-import com.sun.glass.events.MouseEvent;
 import com.sun.glass.ui.Application;
 
 import javafx.concurrent.Task;
 import javafx.concurrent.WorkerStateEvent;
 import javafx.event.EventHandler;
+import javafx.event.EventType;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.MouseEvent;
 
-public class ImgScreen extends ImageView {
-
+public class ImgScreen extends ImageView implements 
+	EventHandler<MouseEvent>
+{
 	public ImgScreen(){
 		this(640,480);
 	}
@@ -24,8 +26,10 @@ public class ImgScreen extends ImageView {
 		setFitWidth(width);
 		setFitHeight(height);
 		//setPreserveRatio(true);
-		//this.addEventFilter(MouseEvent.MOVE, eventFilter);
-		//this.setOnMouseMoved();
+		//addEventFilter(MouseEvent.MOVE,eventFilter);
+		this.setOnMouseEntered(this);
+		this.setOnMouseExited(this);
+		setOnMouseMoved(this);
 	}
 
 	private ImgControl ctrl = null;
@@ -121,6 +125,25 @@ public class ImgScreen extends ImageView {
 		}
 		while(renderTask.isRunning()==true){
 			renderTask.cancel();
+		}
+	}
+
+	@Override
+	public void handle(MouseEvent e) {
+		if(renderPlug==null){
+			return;
+		}
+		EventType<?> typ = e.getEventType();
+		
+		if(typ==MouseEvent.MOUSE_ENTERED){
+			
+		}else if(typ==MouseEvent.MOUSE_PRESSED){
+			
+		}else if(typ==MouseEvent.MOUSE_MOVED){
+					
+		}else if(typ==MouseEvent.MOUSE_RELEASED){
+			
+		}else if(typ==MouseEvent.MOUSE_EXITED){
 		}
 	}
 }

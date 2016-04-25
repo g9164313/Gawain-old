@@ -55,6 +55,14 @@ public abstract class PanBase {
 		init(owner);
 	}
 	
+	public void genOwner(Window parent){
+		owner = new Stage(StageStyle.UNIFIED);		
+		owner.initModality(Modality.NONE); 
+		owner.initOwner(parent);
+		owner.setResizable(false);		
+		init(owner);
+	}
+	
 	public void appear(Stage stg){
 		owner = stg;
 		init(stg);		
@@ -190,8 +198,7 @@ public abstract class PanBase {
 	}
 	//------------------------//
 
-	public GridPane genGridPack(int stride,Pane root,Node... lstND){
-		
+	public GridPane genGridPack(int stride,Pane root,Node... lstND){		
 		GridPane pan = new GridPane();
 		pan.getStyleClass().add("grid-small");
 		

@@ -92,6 +92,28 @@ public:
 		}
 	}
 
+	void updateInfo(int type,int width,int height){
+		if(env==NULL){
+			cout<<"[INFO] type="<<type<<", size="<<width<<"x"<<"height"<<endl;
+			return;
+		}
+		env->SetIntField(
+			thiz,
+			env->GetFieldID(clzz,"infoType","I"),
+			type
+		);
+		env->SetIntField(
+			thiz,
+			env->GetFieldID(clzz,"infoWidth","I"),
+			width
+		);
+		env->SetIntField(
+			thiz,
+			env->GetFieldID(clzz,"infoHeight","I"),
+			height
+		);
+	}
+
 	Mat* getMat(int idx){
 		if(idx>=matSize){ return NULL; }
 		return &(matImage[idx]);

@@ -48,8 +48,7 @@ abstract class BtnPanel extends JFXButton implements EventHandler<ActionEvent> {
 		txt0 = text0;
 		txt1 = text1;
 		pop = new PanPoper();
-		pop.setTitle(text0);
-		pop.genDlgOwner(getScene().getWindow());
+		pop.setTitle(text0);		
 		setFace0();
 		setOnAction(this);
 		getStyleClass().add("btn-raised");
@@ -58,6 +57,9 @@ abstract class BtnPanel extends JFXButton implements EventHandler<ActionEvent> {
 
 	@Override
 	public void handle(ActionEvent event) {
+		if(pop.getOwner()==null){
+			pop.genOwner(getScene().getWindow());
+		}
 		act = !act;
 		if(act==true){
 			setFace1();

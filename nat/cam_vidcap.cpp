@@ -34,8 +34,12 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamVidcap_implSetup(
 		vid = new VideoCapture(id);
 	}
 	if(vid->isOpened()==true){
+		int tt = vid->get(CAP_PROP_FORMAT);
+		int ww = vid->get(CAP_PROP_FRAME_WIDTH);
+		int hh = vid->get(CAP_PROP_FRAME_HEIGHT);
 		cam->ctxt = vid;//assign it~~~
 		cam->updateEnableState(true,"open via Vidcap");
+		cam->updateInfo(tt,ww,hh);
 	}else{
 		cam->updateEnableState(false,"fail to open Vidcap");
 	}
