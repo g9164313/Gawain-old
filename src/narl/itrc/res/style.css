@@ -1,0 +1,66 @@
+.button-raised {
+	-fx-padding: 0.7em 0.57em;
+	-fx-font-size: 14px;
+	-fx-button-type: RAISED;
+	-fx-background-color: rgb(77, 102, 204);
+	-fx-pref-width: 130;
+	-fx-text-fill: WHITE;
+}
+
+.btn-raised {
+	-fx-padding: 0.7em 0.57em;
+	-fx-font-size: 14px;
+	-fx-button-type: RAISED;
+	-fx-background-color: rgb(77, 102, 204);
+	-fx-text-fill: WHITE;
+}
+
+.hbox-small, .vbox-small{
+    -fx-padding: 7;
+    -fx-spacing: 13;
+}
+
+.grid-small{
+    -fx-padding: 13.0 13.0 13.0 13.0;
+    -fx-hgap: 7;
+    -fx-vgap: 7;
+}
+
+.anchor-small {
+	-fx-padding: 7 7 7 7;
+}
+
+.toggle-small{
+    -fx-padding: 0.3em;
+    -fx-spacing: 0.3em;
+}
+
+.tabs-body{
+	-fx-background-color: -fx-body-color, -fx-inner-border; 
+    -fx-background-insets: 0, 2;
+}
+
+
+.group-title {
+  -fx-translate-y: -16;
+}
+
+.group-border {
+  -fx-content-display: top;
+  -fx-border-insets: 20 15 15 15;
+  -fx-border-color: black;
+  -fx-border-width: 1;
+}
+
+.group-content {
+	-fx-padding: 26 10 10 10;
+}
+
+.swt-raise {
+	-switch-color         : rgb(77, 102, 204);
+    -thumb-color          : rgb(77, 102, 204);
+    -text-color-selected  :  rgb(77, 102, 204);
+    -text-color-deselected:  rgb(77, 102, 204);
+}
+
+
