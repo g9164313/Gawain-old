@@ -60,13 +60,13 @@ public abstract class CamBundle implements Gawain.EventHook {
 	public static final int ROI_TYPE_RECT  = 1;
 	public static final int ROI_TYPE_CIRCLE= 2;
 	
-	private int curX,curY;
-	private int curVal;//update by native code
 	private int infoType,infoWidth,infoHeight;//update by native code, type value is same as OpenCV
+	private int[] curPos={0,0, -1,-1};//cursor and tick~~~
+	private float[] curVal={0.f,0.f,0.f,0.f};//update by native code, support 4-channels	
+	private int[] roiVal = new int[ROI_COLS*ROI_SIZE];//[type(1),left-top(2),right-bottom(2),reserve(1)]	
 	
 	private long ptrCntx = 0;//point to a container for whatever devices~~~
-	private long[] ptrMatx = new long[16];//point to Mat, the first is source layer, the second is  
-	private int[] roiVals = new int[ROI_COLS*ROI_SIZE];//[type(1),left-top(2),right-bottom(2),reserve(1)]	
+	private long[] ptrMatx = new long[16];//point to Mat, the first is source layer, the second is	
 	public SimpleBooleanProperty optEnbl = new SimpleBooleanProperty(false);
 	public SimpleStringProperty msgLast = new SimpleStringProperty("");
 
@@ -108,6 +108,44 @@ public abstract class CamBundle implements Gawain.EventHook {
 		}
 	}
 	
+	public void setCursor(double pos_x, double pos_y){
+		if(0<=pos_x && pos_x<infoWidth){
+			curPos[0] = (int)pos_x;
+		}
+		if(0<=pos_y && pos_y<infoHeight){
+			curPos[1] = (int)pos_y;
+		}
+	}
+	
+	public void setTick0(){
+		curPos[2] = curPos[0];
+		curPos[3] = curPos[1];
+	}
+	
+	public void setTick1(int roiIdx,int roiType){
+		int lf,rh,tp,bm;
+		if(curPos[0]<curPos[2]){
+			lf = curPos[0]; 
+			rh = curPos[2];
+		}else{
+			lf = curPos[2]; 
+			rh = curPos[0];
+		}
+		if(curPos[1]<curPos[3]){
+			tp = curPos[1]; 
+			bm = curPos[3];
+		}else{
+			tp = curPos[3]; 
+			bm = curPos[1];
+		}
+		roiVal[roiIdx*ROI_COLS + 0] = roiType;
+		roiVal[roiIdx*ROI_COLS + 1] = lf;
+		roiVal[roiIdx*ROI_COLS + 2] = tp;
+		roiVal[roiIdx*ROI_COLS + 3] = rh - lf;
+		roiVal[roiIdx*ROI_COLS + 4] = bm - tp;
+		curPos[2] = curPos[3] = -1;//reset tick~~
+	}
+	
 	public Image getImage(){
 		return getImage(0);
 	}
@@ -124,6 +162,8 @@ public abstract class CamBundle implements Gawain.EventHook {
 	}
 	
 	private native byte[] getData(long ptr);
+	
+	public native void markData();
 }
 
 

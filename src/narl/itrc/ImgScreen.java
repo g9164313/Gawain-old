@@ -6,6 +6,7 @@ import javafx.concurrent.Task;
 import javafx.concurrent.WorkerStateEvent;
 import javafx.event.EventHandler;
 import javafx.event.EventType;
+import javafx.scene.Cursor;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
@@ -17,9 +18,9 @@ public class ImgScreen extends ImageView implements
 		this(640,480);
 	}
 	
-	public ImgScreen(ImgControl control){
-		
+	public ImgScreen(ImgControl control){		
 		this(640,480);
+		ctrl = control;
 	}
 	
 	public ImgScreen(int width,int height){
@@ -27,9 +28,9 @@ public class ImgScreen extends ImageView implements
 		setFitHeight(height);
 		//setPreserveRatio(true);
 		//addEventFilter(MouseEvent.MOVE,eventFilter);
-		this.setOnMouseEntered(this);
-		this.setOnMouseExited(this);
-		setOnMouseMoved(this);
+		setOnMouseEntered(this);
+		setOnMouseExited(this);
+		setOnMouseMoved(this);		
 	}
 
 	private ImgControl ctrl = null;
@@ -91,6 +92,7 @@ public class ImgScreen extends ImageView implements
 						}
 					}
 					renderPlug.fetch();
+					renderPlug.markData();
 					//TODO: hook something~~~~
 					Image img = renderPlug.getImage(1);//show overlay~~
 					if(img==null){
@@ -130,20 +132,25 @@ public class ImgScreen extends ImageView implements
 
 	@Override
 	public void handle(MouseEvent e) {
-		if(renderPlug==null){
+		if(renderTask==null){
+			return;
+		}		
+		if(renderTask.isRunning()==false){
 			return;
 		}
+		//Do we need focus this control then got mouse-event??		
 		EventType<?> typ = e.getEventType();
 		
 		if(typ==MouseEvent.MOUSE_ENTERED){
-			
+			getScene().setCursor(Cursor.CROSSHAIR);
 		}else if(typ==MouseEvent.MOUSE_PRESSED){
 			
 		}else if(typ==MouseEvent.MOUSE_MOVED){
-					
+			renderPlug.setCursor(e.getX(),e.getY());
 		}else if(typ==MouseEvent.MOUSE_RELEASED){
 			
 		}else if(typ==MouseEvent.MOUSE_EXITED){
+			getScene().setCursor(Cursor.DEFAULT);
 		}
 	}
 }
