@@ -7,17 +7,35 @@ import com.jfoenix.controls.JFXComboBox;
 
 import eu.hansolo.enzo.onoffswitch.OnOffSwitch;
 import eu.hansolo.enzo.onoffswitch.SelectionEvent;
-
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
+import javafx.scene.Parent;
 import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
+import javafx.stage.WindowEvent;
 
 
 public class ImgControl extends VBox {
 
 	private final int DEF_TYPE = 0;
 	private final int DEF_INDX = 0;
+	
+	private class BtnPanROI extends BtnPanel{
+		public BtnPanROI(){
+			super("設定ROI");
+		}
+		@Override
+		Parent eventLayout() {
+			
+			return null;
+		}
+		@Override
+		void eventShown(WindowEvent event) {
+		}
+		@Override
+		void eventClose(WindowEvent event) {
+		}
+	};
 	
 	private ImgScreen scrn = null;
 
@@ -27,6 +45,7 @@ public class ImgControl extends VBox {
 	public OnOffSwitch swtEnable = new OnOffSwitch();
 	public JFXButton btnConfig = new JFXButton("設定相機");
 	public JFXButton btnPlayer = new JFXButton();
+	public BtnPanROI btnPanROI = new BtnPanROI();
 	
 	private VBox lay0 = new VBox();
 	private VBox lay1 = new VBox();
@@ -64,7 +83,7 @@ public class ImgControl extends VBox {
 		btnPlayer.setMaxWidth(Double.MAX_VALUE);
 		initSwtPlayer();
 		
-		lay1.getChildren().addAll(btnConfig,btnPlayer);
+		lay1.getChildren().addAll(btnConfig,btnPlayer,btnPanROI);
 		//------------------------//
 		getChildren().addAll(lay0,lay1);
 	}
