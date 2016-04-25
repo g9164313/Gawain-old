@@ -1,0 +1,155 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{5D471771-38C4-4B13-B435-997D531DD0B0}</ProjectGuid>
+    <RootNamespace>springboard</RootNamespace>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <IncludePath>C:\labor\tools\libmodbus-master\src;C:\labor\Gawain\nat;C:\Program Files (x86)\JSAuto\DIO3232\API;C:\Program Files\Java\jdk\include\win32\bridge;C:\Program Files\Java\jdk\include\win32;C:\Program Files\Java\jdk\include;$(IncludePath)</IncludePath>
+    <ReferencePath>C:\Program Files (x86)\JSAuto\DIO3232\API;C:\labor\tools;C:\Program Files\Java\jdk\lib;$(ReferencePath)</ReferencePath>
+    <LibraryPath>C:\Program Files (x86)\JSAuto\DIO3232\API;C:\labor\tools;C:\Program Files\Java\jdk\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <IncludePath>C:\labor\tools\libmodbus-master\src;C:\labor\Gawain\nat;C:\Program Files (x86)\JSAuto\DIO3232\API;C:\Program Files\Java\jdk\include\win32\bridge;C:\Program Files\Java\jdk\include\win32;C:\Program Files\Java\jdk\include;$(IncludePath)</IncludePath>
+    <ReferencePath>C:\Program Files (x86)\JSAuto\DIO3232\API;C:\labor\tools;C:\Program Files\Java\jdk\lib;$(ReferencePath)</ReferencePath>
+    <LibraryPath>C:\Program Files (x86)\JSAuto\DIO3232\API;C:\labor\tools;C:\Program Files\Java\jdk\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IncludePath>C:\Program Files\Java\jdk\include\win32;C:\Program Files\Java\jdk\include;C:\Program Files (x86)\JSAuto\DIO3232\API;C:\Program Files (x86)\JSAuto\MPC3024A\API;C:\labor\tools\libmodbus\src;C:\labor\Gawain\nat;$(IncludePath)</IncludePath>
+    <ReferencePath>C:\labor\tools\libmodbus\src\win32;C:\Program Files (x86)\JSAuto\DIO3232\API\x64;C:\Program Files\Java\jdk\lib;C:\labor\tools;$(ReferencePath)</ReferencePath>
+    <LibraryPath>C:\labor\tools\libmodbus\src\win32;C:\Program Files (x86)\JSAuto\MPC3024A\API\x64;C:\Program Files (x86)\JSAuto\DIO3232\API\x64;C:\labor\tools;C:\Program Files\Java\jdk\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IncludePath>C:\Program Files\Java\jdk\include\win32;C:\Program Files\Java\jdk\include;C:\Program Files (x86)\JSAuto\DIO3232\API;C:\Program Files (x86)\JSAuto\MPC3024A\API;C:\labor\tools\libmodbus\src;C:\labor\Gawain\nat;$(IncludePath)</IncludePath>
+    <ReferencePath>C:\labor\tools\libmodbus\src\win32;C:\Program Files (x86)\JSAuto\DIO3232\API\x64;C:\Program Files\Java\jdk\lib;C:\labor\tools;$(ReferencePath)</ReferencePath>
+    <LibraryPath>C:\labor\tools\libmodbus\src\win32;C:\Program Files (x86)\JSAuto\MPC3024A\API\x64;C:\Program Files (x86)\JSAuto\DIO3232\API\x64;C:\labor\tools;C:\Program Files\Java\jdk\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>DIO3232VC.lib;modbus.lib;jvm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>DIO3232VC_64.lib;MPC3024AVC.lib;modbus.lib;Ws2_32.lib;jvm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>copy /y $(SolutionDir)$(Platform)\$(Configuration)\$(MSBuildProjectName)$(TargetExt) C:\labor\Gawain\src\narl\itrc\nat &amp; copy /y $(SolutionDir)$(Platform)\$(Configuration)\$(MSBuildProjectName)$(TargetExt) C:\labor\Gawain\tmp
+</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+    <Link>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>DIO3232VC.lib;modbus.lib;jvm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+    <Link>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>DIO3232VC_64.lib;MPC3024AVC.lib;modbus.lib;Ws2_32.lib;jvm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>copy /y $(SolutionDir)$(Platform)\$(Configuration)\$(MSBuildProjectName)$(TargetExt) C:\labor\Gawain\src\narl\itrc\nat &amp; copy /y $(SolutionDir)$(Platform)\$(Configuration)\$(MSBuildProjectName)$(TargetExt) C:\labor\Gawain\tmp
+</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\dev_dio3232.cpp" />
+    <ClCompile Include="..\..\dev_modbus.cpp" />
+    <ClCompile Include="..\..\utils_jni.cpp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
