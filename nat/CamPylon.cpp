@@ -23,13 +23,13 @@ using namespace GenApi;
 
 class PylonBundle:public CConfigurationEventHandler {
 public:
-	int imgType;
+	int imgType,imgWidth,imgHeight;
 	char confName[100];
 	CamBundle* bnd;
 	Camera_t dev;
 
 	PylonBundle(CamBundle* boundle,IPylonDevice* device):
-		imgType(CV_8UC1),bnd(boundle)
+		imgType(CV_8UC1),bnd(boundle),imgWidth(0),imgHeight(0)
 	{
 		confName[0] = 0;
 		dev.Attach(device);
@@ -92,6 +92,12 @@ private:
 		}else{
 			bnd->updateMsgLast("unknown type:"+pxf->ToString());
 		}
+
+		CIntegerPtr ww(node.GetNode("Width"));
+		imgWidth = ww->GetValue();
+
+		CIntegerPtr hh(node.GetNode("Height"));
+		imgHeight= hh->GetValue();
 	}
 };
 
@@ -124,9 +130,15 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamPylon_implSetup(
 		jstrcpy(env,jconfigName,bnd->confName);
 		bnd->steup();
 
+		//dev->
+
 		cam->ctxt = bnd;//assign resource~~~
 		cam->updateEnableState(true,"open camera via Pylon");
-
+		cam->updateInfo(
+			bnd->imgType,
+			bnd->imgWidth,
+			bnd->imgHeight
+		);
 	} catch (GenICam::GenericException &e) {
 		cam->updateEnableState(false,e.GetDescription());
 	}

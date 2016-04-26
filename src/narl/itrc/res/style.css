@@ -15,6 +15,13 @@
 	-fx-text-fill: WHITE;
 }
 
+.btn-flat-tick {
+	-fx-padding: 0.7em 0.57em;
+	-fx-font-size: 7px;
+	-fx-button-type: FLAT;
+	-fx-text-fill: BLACK;
+}
+
 .hbox-small, .vbox-small{
     -fx-padding: 7;
     -fx-spacing: 13;
@@ -47,13 +54,13 @@
 
 .group-border {
   -fx-content-display: top;
-  -fx-border-insets: 20 15 15 15;
+  -fx-border-insets: 20 7 7 7;
   -fx-border-color: black;
   -fx-border-width: 1;
 }
 
 .group-content {
-	-fx-padding: 26 10 10 10;
+	-fx-padding: 3 3 3 3;
 }
 
 .swt-raise {

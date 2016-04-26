@@ -53,7 +53,7 @@ public class ImgControl extends VBox {
 		}
 	};
 	
-	private ImgScreen scrn = null;
+	private ImgPreview scrn = null;
 
 	public Label txtMsgLast = new Label();
 	public JFXComboBox<String> lstType = new JFXComboBox<String>();
@@ -104,7 +104,7 @@ public class ImgControl extends VBox {
 		getChildren().addAll(lay0,lay1);
 	}
 	
-	public void bindScreen(ImgScreen screen){
+	public void bindScreen(ImgPreview screen){
 		if(scrn!=null){
 			return;
 		}

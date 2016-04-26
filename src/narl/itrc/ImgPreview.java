@@ -1,38 +1,74 @@
 package narl.itrc;
 
+import com.jfoenix.controls.JFXSlider;
 import com.sun.glass.ui.Application;
 
 import javafx.concurrent.Task;
 import javafx.concurrent.WorkerStateEvent;
+import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.event.EventType;
+import javafx.geometry.Orientation;
 import javafx.scene.Cursor;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.AnchorPane;
 
-public class ImgScreen extends ImageView implements 
+public class ImgPreview extends AnchorPane implements 
 	EventHandler<MouseEvent>
 {
-	public ImgScreen(){
+	public ImageView screen = new ImageView();
+	
+	public JFXSlider[] scroll = {
+		new JFXSlider(),
+		new JFXSlider()
+	};
+	
+	public PinSelect fashion = new PinSelect(
+		"None",
+		"Tick mode",
+		"ROI mode"
+	){
+
+		
+	};
+	
+	public ImgPreview(){
 		this(640,480);
 	}
 	
-	public ImgScreen(ImgControl control){		
+	public ImgPreview(ImgControl control){		
 		this(640,480);
 		ctrl = control;
 	}
 	
-	public ImgScreen(int width,int height){
-		setFitWidth(width);
-		setFitHeight(height);
+	public ImgPreview(int width,int height){
+		
+		setPrefSize(width, height);
+		setLeftAnchor(screen,0.);
+		setTopAnchor(screen,0.);
+		setBottomAnchor(fashion,0.);
+		setRightAnchor(fashion,0.);
+		setBottomAnchor(scroll[0],0.);
+		setRightAnchor(scroll[1],0.);
+		getChildren().addAll(screen,fashion,scroll[0],scroll[1]);
+		
 		//setPreserveRatio(true);//width is same as height
-		setOnMouseEntered(this);
-		setOnMouseExited(this);
-		setOnMouseMoved(this);
-		setOnDragDetected(this);
-		setOnMouseDragged(this);
-		setOnMouseReleased(this);
+		//screen.setFitWidth(width);
+		//screen.setFitHeight(height);	
+		screen.setOnMouseEntered(this);
+		screen.setOnMouseExited(this);
+		//screen.setOnMouseMoved(this);
+		screen.setOnDragDetected(this);
+		screen.setOnMouseDragged(this);
+		screen.setOnMouseReleased(this);
+
+		scroll[0].setOrientation(Orientation.HORIZONTAL);
+		scroll[0].prefWidthProperty().bind(prefWidthProperty().subtract(fashion.prefWidthProperty()));
+		
+		scroll[1].setOrientation(Orientation.VERTICAL);
+		scroll[1].prefHeightProperty().bind(prefHeightProperty().subtract(fashion.prefHeight(width)));
 	}
 
 	private ImgControl ctrl = null;
@@ -100,7 +136,7 @@ public class ImgScreen extends ImageView implements
 					if(img==null){
 						continue;
 					}
-					setImage(img);
+					screen.setImage(img);
 				}
 				return 0;
 			}

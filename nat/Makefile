@@ -86,7 +86,7 @@ OBJECTS = $(SOURCES:.cpp=.o)
 EXEC_ING := $(word 2,$(shell pgrep -f "narl.itrc.Gawain"))
 
 #$(TARGET_SO):  utils_jni.cpp dev_modbus.cpp dev_dio3232.cpp 
-$(TARGET_SO):  utils_jni.cpp  utils_cv.cpp  cam_vidcap.cpp  cam_pylon.cpp  cam_ebus.cpp
+$(TARGET_SO):  utils_jni.cpp  utils_cv.cpp  CamVidcap.cpp  CamPylon.cpp  CamEbus.cpp
 	$(CC) $(CC_FLAG)  -fPIC -shared -o $@ $^ $(LD_LIBS)
 	cp -rf $@ ../bin/narl/itrc/nat
 	cp -rf $@ ../src/narl/itrc/nat

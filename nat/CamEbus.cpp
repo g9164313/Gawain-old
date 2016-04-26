@@ -29,6 +29,8 @@ public:
     PvPipeline* pip;
     PvGenParameterArray* parm;
 
+    int imgType,imgWidth,imgHeight;
+
 	EBusBundle(CamBundle* cb,int idx):cam(cb),parm(NULL),imgBuff(NULL){
 		inf = selectByIndex(idx);
 		if(inf==NULL){
@@ -56,7 +58,6 @@ public:
 	}
 	void fetchImage();
 private:
-    int imgType,imgWidth,imgHeight;
     PvBuffer* imgBuff;
 	CamBundle* cam;
 	PvDeviceInfo* selectByIndex(int devIndex);
@@ -212,6 +213,11 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamEBus_implSetup(
 	if((bnd->inf)!=NULL){
 		cam->ctxt = bnd;//assign resource~~~
 		cam->updateEnableState(true,"open camera via EBus");
+		cam->updateInfo(
+			bnd->imgType,
+			bnd->imgWidth,
+			bnd->imgHeight
+		);
 	}else{
 		delete bnd;
 		finalContext(env,bundle,cam,"fail to open!!!");

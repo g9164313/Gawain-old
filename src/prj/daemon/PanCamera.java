@@ -20,7 +20,7 @@ import narl.itrc.CamEBus;
 import narl.itrc.CamPylon;
 import narl.itrc.CamVidcap;
 import narl.itrc.ImgControl;
-import narl.itrc.ImgScreen;
+import narl.itrc.ImgPreview;
 import narl.itrc.PanBase;
 
 public class PanCamera extends PanBase {
@@ -30,7 +30,7 @@ public class PanCamera extends PanBase {
 	public PanCamera(){
 	}
 	
-	private ImgScreen imgScrn = new ImgScreen();
+	private ImgPreview imgScrn = new ImgPreview();
 	private ImgControl imgCtrl = new ImgControl();
 	@Override
 	public Parent layout() {
