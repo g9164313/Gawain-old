@@ -9,6 +9,9 @@ extern jlong* longArray2Ptr(JNIEnv* env,jclass _clazz,jobject thiz,const char* n
 
 using namespace std;
 
+//it should be same as declaration in java file!!!
+#define ROI_COLS 6
+#define ROI_SIZE 4
 
 #define MACRO_FETCH_CHECK \
 	if(cam==NULL){ return; } \
@@ -117,6 +120,49 @@ public:
 	Mat* getMat(int idx){
 		if(idx>=matSize){ return NULL; }
 		return &(matImage[idx]);
+	}
+
+	void getCursor(Point* cursor,Point* tick){
+		Point cc(-1,-1);
+		jintArray jarr;
+		jint* roival = intArray2Ptr(env,clzz,thiz,"curPos",jarr);
+		if(cursor!=NULL){
+			cursor->x = roival[0];
+			cursor->y = roival[1];
+		}
+		if(tick!=NULL){
+			tick->x = roival[2];
+			tick->y = roival[3];
+		}
+		env->ReleaseIntArrayElements(jarr,roival,0);
+	}
+
+	void getRoi(int idx,int* typ,Rect* roi){
+		if(idx>=ROI_SIZE){
+			return;
+		}
+		jintArray jarr;
+		jint* roival = intArray2Ptr(env,clzz,thiz,"roiVal",jarr);
+		if(typ!=NULL){
+			*typ = roival[idx*ROI_COLS+0];
+		}
+		if(roi!=NULL){
+			roi->x = roival[idx*ROI_COLS+1];
+			roi->y = roival[idx*ROI_COLS+2];
+			roi->width = roival[idx*ROI_COLS+3];
+			roi->height= roival[idx*ROI_COLS+4];
+		}
+		env->ReleaseIntArrayElements(jarr,roival,0);
+	}
+
+	void setCursorValue(float v0, float v1, float v2, float v3){
+		jfloatArray jarr;
+		jfloat* curVal = floatArray2Ptr(env,clzz,thiz,"curVal",jarr);
+		curVal[0] = v0;
+		curVal[1] = v1;
+		curVal[2] = v2;
+		curVal[3] = v3;
+		env->ReleaseFloatArrayElements(jarr,curVal,0);
 	}
 
 	Mat& updateSource(){

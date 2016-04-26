@@ -4,7 +4,6 @@ import java.io.ByteArrayInputStream;
 
 import com.sun.glass.ui.Application;
 
-import javafx.application.Platform;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.scene.image.Image;
@@ -63,7 +62,7 @@ public abstract class CamBundle implements Gawain.EventHook {
 	private int infoType,infoWidth,infoHeight;//update by native code, type value is same as OpenCV
 	private int[] curPos={0,0, -1,-1};//cursor and tick~~~
 	private float[] curVal={0.f,0.f,0.f,0.f};//update by native code, support 4-channels	
-	private int[] roiVal = new int[ROI_COLS*ROI_SIZE];//[type(1),left-top(2),right-bottom(2),reserve(1)]	
+	private int[] roiVal = new int[ROI_COLS*ROI_SIZE];//[type(1),x,y,width,height,reserve(1)]	
 	
 	private long ptrCntx = 0;//point to a container for whatever devices~~~
 	private long[] ptrMatx = new long[16];//point to Mat, the first is source layer, the second is	
@@ -161,9 +160,9 @@ public abstract class CamBundle implements Gawain.EventHook {
 		return new Image(new ByteArrayInputStream(dat));
 	}
 	
-	private native byte[] getData(long ptr);
+	private native byte[] getData(long ptr);//this code are implemented in "utils_cv.cpp"
 	
-	public native void markData();
+	public native void markData();//this code are implemented in "utils_cv.cpp" 
 }
 
 

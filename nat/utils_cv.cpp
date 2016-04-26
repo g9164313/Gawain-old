@@ -1,4 +1,5 @@
 #include <global.hpp>
+#include <CamBundle.hpp>
 
 /*int IJIsoData(int[] data) {
 	// This is the original ImageJ IsoData implementation, here for backward compatibility.
@@ -303,7 +304,7 @@ void toColor(Mat& src,Mat& dst){
 
 extern "C" JNIEXPORT jbyteArray JNICALL Java_narl_itrc_CamBundle_getData(
 	JNIEnv* env,
-	jobject thiz,
+	jobject thiz /*this object is already 'CamBundle'*/,
 	jlong ptrMat
 ){
 	if(ptrMat==0L){
@@ -318,6 +319,64 @@ extern "C" JNIEXPORT jbyteArray JNICALL Java_narl_itrc_CamBundle_getData(
 	jbyteArray arrBuf = env->NewByteArray(buf.size());
 	env->SetByteArrayRegion(arrBuf,0,buf.size(),(jbyte*)&buf[0]);
 	return arrBuf;
+}
+
+extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamBundle_markData(
+	JNIEnv* env,
+	jobject thiz /*this object is already 'CamBundle'*/
+){
+	CamBundle* cam = getContext(env,thiz);
+	Mat* img = cam->getMat(1);
+	if(img==NULL){
+		return;
+	}
+
+	Scalar mark(5,240,240);
+
+	Point cc,tk;
+	cam->getCursor(&cc,&tk);
+	if(tk.x>=0 && tk.y>=0){
+		//draw line to present a prepared zone~~~
+		//cout<<"cursor="<<cc<<", tick="<<tk<<endl;
+		line(*img,cc,tk,mark);
+	}
+
+	//draw a cross to indicate cursor~~~
+	const int CROSS_SPACE=4;
+	Point cc0 = cc + Point(-CROSS_SPACE,-CROSS_SPACE);//left-top
+	Point cc1 = cc + Point( CROSS_SPACE,-CROSS_SPACE);//right-top
+	Point cc2 = cc + Point( CROSS_SPACE, CROSS_SPACE);//right-bottom
+	Point cc3 = cc + Point(-CROSS_SPACE, CROSS_SPACE);//left-bottom
+	line(*img,cc0,cc2,mark);
+	line(*img,cc1,cc3,mark);
+
+	//update pixel value~~~
+	switch(img->type()){
+	case CV_8UC1:{
+		uint8_t pix = img->at<uint8_t>(cc);
+		cam->setCursorValue(pix,pix,pix,pix);
+		}break;
+	case CV_8UC3:{
+		Vec3b pix = img->at<Vec3b>(cc);
+		cam->setCursorValue(pix[0],pix[1],pix[2],-1);
+		}break;
+	}
+
+	jintArray jarr;
+	jint* roival = intArray2Ptr(env,cam->clzz,thiz,"roiVal",jarr);
+	for(int i=0; i<ROI_SIZE; i++){
+		//check whether we need to mark ROI
+		int typ= roival[i*ROI_COLS+0];
+		if(typ==0){
+			continue;
+		}
+		int xx = roival[i*ROI_COLS+1];
+		int yy = roival[i*ROI_COLS+2];
+		int ww = roival[i*ROI_COLS+3];
+		int hh = roival[i*ROI_COLS+4];
+		rectangle(*img,Rect(xx,yy,ww,hh),Scalar(5,240,5));
+	}
+	env->ReleaseIntArrayElements(jarr,roival,0);
 }
 
 extern "C" JNIEXPORT void JNICALL Java_narl_itrc_Misc_namedWindow(

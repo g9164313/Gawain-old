@@ -26,11 +26,13 @@ public class ImgScreen extends ImageView implements
 	public ImgScreen(int width,int height){
 		setFitWidth(width);
 		setFitHeight(height);
-		//setPreserveRatio(true);
-		//addEventFilter(MouseEvent.MOVE,eventFilter);
+		//setPreserveRatio(true);//width is same as height
 		setOnMouseEntered(this);
 		setOnMouseExited(this);
-		setOnMouseMoved(this);		
+		setOnMouseMoved(this);
+		setOnDragDetected(this);
+		setOnMouseDragged(this);
+		setOnMouseReleased(this);
 	}
 
 	private ImgControl ctrl = null;
@@ -100,8 +102,6 @@ public class ImgScreen extends ImageView implements
 					}
 					setImage(img);
 				}
-				//stage.3 - we finish the job~~~
-				renderPlug.close();
 				return 0;
 			}
 		};
@@ -141,15 +141,30 @@ public class ImgScreen extends ImageView implements
 		//Do we need focus this control then got mouse-event??		
 		EventType<?> typ = e.getEventType();
 		
+		//Misc.logv("event="+typ.getName());
+		
 		if(typ==MouseEvent.MOUSE_ENTERED){
-			getScene().setCursor(Cursor.CROSSHAIR);
-		}else if(typ==MouseEvent.MOUSE_PRESSED){
 			
+			getScene().setCursor(Cursor.CROSSHAIR);
+		
+		}else if(typ==MouseEvent.DRAG_DETECTED){
+
+			renderPlug.setTick0();
+
 		}else if(typ==MouseEvent.MOUSE_MOVED){
+			
 			renderPlug.setCursor(e.getX(),e.getY());
+			
+		}else if(typ==MouseEvent.MOUSE_DRAGGED){
+			
+			renderPlug.setCursor(e.getX(),e.getY());
+			
 		}else if(typ==MouseEvent.MOUSE_RELEASED){
 			
+			renderPlug.setTick1(0,CamBundle.ROI_TYPE_RECT);
+			
 		}else if(typ==MouseEvent.MOUSE_EXITED){
+			
 			getScene().setCursor(Cursor.DEFAULT);
 		}
 	}

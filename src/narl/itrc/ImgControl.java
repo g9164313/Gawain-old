@@ -15,10 +15,9 @@ import javafx.scene.control.Control;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tab;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.Pane;
+
 import javafx.scene.layout.VBox;
 import javafx.stage.WindowEvent;
-
 
 public class ImgControl extends VBox {
 
@@ -144,7 +143,7 @@ public class ImgControl extends VBox {
 	private void initSwtPlayer(){
 		swtPlayer.set(false);
 		btnPlayer.setText("播放");
-		btnPlayer.setGraphic(Misc.getIcon("ic_pause_black_24dp_1x.png"));
+		btnPlayer.setGraphic(Misc.getIcon("ic_play_arrow_black_24dp_1x.png"));		
 	}
 	private EventHandler<ActionEvent> eventPlayer = new EventHandler<ActionEvent>(){
 		@Override
@@ -152,10 +151,10 @@ public class ImgControl extends VBox {
 			boolean flag = swtPlayer.get();
 			if(flag==false){
 				btnPlayer.setText("暫停");
-				btnPlayer.setGraphic(Misc.getIcon("ic_play_arrow_black_24dp_1x.png"));
+				btnPlayer.setGraphic(Misc.getIcon("ic_pause_black_24dp_1x.png"));
 			}else{
 				btnPlayer.setText("播放");
-				btnPlayer.setGraphic(Misc.getIcon("ic_pause_black_24dp_1x.png"));
+				btnPlayer.setGraphic(Misc.getIcon("ic_play_arrow_black_24dp_1x.png"));
 			}
 			swtPlayer.set(!flag);
 		}
