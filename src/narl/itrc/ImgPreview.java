@@ -55,7 +55,7 @@ public class ImgPreview extends BorderPane {
 		msgData = new Label[CamBundle.PR_SIZE];
 		for(int i=0; i<CamBundle.PR_SIZE; i++){
 			msgData[i] = new Label();
-			msgData[i].setOnMouseClicked(eventRemove);
+			msgData[i].setOnMouseClicked(eventCheckData);
 			msgData[i].setUserData(i);
 			lst0.add(msgData[i]);			
 		}
@@ -91,7 +91,7 @@ public class ImgPreview extends BorderPane {
 			@Override
 			public void handle(ActionEvent event) {
 				menu.setUserData(1);
-				screen.setOnMouseClicked(eventPin);				
+				screen.setOnMouseClicked(eventPreparePin);				
 			}
 		});
 		
@@ -101,9 +101,9 @@ public class ImgPreview extends BorderPane {
 			public void handle(ActionEvent event) {
 				//display all ROI values~~~
 				menu.setUserData(2);
-				screen.setOnDragDetected(eventROI);
-				screen.setOnMouseDragged(eventROI);
-				screen.setOnMouseReleased(eventROI);
+				screen.setOnDragDetected(eventPrepareROI);
+				screen.setOnMouseDragged(eventPrepareROI);
+				screen.setOnMouseReleased(eventPrepareROI);
 			}
 		});
 		
@@ -137,7 +137,7 @@ public class ImgPreview extends BorderPane {
 		menu.setUserData(0);//default, remember to keep this~~~
 	}
 	
-	private EventHandler<MouseEvent> eventPin = new EventHandler<MouseEvent>(){
+	private EventHandler<MouseEvent> eventPreparePin = new EventHandler<MouseEvent>(){
 		@Override
 		public void handle(MouseEvent e) {
 			if(renderTask==null){ return; }
@@ -154,23 +154,28 @@ public class ImgPreview extends BorderPane {
 		}
 	};
 
-	private EventHandler<MouseEvent> eventROI = new EventHandler<MouseEvent>(){
+	private EventHandler<MouseEvent> eventPrepareROI = new EventHandler<MouseEvent>(){
 		@Override
 		public void handle(MouseEvent e) {
 			if(renderTask==null){ return; }
 			EventType<?> typ = e.getEventType();
-			//Misc.logv("type="+typ.getName());
 			if(typ==MouseEvent.DRAG_DETECTED){
 				renderPlug.setROI(true,e.getX(),e.getY());
 			}else if(typ==MouseEvent.MOUSE_DRAGGED){
 				renderPlug.setROI(false,e.getX(),e.getY());
 			}else if(typ==MouseEvent.MOUSE_RELEASED){
-				renderPlug.fixROI(0,CamBundle.ROI_TYPE_RECT);
+				
+				int idx = 0;
+				for(int i=0; i<CamBundle.PR_SIZE; i++){
+					
+				}
+				
+				renderPlug.fixROI(idx,CamBundle.ROI_TYPE_RECT);
 			}
 		}
 	};
 	
-	private EventHandler<MouseEvent> eventRemove = new EventHandler<MouseEvent>(){
+	private EventHandler<MouseEvent> eventCheckData = new EventHandler<MouseEvent>(){
 		@Override
 		public void handle(MouseEvent event) {
 			int mIdx = (int)menu.getUserData();
@@ -180,6 +185,7 @@ public class ImgPreview extends BorderPane {
 				renderPlug.setPinPos(pIdx,-1.,-1.);
 				break;
 			case 2://ROI mode
+				renderPlug.delROI(pIdx);
 				break;
 			}
 		}
@@ -214,9 +220,9 @@ public class ImgPreview extends BorderPane {
 				}
 				break;
 			case 2://ROI mode
+				
 				break;
 			case 3://Snap a picture
-				
 				menu.setUserData(0);//go to default mode~~~
 				break;
 			}

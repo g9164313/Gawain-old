@@ -346,7 +346,7 @@ static Scalar markWheel[] = {
 	Scalar(0x8B,0x7D,0x60)
 };
 
-void DrawPinMark(Mat& img,Point& pp,Scalar& color){
+void drawMarkPin(Mat& img,Point& pp,Scalar& color){
 	//It must be a color-image!!!
 	const int CROSS_SPACE=4;
 	Vec3b org = img.at<Vec3b>(pp);
@@ -357,6 +357,17 @@ void DrawPinMark(Mat& img,Point& pp,Scalar& color){
 	line(img,cc0,cc1,color);
 	line(img,cc2,cc3,color);
 	img.at<Vec3b>(pp) = org;
+}
+
+void drawMarkCross(Mat& img,Point& pp,Scalar& color,int space=4){
+	//It must be a color-image!!!
+	Vec3b org = img.at<Vec3b>(pp);
+	Point cc0 = pp + Point(-space,-space);
+	Point cc1 = pp + Point( space,-space);
+	Point cc2 = pp + Point( space, space);
+	Point cc3 = pp + Point(-space, space);
+	line(img,cc0,cc2,color);
+	line(img,cc1,cc3,color);
 }
 
 static void markPinData(
@@ -387,7 +398,7 @@ static void markPinData(
 		pinVal[PIN_COLS*idx+3] = 0;
 		}break;
 	}
-	DrawPinMark(ova,cc,markWheel[(idx*PR_SIZE)%19]);
+	drawMarkPin(ova,cc,markWheel[(idx*PR_SIZE)%19]);
 }
 
 
@@ -397,15 +408,67 @@ static void markRoiData(
 	int idx,
 	int* roiPos,float* roiVal
 ){
-	if(roiPos[ROI_COLS*idx+0]==0){
+	int zoneType = roiPos[ROI_COLS*idx+0];
+	if(zoneType==0){
 		return;
 	}
-	Rect roi;
-	roi.x = roiPos[ROI_COLS*idx+1];
-	roi.y = roiPos[ROI_COLS*idx+2];
-	roi.width = roiPos[ROI_COLS*idx+3];
-	roi.height= roiPos[ROI_COLS*idx+4];
-	rectangle(ova,roi,markWheel[(idx*PR_SIZE)%19]);
+
+	Rect zone;
+	zone.x = roiPos[ROI_COLS*idx+1];
+	zone.y = roiPos[ROI_COLS*idx+2];
+	zone.width = roiPos[ROI_COLS*idx+3];
+	zone.height= roiPos[ROI_COLS*idx+4];
+
+	Point zone_c(
+		zone.x+zone.width/2,
+		zone.y+zone.height/2
+	);
+
+	Mat roi = src(zone);
+	Mat msk = Mat::zeros(roi.size(),CV_8UC1);
+
+	int shape =(zoneType&0x00F);
+	int stroke=(zoneType&0x0F0)>>4;
+	int chann =(zoneType&0xF00)>>8;
+
+	Scalar& clr = markWheel[(idx*PR_SIZE)%19];
+	switch(shape){
+	case 1:{//rectangle
+		Rect mask(0,0,msk.cols,msk.rows);
+		rectangle(msk,mask,Scalar::all(255),-1);
+		rectangle(ova,zone,clr);
+		if(stroke==0){
+			drawMarkCross(ova,zone_c,clr,10);
+		}else{
+			mask.x+=stroke;
+			mask.y+=stroke;
+			mask.width -=(2*stroke);
+			mask.height-=(2*stroke);
+			rectangle(msk,mask,Scalar::all(0),-1);
+		}
+		}break;
+	case 2:{//circle
+		Point mask_c(msk.cols/2,msk.rows/2);
+		int radius = std::min(msk.cols,msk.rows)/2;
+		circle(msk,mask_c,radius,Scalar::all(255),-1);
+		circle(ova,zone_c,radius,clr);
+		if(stroke==0){
+			drawMarkCross(ova,zone_c,clr,10);
+		}else{
+			radius -= stroke;
+			circle(msk,mask_c,radius,Scalar::all(0),-1);
+		}
+		}break;
+	}
+
+	Scalar avg,dev;
+	meanStdDev(roi,avg,dev,msk);
+	switch(src.type()){
+	case CV_8UC1:
+		break;
+	case CV_8UC3:
+		break;
+	}
 }
 
 extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamBundle_markData(

@@ -52,7 +52,7 @@ public abstract class CamBundle implements Gawain.EventHook {
 	private int[]   pinPos = new int[2*PR_SIZE];//just a euler coordinates
 	private float[] pinVal = new float[PIN_COLS*PR_SIZE];//support maximum 4-channel
 	private int[]   roiTmp = new int[2*2];//current and diagonal position~~ 
-	private int[]   roiPos = new int[ROI_COLS*PR_SIZE];//[type,x,y,width,height,reserve]	
+	private int[]   roiPos = new int[ROI_COLS*PR_SIZE];//[type(4-bit),x,y,width,height,reserve]	
 	private float[] roiVal = new float[ROI_COLS*PR_SIZE];//[average,deviation,minimum,maximum,mode,???]
 	
 	public native void markData();//this code are implemented in "utils_cv.cpp" 
@@ -92,7 +92,7 @@ public abstract class CamBundle implements Gawain.EventHook {
 	}
 	
 	public void setROI(boolean detect,double pos_x, double pos_y){
-		if(0<=pos_x && pos_x<infoWidth ){			
+		if(0<=pos_x && pos_x<infoWidth){			
 			roiTmp[0] = (int)pos_x;
 		}else{
 			roiTmp[0] = 0;
@@ -107,7 +107,7 @@ public abstract class CamBundle implements Gawain.EventHook {
 			roiTmp[3] = roiTmp[1];
 		}
 	}
-	
+
 	public void fixROI(int roiIdx,int roiType){
 		int lf,rh,tp,bm;
 		if(roiTmp[0]<roiTmp[2]){
@@ -131,6 +131,10 @@ public abstract class CamBundle implements Gawain.EventHook {
 		roiPos[roiIdx*ROI_COLS + 4] = bm - tp;
 		//Misc.logv("ROI%d=(%d,%d)@%dx%d",roiIdx,lf,tp,rh - lf,bm - tp);
 		roiTmp[0] = roiTmp[1] = roiTmp[2] = roiTmp[3] = -1;
+	}
+	
+	public void delROI(int roiIdx){
+		roiPos[roiIdx*ROI_COLS + 0] = ROI_TYPE_NONE;
 	}
 	//-------------------------//
 	
