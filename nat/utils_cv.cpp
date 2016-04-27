@@ -321,11 +321,29 @@ extern "C" JNIEXPORT jbyteArray JNICALL Java_narl_itrc_CamBundle_getData(
 	return arrBuf;
 }
 
-static Scalar clrMark[] = {
-	Scalar(  5,240,240),
-	Scalar(  5,  5,240),
-	Scalar(  5,240,  5),
-	Scalar(240,  5,  5),
+
+static Scalar markStroke(0x05,0xF0,0xF0);
+
+static Scalar markWheel[] = {
+	Scalar(0x36,0x43,0xF4),
+	Scalar(0x63,0x1E,0xE9),
+	Scalar(0xB0,0x27,0x9C),
+	Scalar(0xB7,0x3A,0x67),
+	Scalar(0xB5,0x51,0x3F),
+	Scalar(0xF3,0x96,0x21),
+	Scalar(0xF4,0xA9,0x03),
+	Scalar(0xD4,0xBC,0x00),
+	Scalar(0x88,0x96,0x00),
+	Scalar(0x50,0xAF,0x4C),
+	Scalar(0x4A,0xC3,0x8B),
+	Scalar(0x39,0xDC,0xCD),
+	Scalar(0x3B,0xEB,0xFF),
+	Scalar(0x07,0xC1,0xFF),
+	Scalar(0x00,0x98,0xFF),
+	Scalar(0x22,0x57,0xFF),
+	Scalar(0x48,0x55,0x79),
+	Scalar(0x9E,0x9E,0x9E),
+	Scalar(0x8B,0x7D,0x60)
 };
 
 void DrawPinMark(Mat& img,Point& pp,Scalar& color){
@@ -341,6 +359,55 @@ void DrawPinMark(Mat& img,Point& pp,Scalar& color){
 	img.at<Vec3b>(pp) = org;
 }
 
+static void markPinData(
+	Mat& src,
+	Mat& ova,
+	int idx,
+	int* pinPos,float* pinVal
+){
+	Point cc;
+	cc.x = pinPos[2*idx+0];
+	cc.y = pinPos[2*idx+1];
+	if(cc.x<0 || cc.y<0){
+		return;
+	}
+	switch(src.type()){
+	case CV_8UC1:{
+		uint8_t pix = ova.at<uint8_t>(cc);
+		pinVal[PIN_COLS*idx+0] = pix;
+		pinVal[PIN_COLS*idx+1] = pix;
+		pinVal[PIN_COLS*idx+2] = pix;
+		pinVal[PIN_COLS*idx+3] = pix;
+		}break;
+	case CV_8UC3:{
+		Vec3b pix = ova.at<Vec3b>(cc);
+		pinVal[PIN_COLS*idx+0] = pix[0];
+		pinVal[PIN_COLS*idx+1] = pix[1];
+		pinVal[PIN_COLS*idx+2] = pix[2];
+		pinVal[PIN_COLS*idx+3] = 0;
+		}break;
+	}
+	DrawPinMark(ova,cc,markWheel[(idx*PR_SIZE)%19]);
+}
+
+
+static void markRoiData(
+	Mat& src,
+	Mat& ova,
+	int idx,
+	int* roiPos,float* roiVal
+){
+	if(roiPos[ROI_COLS*idx+0]==0){
+		return;
+	}
+	Rect roi;
+	roi.x = roiPos[ROI_COLS*idx+1];
+	roi.y = roiPos[ROI_COLS*idx+2];
+	roi.width = roiPos[ROI_COLS*idx+3];
+	roi.height= roiPos[ROI_COLS*idx+4];
+	rectangle(ova,roi,markWheel[(idx*PR_SIZE)%19]);
+}
+
 extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamBundle_markData(
 	JNIEnv* env,
 	jobject thiz /*this object is already 'CamBundle'*/
@@ -354,54 +421,37 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamBundle_markData(
 	Mat& ova = *_ova;
 	Mat& src = *_src;
 
-	jintArray jintArr;
-	jfloatArray jfloatArr;
+	jintArray jintArr0,jintArr1;
+	jfloatArray jfloatArr0,jfloatArr1;
 
-	jint*   pinPos = intArray2Ptr(env,cam->clzz,thiz,"pinPos",jintArr);
-	jfloat* pinVal = floatArray2Ptr(env,cam->clzz,thiz,"pinVal",jfloatArr);
+	jint*   pinPos = intArray2Ptr(env,cam->clzz,thiz,"pinPos",jintArr0);
+	jfloat* pinVal = floatArray2Ptr(env,cam->clzz,thiz,"pinVal",jfloatArr0);
+
+	jint*   roiPos = intArray2Ptr(env,cam->clzz,thiz,"roiPos",jintArr1);
+	jfloat* roiVal = floatArray2Ptr(env,cam->clzz,thiz,"roiVal",jfloatArr1);
+
 	for(int i=0; i<PR_SIZE; i++){
-		Point cc;
-		cc.x = pinPos[2*i+0];
-		cc.y = pinPos[2*i+1];
-		if(cc.x<0 || cc.y<0){
-			continue;
-		}
-		switch(src.type()){
-		case CV_8UC1:{
-			uint8_t pix = ova.at<uint8_t>(cc);
-			pinVal[PIN_COLS*i+0] = pix;
-			pinVal[PIN_COLS*i+1] = pix;
-			pinVal[PIN_COLS*i+2] = pix;
-			pinVal[PIN_COLS*i+3] = pix;
-			}break;
-		case CV_8UC3:{
-			Vec3b pix = ova.at<Vec3b>(cc);
-			pinVal[PIN_COLS*i+0] = pix[0];
-			pinVal[PIN_COLS*i+1] = pix[1];
-			pinVal[PIN_COLS*i+2] = pix[2];
-			pinVal[PIN_COLS*i+3] = 0;
-			}break;
-		}
-		DrawPinMark(ova,cc,clrMark[i]);
+		markPinData(src,ova,i,pinPos,pinVal);
+		markRoiData(src,ova,i,roiPos,roiVal);
 	}
-	env->ReleaseIntArrayElements(jintArr,pinPos,0);
-	env->ReleaseFloatArrayElements(jfloatArr,pinVal,0);
 
-	/*jintArray jarr;
-	jint* roival = intArray2Ptr(env,cam->clzz,thiz,"roiVal",jarr);
-	for(int i=0; i<ROI_SIZE; i++){
-		//check whether we need to mark ROI
-		int typ= roival[i*ROI_COLS+0];
-		if(typ==0){
-			continue;
-		}
-		int xx = roival[i*ROI_COLS+1];
-		int yy = roival[i*ROI_COLS+2];
-		int ww = roival[i*ROI_COLS+3];
-		int hh = roival[i*ROI_COLS+4];
-		rectangle(*img,Rect(xx,yy,ww,hh),Scalar(5,240,5));
+	env->ReleaseIntArrayElements(jintArr0,pinPos,0);
+	env->ReleaseFloatArrayElements(jfloatArr0,pinVal,0);
+
+	env->ReleaseIntArrayElements(jintArr1,roiPos,0);
+	env->ReleaseFloatArrayElements(jfloatArr1,roiVal,0);
+
+	jint* roiTmp = intArray2Ptr(env,cam->clzz,thiz,"roiTmp",jintArr0);
+	if(roiTmp[0]>=0 && roiTmp[1]>=0){
+		Point c0,c1;
+		c0.x = roiTmp[0];
+		c0.y = roiTmp[1];
+		c1.x = roiTmp[2];
+		c1.y = roiTmp[3];
+		line(ova,c0,c1,markStroke);
+		circle(ova,c1,4,markStroke);
 	}
-	env->ReleaseIntArrayElements(jarr,roival,0);*/
+	env->ReleaseIntArrayElements(jintArr0,roiTmp,0);
 }
 
 extern "C" JNIEXPORT void JNICALL Java_narl_itrc_Misc_namedWindow(

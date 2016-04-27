@@ -52,12 +52,23 @@ public abstract class CamBundle implements Gawain.EventHook {
 	private int[]   pinPos = new int[2*PR_SIZE];//just a euler coordinates
 	private float[] pinVal = new float[PIN_COLS*PR_SIZE];//support maximum 4-channel
 	private int[]   roiTmp = new int[2*2];//current and diagonal position~~ 
-	private int[]   roiPos = new int[ROI_COLS*PR_SIZE];//[type(1),x,y,width,height,reserve(1)]	
+	private int[]   roiPos = new int[ROI_COLS*PR_SIZE];//[type,x,y,width,height,reserve]	
+	private float[] roiVal = new float[ROI_COLS*PR_SIZE];//[average,deviation,minimum,maximum,mode,???]
 	
 	public native void markData();//this code are implemented in "utils_cv.cpp" 
 	
+	public void getPinPos(int pinIdx,int[] pos){
+		if(pinIdx>=PR_SIZE){ 
+			pos[0] = pos[1] = -1;
+			return;
+		}
+		pos[0] = pinPos[2*pinIdx+0];
+		pos[1] = pinPos[2*pinIdx+1];
+	}
 	public void setPinPos(int pinIdx,double pos_x, double pos_y){
-		if(pinIdx>=PR_SIZE){ return; }
+		if(pinIdx>=PR_SIZE){ 
+			return;
+		}
 		pinPos[2*pinIdx+0] = (int)pos_x;
 		pinPos[2*pinIdx+1] = (int)pos_y;
 	}

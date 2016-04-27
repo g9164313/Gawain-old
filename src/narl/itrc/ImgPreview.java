@@ -55,7 +55,9 @@ public class ImgPreview extends BorderPane {
 		msgData = new Label[CamBundle.PR_SIZE];
 		for(int i=0; i<CamBundle.PR_SIZE; i++){
 			msgData[i] = new Label();
-			lst0.add(msgData[i]);
+			msgData[i].setOnMouseClicked(eventRemove);
+			msgData[i].setUserData(i);
+			lst0.add(msgData[i]);			
 		}
 		
 		ScrollPane pan1 = new ScrollPane();
@@ -103,8 +105,35 @@ public class ImgPreview extends BorderPane {
 				screen.setOnMouseDragged(eventROI);
 				screen.setOnMouseReleased(eventROI);
 			}
-		});		
-		menu.getItems().addAll(itm0,itm1,itm2);
+		});
+		
+		MenuItem itm3 = new MenuItem("Snap");
+		itm3.setOnAction(new EventHandler<ActionEvent>(){
+			@Override
+			public void handle(ActionEvent event) {
+				menu.setUserData(3);
+			}
+		});
+		
+		final String TXT_RECORD_START = "Record";
+		final String TXT_RECORD_PAUSE = "[Pause]";
+		MenuItem itm4 = new MenuItem(TXT_RECORD_START);
+		itm4.setOnAction(new EventHandler<ActionEvent>(){
+			@Override
+			public void handle(ActionEvent event) {
+				//display all ROI values~~~
+				menu.setUserData(4);
+				String txt = itm4.getText();
+				if(txt.equalsIgnoreCase(TXT_RECORD_START)==true){
+					//start to record~~~~
+					itm4.setText(TXT_RECORD_PAUSE);					
+				}else{
+					itm4.setText(TXT_RECORD_START);
+				}				
+			}
+		});
+		
+		menu.getItems().addAll(itm0,itm1,itm2,itm3,itm4);
 		menu.setUserData(0);//default, remember to keep this~~~
 	}
 	
@@ -112,10 +141,19 @@ public class ImgPreview extends BorderPane {
 		@Override
 		public void handle(MouseEvent e) {
 			if(renderTask==null){ return; }
-			renderPlug.setPinPos(0, e.getX(), e.getY());
+			int idx = 0;
+			for(int i=0; i<CamBundle.PR_SIZE; i++){
+				int[] pos = {0,0};
+				renderPlug.getPinPos(i,pos);
+				if(pos[0]<0 && pos[1]<0){
+					idx = i;
+					break;
+				}
+			}
+			renderPlug.setPinPos(idx, e.getX(), e.getY());
 		}
 	};
-	
+
 	private EventHandler<MouseEvent> eventROI = new EventHandler<MouseEvent>(){
 		@Override
 		public void handle(MouseEvent e) {
@@ -131,7 +169,23 @@ public class ImgPreview extends BorderPane {
 			}
 		}
 	};
-
+	
+	private EventHandler<MouseEvent> eventRemove = new EventHandler<MouseEvent>(){
+		@Override
+		public void handle(MouseEvent event) {
+			int mIdx = (int)menu.getUserData();
+			int pIdx = (int)((Label)event.getSource()).getUserData();
+			switch(mIdx){
+			case 1://PIN mode
+				renderPlug.setPinPos(pIdx,-1.,-1.);
+				break;
+			case 2://ROI mode
+				break;
+			}
+		}
+	};
+	//---------------------//
+	
 	private EventHandler<WorkerStateEvent> eventStart = 
 		new EventHandler<WorkerStateEvent>()
 	{
@@ -152,14 +206,18 @@ public class ImgPreview extends BorderPane {
 			if(renderBuff==null){
 				return;
 			}			
-			int menuIdx = (int)menu.getUserData();
-			switch(menuIdx){
+			int mIdx = (int)menu.getUserData();
+			switch(mIdx){
 			case 1://PIN mode
 				for(int i=0; i<CamBundle.PR_SIZE; i++){
 					msgData[i].textProperty().set(renderPlug.getPinVal(i));
 				}
 				break;
 			case 2://ROI mode
+				break;
+			case 3://Snap a picture
+				
+				menu.setUserData(0);//go to default mode~~~
 				break;
 			}
 			screen.setImage(renderBuff);
@@ -205,11 +263,11 @@ public class ImgPreview extends BorderPane {
 
 				//stage.2 - continue to grab image from camera			
 				while(isCancelled()==false){
-					if(renderPlug.optEnbl.get()==false){
-						return -2;//always check property
-					}
 					if(Application.GetApplication()==null){						
 						return 1;//Platform is shutdown
+					}
+					if(renderPlug.optEnbl.get()==false){
+						return -2;//always check property
 					}
 					if(ctrl!=null){
 						if(ctrl.swtPlayer.get()==false){

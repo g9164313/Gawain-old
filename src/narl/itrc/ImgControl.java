@@ -24,35 +24,6 @@ public class ImgControl extends VBox {
 	private final int DEF_TYPE = 0;
 	private final int DEF_INDX = 0;
 	
-	private class BtnPanROI extends BtnPanel{
-		public Label txtMsgPoint = new Label();		
-		public BtnPanROI(){
-			super("設定ROI");
-		}
-		private Control layoutRoi(){
-			JFXTabPane pan = new JFXTabPane();
-			for(int i=0; i<CamBundle.PR_SIZE; i++){
-				Tab tab = new Tab("ROI"+i);
-				tab.setContent(new Label("Content"));
-				pan.getTabs().add(tab);
-			}
-			return pan;
-		}		
-		@Override
-		Parent eventLayout() {
-			BorderPane root = new BorderPane();
-			root.setCenter(layoutRoi());
-			root.setBottom(txtMsgPoint);
-			return root;
-		}
-		@Override
-		void eventShown(WindowEvent event) {
-		}
-		@Override
-		void eventClose(WindowEvent event) {
-		}
-	};
-	
 	private ImgPreview scrn = null;
 
 	public JFXComboBox<String> lstType = new JFXComboBox<String>();
@@ -60,8 +31,7 @@ public class ImgControl extends VBox {
 	public OnOffSwitch swtEnable = new OnOffSwitch();
 	public JFXButton btnConfig = new JFXButton("設定相機");
 	public JFXButton btnPlayer = new JFXButton();
-	public BtnPanROI btnPanROI = new BtnPanROI();
-	
+
 	private VBox lay0 = new VBox();
 	private VBox lay1 = new VBox();
 	
@@ -88,6 +58,7 @@ public class ImgControl extends VBox {
 		lay1.disableProperty().bind(swtEnable.selectedProperty().not());
 		
 		btnConfig.getStyleClass().add("btn-raised");
+		btnConfig.setGraphic(Misc.getIcon("ic_build_black_24dp_1x.png"));
 		btnConfig.setMaxWidth(Double.MAX_VALUE);
 		
 		btnPlayer.getStyleClass().add("btn-raised");
@@ -95,7 +66,7 @@ public class ImgControl extends VBox {
 		btnPlayer.setMaxWidth(Double.MAX_VALUE);
 		initSwtPlayer();
 		
-		lay1.getChildren().addAll(btnConfig,btnPlayer,btnPanROI);
+		lay1.getChildren().addAll(btnPlayer,btnConfig);
 		//------------------------//
 		getChildren().addAll(lay0,lay1);
 	}

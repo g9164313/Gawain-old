@@ -64,11 +64,11 @@ public:
 	}
 
 	~CamBundle(){
+		delete[] matImage;
 		if(env==NULL){
 			return;
 		}
 		env->SetLongField(thiz,idPtrCntx,0);
-		delete[] matImage;
 	}
 
 	void updateOptEnbl(bool flag){
