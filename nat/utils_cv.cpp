@@ -321,48 +321,73 @@ extern "C" JNIEXPORT jbyteArray JNICALL Java_narl_itrc_CamBundle_getData(
 	return arrBuf;
 }
 
+static Scalar clrMark[] = {
+	Scalar(  5,240,240),
+	Scalar(  5,  5,240),
+	Scalar(  5,240,  5),
+	Scalar(240,  5,  5),
+};
+
+void DrawPinMark(Mat& img,Point& pp,Scalar& color){
+	//It must be a color-image!!!
+	const int CROSS_SPACE=4;
+	Vec3b org = img.at<Vec3b>(pp);
+	Point cc0 = pp + Point(-CROSS_SPACE,0);
+	Point cc1 = pp + Point( CROSS_SPACE,0);
+	Point cc2 = pp + Point(0, CROSS_SPACE);
+	Point cc3 = pp + Point(0,-CROSS_SPACE);
+	line(img,cc0,cc1,color);
+	line(img,cc2,cc3,color);
+	img.at<Vec3b>(pp) = org;
+}
+
 extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamBundle_markData(
 	JNIEnv* env,
 	jobject thiz /*this object is already 'CamBundle'*/
 ){
 	CamBundle* cam = getContext(env,thiz);
-	Mat* img = cam->getMat(1);
-	if(img==NULL){
+	Mat* _src = cam->getMat(0);
+	Mat* _ova = cam->getMat(1);
+	if(_ova==NULL){
 		return;
 	}
+	Mat& ova = *_ova;
+	Mat& src = *_src;
 
-	Scalar mark(5,240,240);
+	jintArray jintArr;
+	jfloatArray jfloatArr;
 
-	Point cc,tk;
-	cam->getCursor(&cc,&tk);
-	if(tk.x>=0 && tk.y>=0){
-		//draw line to present a prepared zone~~~
-		//cout<<"cursor="<<cc<<", tick="<<tk<<endl;
-		line(*img,cc,tk,mark);
+	jint*   pinPos = intArray2Ptr(env,cam->clzz,thiz,"pinPos",jintArr);
+	jfloat* pinVal = floatArray2Ptr(env,cam->clzz,thiz,"pinVal",jfloatArr);
+	for(int i=0; i<PR_SIZE; i++){
+		Point cc;
+		cc.x = pinPos[2*i+0];
+		cc.y = pinPos[2*i+1];
+		if(cc.x<0 || cc.y<0){
+			continue;
+		}
+		switch(src.type()){
+		case CV_8UC1:{
+			uint8_t pix = ova.at<uint8_t>(cc);
+			pinVal[PIN_COLS*i+0] = pix;
+			pinVal[PIN_COLS*i+1] = pix;
+			pinVal[PIN_COLS*i+2] = pix;
+			pinVal[PIN_COLS*i+3] = pix;
+			}break;
+		case CV_8UC3:{
+			Vec3b pix = ova.at<Vec3b>(cc);
+			pinVal[PIN_COLS*i+0] = pix[0];
+			pinVal[PIN_COLS*i+1] = pix[1];
+			pinVal[PIN_COLS*i+2] = pix[2];
+			pinVal[PIN_COLS*i+3] = 0;
+			}break;
+		}
+		DrawPinMark(ova,cc,clrMark[i]);
 	}
+	env->ReleaseIntArrayElements(jintArr,pinPos,0);
+	env->ReleaseFloatArrayElements(jfloatArr,pinVal,0);
 
-	//draw a cross to indicate cursor~~~
-	const int CROSS_SPACE=4;
-	Point cc0 = cc + Point(-CROSS_SPACE,-CROSS_SPACE);//left-top
-	Point cc1 = cc + Point( CROSS_SPACE,-CROSS_SPACE);//right-top
-	Point cc2 = cc + Point( CROSS_SPACE, CROSS_SPACE);//right-bottom
-	Point cc3 = cc + Point(-CROSS_SPACE, CROSS_SPACE);//left-bottom
-	line(*img,cc0,cc2,mark);
-	line(*img,cc1,cc3,mark);
-
-	//update pixel value~~~
-	switch(img->type()){
-	case CV_8UC1:{
-		uint8_t pix = img->at<uint8_t>(cc);
-		cam->setCursorValue(pix,pix,pix,pix);
-		}break;
-	case CV_8UC3:{
-		Vec3b pix = img->at<Vec3b>(cc);
-		cam->setCursorValue(pix[0],pix[1],pix[2],-1);
-		}break;
-	}
-
-	jintArray jarr;
+	/*jintArray jarr;
 	jint* roival = intArray2Ptr(env,cam->clzz,thiz,"roiVal",jarr);
 	for(int i=0; i<ROI_SIZE; i++){
 		//check whether we need to mark ROI
@@ -376,7 +401,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamBundle_markData(
 		int hh = roival[i*ROI_COLS+4];
 		rectangle(*img,Rect(xx,yy,ww,hh),Scalar(5,240,5));
 	}
-	env->ReleaseIntArrayElements(jarr,roival,0);
+	env->ReleaseIntArrayElements(jarr,roival,0);*/
 }
 
 extern "C" JNIEXPORT void JNICALL Java_narl_itrc_Misc_namedWindow(

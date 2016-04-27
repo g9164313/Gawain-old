@@ -287,6 +287,7 @@ public class Gawain extends Application {
 		//liceBind();//check dark license~~~
 		launch(argv);//deprecate: startSWT();
 		propSave();
+
 		for(EventHook h:hook){ 
 			h.shutdown();//release everything~~~
 		}

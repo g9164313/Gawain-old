@@ -31,7 +31,7 @@ public class ImgControl extends VBox {
 		}
 		private Control layoutRoi(){
 			JFXTabPane pan = new JFXTabPane();
-			for(int i=0; i<CamBundle.ROI_SIZE; i++){
+			for(int i=0; i<CamBundle.PR_SIZE; i++){
 				Tab tab = new Tab("ROI"+i);
 				tab.setContent(new Label("Content"));
 				pan.getTabs().add(tab);
@@ -55,7 +55,6 @@ public class ImgControl extends VBox {
 	
 	private ImgPreview scrn = null;
 
-	public Label txtMsgLast = new Label();
 	public JFXComboBox<String> lstType = new JFXComboBox<String>();
 	public JFXComboBox<String> lstIndx = new JFXComboBox<String>();
 	public OnOffSwitch swtEnable = new OnOffSwitch();
@@ -71,9 +70,6 @@ public class ImgControl extends VBox {
 		
 		lay0.getStyleClass().add("hbox-small");
 		
-		txtMsgLast.setText("無資訊");
-		txtMsgLast.setMaxWidth(Double.MAX_VALUE);
-		
 		lstType.getItems().addAll("Vidcap","Pylon","Ebus","Muticam");
 		lstType.getSelectionModel().select(DEF_TYPE);
 		lstType.setMaxWidth(Double.MAX_VALUE);
@@ -86,7 +82,7 @@ public class ImgControl extends VBox {
 		swtEnable.setOnSelect(eventSwitch);
 		swtEnable.setOnDeselect(eventSwitch);
 		
-		lay0.getChildren().addAll(txtMsgLast,lstType,lstIndx,swtEnable);
+		lay0.getChildren().addAll(lstType,lstIndx,swtEnable);
 		//------------------------//
 		lay1.getStyleClass().add("hbox-small");
 		lay1.disableProperty().bind(swtEnable.selectedProperty().not());
@@ -119,7 +115,7 @@ public class ImgControl extends VBox {
 				return;
 			}
 			if(swtEnable.selectedProperty().get()==true){
-				scrn.camIdx = lstIndx.getSelectionModel().getSelectedIndex() - 1;
+				scrn.camIndx = lstIndx.getSelectionModel().getSelectedIndex() - 1;
 				CamBundle cam = null;
 				int typ = lstType.getSelectionModel().getSelectedIndex();
 				switch(typ){
@@ -130,11 +126,9 @@ public class ImgControl extends VBox {
 				}
 				initSwtPlayer();				
 				scrn.bindCamera(cam);
-				txtMsgLast.textProperty().bind(cam.msgLast);
 			}else{
 				initSwtPlayer();
 				scrn.unbind();
-				txtMsgLast.textProperty().unbind();
 			}
 		}
 	};

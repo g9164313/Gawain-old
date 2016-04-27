@@ -23,8 +23,13 @@
 }
 
 .hbox-small, .vbox-small{
-    -fx-padding: 7;
-    -fx-spacing: 13;
+    -fx-padding: 7.0;
+    -fx-spacing: 13.0;
+}
+
+.flow-small {
+    -fx-hgap: 13.0;
+    -fx-vgap: 13.0;
 }
 
 .grid-small{

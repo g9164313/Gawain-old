@@ -1,104 +1,191 @@
 package narl.itrc;
 
-import com.jfoenix.controls.JFXSlider;
 import com.sun.glass.ui.Application;
 
+import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.concurrent.WorkerStateEvent;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.event.EventType;
-import javafx.geometry.Orientation;
-import javafx.scene.Cursor;
+import javafx.scene.Node;
+import javafx.scene.control.ContextMenu;
+import javafx.scene.control.Label;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.FlowPane;
 
-public class ImgPreview extends AnchorPane implements 
-	EventHandler<MouseEvent>
-{
-	public ImageView screen = new ImageView();
+public class ImgPreview extends BorderPane {
 	
-	public JFXSlider[] scroll = {
-		new JFXSlider(),
-		new JFXSlider()
-	};
-	
-	public PinSelect fashion = new PinSelect(
-		"None",
-		"Tick mode",
-		"ROI mode"
-	){
+	private static final int DEF_WIDTH =800;
+	private static final int DEF_HEIGHT=600;
 
-		
-	};
-	
 	public ImgPreview(){
-		this(640,480);
+		this(DEF_WIDTH,DEF_HEIGHT);
 	}
 	
 	public ImgPreview(ImgControl control){		
-		this(640,480);
+		this(DEF_WIDTH,DEF_HEIGHT);
 		ctrl = control;
 	}
-	
-	public ImgPreview(int width,int height){
-		
-		setPrefSize(width, height);
-		setLeftAnchor(screen,0.);
-		setTopAnchor(screen,0.);
-		setBottomAnchor(fashion,0.);
-		setRightAnchor(fashion,0.);
-		setBottomAnchor(scroll[0],0.);
-		setRightAnchor(scroll[1],0.);
-		getChildren().addAll(screen,fashion,scroll[0],scroll[1]);
-		
-		//setPreserveRatio(true);//width is same as height
-		//screen.setFitWidth(width);
-		//screen.setFitHeight(height);	
-		screen.setOnMouseEntered(this);
-		screen.setOnMouseExited(this);
-		//screen.setOnMouseMoved(this);
-		screen.setOnDragDetected(this);
-		screen.setOnMouseDragged(this);
-		screen.setOnMouseReleased(this);
 
-		scroll[0].setOrientation(Orientation.HORIZONTAL);
-		scroll[0].prefWidthProperty().bind(prefWidthProperty().subtract(fashion.prefWidthProperty()));
-		
-		scroll[1].setOrientation(Orientation.VERTICAL);
-		scroll[1].prefHeightProperty().bind(prefHeightProperty().subtract(fashion.prefHeight(width)));
+	public ImgPreview(int width,int height){
+		initMenu();
+		initBoard(width,height);
 	}
 
-	private ImgControl ctrl = null;
+	public ImageView screen = new ImageView();
+	public Label msgLast = new Label();
+	public Label msgInfo = new Label();
+	public Label[] msgData;
+	private ContextMenu menu = new ContextMenu();
 	
-	public int camIdx = 0;
+	private void initBoard(int width,int height){
+		
+		FlowPane pan0 = new FlowPane();
+		
+		pan0.getStyleClass().add("flow-small");
+		
+		ObservableList<Node> lst0 = pan0.getChildren();
+		lst0.addAll(msgLast,msgInfo);
+		msgData = new Label[CamBundle.PR_SIZE];
+		for(int i=0; i<CamBundle.PR_SIZE; i++){
+			msgData[i] = new Label();
+			lst0.add(msgData[i]);
+		}
+		
+		ScrollPane pan1 = new ScrollPane();
+		pan1.setPrefSize(width, height);
+		pan1.setContent(screen);
+		pan1.setContextMenu(menu);
+		
+		setTop(pan0);
+		setCenter(pan1);
+	}
+	
+	private void initMenu(){
+		MenuItem itm0 = new MenuItem("None");//reset all hook~~~
+		itm0.setOnAction(new EventHandler<ActionEvent>(){
+			@Override
+			public void handle(ActionEvent event) {
+				//display all pin value~~~
+				menu.setUserData(0);
+				screen.setOnMouseClicked(null);
+				screen.setOnDragDetected(null);
+				screen.setOnMouseDragged(null);
+				screen.setOnMouseReleased(null);
+				for(Label txt:msgData){
+					txt.textProperty().set("");
+				}
+			}
+		});
+		
+		MenuItem itm1 = new MenuItem("Pin Mode");
+		itm1.setOnAction(new EventHandler<ActionEvent>(){
+			@Override
+			public void handle(ActionEvent event) {
+				menu.setUserData(1);
+				screen.setOnMouseClicked(eventPin);				
+			}
+		});
+		
+		MenuItem itm2 = new MenuItem("ROI Mode");
+		itm2.setOnAction(new EventHandler<ActionEvent>(){
+			@Override
+			public void handle(ActionEvent event) {
+				//display all ROI values~~~
+				menu.setUserData(2);
+				screen.setOnDragDetected(eventROI);
+				screen.setOnMouseDragged(eventROI);
+				screen.setOnMouseReleased(eventROI);
+			}
+		});		
+		menu.getItems().addAll(itm0,itm1,itm2);
+		menu.setUserData(0);//default, remember to keep this~~~
+	}
+	
+	private EventHandler<MouseEvent> eventPin = new EventHandler<MouseEvent>(){
+		@Override
+		public void handle(MouseEvent e) {
+			if(renderTask==null){ return; }
+			renderPlug.setPinPos(0, e.getX(), e.getY());
+		}
+	};
+	
+	private EventHandler<MouseEvent> eventROI = new EventHandler<MouseEvent>(){
+		@Override
+		public void handle(MouseEvent e) {
+			if(renderTask==null){ return; }
+			EventType<?> typ = e.getEventType();
+			//Misc.logv("type="+typ.getName());
+			if(typ==MouseEvent.DRAG_DETECTED){
+				renderPlug.setROI(true,e.getX(),e.getY());
+			}else if(typ==MouseEvent.MOUSE_DRAGGED){
+				renderPlug.setROI(false,e.getX(),e.getY());
+			}else if(typ==MouseEvent.MOUSE_RELEASED){
+				renderPlug.fixROI(0,CamBundle.ROI_TYPE_RECT);
+			}
+		}
+	};
+
+	private EventHandler<WorkerStateEvent> eventStart = 
+		new EventHandler<WorkerStateEvent>()
+	{
+		@Override
+		public void handle(WorkerStateEvent event) {
+			//bind every information!!!!
+			if(renderPlug==null){
+				return;
+			}
+			msgLast.textProperty().bind(renderPlug.msgLast);
+		}
+	};
+	
+	private Image renderBuff = null;
+	private Runnable eventUpdate = new Runnable(){
+		@Override
+		public void run() {
+			if(renderBuff==null){
+				return;
+			}			
+			int menuIdx = (int)menu.getUserData();
+			switch(menuIdx){
+			case 1://PIN mode
+				for(int i=0; i<CamBundle.PR_SIZE; i++){
+					msgData[i].textProperty().set(renderPlug.getPinVal(i));
+				}
+				break;
+			case 2://ROI mode
+				break;
+			}
+			screen.setImage(renderBuff);
+		}
+	};
+	
+	private EventHandler<WorkerStateEvent> eventFinal = 
+		new EventHandler<WorkerStateEvent>()
+	{
+		@Override
+		public void handle(WorkerStateEvent event) {
+			if(renderPlug==null){
+				return;
+			}
+			//When we cancel thread, it will drop from the execution pool.			
+			renderPlug.close();
+			msgLast.textProperty().unbind();
+		}
+	};
+	
+	public int camIndx = 0;
 	public String camConf = null;
 
 	private CamBundle renderPlug;
 	private Task<Integer> renderTask;
-	
-	private void swtEnable(boolean flag){
-		if(ctrl!=null){
-			return;
-		}
-		Application.invokeAndWait(new Runnable(){
-			@Override
-			public void run() {
-				ctrl.swtEnable.selectedProperty().set(flag);
-			}		
-		});
-	}
-	
-	public void bindControl(ImgControl control){
-		if(ctrl!=null){
-			return;
-		}
-		ctrl = control;
-		ctrl.bindScreen(this);
-	}
-	
+
 	public void bindCamera(CamBundle cam){
 		if(renderTask!=null){
 			if(renderTask.isRunning()==true){
@@ -114,14 +201,15 @@ public class ImgPreview extends AnchorPane implements
 				}
 				
 				//stage.1 - try to open camera~~~
-				renderPlug.setup(camIdx, camConf);				
+				renderPlug.setup(camIndx, camConf);				
 
 				//stage.2 - continue to grab image from camera			
 				while(isCancelled()==false){
 					if(renderPlug.optEnbl.get()==false){
-						//this option must check as soon as possible~~~
-						//Application may shutdown or other things close device...
-						return -2;
+						return -2;//always check property
+					}
+					if(Application.GetApplication()==null){						
+						return 1;//Platform is shutdown
 					}
 					if(ctrl!=null){
 						if(ctrl.swtPlayer.get()==false){
@@ -132,76 +220,46 @@ public class ImgPreview extends AnchorPane implements
 					renderPlug.fetch();
 					renderPlug.markData();
 					//TODO: hook something~~~~
-					Image img = renderPlug.getImage(1);//show overlay~~
-					if(img==null){
-						continue;
-					}
-					screen.setImage(img);
+					//update some information
+					renderBuff = renderPlug.getImage(1);//show overlay~~
+					Application.invokeAndWait(eventUpdate);
 				}
 				return 0;
 			}
 		};
 		renderPlug = cam;
-		renderTask.setOnCancelled(event);
+		renderTask.setOnScheduled(eventStart);
+		renderTask.setOnCancelled(eventFinal);
 		new Thread(renderTask,"imgScreen-render").start();
 	}
 	
-	private EventHandler<WorkerStateEvent> event = 
-		new EventHandler<WorkerStateEvent>()
-	{
-		@Override
-		public void handle(WorkerStateEvent event) {
-			//When we cancel thread, it will drop from the execution pool.
-			//stage.3 - we finish the job~~~
-			renderPlug.close();
+	private void swtEnable(boolean flag){
+		if(ctrl!=null){
+			return;
 		}
-	};	
-		
+		Application.invokeAndWait(new Runnable(){
+			@Override
+			public void run() {
+				ctrl.swtEnable.selectedProperty().set(flag);
+			}		
+		});
+	}
+
+	private ImgControl ctrl = null;
+	public void bindControl(ImgControl control){
+		if(ctrl!=null){
+			return;
+		}
+		ctrl = control;
+		ctrl.bindScreen(this);
+	}
+	
 	public void unbind(){
 		if(renderTask==null){
 			return;
 		}
 		while(renderTask.isRunning()==true){
 			renderTask.cancel();
-		}
-	}
-
-	@Override
-	public void handle(MouseEvent e) {
-		if(renderTask==null){
-			return;
-		}		
-		if(renderTask.isRunning()==false){
-			return;
-		}
-		//Do we need focus this control then got mouse-event??		
-		EventType<?> typ = e.getEventType();
-		
-		//Misc.logv("event="+typ.getName());
-		
-		if(typ==MouseEvent.MOUSE_ENTERED){
-			
-			getScene().setCursor(Cursor.CROSSHAIR);
-		
-		}else if(typ==MouseEvent.DRAG_DETECTED){
-
-			renderPlug.setTick0();
-
-		}else if(typ==MouseEvent.MOUSE_MOVED){
-			
-			renderPlug.setCursor(e.getX(),e.getY());
-			
-		}else if(typ==MouseEvent.MOUSE_DRAGGED){
-			
-			renderPlug.setCursor(e.getX(),e.getY());
-			
-		}else if(typ==MouseEvent.MOUSE_RELEASED){
-			
-			renderPlug.setTick1(0,CamBundle.ROI_TYPE_RECT);
-			
-		}else if(typ==MouseEvent.MOUSE_EXITED){
-			
-			getScene().setCursor(Cursor.DEFAULT);
 		}
 	}
 }

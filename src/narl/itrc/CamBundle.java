@@ -15,7 +15,10 @@ import javafx.stage.Window;
 public abstract class CamBundle implements Gawain.EventHook {
 
 	public CamBundle(){
-		Gawain.hook(this);		
+		Gawain.hook(this);
+		for(int i=0; i<pinPos.length; i++){ 
+			pinPos[i] = -1;
+		}
 	}
 
 	@Override
@@ -38,8 +41,99 @@ public abstract class CamBundle implements Gawain.EventHook {
 	}
 	public abstract PanBase getPanelSetting();
 
+	public static final int PR_SIZE = 4;
+	public static final int PIN_COLS = 4;
+	public static final int ROI_COLS = 6;
+	public static final int ROI_TYPE_NONE  = 0;
+	public static final int ROI_TYPE_RECT  = 1;
+	public static final int ROI_TYPE_CIRCLE= 2;
+	
+	private int infoType,infoWidth,infoHeight;//update by native code, type value is same as OpenCV
+	private int[]   pinPos = new int[2*PR_SIZE];//just a euler coordinates
+	private float[] pinVal = new float[PIN_COLS*PR_SIZE];//support maximum 4-channel
+	private int[]   roiTmp = new int[2*2];//current and diagonal position~~ 
+	private int[]   roiPos = new int[ROI_COLS*PR_SIZE];//[type(1),x,y,width,height,reserve(1)]	
+	
+	public native void markData();//this code are implemented in "utils_cv.cpp" 
+	
+	public void setPinPos(int pinIdx,double pos_x, double pos_y){
+		if(pinIdx>=PR_SIZE){ return; }
+		pinPos[2*pinIdx+0] = (int)pos_x;
+		pinPos[2*pinIdx+1] = (int)pos_y;
+	}
+	
+	public String getPinVal(int pinIdx){
+		if(pinIdx>=PR_SIZE){ 
+			return "???";
+		}
+		int xx = pinPos[2*pinIdx+0];
+		int yy = pinPos[2*pinIdx+1];
+		if(xx<0 || yy<0){ 
+			return ""; 
+		}
+		int blue = (int)pinVal[PIN_COLS*pinIdx+0];
+		int green= (int)pinVal[PIN_COLS*pinIdx+1];
+		int red  = (int)pinVal[PIN_COLS*pinIdx+2];
+		return String.format(
+			"P%d:(%03d,%03d,%03d)",
+			pinIdx,red,green,blue
+		);
+	}
+	
+	public void setROI(boolean detect,double pos_x, double pos_y){
+		if(0<=pos_x && pos_x<infoWidth ){			
+			roiTmp[0] = (int)pos_x;
+		}else{
+			roiTmp[0] = 0;
+		}
+		if(0<=pos_y && pos_y<infoHeight){ 
+			roiTmp[1] = (int)pos_y;
+		}else{
+			roiTmp[1] = 0;
+		}
+		if(detect==true){
+			roiTmp[2] = roiTmp[0];
+			roiTmp[3] = roiTmp[1];
+		}
+	}
+	
+	public void fixROI(int roiIdx,int roiType){
+		int lf,rh,tp,bm;
+		if(roiTmp[0]<roiTmp[2]){
+			lf = roiTmp[0]; 
+			rh = roiTmp[2];
+		}else{
+			lf = roiTmp[2]; 
+			rh = roiTmp[0];
+		}
+		if(roiTmp[1]<roiTmp[3]){
+			tp = roiTmp[1]; 
+			bm = roiTmp[3];
+		}else{
+			tp = roiTmp[3]; 
+			bm = roiTmp[1];
+		}
+		roiPos[roiIdx*ROI_COLS + 0] = roiType;
+		roiPos[roiIdx*ROI_COLS + 1] = lf;
+		roiPos[roiIdx*ROI_COLS + 2] = tp;
+		roiPos[roiIdx*ROI_COLS + 3] = rh - lf;
+		roiPos[roiIdx*ROI_COLS + 4] = bm - tp;
+		//Misc.logv("ROI%d=(%d,%d)@%dx%d",roiIdx,lf,tp,rh - lf,bm - tp);
+		roiTmp[0] = roiTmp[1] = roiTmp[2] = roiTmp[3] = -1;
+	}
+	//-------------------------//
+	
+	private long ptrCntx = 0;//point to a container for whatever devices~~~
+	private long[] ptrMatx = new long[16];//point to Mat, the first is source layer, the second is	
+	public SimpleBooleanProperty optEnbl = new SimpleBooleanProperty(false);
+	public SimpleStringProperty msgLast = new SimpleStringProperty("");
+
+	public abstract void setup(int idx,String txtConfig);
+	public abstract void fetch();
+	public abstract void close();
+	
 	private Thread thrSetup;
-	public void asynSetup(int idx, String configName){
+	public void asynSetup(int idx,String txtConfig){
 		if(thrSetup!=null){
 			if(thrSetup.isAlive()==true){
 				return;
@@ -48,38 +142,14 @@ public abstract class CamBundle implements Gawain.EventHook {
 		thrSetup = new Thread(new Runnable(){
 			@Override
 			public void run() {
-				setup(idx,configName);
+				setup(idx,txtConfig);
 			}
 		},"cam-setup");
 	}
 	
-	public static final int ROI_COLS = 6;
-	public static final int ROI_SIZE = 4;
-	public static final int ROI_TYPE_NONE  = 0;
-	public static final int ROI_TYPE_RECT  = 1;
-	public static final int ROI_TYPE_CIRCLE= 2;
-	
-	private int infoType,infoWidth,infoHeight;//update by native code, type value is same as OpenCV
-	private int[] curPos={0,0, -1,-1};//cursor and tick~~~
-	private float[] curVal={0.f,0.f,0.f,0.f};//update by native code, support 4-channels	
-	private int[] roiVal = new int[ROI_COLS*ROI_SIZE];//[type(1),x,y,width,height,reserve(1)]	
-	
-	private long ptrCntx = 0;//point to a container for whatever devices~~~
-	private long[] ptrMatx = new long[16];//point to Mat, the first is source layer, the second is	
-	public SimpleBooleanProperty optEnbl = new SimpleBooleanProperty(false);
-	public SimpleStringProperty msgLast = new SimpleStringProperty("");
-
-	public abstract void setup(int idx,String configName);
-	public abstract void fetch();
-	public abstract void close();
-	
-	public void updateOptEnbl(boolean val){		
-		if(Application.GetApplication()==null){
-			//This happened when application closes looper,
-			//but we still need to update the information 
-			optEnbl.set(val);
-		}else{
-			//callback by native instance~~
+	private void updateOptEnbl(boolean val){
+		//callback by native instance~~
+		if(Application.GetApplication()!=null){
 			final Runnable event = new Runnable(){
 				@Override
 				public void run() {
@@ -87,16 +157,14 @@ public abstract class CamBundle implements Gawain.EventHook {
 				}
 			}; 
 			Application.invokeAndWait(event);
-		}		
+		}else{
+			//This happened when application closes looper
+		}
 	}
 	
-	public void updateMsgLast(String txt){		
-		if(Application.GetApplication()==null){
-			//This happened when application closes looper,
-			//but we still need to update the information 
-			msgLast.set(txt);
-		}else{
-			//callback by native instance~~
+	private void updateMsgLast(String txt){
+		//callback by native instance~~
+		if(Application.GetApplication()!=null){			
 			final Runnable event = new Runnable(){
 				@Override
 				public void run() {
@@ -104,46 +172,11 @@ public abstract class CamBundle implements Gawain.EventHook {
 				}
 			};
 			Application.invokeAndWait(event);
-		}
-	}
-	
-	public void setCursor(double pos_x, double pos_y){
-		if(0<=pos_x && pos_x<infoWidth){
-			curPos[0] = (int)pos_x;
-		}
-		if(0<=pos_y && pos_y<infoHeight){
-			curPos[1] = (int)pos_y;
-		}
-	}
-	
-	public void setTick0(){
-		curPos[2] = curPos[0];
-		curPos[3] = curPos[1];
-	}
-	
-	public void setTick1(int roiIdx,int roiType){
-		int lf,rh,tp,bm;
-		if(curPos[0]<curPos[2]){
-			lf = curPos[0]; 
-			rh = curPos[2];
 		}else{
-			lf = curPos[2]; 
-			rh = curPos[0];
+			//This happened when application closes looper
 		}
-		if(curPos[1]<curPos[3]){
-			tp = curPos[1]; 
-			bm = curPos[3];
-		}else{
-			tp = curPos[3]; 
-			bm = curPos[1];
-		}
-		roiVal[roiIdx*ROI_COLS + 0] = roiType;
-		roiVal[roiIdx*ROI_COLS + 1] = lf;
-		roiVal[roiIdx*ROI_COLS + 2] = tp;
-		roiVal[roiIdx*ROI_COLS + 3] = rh - lf;
-		roiVal[roiIdx*ROI_COLS + 4] = bm - tp;
-		curPos[2] = curPos[3] = -1;//reset tick~~
 	}
+	//-------------------------//
 	
 	public Image getImage(){
 		return getImage(0);
@@ -161,8 +194,6 @@ public abstract class CamBundle implements Gawain.EventHook {
 	}
 	
 	private native byte[] getData(long ptr);//this code are implemented in "utils_cv.cpp"
-	
-	public native void markData();//this code are implemented in "utils_cv.cpp" 
 }
 
 
