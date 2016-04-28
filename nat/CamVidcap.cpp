@@ -52,7 +52,6 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamVidcap_implFetch(
 ){
 	CamBundle* cam = getContext(env,bundle);
 	MACRO_FETCH_CHECK
-	cam->updateSource();
 	VideoCapture& vid =*((VideoCapture*)(cam->ctxt));//acquire image~~~
 	Mat& img = cam->updateSource();
 	vid>>img;

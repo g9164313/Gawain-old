@@ -2,12 +2,16 @@ package narl.itrc;
 
 import com.sun.glass.ui.Application;
 
+import eu.hansolo.enzo.notification.Notification;
+import eu.hansolo.enzo.notification.NotifierBuilder;
+
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.concurrent.WorkerStateEvent;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.event.EventType;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
@@ -18,11 +22,14 @@ import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
+import javafx.util.Duration;
 
 public class ImgPreview extends BorderPane {
 	
 	private static final int DEF_WIDTH =800;
 	private static final int DEF_HEIGHT=600;
+
+	private Notification.Notifier msgBox;
 
 	public ImgPreview(){
 		this(DEF_WIDTH,DEF_HEIGHT);
@@ -34,10 +41,24 @@ public class ImgPreview extends BorderPane {
 	}
 
 	public ImgPreview(int width,int height){
+		msgBox = NotifierBuilder.create()
+			.popupLocation(Pos.CENTER)
+			.popupLifeTime(Duration.millis(1000))
+			.build();
 		initMenu();
 		initBoard(width,height);
 	}
 
+	public void release(){
+		msgBox.stop();
+		if(renderTask!=null){
+			if(renderTask.isRunning()==true){
+				renderTask.cancel();
+			}
+			while(renderTask.isRunning()==true);
+		}
+	}
+	
 	public ImageView screen = new ImageView();
 	public Label msgLast = new Label();
 	public Label msgInfo = new Label();
@@ -164,12 +185,10 @@ public class ImgPreview extends BorderPane {
 			}else if(typ==MouseEvent.MOUSE_DRAGGED){
 				renderPlug.setROI(false,e.getX(),e.getY());
 			}else if(typ==MouseEvent.MOUSE_RELEASED){
-				
 				int idx = 0;
 				for(int i=0; i<CamBundle.PR_SIZE; i++){
 					
 				}
-				
 				renderPlug.fixROI(idx,CamBundle.ROI_TYPE_RECT);
 			}
 		}
@@ -219,11 +238,17 @@ public class ImgPreview extends BorderPane {
 					msgData[i].textProperty().set(renderPlug.getPinVal(i));
 				}
 				break;
-			case 2://ROI mode
-				
+			case 2://ROI mode	
 				break;
 			case 3://Snap a picture
+				String name = Misc.imwriteX(Misc.pathTemp+"snap.png",renderPlug.getMatSrc());
+				name = Misc.trimPath(name);
 				menu.setUserData(0);//go to default mode~~~
+				msgBox.notifyInfo("Snap", "儲存成"+name);
+				break;
+			case 4://record start
+				break;
+			case 5://record stop
 				break;
 			}
 			screen.setImage(renderBuff);

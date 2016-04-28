@@ -468,8 +468,13 @@ public class Misc {
 		return null;
 	}
 
-	private static int chkSerial = 0;
-	public static String check_serial(String fullName){
+	private static int    chkSerialIndx = 0;
+	private static String chkSerialName = "";
+	public static String checkSerial(String fullName){
+		if(chkSerialName.equalsIgnoreCase(fullName)==false){
+			chkSerialName = fullName;
+			chkSerialIndx = 0; //reset it~~~
+		}
 		int pos = fullName.lastIndexOf(File.separatorChar);
 		if(pos<0){
 			Misc.logw("[imwriteX] invalid path-->"+fullName);
@@ -479,24 +484,24 @@ public class Misc {
 		String path = fullName.substring(0,pos);		
 		File dir = new File(path); 
 		if(dir.isDirectory()==false){
-			Misc.logw("[imwriteX] invalid directory-->"+path);
-			return "";
+			logw("[imwriteX] invalid directory-->"+path);
+			return fullName;
 		}
 		pos = name.lastIndexOf('.');
 		if(pos<0){
-			Misc.logw("[imwriteX] invalid name-->"+name);
-			return "";
+			logw("[imwriteX] invalid name-->"+name);
+			return fullName;
 		}
 		final String prex = name.substring(0,pos);
 		final String appx = name.substring(pos);		
 		do{
 			fullName = String.format(
-				"%s%c%s%08d%s",
+				"%s%c%s-%04d%s",
 				path,
 				File.separatorChar,
-				prex,chkSerial,appx
+				prex,chkSerialIndx,appx
 			);
-			chkSerial++;
+			chkSerialIndx++;
 			dir = new File(fullName);
 		}while(dir.exists()==true);
 		return fullName;
@@ -601,13 +606,22 @@ public class Misc {
 		return String.format("%d:%02d:%02d.%03d",hh,mm,ss,ms);
 	}
 	
-	private static SimpleDateFormat fmtTime = new SimpleDateFormat ("hh:mm:ss");
-	private static SimpleDateFormat fmtDate = new SimpleDateFormat ("yyyy.MM.dd");
+	private static SimpleDateFormat fmtTime = new SimpleDateFormat ("hh:mm:ss");	
 	public static String getTimeTxt(){
 		return fmtTime.format(new Date(System.currentTimeMillis()));
 	}
+	
+	private static SimpleDateFormat fmtDate = new SimpleDateFormat ("yyyy.MM.dd");
 	public static String getDateTxt(){
 		return fmtDate.format(new Date(System.currentTimeMillis()));
+	}
+	
+	public static String trimPath(String txt){
+		int pos = txt.lastIndexOf(File.separatorChar);
+		if(pos<0){
+			return txt;
+		}
+		return txt.substring(pos+1);
 	}
 	//--------------------------//
 	
@@ -646,19 +660,21 @@ public class Misc {
 		return txt;
 	}
 	//--------------------------//
+
+	public static native void namedWindow(String name);//this will invoke OpenCV!!
 	
-	public static void imwriteX(String fullName,long ptr){		
-		fullName = check_serial(fullName);
-		if(fullName.length()==0){
-			return;
-		}
+	public static native void renderWindow(String name,long ptr);//this will invoke OpenCV!!
+	
+	public static native void destroyWindow(String name);//this will invoke OpenCV!!
+	
+	public static native void imwrite(String name,long ptr);//this will invoke OpenCV!!
+	
+	public static String imwriteX(String fullName,long ptr){		
+		fullName = checkSerial(fullName);
 		imwrite(fullName,ptr);
+		return fullName;
 	}
 	
-	public static native void namedWindow(String name);//this will invoke OpenCV!!
-	public static native void renderWindow(String name,long ptr);//this will invoke OpenCV!!
-	public static native void destroyWindow(String name);//this will invoke OpenCV!!
-	public static native void imwrite(String name,long ptr);//this will invoke OpenCV!!
 	public static native void imread(String name,long ptr);//this will invoke OpenCV!!
 }
 

@@ -193,6 +193,19 @@ public abstract class CamBundle implements Gawain.EventHook {
 	}
 	//-------------------------//
 	
+	public long getMatSrc(){ 
+		return getMatPtr(0);
+	}
+	public long getMatOva(){ 
+		return getMatPtr(1);
+	}
+	public long getMatPtr(int idx){
+		if(idx>=ptrMatx.length){
+			return 0;
+		}
+		return ptrMatx[idx];
+	}
+	
 	public Image getImage(){
 		return getImage(0);
 	}
