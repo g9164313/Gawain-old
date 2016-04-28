@@ -21,8 +21,8 @@ import javafx.stage.WindowEvent;
 
 public class ImgControl extends VBox {
 
-	private final int DEF_TYPE = 0;
-	private final int DEF_INDX = 0;
+	private final int DEFAULT_CAM_TYPE = 0;
+	private final int DEFAULT_CAM_INDX = 0;
 	
 	private ImgPreview scrn = null;
 
@@ -40,12 +40,12 @@ public class ImgControl extends VBox {
 		
 		lay0.getStyleClass().add("hbox-small");
 		
-		lstType.getItems().addAll("Vidcap","Pylon","Ebus","Muticam");
-		lstType.getSelectionModel().select(DEF_TYPE);
+		lstType.getItems().addAll("Files","Vidcap","Pylon","Ebus","Muticam");
+		lstType.getSelectionModel().select(DEFAULT_CAM_TYPE);
 		lstType.setMaxWidth(Double.MAX_VALUE);
 		
 		lstIndx.getItems().addAll("自動編號","編號-1","編號-2","編號-3","編號-4","編號-5");
-		lstIndx.getSelectionModel().select(DEF_INDX);
+		lstIndx.getSelectionModel().select(DEFAULT_CAM_INDX);
 		lstIndx.setMaxWidth(Double.MAX_VALUE);
 
 		swtEnable.getStyleClass().add("swt-raise");
@@ -90,10 +90,11 @@ public class ImgControl extends VBox {
 				CamBundle cam = null;
 				int typ = lstType.getSelectionModel().getSelectedIndex();
 				switch(typ){
-				case 0: cam=new CamVidcap(); break;
-				case 1:	cam=new CamPylon(); break;
-				case 2: cam=new CamEBus(); break;
-				case 3: break;	
+				case 0: cam = new CamVFiles(); break;
+				case 1: cam = new CamVidcap(); break;
+				case 2:	cam = new CamPylon(); break;
+				case 3: cam = new CamEBus(); break;
+				case 4: break;	
 				}
 				initSwtPlayer();				
 				scrn.bindCamera(cam);

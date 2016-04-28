@@ -138,8 +138,10 @@ public abstract class CamBundle implements Gawain.EventHook {
 	}
 	//-------------------------//
 	
+	protected static final int PTR_SIZE = 16;
+	
 	private long ptrCntx = 0;//point to a container for whatever devices~~~
-	private long[] ptrMatx = new long[16];//point to Mat, the first is source layer, the second is	
+	private long[] ptrMatx = new long[PTR_SIZE];//point to Mat, the first is source layer, the second is	
 	public SimpleBooleanProperty optEnbl = new SimpleBooleanProperty(false);
 	public SimpleStringProperty msgLast = new SimpleStringProperty("");
 
@@ -162,48 +164,56 @@ public abstract class CamBundle implements Gawain.EventHook {
 		},"cam-setup");
 	}
 	
-	private void updateOptEnbl(boolean val){
-		//callback by native instance~~
-		if(Application.GetApplication()!=null){
-			final Runnable event = new Runnable(){
+	protected void updateOptEnbl(boolean val){
+		if(Application.isEventThread()==false){
+			if(Application.GetApplication()==null){
+				return;
+			}
+			Application.invokeAndWait(new Runnable(){
 				@Override
-				public void run() {
+				public void run() { 
 					optEnbl.set(val);
 				}
-			}; 
-			Application.invokeAndWait(event);
+			});
 		}else{
-			//This happened when application closes looper
+			optEnbl.set(val);
 		}
 	}
 	
-	private void updateMsgLast(String txt){
-		//callback by native instance~~
-		if(Application.GetApplication()!=null){			
-			final Runnable event = new Runnable(){
+	protected void updateMsgLast(String txt){
+		if(Application.isEventThread()==false){
+			if(Application.GetApplication()==null){
+				return;
+			}
+			Application.invokeAndWait(new Runnable(){
 				@Override
-				public void run() {
+				public void run() { 
 					msgLast.set(txt);
 				}
-			};
-			Application.invokeAndWait(event);
+			});
 		}else{
-			//This happened when application closes looper
+			msgLast.set(txt);
 		}
 	}
 	//-------------------------//
-	
+
 	public long getMatSrc(){ 
-		return getMatPtr(0);
+		return getMatx(0);
 	}
 	public long getMatOva(){ 
-		return getMatPtr(1);
+		return getMatx(1);
 	}
-	public long getMatPtr(int idx){
+	public long getMatx(int idx){
 		if(idx>=ptrMatx.length){
 			return 0;
 		}
 		return ptrMatx[idx];
+	}	
+	protected void setMatx(int idx,long ptr){
+		if(idx>=ptrMatx.length){ 
+			return;
+		}
+		ptrMatx[idx] = ptr;
 	}
 	
 	public Image getImage(){

@@ -241,7 +241,7 @@ public class ImgPreview extends BorderPane {
 			case 2://ROI mode	
 				break;
 			case 3://Snap a picture
-				String name = Misc.imwriteX(Misc.pathTemp+"snap.png",renderPlug.getMatSrc());
+				String name = Misc.imWriteX(Misc.pathTemp+"snap.png",renderPlug.getMatSrc());
 				name = Misc.trimPath(name);
 				menu.setUserData(0);//go to default mode~~~
 				msgBox.notifyInfo("Snap", "儲存成"+name);

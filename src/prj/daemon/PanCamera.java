@@ -11,8 +11,6 @@ import narl.itrc.PanBase;
 
 public class PanCamera extends PanBase {
 	
-	private CamBundle cam = null;
-	
 	public PanCamera(){
 	}
 	

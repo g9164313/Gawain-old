@@ -48,6 +48,8 @@ public:
 	CamBundle(JNIEnv* _env,jobject _obj):
 		env(_env),thiz(_obj),ctxt(NULL),matImage(NULL),matSize(0)
 	{
+		createMat();
+
 		if(env==NULL){
 			return;
 		}
@@ -59,15 +61,16 @@ public:
 		midOptEnbl = env->GetMethodID(clzz,"updateOptEnbl","(Z)V");
 
 		midMsgLast = env->GetMethodID(clzz,"updateMsgLast","(Ljava/lang/String;)V");
-
-		createMat();
 	}
 
 	~CamBundle(){
+
 		delete[] matImage;
+
 		if(env==NULL){
 			return;
 		}
+
 		env->SetLongField(thiz,idPtrCntx,0);
 	}
 

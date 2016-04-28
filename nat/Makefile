@@ -98,11 +98,11 @@ else
 endif
 	
 
-#$(TARGET_EXE): utils_jni.cpp wrap_TrialMOG.cpp ./wrap-unix/misc.cpp  ./wrap-unix/main2.cpp 
-#	$(CC) $(CC_FLAG) -o $@ $^ $(LD_LIBS)
-
-$(TARGET_EXE):  /home/qq/labor/opencv-3.1/contrib/modules/text/samples/character_recognition.cpp
+$(TARGET_EXE):  ./wrap-unix/main1.cpp 
 	$(CC) $(CC_FLAG) -o $@ $^ $(LD_LIBS)
+
+#$(TARGET_EXE):  /home/qq/labor/opencv-3.1/contrib/modules/text/samples/character_recognition.cpp
+#	$(CC) $(CC_FLAG) -o $@ $^ $(LD_LIBS)
 
 #$(TARGET_JNI):
 #	javah  -o ./src/$@ -cp $(DIR_CLASS) $(NAT_CLASS)

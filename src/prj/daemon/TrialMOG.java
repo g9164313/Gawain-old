@@ -107,10 +107,10 @@ public class TrialMOG extends DevGrabber {
 		}else if(tkn[0].startsWith("SAVE")==true){
 			if(tkn.length>=2){
 				if(tkn[1].equals("BACK")==true){
-					Misc.imwrite(dirBack.genSNName(), pDat);
+					Misc.imWrite(dirBack.genSNName(), pDat);
 					checkInfo1(true);					
 				}else if(tkn[1].equals("FORE")==true){
-					Misc.imwrite(dirFore.genSNName(), pDat);
+					Misc.imWrite(dirFore.genSNName(), pDat);
 					checkInfo1(false);
 				}
 			}
