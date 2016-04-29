@@ -51,22 +51,28 @@ public class ImgControl extends VBox {
 		swtEnable.getStyleClass().add("swt-raise");
 		swtEnable.setOnSelect(eventSwitch);
 		swtEnable.setOnDeselect(eventSwitch);
-		
-		lay0.getChildren().addAll(lstType,lstIndx,swtEnable);
-		//------------------------//
-		lay1.getStyleClass().add("hbox-small");
-		lay1.disableProperty().bind(swtEnable.selectedProperty().not());
-		
+
 		btnConfig.getStyleClass().add("btn-raised");
 		btnConfig.setGraphic(Misc.getIcon("ic_build_black_24dp_1x.png"));
 		btnConfig.setMaxWidth(Double.MAX_VALUE);
+		btnConfig.setOnAction(new EventHandler<ActionEvent>(){
+			@Override
+			public void handle(ActionEvent event) {
+				scrn.getCamera().showPanel(ImgControl.this.getScene().getWindow());
+			}
+		});
 		
+		lay0.getChildren().addAll(lstType,lstIndx,swtEnable,btnConfig);
+		//------------------------//
+		lay1.getStyleClass().add("hbox-small");
+		lay1.disableProperty().bind(swtEnable.selectedProperty().not());
+				
 		btnPlayer.getStyleClass().add("btn-raised");
 		btnPlayer.setOnAction(eventPlayer);
 		btnPlayer.setMaxWidth(Double.MAX_VALUE);
 		initSwtPlayer();
 		
-		lay1.getChildren().addAll(btnPlayer,btnConfig);
+		lay1.getChildren().addAll(btnPlayer);
 		//------------------------//
 		getChildren().addAll(lay0,lay1);
 	}
@@ -108,7 +114,7 @@ public class ImgControl extends VBox {
 	public AtomicBoolean swtPlayer = new AtomicBoolean(false);
 	private void initSwtPlayer(){
 		swtPlayer.set(false);
-		btnPlayer.setText("播放");
+		btnPlayer.setText("播放影像");
 		btnPlayer.setGraphic(Misc.getIcon("ic_play_arrow_black_24dp_1x.png"));		
 	}
 	private EventHandler<ActionEvent> eventPlayer = new EventHandler<ActionEvent>(){
@@ -116,10 +122,10 @@ public class ImgControl extends VBox {
 		public void handle(ActionEvent event) {
 			boolean flag = swtPlayer.get();
 			if(flag==false){
-				btnPlayer.setText("暫停");
+				btnPlayer.setText("暫停播放");
 				btnPlayer.setGraphic(Misc.getIcon("ic_pause_black_24dp_1x.png"));
 			}else{
-				btnPlayer.setText("播放");
+				btnPlayer.setText("播放影像");
 				btnPlayer.setGraphic(Misc.getIcon("ic_play_arrow_black_24dp_1x.png"));
 			}
 			swtPlayer.set(!flag);

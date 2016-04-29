@@ -356,6 +356,40 @@ extern "C" JNIEXPORT jlong JNICALL Java_narl_itrc_Misc_imCreate(
 	return (long)img;
 }
 
+
+extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamVFiles_updateInfo(
+	JNIEnv * env,
+	jobject thiz,
+	jobject bundle
+){
+	jclass clzz = env->GetObjectClass(bundle);
+	jlongArray jlongAttr;
+	jlong* matx = longArray2Ptr(env,clzz,bundle,"ptrMatx",jlongAttr);
+	Mat* _src = (Mat*)(matx[0]);
+	env->ReleaseLongArrayElements(jlongAttr,matx,0);
+	if(_src==NULL){
+		return;//WTF???
+	}
+
+	Mat& src = *_src;
+
+	env->SetIntField(
+		bundle,
+		env->GetFieldID(clzz,"infoType","I"),
+		src.type()
+	);
+	env->SetIntField(
+		bundle,
+		env->GetFieldID(clzz,"infoWidth","I"),
+		src.size().width
+	);
+	env->SetIntField(
+		bundle,
+		env->GetFieldID(clzz,"infoHeight","I"),
+		src.size().height
+	);
+}
+
 extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamVFiles_mapOverlay(
 	JNIEnv * env,
 	jobject thiz,
@@ -366,13 +400,15 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamVFiles_mapOverlay(
 	jlong* matx = longArray2Ptr(env,clzz,bundle,"ptrMatx",jlongAttr);
 
 	Mat* _src = (Mat*)(matx[0]);
+	Mat* _ova = (Mat*)(matx[1]);
+
 	if(_src==NULL){
 		env->ReleaseLongArrayElements(jlongAttr,matx,0);
 		return;//WTF???
 	}
+
 	Mat& src = *_src;
 
-	Mat* _ova = (Mat*)(matx[1]);
 	if(_ova==NULL){
 		_ova = new Mat(src.size(),CV_8UC3);
 	}else if(_ova->size()!=src.size()){
@@ -392,7 +428,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamVFiles_mapOverlay(
 		break;
 	}
 
-	matx[1] = (jlong)_ova;
+	matx[1] = (jlong)_ova;//override it again!!!
 	env->ReleaseLongArrayElements(jlongAttr,matx,0);
 }
 

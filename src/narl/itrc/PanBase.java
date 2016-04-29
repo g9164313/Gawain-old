@@ -21,10 +21,10 @@ import javafx.util.Duration;
 
 public abstract class PanBase {
 
-	protected String panTitle = "::scene::";
+	protected String panTitle = "::panel::";
 
 	private Scene scene=null;
-	private Stage owner=null;
+	private Stage stage=null;
 	
 	public abstract Parent layout();
 	
@@ -44,54 +44,55 @@ public abstract class PanBase {
 	}
 	
 	public Stage getOwner(){ 
-		return owner;
+		return stage;
 	}
 	
-	public void genDlgOwner(Window parent){
-		owner = new Stage(StageStyle.UNIFIED);		
-		owner.initModality(Modality.WINDOW_MODAL); 
-		owner.initOwner(parent);
-		owner.setResizable(false);		
-		init(owner);
+	public void makeDialog(Window parent){
+		stage = new Stage(StageStyle.UNIFIED);		
+		stage.initModality(Modality.WINDOW_MODAL); 
+		stage.initOwner(parent);
+		stage.setResizable(false);
+		stage.centerOnScreen();
+		init(stage);
 	}
 	
-	public void genOwner(Window parent){
-		owner = new Stage(StageStyle.UNIFIED);		
-		owner.initModality(Modality.NONE); 
-		owner.initOwner(parent);
-		owner.setResizable(false);		
-		init(owner);
+	public void makeStage(Window parent){
+		stage = new Stage(StageStyle.UNIFIED);		
+		stage.initModality(Modality.NONE); 
+		stage.initOwner(parent);
+		stage.centerOnScreen();
+		init(stage);
 	}
 	
 	public void appear(Stage stg){
-		owner = stg;
+		stage = stg;
 		init(stg);		
 		appear();
 	}
 	public void appear(){
-		if(owner==null){
-			return;
+		if(stage==null){
+			makeStage(null);
 		}
-		owner.show();
+		stage.show();
 	}
 	
 	public void standby(Stage stg){
-		owner = stg;
+		stage = stg;
 		init(stg);
 		standby();
 	}
 	public void standby(){
-		if(owner==null){
-			return;
+		if(stage==null){
+			makeStage(null);
 		}
-		owner.showAndWait();
+		stage.showAndWait();
 	}
 	
 	public void dismiss(){
-		if(owner==null){
+		if(stage==null){
 			return;
 		}
-		owner.close();
+		stage.close();
 	}
 	
 	private void init(Stage stg){		

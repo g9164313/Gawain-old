@@ -166,7 +166,6 @@ public:
 		Mat& dst = matImage[1];
 		if(dst.empty()==true){
 			dst.create(src.size(),CV_8UC3);
-			dst = Scalar(255,0,0);
 		}
 		switch(src.type()){
 		case CV_8UC1:

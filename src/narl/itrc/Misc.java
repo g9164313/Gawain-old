@@ -680,61 +680,6 @@ public class Misc {
 	public static native void imRelease(long ptr);//just release Mat pointer
 
 	public static native long imCreate(int width,int height,int type);//just release Mat pointer
-	
-	public static final int
-    CV_8U  = 0, CV_8S  = 1,
-    CV_16U = 2, CV_16S = 3,
-    CV_32S = 4, CV_32F = 5,
-    CV_64F = 6;
-	
-    public static final int
-    CV_8UC1 = CV_8UC(1), CV_8UC2 = CV_8UC(2), CV_8UC3 = CV_8UC(3), CV_8UC4 = CV_8UC(4),
-    CV_8SC1 = CV_8SC(1), CV_8SC2 = CV_8SC(2), CV_8SC3 = CV_8SC(3), CV_8SC4 = CV_8SC(4),
-    CV_16UC1 = CV_16UC(1), CV_16UC2 = CV_16UC(2), CV_16UC3 = CV_16UC(3), CV_16UC4 = CV_16UC(4),
-    CV_16SC1 = CV_16SC(1), CV_16SC2 = CV_16SC(2), CV_16SC3 = CV_16SC(3), CV_16SC4 = CV_16SC(4),
-    CV_32SC1 = CV_32SC(1), CV_32SC2 = CV_32SC(2), CV_32SC3 = CV_32SC(3), CV_32SC4 = CV_32SC(4),
-    CV_32FC1 = CV_32FC(1), CV_32FC2 = CV_32FC(2), CV_32FC3 = CV_32FC(3), CV_32FC4 = CV_32FC(4),
-    CV_64FC1 = CV_64FC(1), CV_64FC2 = CV_64FC(2), CV_64FC3 = CV_64FC(3), CV_64FC4 = CV_64FC(4);
-
-    private static final int CV_8UC(int ch) {
-        return makeType(CV_8U, ch);
-    }
-
-    private static final int CV_8SC(int ch) {
-        return makeType(CV_8S, ch);
-    }
-
-    private static final int CV_16UC(int ch) {
-        return makeType(CV_16U, ch);
-    }
-
-    private static final int CV_16SC(int ch) {
-        return makeType(CV_16S, ch);
-    }
-
-    private static final int CV_32SC(int ch) {
-        return makeType(CV_32S, ch);
-    }
-
-    private static final int CV_32FC(int ch) {
-        return makeType(CV_32F, ch);
-    }
-
-    private static final int CV_64FC(int ch) {
-        return makeType(CV_64F, ch);
-    }
-    
-    private static final int CV_CN_MAX = 512, CV_CN_SHIFT = 3, CV_DEPTH_MAX = (1 << CV_CN_SHIFT);
-
-    private static final int makeType(int depth, int channels) {
-        if (channels <= 0 || channels >= CV_CN_MAX) {
-            throw new java.lang.UnsupportedOperationException("Channels count should be 1.." + (CV_CN_MAX - 1));
-        }
-        if (depth < 0 || depth >= CV_DEPTH_MAX) {
-            throw new java.lang.UnsupportedOperationException("Data type depth should be 0.." + (CV_DEPTH_MAX - 1));
-        }
-        return (depth & (CV_DEPTH_MAX - 1)) + ((channels - 1) << CV_CN_SHIFT);
-    }
 }
 
 

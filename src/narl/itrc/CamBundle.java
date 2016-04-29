@@ -2,10 +2,12 @@ package narl.itrc;
 
 import java.io.ByteArrayInputStream;
 
+import com.jfoenix.controls.JFXTabPane;
 import com.sun.glass.ui.Application;
 
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
+import javafx.scene.Parent;
 import javafx.scene.image.Image;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -31,16 +33,12 @@ public abstract class CamBundle implements Gawain.EventHook {
 		if(pan==null){
 			return;
 		}
-		Stage stg = new Stage(StageStyle.UNIFIED);
-		stg.initModality(Modality.NONE); 
-		stg.setResizable(false);
-		stg.centerOnScreen();
-		stg.setTitle("設定相機參數");
-		stg.initOwner(owner);
-		pan.appear(stg);
+		pan.makeStage(owner);
+		pan.appear();
 	}
 	public abstract PanBase getPanelSetting();
-
+	//-------------------------//
+	
 	public static final int PR_SIZE = 4;
 	public static final int PIN_COLS = 4;
 	public static final int ROI_COLS = 6;
@@ -56,6 +54,10 @@ public abstract class CamBundle implements Gawain.EventHook {
 	private float[] roiVal = new float[ROI_COLS*PR_SIZE];//[average,deviation,minimum,maximum,mode,???]
 	
 	public native void markData();//this code are implemented in "utils_cv.cpp" 
+	
+	public int getType(){ return infoType; }
+	public int getWidth(){ return infoWidth; }
+	public int getHeight(){ return infoHeight; }
 	
 	public void getPinPos(int pinIdx,int[] pos){
 		if(pinIdx>=PR_SIZE){ 

@@ -58,7 +58,7 @@ abstract class BtnPanel extends JFXButton implements EventHandler<ActionEvent> {
 	@Override
 	public void handle(ActionEvent event) {
 		if(pop.getOwner()==null){
-			pop.genOwner(getScene().getWindow());
+			pop.makeStage(getScene().getWindow());
 		}
 		act = !act;
 		if(act==true){

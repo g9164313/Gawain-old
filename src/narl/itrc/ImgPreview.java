@@ -58,7 +58,7 @@ public class ImgPreview extends BorderPane {
 			while(renderTask.isRunning()==true);
 		}
 	}
-	
+
 	public ImageView screen = new ImageView();
 	public Label msgLast = new Label();
 	public Label msgInfo = new Label();
@@ -275,6 +275,8 @@ public class ImgPreview extends BorderPane {
 	private CamBundle renderPlug;
 	private Task<Integer> renderTask;
 
+	public CamBundle getCamera(){ return renderPlug; }
+	
 	public void bindCamera(CamBundle cam){
 		if(renderTask!=null){
 			if(renderTask.isRunning()==true){

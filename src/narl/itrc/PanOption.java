@@ -202,9 +202,9 @@ public abstract class PanOption extends PanBase {
 	public abstract Parent rootLayout();
 	
 	protected Parent boxLayout(){
-		GridPane pane = new GridPane();
-		pane.setAlignment(Pos.CENTER);
+		GridPane pane = new GridPane();		
 		pane.getStyleClass().add("grid-small");
+		pane.setAlignment(Pos.CENTER);
 		
 		final int DEF_SIZE = 200;
 		for(int i=0; i<lstOpt.size(); i++){
