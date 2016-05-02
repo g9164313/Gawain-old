@@ -26,7 +26,7 @@ public class PanCamera extends PanBase {
 		BorderPane root = new BorderPane();
 		root.setLeft(PanBase.decorate("控制",imgCtrl));
 		root.setCenter(PanBase.decorate("預覽",imgScrn));
-		imgScrn.bindControl(imgCtrl);
+		imgScrn.attachControl(imgCtrl);
 		return root;
 	}
 	//----------------------------//

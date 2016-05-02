@@ -23,8 +23,6 @@ public class ImgControl extends VBox {
 
 	private final int DEFAULT_CAM_TYPE = 0;
 	private final int DEFAULT_CAM_INDX = 0;
-	
-	private ImgPreview scrn = null;
 
 	public JFXComboBox<String> lstType = new JFXComboBox<String>();
 	public JFXComboBox<String> lstIndx = new JFXComboBox<String>();
@@ -76,13 +74,19 @@ public class ImgControl extends VBox {
 		//------------------------//
 		getChildren().addAll(lay0,lay1);
 	}
+	//------------------------//
 	
-	public void bindScreen(ImgPreview screen){
+	
+	
+	//------------------------//
+	
+	private ImgPreview scrn = null;
+	public void attachScreen(ImgPreview screen){
 		if(scrn!=null){
 			return;
 		}
 		scrn = screen;
-		scrn.bindControl(this);
+		scrn.attachControl(this);
 	}
 	
 	private EventHandler<SelectionEvent> eventSwitch = new EventHandler<SelectionEvent>(){
@@ -100,13 +104,13 @@ public class ImgControl extends VBox {
 				case 1: cam = new CamVidcap(); break;
 				case 2:	cam = new CamPylon(); break;
 				case 3: cam = new CamEBus(); break;
-				case 4: break;	
+				default: return;// give notify ???
 				}
 				initSwtPlayer();				
 				scrn.bindCamera(cam);
 			}else{
 				initSwtPlayer();
-				scrn.unbind();
+				scrn.unbindCamera();
 			}
 		}
 	};

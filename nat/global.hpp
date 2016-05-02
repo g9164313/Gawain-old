@@ -13,18 +13,17 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-//#if defined WIN32 || defined _WIN32 || defined _WINDLL
 #ifdef _MSC_VER
 //this direction for M$ VC2010
 #include <Windows.h>
 #define M_PI 3.1415
 #define NAT_EXPORT extern "C" __declspec(dllexport)
-typedef unsigned char uint8_t;
-typedef unsigned char uint8;
+typedef signed char  int8_t;
+typedef signed short int16_t;
+typedef signed int   int32;
+typedef unsigned char  uint8_t;
 typedef unsigned short uint16_t;
-typedef short int16_t;
-typedef unsigned int uint32_t;
-typedef int int32;
+typedef unsigned int   uint32_t;
 inline void usleep(int usec){
 	usec = usec/1000;
 	Sleep(usec);//this is milisecond
@@ -37,6 +36,7 @@ inline void msleep(int msec){
 #include <unistd.h>
 #define NAT_EXPORT extern "C"
 #endif
+
 #include <iostream>
 #include <fstream>
 #include <cmath>
@@ -63,11 +63,11 @@ extern void setJbool(JNIEnv *env,jobject thiz,const char* name,bool val);
 extern bool getJbool(JNIEnv *env,jobject thiz,const char* name);
 
 extern jsize jstrcpy(JNIEnv* env, jstring src, const char* dst);
-extern jsize jstrcpy(JNIEnv* env, jstring src, string& dst);
 
 extern jbyte*   byteArray2Ptr  (JNIEnv* env,jclass _clazz,jobject thiz,const char* name,jbyteArray  & arr);
 extern jchar*   charArray2Ptr  (JNIEnv* env,jclass _clazz,jobject thiz,const char* name,jcharArray  & arr);
 extern jint*    intArray2Ptr   (JNIEnv* env,jclass _clazz,jobject thiz,const char* name,jintArray   & arr);
+extern jlong*   longArray2Ptr  (JNIEnv* env,jclass _clazz,jobject thiz,const char* name,jlongArray  & arr);
 extern jfloat*  floatArray2Ptr (JNIEnv* env,jclass _clazz,jobject thiz,const char* name,jfloatArray & arr);
 extern jdouble* doubleArray2Ptr(JNIEnv* env,jclass _clazz,jobject thiz,const char* name,jdoubleArray& arr);
 

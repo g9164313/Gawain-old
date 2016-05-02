@@ -1,5 +1,7 @@
 package narl.itrc;
 
+import eu.hansolo.enzo.notification.Notification;
+import eu.hansolo.enzo.notification.NotifierBuilder;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.event.ActionEvent;
@@ -28,11 +30,13 @@ public abstract class PanBase {
 	
 	public abstract Parent layout();
 	
-	public PanBase(){	   
+	public PanBase(){
+		initMsgBox();
 	}
 	
 	public PanBase(String txt){
 		setTitle(txt);
+		initMsgBox();
 	}
 	
 	public void setTitle(String txt){
@@ -197,6 +201,27 @@ public abstract class PanBase {
 			watch = null;
 		}		
 	}
+	//------------------------//
+	
+	public static Notification.Notifier msgBox = null;
+	
+	private void initMsgBox(){
+		if(msgBox!=null){
+			//we already had message box~~~
+			return;
+		}
+		msgBox = NotifierBuilder.create()
+			.popupLocation(Pos.CENTER)
+			.popupLifeTime(Duration.millis(1000))
+			.build();
+		final Gawain.EventHook event = new Gawain.EventHook(){
+			@Override
+			public void shutdown() {
+				msgBox.stop();//this widget must be stop.
+			}		
+		};
+		Gawain.hook(event);
+	}	
 	//------------------------//
 
 	public GridPane genGridPack(int stride,Pane root,Node... lstND){		

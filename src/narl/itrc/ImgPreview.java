@@ -29,8 +29,6 @@ public class ImgPreview extends BorderPane {
 	private static final int DEF_WIDTH =800;
 	private static final int DEF_HEIGHT=600;
 
-	private Notification.Notifier msgBox;
-
 	public ImgPreview(){
 		this(DEF_WIDTH,DEF_HEIGHT);
 	}
@@ -41,16 +39,11 @@ public class ImgPreview extends BorderPane {
 	}
 
 	public ImgPreview(int width,int height){
-		msgBox = NotifierBuilder.create()
-			.popupLocation(Pos.CENTER)
-			.popupLifeTime(Duration.millis(1000))
-			.build();
 		initMenu();
 		initBoard(width,height);
 	}
 
 	public void release(){
-		msgBox.stop();
 		if(renderTask!=null){
 			if(renderTask.isRunning()==true){
 				renderTask.cancel();
@@ -216,10 +209,7 @@ public class ImgPreview extends BorderPane {
 	{
 		@Override
 		public void handle(WorkerStateEvent event) {
-			//bind every information!!!!
-			if(renderPlug==null){
-				return;
-			}
+			//bind every information!!!!			
 			msgLast.textProperty().bind(renderPlug.msgLast);
 		}
 	};
@@ -244,7 +234,7 @@ public class ImgPreview extends BorderPane {
 				String name = Misc.imWriteX(Misc.pathTemp+"snap.png",renderPlug.getMatSrc());
 				name = Misc.trimPath(name);
 				menu.setUserData(0);//go to default mode~~~
-				msgBox.notifyInfo("Snap", "儲存成"+name);
+				PanBase.msgBox.notifyInfo("Snap","儲存成"+name);
 				break;
 			case 4://record start
 				break;
@@ -260,12 +250,13 @@ public class ImgPreview extends BorderPane {
 	{
 		@Override
 		public void handle(WorkerStateEvent event) {
-			if(renderPlug==null){
-				return;
-			}
 			//When we cancel thread, it will drop from the execution pool.			
 			renderPlug.close();
 			msgLast.textProperty().unbind();
+			if(ctrl!=null){
+				ctrl.swtEnable.selectedProperty().unbind();
+				ctrl.swtEnable.selectedProperty().set(false);
+			}
 		}
 	};
 	
@@ -286,14 +277,17 @@ public class ImgPreview extends BorderPane {
 		renderTask = new Task<Integer>(){			
 			@Override
 			protected Integer call() throws Exception {
-				if(renderPlug==null){
-					swtEnable(false);
-					return -1;
+				//stage.1 - try to open camera~~~
+				renderPlug.setup(camIndx, camConf);
+				if(ctrl!=null){
+					Application.invokeAndWait(new Runnable(){
+						@Override
+						public void run() {
+							ctrl.swtEnable.selectedProperty().bind(renderPlug.optEnbl);
+						}
+					});					
 				}
 				
-				//stage.1 - try to open camera~~~
-				renderPlug.setup(camIndx, camConf);				
-
 				//stage.2 - continue to grab image from camera			
 				while(isCancelled()==false){
 					if(Application.GetApplication()==null){						
@@ -318,40 +312,29 @@ public class ImgPreview extends BorderPane {
 				return 0;
 			}
 		};
+		
 		renderPlug = cam;
 		renderTask.setOnScheduled(eventStart);
 		renderTask.setOnCancelled(eventFinal);
-		new Thread(renderTask,"imgScreen-render").start();
-	}
-	
-	private void swtEnable(boolean flag){
-		if(ctrl!=null){
-			return;
-		}
-		Application.invokeAndWait(new Runnable(){
-			@Override
-			public void run() {
-				ctrl.swtEnable.selectedProperty().set(flag);
-			}		
-		});
+		new Thread(renderTask,"imgRender").start();
 	}
 
+	public void unbindCamera(){
+		if(renderTask==null){
+			return;
+		}		
+		renderTask.cancel();
+		while(renderTask.isRunning()==true);
+		renderPlug = null;//reset it~~~
+	}
+	
 	private ImgControl ctrl = null;
-	public void bindControl(ImgControl control){
+	public void attachControl(ImgControl control){
 		if(ctrl!=null){
 			return;
 		}
 		ctrl = control;
-		ctrl.bindScreen(this);
-	}
-	
-	public void unbind(){
-		if(renderTask==null){
-			return;
-		}
-		while(renderTask.isRunning()==true){
-			renderTask.cancel();
-		}
+		ctrl.attachScreen(this);
 	}
 }
 
