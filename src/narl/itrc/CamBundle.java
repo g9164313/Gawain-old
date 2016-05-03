@@ -2,16 +2,11 @@ package narl.itrc;
 
 import java.io.ByteArrayInputStream;
 
-import com.jfoenix.controls.JFXTabPane;
 import com.sun.glass.ui.Application;
 
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
-import javafx.scene.Parent;
 import javafx.scene.image.Image;
-import javafx.stage.Modality;
-import javafx.stage.Stage;
-import javafx.stage.StageStyle;
 import javafx.stage.Window;
 
 public abstract class CamBundle implements Gawain.EventHook {
@@ -47,7 +42,7 @@ public abstract class CamBundle implements Gawain.EventHook {
 	public static final int ROI_TYPE_CIRCLE= 2;
 	
 	private int infoType,infoWidth,infoHeight;//update by native code, type value is same as OpenCV
-	private int[]   pinPos = new int[2*PR_SIZE];//just a euler coordinates
+	private int[]   pinPos = new int[2*PR_SIZE];//just a Cartesian coordinates
 	private float[] pinVal = new float[PIN_COLS*PR_SIZE];//support maximum 4-channel
 	private int[]   roiTmp = new int[2*2];//current and diagonal position~~ 
 	private int[]   roiPos = new int[ROI_COLS*PR_SIZE];//[type(4-bit),x,y,width,height,reserve]	

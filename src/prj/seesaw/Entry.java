@@ -23,7 +23,7 @@ import narl.itrc.PanBase;
 public class Entry extends PanBase {
 
 	public Entry(){
-		panTitle="晶圓對位程式";
+		title="晶圓對位程式";
 	}
 	
 	public DevMP21xx stage= new DevMP21xx();

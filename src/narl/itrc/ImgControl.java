@@ -1,23 +1,12 @@
 package narl.itrc;
 
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXComboBox;
-import com.jfoenix.controls.JFXTabPane;
 
 import eu.hansolo.enzo.onoffswitch.OnOffSwitch;
 import eu.hansolo.enzo.onoffswitch.SelectionEvent;
-import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.Parent;
-import javafx.scene.control.Control;
-import javafx.scene.control.Label;
-import javafx.scene.control.Tab;
-import javafx.scene.layout.BorderPane;
-
 import javafx.scene.layout.VBox;
-import javafx.stage.WindowEvent;
 
 public class ImgControl extends VBox {
 
@@ -27,8 +16,11 @@ public class ImgControl extends VBox {
 	public JFXComboBox<String> lstType = new JFXComboBox<String>();
 	public JFXComboBox<String> lstIndx = new JFXComboBox<String>();
 	public OnOffSwitch swtEnable = new OnOffSwitch();
-	public JFXButton btnConfig = new JFXButton("設定相機");
-	public JFXButton btnPlayer = new JFXButton();
+	public BtnToggle btnConfig = new PanSettingCam();
+	public BtnToggle btnPlayer = new BtnToggle(
+		"播放影像","ic_play_arrow_black_24dp_1x.png",
+		"暫停播放","ic_pause_black_24dp_1x.png"
+	);
 
 	private VBox lay0 = new VBox();
 	private VBox lay1 = new VBox();
@@ -51,14 +43,7 @@ public class ImgControl extends VBox {
 		swtEnable.setOnDeselect(eventSwitch);
 
 		btnConfig.getStyleClass().add("btn-raised");
-		btnConfig.setGraphic(Misc.getIcon("ic_build_black_24dp_1x.png"));
 		btnConfig.setMaxWidth(Double.MAX_VALUE);
-		btnConfig.setOnAction(new EventHandler<ActionEvent>(){
-			@Override
-			public void handle(ActionEvent event) {
-				scrn.getCamera().showPanel(ImgControl.this.getScene().getWindow());
-			}
-		});
 		
 		lay0.getChildren().addAll(lstType,lstIndx,swtEnable,btnConfig);
 		//------------------------//
@@ -66,21 +51,16 @@ public class ImgControl extends VBox {
 		lay1.disableProperty().bind(swtEnable.selectedProperty().not());
 				
 		btnPlayer.getStyleClass().add("btn-raised");
-		btnPlayer.setOnAction(eventPlayer);
 		btnPlayer.setMaxWidth(Double.MAX_VALUE);
-		initSwtPlayer();
-		
+
 		lay1.getChildren().addAll(btnPlayer);
 		//------------------------//
 		getChildren().addAll(lay0,lay1);
 	}
 	//------------------------//
-	
-	
-	
-	//------------------------//
-	
+
 	private ImgPreview scrn = null;
+	
 	public void attachScreen(ImgPreview screen){
 		if(scrn!=null){
 			return;
@@ -95,9 +75,9 @@ public class ImgControl extends VBox {
 			if(scrn==null){
 				return;
 			}
-			if(swtEnable.selectedProperty().get()==true){
-				scrn.camIndx = lstIndx.getSelectionModel().getSelectedIndex() - 1;
+			if(scrn.isRender()==false){
 				CamBundle cam = null;
+				scrn.camIndx = lstIndx.getSelectionModel().getSelectedIndex() - 1;				
 				int typ = lstType.getSelectionModel().getSelectedIndex();
 				switch(typ){
 				case 0: cam = new CamVFiles(); break;
@@ -105,34 +85,11 @@ public class ImgControl extends VBox {
 				case 2:	cam = new CamPylon(); break;
 				case 3: cam = new CamEBus(); break;
 				default: return;// give notify ???
-				}
-				initSwtPlayer();				
+				}				
 				scrn.bindCamera(cam);
 			}else{
-				initSwtPlayer();
 				scrn.unbindCamera();
 			}
-		}
-	};
-	
-	public AtomicBoolean swtPlayer = new AtomicBoolean(false);
-	private void initSwtPlayer(){
-		swtPlayer.set(false);
-		btnPlayer.setText("播放影像");
-		btnPlayer.setGraphic(Misc.getIcon("ic_play_arrow_black_24dp_1x.png"));		
-	}
-	private EventHandler<ActionEvent> eventPlayer = new EventHandler<ActionEvent>(){
-		@Override
-		public void handle(ActionEvent event) {
-			boolean flag = swtPlayer.get();
-			if(flag==false){
-				btnPlayer.setText("暫停播放");
-				btnPlayer.setGraphic(Misc.getIcon("ic_pause_black_24dp_1x.png"));
-			}else{
-				btnPlayer.setText("播放影像");
-				btnPlayer.setGraphic(Misc.getIcon("ic_play_arrow_black_24dp_1x.png"));
-			}
-			swtPlayer.set(!flag);
 		}
 	};
 }

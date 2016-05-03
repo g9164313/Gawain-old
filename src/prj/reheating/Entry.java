@@ -10,7 +10,7 @@ import narl.itrc.PanBase;
 public class Entry extends PanBase {
 	
 	public Entry(){
-		panTitle="真空熱循環儀";
+		title="真空熱循環儀";
 	}
 	
 	public PanFMenu panMenu = new PanFMenu();

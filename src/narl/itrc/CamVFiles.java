@@ -8,16 +8,9 @@ public class CamVFiles extends CamBundle {
 	public CamVFiles(){		
 	}
 
-	private final PanSettingCam pane = new PanSettingCam(this){
-
-		@Override
-		Node layoutParm() {
-			return new Label("none");
-		}
-	};
 	@Override
 	public PanBase getPanelSetting() {
-		return pane;
+		return null;
 	}
 
 	public native void mapOverlay(CamBundle cam);//copy data to overlay layer

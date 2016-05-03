@@ -24,7 +24,7 @@ public class PanTask extends PanBase implements
 	
 	public PanTask(String title,Task<?> task){
 		propTask = task;
-		panTitle = title;
+		title = title;
 	}
 	
 	public static String checkMsgTail(String txt){

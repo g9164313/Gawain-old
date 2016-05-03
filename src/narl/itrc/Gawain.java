@@ -274,6 +274,11 @@ public class Gawain extends Application {
 		}
 	}
 	
+	@Override
+	public void stop() throws Exception {
+		PanBase.msgBox.stop();
+	}
+	 
 	private static boolean optUnpack = false;
 	
 	public static void main(String[] argv) {
@@ -288,7 +293,8 @@ public class Gawain extends Application {
 		launch(argv);//deprecate: startSWT();
 		propSave();
 
-		for(EventHook h:hook){ 
+		for(EventHook h:hook){
+			//should we move this??
 			h.shutdown();//release everything~~~
 		}
 	}

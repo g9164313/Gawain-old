@@ -14,13 +14,16 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.WindowEvent;
 
-public abstract class PanSettingCam extends PanBase {
+public class PanSettingCam extends BtnPopping {
 
 	private CamBundle cam;
 	
-	public PanSettingCam(CamBundle bundle){
-		cam = bundle;
-		panTitle = "相機設定";
+	public PanSettingCam(){
+		super(
+			"相機設定",
+			"相機設定",
+			"ic_build_black_24dp_1x.png"
+		);		
 	}
 	
 	@Override
@@ -40,8 +43,6 @@ public abstract class PanSettingCam extends PanBase {
 	}
 	//--------------------------------------//
 	
-	abstract Node layoutParm();
-
 	private Label infoType = new Label();
 	private JFXTextField infoWidth = new JFXTextField();
 	private JFXTextField infoHeight = new JFXTextField();
@@ -53,17 +54,19 @@ public abstract class PanSettingCam extends PanBase {
 		
 		pan.addRow(0,new Label("格式："),infoType);
 		pan.addRow(1,new Label("寬："),infoWidth);
-		pan.addRow(1,new Label("長："),infoHeight);
+		pan.addRow(2,new Label("長："),infoHeight);
 		return pan;
 	}
 	
 	@Override
-	public Parent layout() {
+	Parent eventLayout() {
 		JFXTabPane root = new JFXTabPane();
 		Tab info = new Tab("資料");
 		info.setContent(new ScrollPane(layoutInfo()));
 		Tab parm = new Tab("參數");
-		parm.setContent(new ScrollPane(layoutParm()));
+		//parm.setContent(new ScrollPane(layoutParm()));
+		parm.setContent(new Label("ggyy"));
+		
 		root.getTabs().addAll(info,parm);
 		root.setPrefSize(300.,(300./1.618));
 		

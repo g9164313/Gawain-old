@@ -6,8 +6,7 @@
 class GBundle{
 public:
 	GBundle(JNIEnv* _env,jobject _thiz){
-		strcpy(wndName,"::grabber::");//default name~~~
-		env = _env;
+		env =_env;
 		thiz=_thiz;
 		if(env==NULL){
 			return;
@@ -49,9 +48,6 @@ public:
 		return (env==NULL)?(true):(false);
 	}
 
-	const char* getName(){
-		return wndName;
-	}
 	double getFPSVal(){
 		return curFreq;
 	}
@@ -72,8 +68,6 @@ private:
 	int64 preTick;
 	double curFreq;
 	FILE *tapeBIN1, *tapeInfo;
-
-	char wndName[500];
 
 	void init();
 	void updateTick();

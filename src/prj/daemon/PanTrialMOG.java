@@ -31,7 +31,7 @@ import narl.itrc.PanBase;
 public class PanTrialMOG extends PanBase {
 
 	public PanTrialMOG(){
-		panTitle = "TrialMOG";
+		title = "TrialMOG";
 	}
 
 	private final String STR_REC_START="錄影";

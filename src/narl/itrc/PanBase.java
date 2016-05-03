@@ -23,7 +23,7 @@ import javafx.util.Duration;
 
 public abstract class PanBase {
 
-	protected String panTitle = "::panel::";
+	protected String title = "::panel::";
 
 	private Scene scene=null;
 	private Stage stage=null;
@@ -40,7 +40,7 @@ public abstract class PanBase {
 	}
 	
 	public void setTitle(String txt){
-		panTitle = txt;
+		title = txt;
 	}
 	
 	public Scene getScene(){ 
@@ -97,6 +97,7 @@ public abstract class PanBase {
 			return;
 		}
 		stage.close();
+		stage = null;
 	}
 	
 	private void init(Stage stg){		
@@ -112,7 +113,7 @@ public abstract class PanBase {
 			stg.setOnCloseRequest(eventWinHandle);
 		}
 		//set title and some properties~~~
-		stg.setTitle(panTitle);
+		stg.setTitle(title);
 		stg.setScene(scene);
 		stg.sizeToScene();
 	}
@@ -126,10 +127,10 @@ public abstract class PanBase {
 		scene.getStylesheets().add(Gawain.class.getResource("res/style.css").toExternalForm());
 	}
 	
-	protected void eventShowing(WindowEvent event){ }
-	protected void eventShown(WindowEvent event){ }
+	protected void eventShowing(WindowEvent e){ }
+	protected void eventShown(WindowEvent e){ }
 	protected void eventWatch(int cnt){ }
-	protected void eventClose(WindowEvent event){ }
+	protected void eventClose(WindowEvent e){ }
 	
 	private EventHandler<WindowEvent> eventWinHandle = new EventHandler<WindowEvent>(){
 		@Override
@@ -212,15 +213,8 @@ public abstract class PanBase {
 		}
 		msgBox = NotifierBuilder.create()
 			.popupLocation(Pos.CENTER)
-			.popupLifeTime(Duration.millis(1000))
+			.popupLifeTime(Duration.millis(1500))
 			.build();
-		final Gawain.EventHook event = new Gawain.EventHook(){
-			@Override
-			public void shutdown() {
-				msgBox.stop();//this widget must be stop.
-			}		
-		};
-		Gawain.hook(event);
 	}	
 	//------------------------//
 
@@ -246,13 +240,13 @@ public abstract class PanBase {
 		return pan;
 	}
 	//------------------------//
-	
+
 	public static Pane decorate(String txt,Node content){
 		
-		Label title = new Label(" "+txt+" ");
+		Label tt = new Label(" "+txt+" ");
 		
-		title.getStyleClass().add("group-title");
-		StackPane.setAlignment(title,Pos.TOP_LEFT);
+		tt.getStyleClass().add("group-title");
+		StackPane.setAlignment(tt,Pos.TOP_LEFT);
 
 		StackPane body = new StackPane();
 		content.getStyleClass().add("group-content");
@@ -260,7 +254,7 @@ public abstract class PanBase {
 		
 		StackPane grp = new StackPane();
 		grp.getStyleClass().add("group-border");
-		grp.getChildren().addAll(title,body);
+		grp.getChildren().addAll(tt,body);
 		
 		return grp;
 	}

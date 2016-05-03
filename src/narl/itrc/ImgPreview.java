@@ -2,16 +2,12 @@ package narl.itrc;
 
 import com.sun.glass.ui.Application;
 
-import eu.hansolo.enzo.notification.Notification;
-import eu.hansolo.enzo.notification.NotifierBuilder;
-
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.concurrent.WorkerStateEvent;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.event.EventType;
-import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
@@ -22,7 +18,6 @@ import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
-import javafx.util.Duration;
 
 public class ImgPreview extends BorderPane {
 	
@@ -251,10 +246,16 @@ public class ImgPreview extends BorderPane {
 		@Override
 		public void handle(WorkerStateEvent event) {
 			//When we cancel thread, it will drop from the execution pool.			
+			runFinal.run();
+		}
+	};
+	
+	private Runnable runFinal = new Runnable(){
+		@Override
+		public void run() {
 			renderPlug.close();
 			msgLast.textProperty().unbind();
 			if(ctrl!=null){
-				ctrl.swtEnable.selectedProperty().unbind();
 				ctrl.swtEnable.selectedProperty().set(false);
 			}
 		}
@@ -279,25 +280,18 @@ public class ImgPreview extends BorderPane {
 			protected Integer call() throws Exception {
 				//stage.1 - try to open camera~~~
 				renderPlug.setup(camIndx, camConf);
-				if(ctrl!=null){
-					Application.invokeAndWait(new Runnable(){
-						@Override
-						public void run() {
-							ctrl.swtEnable.selectedProperty().bind(renderPlug.optEnbl);
-						}
-					});					
-				}
-				
+
 				//stage.2 - continue to grab image from camera			
 				while(isCancelled()==false){
 					if(Application.GetApplication()==null){						
 						return 1;//Platform is shutdown
 					}
 					if(renderPlug.optEnbl.get()==false){
+						Application.invokeAndWait(runFinal);
 						return -2;//always check property
 					}
 					if(ctrl!=null){
-						if(ctrl.swtPlayer.get()==false){
+						if(ctrl.btnPlayer.get()==false){
 							Thread.sleep(50);
 							continue;
 						}
@@ -309,16 +303,28 @@ public class ImgPreview extends BorderPane {
 					renderBuff = renderPlug.getImage(1);//show overlay~~
 					Application.invokeAndWait(eventUpdate);
 				}
+				//Thread is canceled, don't run final-event
+				//because this is invoked by user
 				return 0;
 			}
 		};
 		
 		renderPlug = cam;
 		renderTask.setOnScheduled(eventStart);
-		renderTask.setOnCancelled(eventFinal);
+		renderTask.setOnCancelled(eventFinal);		
 		new Thread(renderTask,"imgRender").start();
 	}
 
+	public boolean isRender(){
+		if(renderTask==null){
+			return false;
+		}
+		if(renderTask.isRunning()==false){
+			return false;
+		}
+		return true;
+	}
+	
 	public void unbindCamera(){
 		if(renderTask==null){
 			return;

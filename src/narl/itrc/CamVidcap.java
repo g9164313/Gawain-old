@@ -20,7 +20,7 @@ public class CamVidcap extends CamBundle {
 		private String arg1;
 		
 		public PanSetting(int idx){
-			panTitle = "設定V4L2";
+			title = "設定V4L2";
 			arg1="--device=/dev/video"+idx;
 			parse_info(Misc.syncExec(CMD_V4L2,arg1,"--list-ctrls-menus"));
 		}
