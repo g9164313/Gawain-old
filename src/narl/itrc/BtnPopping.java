@@ -8,26 +8,30 @@ abstract class BtnPopping extends BtnToggle {
 	private PanBase pane = new PanBase(){
 		@Override
 		protected void eventShowing(WindowEvent e){
-			//eventShowing(e);
+			BtnPopping.this.eventShowing(e);
 		}
 		@Override
 		protected void eventShown(WindowEvent e){
-			//eventShown(e);
+			BtnPopping.this.eventShown(e);
 		}
 		@Override
 		protected void eventClose(WindowEvent e){
-			BtnPopping.this.change(false);
-			//eventClose(e);
+			BtnPopping.this.change(false);//reflection~~~
+			BtnPopping.this.eventClose(e);
 		}
 		@Override
 		public Parent layout() {
-			return eventLayout();
+			return BtnPopping.this.eventLayout();
 		}
 	};
 	
 	public BtnPopping(String title,String... name){
 		super(name);
 		pane.title = title;
+	}
+	
+	public void dismiss(){
+		pane.dismiss();
 	}
 	
 	protected void eventShowing(WindowEvent event){		

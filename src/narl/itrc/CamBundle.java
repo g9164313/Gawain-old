@@ -6,8 +6,8 @@ import com.sun.glass.ui.Application;
 
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
+import javafx.scene.Node;
 import javafx.scene.image.Image;
-import javafx.stage.Window;
 
 public abstract class CamBundle implements Gawain.EventHook {
 
@@ -21,17 +21,7 @@ public abstract class CamBundle implements Gawain.EventHook {
 	@Override
 	public void shutdown() {
 		close();
-	}
-	
-	public void showPanel(Window owner){
-		PanBase pan = getPanelSetting();
-		if(pan==null){
-			return;
-		}
-		pan.makeStage(owner);
-		pan.appear();
-	}
-	public abstract PanBase getPanelSetting();
+	}	
 	//-------------------------//
 	
 	public static final int PR_SIZE = 4;
@@ -146,6 +136,8 @@ public abstract class CamBundle implements Gawain.EventHook {
 	public abstract void fetch();
 	public abstract void close();
 	
+	public abstract Node getPanSetting();
+	
 	private Thread thrSetup;
 	public void asynSetup(int idx,String txtConfig){
 		if(thrSetup!=null){
@@ -194,6 +186,9 @@ public abstract class CamBundle implements Gawain.EventHook {
 	}
 	//-------------------------//
 
+	public long getCntx(){ 
+		return ptrCntx;
+	}	
 	public long getMatSrc(){ 
 		return getMatx(0);
 	}

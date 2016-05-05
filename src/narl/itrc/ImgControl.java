@@ -5,7 +5,7 @@ import com.jfoenix.controls.JFXComboBox;
 import eu.hansolo.enzo.onoffswitch.OnOffSwitch;
 import eu.hansolo.enzo.onoffswitch.SelectionEvent;
 import javafx.event.EventHandler;
-import javafx.scene.Parent;
+import javafx.geometry.Pos;
 import javafx.scene.layout.VBox;
 
 public class ImgControl extends VBox {
@@ -16,7 +16,7 @@ public class ImgControl extends VBox {
 	public JFXComboBox<String> lstType = new JFXComboBox<String>();
 	public JFXComboBox<String> lstIndx = new JFXComboBox<String>();
 	public OnOffSwitch swtEnable = new OnOffSwitch();
-	public BtnToggle btnConfig = new PanSettingCam();
+	public PanSettingCam btnConfig = new PanSettingCam();
 	public BtnToggle btnPlayer = new BtnToggle(
 		"播放影像","ic_play_arrow_black_24dp_1x.png",
 		"暫停播放","ic_pause_black_24dp_1x.png"
@@ -29,7 +29,7 @@ public class ImgControl extends VBox {
 		getStyleClass().add("hbox-small");
 		
 		lay0.getStyleClass().add("hbox-small");
-		
+
 		lstType.getItems().addAll("Files","Vidcap","Pylon","Ebus","Muticam");
 		lstType.getSelectionModel().select(DEFAULT_CAM_TYPE);
 		lstType.setMaxWidth(Double.MAX_VALUE);
@@ -37,7 +37,7 @@ public class ImgControl extends VBox {
 		lstIndx.getItems().addAll("自動編號","編號-1","編號-2","編號-3","編號-4","編號-5");
 		lstIndx.getSelectionModel().select(DEFAULT_CAM_INDX);
 		lstIndx.setMaxWidth(Double.MAX_VALUE);
-
+		
 		swtEnable.getStyleClass().add("swt-raise");
 		swtEnable.setOnSelect(eventSwitch);
 		swtEnable.setOnDeselect(eventSwitch);
@@ -45,14 +45,16 @@ public class ImgControl extends VBox {
 		btnConfig.getStyleClass().add("btn-raised");
 		btnConfig.setMaxWidth(Double.MAX_VALUE);
 		
+		lstType.disableProperty().bind(swtEnable.selectedProperty());
+		lstIndx.disableProperty().bind(swtEnable.selectedProperty());
 		lay0.getChildren().addAll(lstType,lstIndx,swtEnable,btnConfig);
 		//------------------------//
 		lay1.getStyleClass().add("hbox-small");
-		lay1.disableProperty().bind(swtEnable.selectedProperty().not());
-				
+		
 		btnPlayer.getStyleClass().add("btn-raised");
 		btnPlayer.setMaxWidth(Double.MAX_VALUE);
-
+		
+		lay1.disableProperty().bind(swtEnable.selectedProperty().not());
 		lay1.getChildren().addAll(btnPlayer);
 		//------------------------//
 		getChildren().addAll(lay0,lay1);
@@ -87,8 +89,10 @@ public class ImgControl extends VBox {
 				default: return;// give notify ???
 				}				
 				scrn.bindCamera(cam);
+				btnConfig.setBundle(cam);
 			}else{
-				scrn.unbindCamera();
+				scrn.unbindCamera();				
+				btnConfig.setBundle(null);//close setting-panel
 			}
 		}
 	};

@@ -5,6 +5,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
+import javafx.scene.Node;
 import javafx.scene.Parent;
 
 public class CamVidcap extends CamBundle {
@@ -15,6 +16,45 @@ public class CamVidcap extends CamBundle {
 	public CamVidcap(){
 		checkV4L2();
 	}
+	
+	private native void implSetup(CamBundle cam,int id);
+	private native void implFetch(CamBundle cam);
+	private native void implClose(CamBundle cam);
+	
+	@Override
+	public void setup(int idx,String configName) {
+		implSetup(this,idx);
+	}
+	
+	@Override
+	public void fetch() { 
+		implFetch(this);
+	}
+
+	@Override
+	public void close() {
+		implClose(this);
+	}
+	
+	private static boolean checkDevList(int idx){
+		if(haveV4L2==false){
+			return false;
+		}
+		return true;
+	}
+	
+	private static void checkV4L2(){
+		if(haveV4L2!=null){			
+			return;//we already had this information~~
+		}
+		String txt = Misc.syncExec(CMD_V4L2,"--help");		
+		if(txt.contains("General/Common options")==true){
+			haveV4L2 = true;
+		}else{
+			haveV4L2 = false;
+		}
+	}
+
 	
 	class PanSetting extends PanOption {
 		private String arg1;
@@ -181,61 +221,9 @@ public class CamVidcap extends CamBundle {
 			return null;//just layout a default panel~~
 		}
 	};
-	private PanSetting pan = null;
-
-	@Override
-	public PanBase getPanelSetting() {
-		if(pan!=null){
-			pan.updateBox();
-		}
-		return pan;
-	}
-	
-	private native void implSetup(CamBundle cam,int id);
-	private native void implFetch(CamBundle cam);
-	private native void implClose(CamBundle cam);
 	
 	@Override
-	public void setup(int idx,String configName) {
-		if(haveV4L2==true){
-			if(checkDevList(idx)==true){
-				pan = new PanSetting(idx);
-			}else{
-				pan = null;
-			}			
-		}else{
-			pan = null;//reset it~~~
-		}
-		implSetup(this,idx);
-	}
-	
-	@Override
-	public void fetch() { 
-		implFetch(this);
-	}
-
-	@Override
-	public void close() {
-		implClose(this);
-		pan = null;//reset it for next turn~~~
-	}
-	
-	private static boolean checkDevList(int idx){
-		if(haveV4L2==false){
-			return false;
-		}
-		return true;
-	}
-	
-	private static void checkV4L2(){
-		if(haveV4L2!=null){			
-			return;//we already had this information~~
-		}
-		String txt = Misc.syncExec(CMD_V4L2,"--help");		
-		if(txt.contains("General/Common options")==true){
-			haveV4L2 = true;
-		}else{
-			haveV4L2 = false;
-		}
+	public Node getPanSetting() {
+		return null;
 	}
 }

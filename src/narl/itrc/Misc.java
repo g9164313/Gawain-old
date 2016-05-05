@@ -13,6 +13,8 @@ import java.util.jar.JarFile;
 
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.stage.DirectoryChooser;
+import javafx.stage.FileChooser;
 
 public class Misc {
 
@@ -375,6 +377,21 @@ public class Misc {
 	
 	public static final String fileJar = check_jar();
 	
+	/**
+	 * The path where we start.
+	 */
+	public static final File fsPathRoot = new File(pathRoot);
+	
+	/**
+	 * The path where we keep files or data.
+	 */
+	public static final File fsPathTemp = new File(pathTemp);
+	
+	/**
+	 * Where the jar file is, if no, this will be null
+	 */
+	public static final File fsFileJar = (fileJar==null)?(null):(new File(fileJar));
+	
 	private static String check_arch(){
 		String name = System.getProperty("os.arch");
 		if(name.indexOf("64")>0){
@@ -519,7 +536,30 @@ public class Misc {
 		return new ImageView(
 			new Image(Gawain.class.getResourceAsStream("/narl/itrc/res/"+iconName))
 		);
-	}	
+	}
+	
+	public static FileChooser genChooseImage(){
+		final FileChooser.ExtensionFilter exts[] = {
+			new FileChooser.ExtensionFilter("PNG","*.png"),
+			new FileChooser.ExtensionFilter("TIF","*.tif","*.tiff"),
+			new FileChooser.ExtensionFilter("JPG","*.jpg","*.jpeg"),
+			new FileChooser.ExtensionFilter("GIF","*.gif"),
+			new FileChooser.ExtensionFilter("BMP","*.bmp"),
+			new FileChooser.ExtensionFilter("All File","*.*")			
+		};
+		FileChooser chs = new FileChooser();
+		chs.setTitle("開啟圖檔");
+		chs.setInitialDirectory(fsPathTemp);
+		chs.getExtensionFilters().addAll(exts);
+		return chs;
+	}
+	
+	public static DirectoryChooser genChooseDir(){
+		DirectoryChooser chs = new DirectoryChooser();
+		chs.setTitle("選取資料夾");
+		chs.setInitialDirectory(fsPathTemp);
+		return chs;
+	}
 	//----------------------------------------//
 
 	public static String hex2txt(byte[] hex){
@@ -622,6 +662,14 @@ public class Misc {
 			return txt;
 		}
 		return txt.substring(pos+1);
+	}
+	
+	public static String trimFileName(String txt){
+		int pos = txt.lastIndexOf(File.separatorChar);
+		if(pos<0){
+			return txt;
+		}
+		return txt.substring(0,pos);
 	}
 	//--------------------------//
 	
