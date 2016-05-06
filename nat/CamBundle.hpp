@@ -16,6 +16,10 @@ using namespace std;
 #define ROI_COLS 6
 #define PIN_COLS 4
 
+//extern void  setContext(JNIEnv* env,jobject bnd,void* ptr);
+//extern void* getContext(JNIEnv* env,jobject bnd);
+extern void  updateEnableState(JNIEnv* env,jobject bnd);
+
 #define MACRO_FETCH_CHECK \
 	if(cam==NULL){ return; } \
 	if(cam->ctxt==NULL){ return; }

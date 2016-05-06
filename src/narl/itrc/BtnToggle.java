@@ -33,49 +33,51 @@ public class BtnToggle extends JFXButton implements EventHandler<ActionEvent> {
 			name[1]="on";
 			break;
 		}
-		set(null);
+		refreshFace();
+		eventInit(state.get());
 		setOnAction(this);
 	}
 	
-	protected void eventStart(){		
-	}
-	protected void eventFinal(){		
+	private void refreshFace(){
+		int i=(state.get()==false)?(0):(1);
+		setText(name[i]);
+		if(icon[i]!=null){
+			setGraphic(icon[i]);
+		}
 	}
 	
 	private AtomicBoolean state = new AtomicBoolean(false);
-	
-	protected void change(boolean flag){
-		state.set(flag);//if we don't switch to next state, just set this variable 
-	}
-	
-	private void set(Boolean flag){
-		if(flag==null){
-			//default~~~~
-			setText(name[0]);
-			if(icon[0]!=null){
-				setGraphic(icon[0]);
-			}
+
+	public void setState(boolean flag){
+		if(flag==state.get()){
 			return;
 		}
-		if(flag==false){
-			setText(name[0]);
-			if(icon[0]!=null){ setGraphic(icon[0]); }
-			eventFinal();
-		}else{
-			setText(name[1]);
-			if(icon[1]!=null){ setGraphic(icon[1]); }
-			eventStart();
-		}
+		fire();
 	}
 	
-	public boolean get(){
+	public boolean getState(){
 		return state.get();
 	}
 
+	protected void eventInit(boolean state){ }
+	
+	protected void eventSwitch(boolean state){ }
+	
+	protected void eventSelect(){ }
+	
+	protected void eventDeselect(){ }
+	
 	@Override
 	public void handle(ActionEvent event) {
-		boolean ss = !state.get();
-		set(ss);
+		boolean ss = state.get();
+		eventSwitch(ss);
+		ss = !ss;
+		if(ss==true){
+			eventSelect();
+		}else{
+			eventDeselect();
+		}		
 		state.set(ss);
+		refreshFace();
 	}
 }

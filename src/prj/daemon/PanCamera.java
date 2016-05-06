@@ -4,7 +4,6 @@ import javafx.scene.Parent;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.WindowEvent;
 
-import narl.itrc.CamBundle;
 import narl.itrc.ImgControl;
 import narl.itrc.ImgPreview;
 import narl.itrc.PanBase;
@@ -19,8 +18,9 @@ public class PanCamera extends PanBase {
 		imgScrn.release();//important!!!
 	}
 	
-	private ImgPreview imgScrn = new ImgPreview();
-	private ImgControl imgCtrl = new ImgControl();
+	protected ImgPreview imgScrn = new ImgPreview();
+	protected ImgControl imgCtrl = new ImgControl();
+	
 	@Override
 	public Parent layout() {
 		BorderPane root = new BorderPane();
@@ -29,5 +29,4 @@ public class PanCamera extends PanBase {
 		imgScrn.attachControl(imgCtrl);
 		return root;
 	}
-	//----------------------------//
 }

@@ -132,6 +132,10 @@ public abstract class CamBundle implements Gawain.EventHook {
 	public SimpleBooleanProperty optEnbl = new SimpleBooleanProperty(false);
 	public SimpleStringProperty msgLast = new SimpleStringProperty("");
 
+	public native void refreshInf(CamBundle cam);//get type and size from current matrix
+	public native void mapOverlay(CamBundle cam);//copy data to overlay layer
+	public native void releasePtr(CamBundle cam);//release and delete all pointer~~~
+	
 	public abstract void setup(int idx,String txtConfig);
 	public abstract void fetch();
 	public abstract void close();
@@ -205,13 +209,15 @@ public abstract class CamBundle implements Gawain.EventHook {
 		if(idx>=ptrMatx.length){ 
 			return;
 		}
+		if(ptrMatx[idx]!=0){
+			Misc.imRelease(ptrMatx[idx]);
+		}
 		ptrMatx[idx] = ptr;
 	}
 	
 	public Image getImage(){
 		return getImage(0);
 	}
-	
 	public Image getImage(int idx){
 		if(idx>=ptrMatx.length){
 			return null;
@@ -222,7 +228,6 @@ public abstract class CamBundle implements Gawain.EventHook {
 		}
 		return new Image(new ByteArrayInputStream(dat));
 	}
-	
 	private native byte[] getData(long ptr);//this code are implemented in "utils_cv.cpp"
 }
 

@@ -2,16 +2,18 @@ package narl.itrc;
 
 import java.io.File;
 import java.util.List;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.jfoenix.controls.JFXButton;
+import com.jfoenix.controls.JFXCheckBox;
 
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 
 public class CamVFiles extends CamBundle {
@@ -19,62 +21,101 @@ public class CamVFiles extends CamBundle {
 	public CamVFiles(){		
 	}
 
-	public native void mapOverlay(CamBundle cam);//copy data to overlay layer
-	public native void updateInfo(CamBundle cam);//copy data to overlay layer
-	
 	@Override
-	public void setup(int idx, String txtConfig) {		
-		if(txtConfig==null){
-			//create dummy layers...
-			setMatx(0,Misc.imCreate(640,480,CvType.CV_8UC3));
-		}else{
-			//only support loading one file
-			File fs = new File(txtConfig);
-			if(fs.exists()==true){
-				lstName.add(txtConfig);
-				setMatx(0,Misc.imRead(txtConfig));
-			}else{
+	public void setup(int idx, String txtConfig) {
+		try {
+			if(txtConfig==null){
+				lstName.put("####");
 				setMatx(0,Misc.imCreate(640,480,CvType.CV_8UC3));
+			}else{
+				File fs = new File(txtConfig);
+				if(fs.exists()==true){
+					lstName.add(txtConfig);
+					setMatx(0,Misc.imRead(txtConfig));
+				}
 			}
+			updateOptEnbl(true);//it is always success!!!
+			updateMsgLast("open virtual file");
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			updateOptEnbl(false);//WTF
+			updateMsgLast("fail to manage queue");
 		}
-		updateInfo(this);
-		updateOptEnbl(true);//it always success!!!
-		updateMsgLast("open virtual file");
 	}
 
 	@Override
 	public void fetch() {
-		
-		
-		updateInfo(this);//we may change picture, so update them again
+		int cnt = lstName.size();
+		if(cnt>1){
+			String txt = null;
+			try {
+				//we may change picture, so update them again
+				switch(mode.get()){
+				case MODE_AUTO:
+					txt = lstName.pollFirst();
+					lstName.putLast(txt);
+					break;
+				case MODE_REST:
+					//do nothing, just rewrite overlay~~~
+					mapOverlay(this);
+					return;
+				case MODE_NEXT:
+					txt = lstName.pollFirst();
+					lstName.putLast(txt);
+					mode.set(MODE_REST);
+					break;
+				case MODE_PREV:
+					txt = lstName.pollLast();
+					lstName.putFirst(txt);
+					mode.set(MODE_REST);
+					break;
+				}
+				refreshInf(this);
+				setMatx(0,Misc.imRead(txt));
+				//Misc.logv("read picture:"+txt);				
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
 		mapOverlay(this);
+		//auto adjust delay time~~~
+		cnt = 1000/cnt;
+		if(cnt>=10){
+			Misc.delay(cnt);
+		}
 	}
 
 	@Override
 	public void close() {
-		//release all data!!!
-		for(int i=0; i<PTR_SIZE; i++){
-			long ptr = getMatx(i);
-			if(ptr!=0){
-				Misc.imRelease(ptr);
-			}
-			setMatx(i,0L);
-		}
+		releasePtr(this);
 		updateOptEnbl(false);//it always success!!!
 		updateMsgLast("close virtual file");
 	}
 	//---------------------------//
 	
-	private AtomicInteger mode = new AtomicInteger();
+	private final int MODE_AUTO = -1;
+	private final int MODE_REST =  0;
+	private final int MODE_NEXT =  1;
+	private final int MODE_PREV =  2;
+	/**
+	 * this variable presents how to deal with list<p>
+	 * -1 : auto polling the sequence(poll head, then put it to tail)<p>
+	 *  0 : don't change sequence<p>
+	 *  1 : just change to the next item<p>
+	 *  2 : just change to the previous item <p>
+	 */
+	private AtomicInteger mode = new AtomicInteger(MODE_REST);
 	
-	private LinkedBlockingQueue<String> lstName = new LinkedBlockingQueue<String>();
+	private LinkedBlockingDeque<String> lstName = new LinkedBlockingDeque<String>();
 
 	@Override
 	public Node getPanSetting() {
 		
 		final Label txtPath = new Label();
 		if(lstName.isEmpty()==false){
-			txtPath.setText(lstName.peek());
+			txtPath.setText("路徑："+lstName.peek());
+		}else{
+			txtPath.setText("路徑：????");
 		}
 		
 		final JFXButton btnFile = new JFXButton();
@@ -83,28 +124,83 @@ public class CamVFiles extends CamBundle {
 			public void handle(ActionEvent event) {
 				FileChooser chs = Misc.genChooseImage();
 				List<File> lst = chs.showOpenMultipleDialog(btnFile.getScene().getWindow());
-				if(lst.isEmpty()==true){
+				if(lst==null){
 					return;
 				}
 				String name = lst.get(0).getAbsolutePath();
-				if(lst.size()>1){
+				if(lst.size()==1){
+					setMatx(0,Misc.imRead(name));					
+				}else{
 					name = Misc.trimFileName(name);
 				}
-				txtPath.setText(name);
-				lstName.clear();
-				for(File fs:lst){
-					lstName.add(fs.getAbsolutePath());
+				txtPath.setText("路徑："+name);
+				lstName.clear();				
+				try {
+					for(File fs:lst){
+						lstName.putLast(fs.getAbsolutePath());
+					}
+				} catch (InterruptedException e) {
+					Misc.loge("fail to dequeue data");						
+				}
+			}
+		});		
+		btnFile.getStyleClass().add("btn-raised");
+		btnFile.setMaxWidth(Double.MAX_VALUE);
+		btnFile.setText("選取檔案");
+		
+		final JFXButton btnPrev = new JFXButton();
+		btnPrev.getStyleClass().add("btn-raised");
+		btnPrev.setMaxWidth(Double.MAX_VALUE);
+		//btnPrev.prefWidthProperty().bind(btnFile.prefWidthProperty().divide(2));
+		btnPrev.setText("上一張");
+		btnPrev.setGraphic(Misc.getIcon("ic_keyboard_arrow_left_black_24dp_1x.png"));
+		btnPrev.setOnAction(new EventHandler<ActionEvent>(){
+			@Override
+			public void handle(ActionEvent event) {
+				if(mode.get()!=MODE_REST){ return; }
+				mode.set(MODE_PREV);
+			}
+		});
+		
+		final JFXButton btnNext = new JFXButton();
+		btnNext.getStyleClass().add("btn-raised");
+		btnNext.setMaxWidth(Double.MAX_VALUE);
+		//btnNext.prefWidthProperty().bind(btnFile.prefWidthProperty().divide(2));
+		btnNext.setText("下一張");
+		btnNext.setGraphic(Misc.getIcon("ic_keyboard_arrow_right_black_24dp_1x.png"));
+		btnNext.setOnAction(new EventHandler<ActionEvent>(){
+			@Override
+			public void handle(ActionEvent event) {
+				if(mode.get()!=MODE_REST){ return; }
+				mode.set(MODE_NEXT);
+			}
+		});
+		
+		final JFXCheckBox chkAuto = new JFXCheckBox("自動模式");
+		chkAuto.setOnAction(new EventHandler<ActionEvent>(){
+			@Override
+			public void handle(ActionEvent event) {
+				if(chkAuto.selectedProperty().get()==true){
+					mode.set(MODE_AUTO);
+					btnPrev.setDisable(true);
+					btnNext.setDisable(true);
+				}else{
+					mode.set(MODE_REST);
+					btnPrev.setDisable(false);
+					btnNext.setDisable(false);
 				}
 			}
 		});
-		btnFile.setText("檔案");
-		btnFile.getStyleClass().add("btn-raised");
-		btnFile.setMaxWidth(Double.MAX_VALUE);
 		
 		GridPane pan = new GridPane();
 		pan.getStyleClass().add("grid-small");
-		pan.addRow(0,new Label("路徑："),txtPath);
-		pan.add(btnFile,0,1,2,1);
-		return pan;
+		pan.add(chkAuto,0,1,2,1);
+		pan.add(btnFile,0,2,2,1);
+		pan.addRow(3,btnPrev,btnNext);
+		
+		VBox lay0 = new VBox();
+		lay0.getStyleClass().add("vbox-small");
+		lay0.getChildren().addAll(txtPath,pan);
+		return lay0;
 	}
 }

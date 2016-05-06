@@ -16,7 +16,7 @@ abstract class BtnPopping extends BtnToggle {
 		}
 		@Override
 		protected void eventClose(WindowEvent e){
-			BtnPopping.this.change(false);//reflection~~~
+			BtnPopping.this.setState(false);//reflection~~~
 			BtnPopping.this.eventClose(e);
 		}
 		@Override
@@ -43,13 +43,13 @@ abstract class BtnPopping extends BtnToggle {
 	abstract Parent eventLayout();
 
 	@Override
-	protected void eventStart() {
+	protected void eventSelect() {
 		pane.makeStage(getScene().getWindow());
 		pane.appear();
 	}
 
 	@Override
-	protected void eventFinal() {
+	protected void eventDeselect() {
 		pane.dismiss();
 	}
 }

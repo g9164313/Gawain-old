@@ -255,9 +255,6 @@ public class ImgPreview extends BorderPane {
 		public void run() {
 			renderPlug.close();
 			msgLast.textProperty().unbind();
-			if(ctrl!=null){
-				ctrl.swtEnable.selectedProperty().set(false);
-			}
 		}
 	};
 	
@@ -291,7 +288,7 @@ public class ImgPreview extends BorderPane {
 						return -2;//always check property
 					}
 					if(ctrl!=null){
-						if(ctrl.btnPlayer.get()==false){
+						if(ctrl.btnPlayer.getState()==false){
 							Thread.sleep(50);
 							continue;
 						}
