@@ -81,7 +81,6 @@ public class ImgControl extends VBox {
 	//------------------------//
 
 	private ImgPreview scrn = null;
-	
 	public void attachScreen(ImgPreview screen){
 		if(scrn!=null){
 			return;
@@ -92,7 +91,7 @@ public class ImgControl extends VBox {
 	
 	private void openCamera(){
 		CamBundle cam = null;
-		scrn.camIndx = lstIndx.getSelectionModel().getSelectedIndex() - 1;				
+		ImgRender.camIndx = lstIndx.getSelectionModel().getSelectedIndex() - 1;				
 		int typ = lstType.getSelectionModel().getSelectedIndex();
 		switch(typ){
 		case 0: cam = new CamVFiles(); break;

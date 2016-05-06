@@ -1,9 +1,6 @@
 package narl.itrc;
 
-import com.sun.glass.ui.Application;
-
 import javafx.collections.ObservableList;
-import javafx.concurrent.Task;
 import javafx.concurrent.WorkerStateEvent;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
@@ -13,7 +10,6 @@ import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.ScrollPane;
-import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
@@ -36,15 +32,6 @@ public class ImgPreview extends BorderPane {
 	public ImgPreview(int width,int height){
 		initMenu();
 		initBoard(width,height);
-	}
-
-	public void release(){
-		if(renderTask!=null){
-			if(renderTask.isRunning()==true){
-				renderTask.cancel();
-			}
-			while(renderTask.isRunning()==true);
-		}
 	}
 
 	public ImageView screen = new ImageView();
@@ -149,35 +136,39 @@ public class ImgPreview extends BorderPane {
 	private EventHandler<MouseEvent> eventPreparePin = new EventHandler<MouseEvent>(){
 		@Override
 		public void handle(MouseEvent e) {
-			if(renderTask==null){ return; }
+			if(isRender()==false){
+				return;
+			}
 			int idx = 0;
 			for(int i=0; i<CamBundle.PR_SIZE; i++){
 				int[] pos = {0,0};
-				renderPlug.getPinPos(i,pos);
+				render.bund.getPinPos(i,pos);
 				if(pos[0]<0 && pos[1]<0){
 					idx = i;
 					break;
 				}
 			}
-			renderPlug.setPinPos(idx, e.getX(), e.getY());
+			render.bund.setPinPos(idx, e.getX(), e.getY());
 		}
 	};
 
 	private EventHandler<MouseEvent> eventPrepareROI = new EventHandler<MouseEvent>(){
 		@Override
 		public void handle(MouseEvent e) {
-			if(renderTask==null){ return; }
+			if(isRender()==false){
+				return;
+			}
 			EventType<?> typ = e.getEventType();
 			if(typ==MouseEvent.DRAG_DETECTED){
-				renderPlug.setROI(true,e.getX(),e.getY());
+				render.bund.setROI(true,e.getX(),e.getY());
 			}else if(typ==MouseEvent.MOUSE_DRAGGED){
-				renderPlug.setROI(false,e.getX(),e.getY());
+				render.bund.setROI(false,e.getX(),e.getY());
 			}else if(typ==MouseEvent.MOUSE_RELEASED){
 				int idx = 0;
 				for(int i=0; i<CamBundle.PR_SIZE; i++){
 					
 				}
-				renderPlug.fixROI(idx,CamBundle.ROI_TYPE_RECT);
+				render.bund.fixROI(idx,CamBundle.ROI_TYPE_RECT);
 			}
 		}
 	};
@@ -189,44 +180,45 @@ public class ImgPreview extends BorderPane {
 			int pIdx = (int)((Label)event.getSource()).getUserData();
 			switch(mIdx){
 			case 1://PIN mode
-				renderPlug.setPinPos(pIdx,-1.,-1.);
+				render.bund.setPinPos(pIdx,-1.,-1.);
 				break;
 			case 2://ROI mode
-				renderPlug.delROI(pIdx);
+				render.bund.delROI(pIdx);
 				break;
 			}
 		}
 	};
 	//---------------------//
 	
-	private EventHandler<WorkerStateEvent> eventStart = 
-		new EventHandler<WorkerStateEvent>()
-	{
-		@Override
-		public void handle(WorkerStateEvent event) {
-			//bind every information!!!!			
-			msgLast.textProperty().bind(renderPlug.msgLast);
+	private ImgControl ctrl = null;
+	public void attachControl(ImgControl control){
+		if(ctrl!=null){
+			return;
 		}
-	};
+		ctrl = control;
+		ctrl.attachScreen(this);
+	}
 	
-	private Image renderBuff = null;
-	private Runnable eventUpdate = new Runnable(){
+	public Runnable eventUpdate = new Runnable(){
 		@Override
 		public void run() {
-			if(renderBuff==null){
+			if(isRender()==false){
 				return;
-			}			
+			}
 			int mIdx = (int)menu.getUserData();
 			switch(mIdx){
 			case 1://PIN mode
 				for(int i=0; i<CamBundle.PR_SIZE; i++){
-					msgData[i].textProperty().set(renderPlug.getPinVal(i));
+					msgData[i].textProperty().set(render.bund.getPinVal(i));
 				}
 				break;
 			case 2://ROI mode	
 				break;
 			case 3://Snap a picture
-				String name = Misc.imWriteX(Misc.pathTemp+"snap.png",renderPlug.getMatSrc());
+				String name = Misc.imWriteX(
+					Misc.pathTemp+"snap.png",
+					render.bund.getMatSrc()
+				);
 				name = Misc.trimPath(name);
 				menu.setUserData(0);//go to default mode~~~
 				PanBase.msgBox.notifyInfo("Snap","儲存成"+name);
@@ -236,108 +228,54 @@ public class ImgPreview extends BorderPane {
 			case 5://record stop
 				break;
 			}
-			screen.setImage(renderBuff);
+			screen.setImage(render.buff);
 		}
 	};
 	
-	private EventHandler<WorkerStateEvent> eventFinal = 
-		new EventHandler<WorkerStateEvent>()
-	{
-		@Override
-		public void handle(WorkerStateEvent event) {
-			//When we cancel thread, it will drop from the execution pool.			
-			runFinal.run();
-		}
-	};
-	
-	private Runnable runFinal = new Runnable(){
+	public Runnable eventFinal = new Runnable(){
 		@Override
 		public void run() {
-			renderPlug.close();
+			//When we cancel thread, it will drop from the execution pool.			
+			render.bund.close();
 			msgLast.textProperty().unbind();
 		}
 	};
 	
-	public int camIndx = 0;
-	public String camConf = null;
-
-	private CamBundle renderPlug;
-	private Task<Integer> renderTask;
-
-	public CamBundle getCamera(){ return renderPlug; }
-	
+	public ImgRender render;
 	public void bindCamera(CamBundle cam){
-		if(renderTask!=null){
-			if(renderTask.isRunning()==true){
-				return;
-			}
+		if(isRender()==true){
+			return;
 		}
-		renderTask = new Task<Integer>(){			
+		render = new ImgRender(cam,this,ctrl);
+		render.setOnScheduled(new EventHandler<WorkerStateEvent>(){
 			@Override
-			protected Integer call() throws Exception {
-				//stage.1 - try to open camera~~~
-				renderPlug.setup(camIndx, camConf);
-
-				//stage.2 - continue to grab image from camera			
-				while(isCancelled()==false){
-					if(Application.GetApplication()==null){						
-						return 1;//Platform is shutdown
-					}
-					if(renderPlug.optEnbl.get()==false){
-						Application.invokeAndWait(runFinal);
-						return -2;//always check property
-					}
-					if(ctrl!=null){
-						if(ctrl.btnPlayer.getState()==false){
-							Thread.sleep(50);
-							continue;
-						}
-					}
-					renderPlug.fetch();
-					renderPlug.markData();
-					//TODO: hook something~~~~
-					//update some information
-					renderBuff = renderPlug.getImage(1);//show overlay~~
-					Application.invokeAndWait(eventUpdate);
-				}
-				//Thread is canceled, don't run final-event
-				//because this is invoked by user
-				return 0;
+			public void handle(WorkerStateEvent event) {
+				//This is invoked by GUI thread...
+				msgLast.textProperty().bind(render.bund.msgLast);
+			}	
+		});
+		render.setOnCancelled(new EventHandler<WorkerStateEvent>(){
+			@Override
+			public void handle(WorkerStateEvent event) {
+				eventFinal.run();
 			}
-		};
-		
-		renderPlug = cam;
-		renderTask.setOnScheduled(eventStart);
-		renderTask.setOnCancelled(eventFinal);		
-		new Thread(renderTask,"imgRender").start();
+		});		
+		new Thread(render,"imgRender").start();
 	}
 
-	public boolean isRender(){
-		if(renderTask==null){
-			return false;
-		}
-		if(renderTask.isRunning()==false){
-			return false;
-		}
-		return true;
-	}
-	
 	public void unbindCamera(){
-		if(renderTask==null){
+		if(render==null){
 			return;
 		}		
-		renderTask.cancel();
-		while(renderTask.isRunning()==true);
-		renderPlug = null;//reset it~~~
+		render.cancel();
+		while(render.isDone()==false);		
 	}
 	
-	private ImgControl ctrl = null;
-	public void attachControl(ImgControl control){
-		if(ctrl!=null){
-			return;
+	public boolean isRender(){
+		if(render==null){
+			return false;
 		}
-		ctrl = control;
-		ctrl.attachScreen(this);
+		return !render.isDone();
 	}
 }
 
