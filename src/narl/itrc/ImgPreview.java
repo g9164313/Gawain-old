@@ -228,7 +228,7 @@ public class ImgPreview extends BorderPane {
 			case 5://record stop
 				break;
 			}
-			screen.setImage(render.buff);
+			screen.setImage(render.getBuffer());
 		}
 	};
 	

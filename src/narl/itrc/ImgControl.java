@@ -1,12 +1,15 @@
 package narl.itrc;
 
+import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXComboBox;
 
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.scene.layout.VBox;
 
 public class ImgControl extends VBox {
 
-	private final int DEFAULT_CAM_TYPE = 0;
+	private final int DEFAULT_CAM_TYPE = 1;
 	private final int DEFAULT_CAM_INDX = 0;
 
 	private VBox lay0 = new VBox();
@@ -80,6 +83,30 @@ public class ImgControl extends VBox {
 	}
 	//------------------------//
 
+	public JFXButton addAction(ImgRender.Filter fltr,int cnt){
+		JFXButton btn = new JFXButton();
+		btn.setOnAction(new EventHandler<ActionEvent>(){
+			@Override
+			public void handle(ActionEvent event) {
+				if(scrn==null){
+					return;
+				}
+				ImgRender rr = scrn.render;
+				if(rr.fltrCnt.get()>0){
+					PanBase.msgBox.notifyError("Render","裝置忙碌中");
+					return;
+				}
+				fltr.initData();//prepare data~~~
+				rr.fltrObj = fltr;//use synchronized()???
+				rr.fltrCnt.set(cnt);				
+			}
+		});		
+		btn.getStyleClass().add("btn-raised");
+		btn.setMaxWidth(Double.MAX_VALUE);
+		lay1.getChildren().add(btn);
+		return btn;
+	}
+	
 	private ImgPreview scrn = null;
 	public void attachScreen(ImgPreview screen){
 		if(scrn!=null){
@@ -91,7 +118,8 @@ public class ImgControl extends VBox {
 	
 	private void openCamera(){
 		CamBundle cam = null;
-		ImgRender.camIndx = lstIndx.getSelectionModel().getSelectedIndex() - 1;				
+		ImgRender.camIndx = lstIndx.getSelectionModel().getSelectedIndex() - 1;
+		ImgRender.camConf = btnConfig.getConfigText();
 		int typ = lstType.getSelectionModel().getSelectedIndex();
 		switch(typ){
 		case 0: cam = new CamVFiles(); break;

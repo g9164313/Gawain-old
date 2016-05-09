@@ -22,6 +22,7 @@ public class PanSettingCam extends BtnPopping {
 			"相機設定",
 			"ic_build_black_24dp_1x.png"
 		);		
+		confCamera.setText(Gawain.prop.getProperty("",""));
 	}
 	
 	@Override
@@ -75,9 +76,14 @@ public class PanSettingCam extends BtnPopping {
 			infoLast.textProperty().unbind();
 			dismiss();
 		}
-	}	
+	}
+	
+	public String getConfigText(){
+		return confCamera.getText();
+	}
 	//--------------------------------------//
 	
+	private JFXTextField confCamera = new JFXTextField();
 	private Label infoType = new Label();
 	private JFXTextField infoWidth = new JFXTextField();
 	private JFXTextField infoHeight = new JFXTextField();
@@ -90,12 +96,13 @@ public class PanSettingCam extends BtnPopping {
 		pan.getStyleClass().add("grid-small");
 		pan.setAlignment(Pos.BASELINE_LEFT);
 		
-		pan.addRow(0,new Label("格式："),infoType);
-		pan.addRow(1,new Label("寬："),infoWidth);
-		pan.addRow(2,new Label("高："),infoHeight);
-		pan.addRow(3,new Label("內容："),infoCntx);
-		pan.addRow(4,new Label("矩陣："),infoMatx);
-		pan.addRow(5,new Label("訊息："),infoLast);
+		pan.addRow(0,new Label("訊息："),confCamera);
+		pan.addRow(1,new Label("格式："),infoType);
+		pan.addRow(2,new Label("寬："),infoWidth);
+		pan.addRow(3,new Label("高："),infoHeight);
+		pan.addRow(4,new Label("內容："),infoCntx);
+		pan.addRow(5,new Label("矩陣："),infoMatx);
+		pan.addRow(6,new Label("訊息："),infoLast);
 		return pan;
 	}
 	
