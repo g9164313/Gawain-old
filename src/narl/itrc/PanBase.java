@@ -130,7 +130,9 @@ public abstract class PanBase {
 	protected void eventShowing(WindowEvent e){ }
 	protected void eventShown(WindowEvent e){ }
 	protected void eventWatch(int cnt){ }
-	protected void eventClose(WindowEvent e){ }
+	protected void eventClose(WindowEvent e){
+		msgBox.stop();
+	}
 	
 	private EventHandler<WindowEvent> eventWinHandle = new EventHandler<WindowEvent>(){
 		@Override

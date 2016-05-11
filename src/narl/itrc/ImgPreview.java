@@ -1,15 +1,25 @@
 package narl.itrc;
 
+import javax.swing.ButtonGroup;
+
+import com.jfoenix.controls.JFXComboBox;
+import com.jfoenix.controls.JFXRadioButton;
+
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.ObservableList;
 import javafx.concurrent.WorkerStateEvent;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.event.EventType;
 import javafx.scene.Node;
+import javafx.scene.control.Button;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.Toggle;
+import javafx.scene.control.ToggleGroup;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
@@ -30,108 +40,86 @@ public class ImgPreview extends BorderPane {
 	}
 
 	public ImgPreview(int width,int height){
-		initMenu();
 		initBoard(width,height);
 	}
 
+	
+	private boolean snapAction = false;
+	
 	public ImageView screen = new ImageView();
-	public Label msgLast = new Label();
-	public Label msgInfo = new Label();
-	public Label[] msgData;
+	private Button btnSnap = new Button("Snap");
+	private JFXRadioButton btnReco = new JFXRadioButton("錄製");
+	private JFXRadioButton btnPick = new JFXRadioButton("選取");
+	private JFXComboBox<String> lstPickType = new JFXComboBox<String>();
+	private JFXComboBox<Integer> lstPickIndx = new JFXComboBox<Integer>();
+	private Label msgLast = new Label();
 	private ContextMenu menu = new ContextMenu();
 	
-	private void initBoard(int width,int height){
+	private void initBoard(int width,int height){		
+		getStyleClass().add("board-center");
 		
-		FlowPane pan0 = new FlowPane();
+		btnSnap.setOnAction(new EventHandler<ActionEvent>(){
+			@Override
+			public void handle(ActionEvent event) {
+				if(isRender()==false){
+					return;
+				}
+				snapAction = true;
+			}	
+		});
 		
+		lstPickType.getItems().addAll("Pin","矩形(實)","圓形(實)");
+		lstPickType.getSelectionModel().select(0);
+		lstPickType.setOnAction(eventPrepareHook);
+		lstPickIndx.getItems().addAll(1,2,3,4);
+		lstPickIndx.getSelectionModel().select(0);
+		btnPick.setOnAction(new EventHandler<ActionEvent>(){
+			@Override
+			public void handle(ActionEvent event) {
+				if(btnPick.isSelected()==true){
+					eventPrepareHook.handle(null);
+					lstPickType.setDisable(false);
+					lstPickIndx.setDisable(false);
+				}else{					
+					lstPickType.setDisable(true);
+					lstPickIndx.setDisable(true);
+					screen.setOnMouseClicked(null);
+					screen.setOnDragDetected(null);
+					screen.setOnMouseDragged(null);
+					screen.setOnMouseReleased(null);
+				}
+			}	
+		});
+		
+		FlowPane pan0 = new FlowPane();		
 		pan0.getStyleClass().add("flow-small");
-		
-		ObservableList<Node> lst0 = pan0.getChildren();
-		lst0.addAll(msgLast,msgInfo);
-		msgData = new Label[CamBundle.PR_SIZE];
-		for(int i=0; i<CamBundle.PR_SIZE; i++){
-			msgData[i] = new Label();
-			msgData[i].setOnMouseClicked(eventCheckData);
-			msgData[i].setUserData(i);
-			lst0.add(msgData[i]);			
-		}
-		
+		pan0.getChildren().addAll(btnSnap,btnReco,btnPick,lstPickType,lstPickIndx,msgLast);
+
 		ScrollPane pan1 = new ScrollPane();
 		pan1.setPrefSize(width, height);
 		pan1.setContent(screen);
 		pan1.setContextMenu(menu);
-		
+
 		setTop(pan0);
 		setCenter(pan1);
 	}
 	
-	private void initMenu(){
-		MenuItem itm0 = new MenuItem("None");//reset all hook~~~
-		itm0.setOnAction(new EventHandler<ActionEvent>(){
-			@Override
-			public void handle(ActionEvent event) {
-				//display all pin value~~~
-				menu.setUserData(0);
-				screen.setOnMouseClicked(null);
+	private EventHandler<ActionEvent> eventPrepareHook = new EventHandler<ActionEvent>(){
+		@Override
+		public void handle(ActionEvent event) {
+			if(lstPickType.getSelectionModel().getSelectedIndex()==0){
+				screen.setOnMouseClicked(eventPreparePin);
 				screen.setOnDragDetected(null);
 				screen.setOnMouseDragged(null);
 				screen.setOnMouseReleased(null);
-				for(Label txt:msgData){
-					txt.textProperty().set("");
-				}
-			}
-		});
-		
-		MenuItem itm1 = new MenuItem("Pin Mode");
-		itm1.setOnAction(new EventHandler<ActionEvent>(){
-			@Override
-			public void handle(ActionEvent event) {
-				menu.setUserData(1);
-				screen.setOnMouseClicked(eventPreparePin);				
-			}
-		});
-		
-		MenuItem itm2 = new MenuItem("ROI Mode");
-		itm2.setOnAction(new EventHandler<ActionEvent>(){
-			@Override
-			public void handle(ActionEvent event) {
-				//display all ROI values~~~
-				menu.setUserData(2);
+			}else{
+				screen.setOnMouseClicked(null);
 				screen.setOnDragDetected(eventPrepareROI);
 				screen.setOnMouseDragged(eventPrepareROI);
 				screen.setOnMouseReleased(eventPrepareROI);
 			}
-		});
-		
-		MenuItem itm3 = new MenuItem("Snap");
-		itm3.setOnAction(new EventHandler<ActionEvent>(){
-			@Override
-			public void handle(ActionEvent event) {
-				menu.setUserData(3);
-			}
-		});
-		
-		final String TXT_RECORD_START = "Record";
-		final String TXT_RECORD_PAUSE = "[Pause]";
-		MenuItem itm4 = new MenuItem(TXT_RECORD_START);
-		itm4.setOnAction(new EventHandler<ActionEvent>(){
-			@Override
-			public void handle(ActionEvent event) {
-				//display all ROI values~~~
-				menu.setUserData(4);
-				String txt = itm4.getText();
-				if(txt.equalsIgnoreCase(TXT_RECORD_START)==true){
-					//start to record~~~~
-					itm4.setText(TXT_RECORD_PAUSE);					
-				}else{
-					itm4.setText(TXT_RECORD_START);
-				}				
-			}
-		});
-		
-		menu.getItems().addAll(itm0,itm1,itm2,itm3,itm4);
-		menu.setUserData(0);//default, remember to keep this~~~
-	}
+		}
+	};
 	
 	private EventHandler<MouseEvent> eventPreparePin = new EventHandler<MouseEvent>(){
 		@Override
@@ -139,16 +127,8 @@ public class ImgPreview extends BorderPane {
 			if(isRender()==false){
 				return;
 			}
-			int idx = 0;
-			for(int i=0; i<CamBundle.PR_SIZE; i++){
-				int[] pos = {0,0};
-				render.bund.getPinPos(i,pos);
-				if(pos[0]<0 && pos[1]<0){
-					idx = i;
-					break;
-				}
-			}
-			render.bund.setPinPos(idx, e.getX(), e.getY());
+			int index = lstPickIndx.getSelectionModel().getSelectedItem()-1;
+			render.bund.fixPin(index,e.getX(),e.getY());
 		}
 	};
 
@@ -160,31 +140,17 @@ public class ImgPreview extends BorderPane {
 			}
 			EventType<?> typ = e.getEventType();
 			if(typ==MouseEvent.DRAG_DETECTED){
-				render.bund.setROI(true,e.getX(),e.getY());
+				render.bund.setROI(true, e.getX(),e.getY());
 			}else if(typ==MouseEvent.MOUSE_DRAGGED){
 				render.bund.setROI(false,e.getX(),e.getY());
 			}else if(typ==MouseEvent.MOUSE_RELEASED){
-				int idx = 0;
-				for(int i=0; i<CamBundle.PR_SIZE; i++){
-					
-				}
-				render.bund.fixROI(idx,CamBundle.ROI_TYPE_RECT);
-			}
-		}
-	};
-	
-	private EventHandler<MouseEvent> eventCheckData = new EventHandler<MouseEvent>(){
-		@Override
-		public void handle(MouseEvent event) {
-			int mIdx = (int)menu.getUserData();
-			int pIdx = (int)((Label)event.getSource()).getUserData();
-			switch(mIdx){
-			case 1://PIN mode
-				render.bund.setPinPos(pIdx,-1.,-1.);
-				break;
-			case 2://ROI mode
-				render.bund.delROI(pIdx);
-				break;
+				int shape = lstPickType.getSelectionModel().getSelectedIndex();
+				int index = lstPickIndx.getSelectionModel().getSelectedItem()-1;
+				switch(shape){
+				case 1: shape = CamBundle.ROI_TYPE_RECT; break;
+				case 2: shape = CamBundle.ROI_TYPE_CIRC; break;
+				}				
+				render.bund.fixROI(index,shape);
 			}
 		}
 	};
@@ -205,28 +171,14 @@ public class ImgPreview extends BorderPane {
 			if(isRender()==false){
 				return;
 			}
-			int mIdx = (int)menu.getUserData();
-			switch(mIdx){
-			case 1://PIN mode
-				for(int i=0; i<CamBundle.PR_SIZE; i++){
-					msgData[i].textProperty().set(render.bund.getPinVal(i));
-				}
-				break;
-			case 2://ROI mode	
-				break;
-			case 3://Snap a picture
+			if(snapAction==true){
 				String name = Misc.imWriteX(
 					Misc.pathTemp+"snap.png",
 					render.bund.getMatSrc()
 				);
-				name = Misc.trimPath(name);
-				menu.setUserData(0);//go to default mode~~~
+				name = Misc.trimPath(name);				
 				PanBase.msgBox.notifyInfo("Snap","儲存成"+name);
-				break;
-			case 4://record start
-				break;
-			case 5://record stop
-				break;
+				snapAction = false;//for next turn~~~
 			}
 			screen.setImage(render.getBuffer());
 		}

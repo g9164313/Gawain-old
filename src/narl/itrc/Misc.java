@@ -542,6 +542,7 @@ public class Misc {
 		final FileChooser.ExtensionFilter exts[] = {
 			new FileChooser.ExtensionFilter("PNG","*.png"),
 			new FileChooser.ExtensionFilter("TIF","*.tif","*.tiff"),
+			new FileChooser.ExtensionFilter("PGM","*.pgm"),
 			new FileChooser.ExtensionFilter("JPG","*.jpg","*.jpeg"),
 			new FileChooser.ExtensionFilter("GIF","*.gif"),
 			new FileChooser.ExtensionFilter("BMP","*.bmp"),

@@ -13,9 +13,7 @@ public abstract class CamBundle implements Gawain.EventHook {
 
 	public CamBundle(){
 		Gawain.hook(this);
-		for(int i=0; i<pinPos.length; i++){ 
-			pinPos[i] = -1;
-		}
+		roiTmp[0] = roiTmp[1] = roiTmp[2] = roiTmp[3] = -1;//don't draw it~~~
 	}
 
 	@Override
@@ -24,78 +22,65 @@ public abstract class CamBundle implements Gawain.EventHook {
 	}	
 	//-------------------------//
 	
-	public static final int PR_SIZE = 4;
-	public static final int PIN_COLS = 4;
+	//these will 
+	public static final int ROI_SIZE = 4;
 	public static final int ROI_COLS = 6;
-	public static final int ROI_TYPE_NONE  = 0;
-	public static final int ROI_TYPE_RECT  = 1;
-	public static final int ROI_TYPE_CIRCLE= 2;
+	//[channel:4bit][stroke:16bit][shape:8bit]
+	public static final int ROI_TYPE_NONE = 0x000000;
+	public static final int ROI_TYPE_PIN  = 0x000001;
+	public static final int ROI_TYPE_RECT = 0x000002;
+	public static final int ROI_TYPE_CIRC = 0x000003;
 	
 	private int infoType,infoWidth,infoHeight;//update by native code, type value is same as OpenCV
-	private int[]   pinPos = new int[2*PR_SIZE];//just a Cartesian coordinates
-	private float[] pinVal = new float[PIN_COLS*PR_SIZE];//support maximum 4-channel
+	
 	private int[]   roiTmp = new int[2*2];//current and diagonal position~~ 
-	private int[]   roiPos = new int[ROI_COLS*PR_SIZE];//[type(4-bit),x,y,width,height,reserve]	
-	private float[] roiVal = new float[ROI_COLS*PR_SIZE];//[average,deviation,minimum,maximum,mode,???]
+	/**
+	 * How to treat ROI structure<p>
+	 * Each column means [type(4-bit),x,y,width,height,???]<p>
+	 * Type is bit-base<p>
+	 * bit0~7:shape, bit8~15:stroke size, bit16~19:which channel<p>
+	 */
+	private int[]   roiPos = new int[ROI_SIZE*ROI_COLS];//
+	/**
+	 * keep the pixel value or the statistics value of ROI<p>
+	 * When type is Pin, it mean four channel pixel value<p>
+	 * Otherwise it means [average,deviation,minimum,maximum,mode,???]<p>
+	 */
+	private float[] roiVal = new float[ROI_SIZE*ROI_COLS];
 	
 	public native void markData();//this code are implemented in "utils_cv.cpp" 
 	
 	public int getType(){ return infoType; }
 	public int getWidth(){ return infoWidth; }
 	public int getHeight(){ return infoHeight; }
-	
-	public void getPinPos(int pinIdx,int[] pos){
-		if(pinIdx>=PR_SIZE){ 
-			pos[0] = pos[1] = -1;
-			return;
-		}
-		pos[0] = pinPos[2*pinIdx+0];
-		pos[1] = pinPos[2*pinIdx+1];
-	}
-	public void setPinPos(int pinIdx,double pos_x, double pos_y){
-		if(pinIdx>=PR_SIZE){ 
-			return;
-		}
-		pinPos[2*pinIdx+0] = (int)pos_x;
-		pinPos[2*pinIdx+1] = (int)pos_y;
-	}
-	
-	public String getPinVal(int pinIdx){
-		if(pinIdx>=PR_SIZE){ 
-			return "???";
-		}
-		int xx = pinPos[2*pinIdx+0];
-		int yy = pinPos[2*pinIdx+1];
-		if(xx<0 || yy<0){ 
-			return ""; 
-		}
-		int blue = (int)pinVal[PIN_COLS*pinIdx+0];
-		int green= (int)pinVal[PIN_COLS*pinIdx+1];
-		int red  = (int)pinVal[PIN_COLS*pinIdx+2];
-		return String.format(
-			"P%d:(%03d,%03d,%03d)",
-			pinIdx,red,green,blue
-		);
-	}
-	
-	public void setROI(boolean detect,double pos_x, double pos_y){
+
+	public void setROI(boolean fistPin,double pos_x, double pos_y){
 		if(0<=pos_x && pos_x<infoWidth){			
 			roiTmp[0] = (int)pos_x;
 		}else{
-			roiTmp[0] = 0;
+			roiTmp[0] = -1;
 		}
 		if(0<=pos_y && pos_y<infoHeight){ 
 			roiTmp[1] = (int)pos_y;
 		}else{
-			roiTmp[1] = 0;
+			roiTmp[1] = -1;
 		}
-		if(detect==true){
+		if(fistPin==true){
 			roiTmp[2] = roiTmp[0];
 			roiTmp[3] = roiTmp[1];
 		}
 	}
 
-	public void fixROI(int roiIdx,int roiType){
+	public void fixPin(int idx,double pos_x, double pos_y){
+		//it is a special case
+		roiPos[idx*ROI_COLS + 0] = ROI_TYPE_PIN;
+		roiPos[idx*ROI_COLS + 1] = (int)pos_x;
+		roiPos[idx*ROI_COLS + 2] = (int)pos_y;
+		roiPos[idx*ROI_COLS + 3] = 1;
+		roiPos[idx*ROI_COLS + 4] = 1;
+	}
+	
+	public void fixROI(int idx,int type){
 		int lf,rh,tp,bm;
 		if(roiTmp[0]<roiTmp[2]){
 			lf = roiTmp[0]; 
@@ -111,17 +96,17 @@ public abstract class CamBundle implements Gawain.EventHook {
 			tp = roiTmp[3]; 
 			bm = roiTmp[1];
 		}
-		roiPos[roiIdx*ROI_COLS + 0] = roiType;
-		roiPos[roiIdx*ROI_COLS + 1] = lf;
-		roiPos[roiIdx*ROI_COLS + 2] = tp;
-		roiPos[roiIdx*ROI_COLS + 3] = rh - lf;
-		roiPos[roiIdx*ROI_COLS + 4] = bm - tp;
+		roiPos[idx*ROI_COLS + 0] = type;
+		roiPos[idx*ROI_COLS + 1] = lf;
+		roiPos[idx*ROI_COLS + 2] = tp;
+		roiPos[idx*ROI_COLS + 3] = rh - lf;
+		roiPos[idx*ROI_COLS + 4] = bm - tp;
 		//Misc.logv("ROI%d=(%d,%d)@%dx%d",roiIdx,lf,tp,rh - lf,bm - tp);
 		roiTmp[0] = roiTmp[1] = roiTmp[2] = roiTmp[3] = -1;
 	}
 	
-	public void delROI(int roiIdx){
-		roiPos[roiIdx*ROI_COLS + 0] = ROI_TYPE_NONE;
+	public void delMark(int idx){
+		roiPos[idx*ROI_COLS + 0] = ROI_TYPE_NONE;
 	}
 	//-------------------------//
 	

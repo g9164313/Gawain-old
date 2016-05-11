@@ -21,8 +21,8 @@ public class PanSettingCam extends BtnPopping {
 			"相機設定",
 			"相機設定",
 			"ic_build_black_24dp_1x.png"
-		);		
-		confCamera.setText(Gawain.prop.getProperty("",""));
+		);
+		confCamera.setText(Gawain.prop.getProperty("CamConf",""));
 	}
 	
 	@Override
@@ -78,7 +78,7 @@ public class PanSettingCam extends BtnPopping {
 		}
 	}
 	
-	public String getConfigText(){
+	public String getCamText(){
 		return confCamera.getText();
 	}
 	//--------------------------------------//
@@ -96,7 +96,7 @@ public class PanSettingCam extends BtnPopping {
 		pan.getStyleClass().add("grid-small");
 		pan.setAlignment(Pos.BASELINE_LEFT);
 		
-		pan.addRow(0,new Label("訊息："),confCamera);
+		pan.addRow(0,new Label("設定："),confCamera);
 		pan.addRow(1,new Label("格式："),infoType);
 		pan.addRow(2,new Label("寬："),infoWidth);
 		pan.addRow(3,new Label("高："),infoHeight);
@@ -109,7 +109,7 @@ public class PanSettingCam extends BtnPopping {
 	private ScrollPane panParm = new ScrollPane();
 	@Override
 	Parent eventLayout() {
-		final double WIDTH=220.;
+		final double WIDTH=300.;
 		final double HEIGHT=260.;
 		
 		JFXTabPane root = new JFXTabPane();
@@ -130,9 +130,10 @@ public class PanSettingCam extends BtnPopping {
 				}
 			}
 		});
-		
-		infoWidth.setPrefWidth(110);
-		infoHeight.setPrefWidth(110);
+
+		confCamera.setPrefWidth(210);
+		//infoWidth.setPrefWidth(210);
+		//infoHeight.setPrefWidth(210);
 		
 		root.getTabs().addAll(info,parm);
 		root.setPrefSize(WIDTH,HEIGHT);

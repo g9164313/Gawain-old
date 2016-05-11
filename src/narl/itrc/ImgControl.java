@@ -9,9 +9,6 @@ import javafx.scene.layout.VBox;
 
 public class ImgControl extends VBox {
 
-	private final int DEFAULT_CAM_TYPE = 1;
-	private final int DEFAULT_CAM_INDX = 0;
-
 	private VBox lay0 = new VBox();
 	private VBox lay1 = new VBox();
 	
@@ -57,11 +54,11 @@ public class ImgControl extends VBox {
 		lay0.getStyleClass().add("hbox-small");
 
 		lstType.getItems().addAll("Files","Vidcap","Pylon","Ebus","Muticam");
-		lstType.getSelectionModel().select(DEFAULT_CAM_TYPE);
+		lstType.getSelectionModel().select(Integer.valueOf(Gawain.prop.getProperty("CamType","0")));
 		lstType.setMaxWidth(Double.MAX_VALUE);
 		
 		lstIndx.getItems().addAll("自動編號","編號-1","編號-2","編號-3","編號-4","編號-5");
-		lstIndx.getSelectionModel().select(DEFAULT_CAM_INDX);
+		lstIndx.getSelectionModel().select(Integer.valueOf(Gawain.prop.getProperty("CamIndx","0")));
 		lstIndx.setMaxWidth(Double.MAX_VALUE);
 
 		btnConfig.getStyleClass().add("btn-raised");
@@ -119,7 +116,7 @@ public class ImgControl extends VBox {
 	private void openCamera(){
 		CamBundle cam = null;
 		ImgRender.camIndx = lstIndx.getSelectionModel().getSelectedIndex() - 1;
-		ImgRender.camConf = btnConfig.getConfigText();
+		ImgRender.camConf = btnConfig.getCamText();
 		int typ = lstType.getSelectionModel().getSelectedIndex();
 		switch(typ){
 		case 0: cam = new CamVFiles(); break;

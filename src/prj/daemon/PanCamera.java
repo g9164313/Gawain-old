@@ -15,6 +15,7 @@ public class PanCamera extends PanBase {
 	
 	@Override
 	protected void eventClose(WindowEvent event){ 
+		super.eventClose(event);
 		imgScrn.unbindCamera();//Important!!!, however we must release this~~~
 	}
 	

@@ -28,8 +28,15 @@
 }
 
 .flow-small {
-    -fx-hgap: 13.0;
-    -fx-vgap: 13.0;
+    -fx-hgap: 7.0;
+    -fx-vgap: 7.0;
+    -fx-alignment: center-left;
+}
+
+.board-center {
+    -fx-hgap: 7.0;
+    -fx-vgap: 7.0;
+    -fx-alignment: baseline-center;
 }
 
 .grid-small{

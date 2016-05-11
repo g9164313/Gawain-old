@@ -12,9 +12,8 @@ extern jfloat* floatArray2Ptr(JNIEnv* env,jclass _clazz,jobject thiz,const char*
 using namespace std;
 
 //it should be same as declaration in java file!!!
-#define PR_SIZE 4
+#define ROI_SIZE 4
 #define ROI_COLS 6
-#define PIN_COLS 4
 
 //extern void  setContext(JNIEnv* env,jobject bnd,void* ptr);
 //extern void* getContext(JNIEnv* env,jobject bnd);
@@ -133,7 +132,7 @@ public:
 	}
 
 	void getRoi(int idx,int* typ,Rect* roi){
-		if(idx>=PR_SIZE){
+		if(idx>=ROI_SIZE){
 			return;
 		}
 		jintArray jarr;
