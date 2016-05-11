@@ -22,7 +22,7 @@ public class PanSettingCam extends BtnPopping {
 			"相機設定",
 			"ic_build_black_24dp_1x.png"
 		);
-		confCamera.setText(Gawain.prop.getProperty("CamConf",""));
+		confCamera.setText(Gawain.prop.getProperty("imgConf",""));
 	}
 	
 	@Override

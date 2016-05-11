@@ -8,7 +8,7 @@ public class PanSlantEdge extends PanCamera implements
 	ImgRender.Filter
 {
 	public PanSlantEdge(){
-		imgCtrl.addAction(this,1).setText("分析刀口");
+		imgCtrl.addAction(this,1).setText("分析SFR");
 	}
 
 	@Override

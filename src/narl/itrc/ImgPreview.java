@@ -1,25 +1,17 @@
 package narl.itrc;
 
-import javax.swing.ButtonGroup;
-
 import com.jfoenix.controls.JFXComboBox;
 import com.jfoenix.controls.JFXRadioButton;
 
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
-import javafx.collections.ObservableList;
 import javafx.concurrent.WorkerStateEvent;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.event.EventType;
-import javafx.scene.Node;
+
 import javafx.scene.control.Button;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
-import javafx.scene.control.MenuItem;
 import javafx.scene.control.ScrollPane;
-import javafx.scene.control.Toggle;
-import javafx.scene.control.ToggleGroup;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
@@ -43,7 +35,6 @@ public class ImgPreview extends BorderPane {
 		initBoard(width,height);
 	}
 
-	
 	private boolean snapAction = false;
 	
 	public ImageView screen = new ImageView();
@@ -71,8 +62,10 @@ public class ImgPreview extends BorderPane {
 		lstPickType.getItems().addAll("Pin","矩形(實)","圓形(實)");
 		lstPickType.getSelectionModel().select(0);
 		lstPickType.setOnAction(eventPrepareHook);
+		lstPickType.setDisable(true);
 		lstPickIndx.getItems().addAll(1,2,3,4);
 		lstPickIndx.getSelectionModel().select(0);
+		lstPickIndx.setDisable(true);
 		btnPick.setOnAction(new EventHandler<ActionEvent>(){
 			@Override
 			public void handle(ActionEvent event) {
@@ -140,9 +133,9 @@ public class ImgPreview extends BorderPane {
 			}
 			EventType<?> typ = e.getEventType();
 			if(typ==MouseEvent.DRAG_DETECTED){
-				render.bund.setROI(true, e.getX(),e.getY());
+				render.bund.stickPin(true, e.getX(),e.getY());
 			}else if(typ==MouseEvent.MOUSE_DRAGGED){
-				render.bund.setROI(false,e.getX(),e.getY());
+				render.bund.stickPin(false,e.getX(),e.getY());
 			}else if(typ==MouseEvent.MOUSE_RELEASED){
 				int shape = lstPickType.getSelectionModel().getSelectedIndex();
 				int index = lstPickIndx.getSelectionModel().getSelectedItem()-1;
@@ -176,7 +169,15 @@ public class ImgPreview extends BorderPane {
 					Misc.pathTemp+"snap.png",
 					render.bund.getMatSrc()
 				);
-				name = Misc.trimPath(name);				
+				int[] zone={0,0,0,0};
+				if(render.bund.getROI(0,zone)==true){
+					Misc.imWriteX(
+						Misc.pathTemp+"roi.png",
+						render.bund.getMatSrc(),
+						zone
+					);
+				}
+				name = Misc.trimPath(name);		
 				PanBase.msgBox.notifyInfo("Snap","儲存成"+name);
 				snapAction = false;//for next turn~~~
 			}
@@ -198,6 +199,8 @@ public class ImgPreview extends BorderPane {
 		if(isRender()==true){
 			return;
 		}
+		//first reset all ROI
+		cam.resetMark();
 		render = new ImgRender(cam,this,ctrl);
 		render.setOnScheduled(new EventHandler<WorkerStateEvent>(){
 			@Override

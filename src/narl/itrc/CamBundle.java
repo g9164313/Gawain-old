@@ -54,23 +54,20 @@ public abstract class CamBundle implements Gawain.EventHook {
 	public int getWidth(){ return infoWidth; }
 	public int getHeight(){ return infoHeight; }
 
-	public void setROI(boolean fistPin,double pos_x, double pos_y){
+	public void stickPin(boolean fistPin,double pos_x, double pos_y){
+		roiTmp[0] = roiTmp[1] = -1;
 		if(0<=pos_x && pos_x<infoWidth){			
 			roiTmp[0] = (int)pos_x;
-		}else{
-			roiTmp[0] = -1;
 		}
 		if(0<=pos_y && pos_y<infoHeight){ 
 			roiTmp[1] = (int)pos_y;
-		}else{
-			roiTmp[1] = -1;
 		}
 		if(fistPin==true){
 			roiTmp[2] = roiTmp[0];
-			roiTmp[3] = roiTmp[1];
+			roiTmp[3] = roiTmp[1];			
 		}
 	}
-
+	
 	public void fixPin(int idx,double pos_x, double pos_y){
 		//it is a special case
 		roiPos[idx*ROI_COLS + 0] = ROI_TYPE_PIN;
@@ -107,6 +104,68 @@ public abstract class CamBundle implements Gawain.EventHook {
 	
 	public void delMark(int idx){
 		roiPos[idx*ROI_COLS + 0] = ROI_TYPE_NONE;
+	}
+
+	public boolean getPin(int idx,int[] pos){
+		if(idx>=ROI_SIZE){
+			return false;
+		}
+		if(roiPos[idx*ROI_COLS + 0]!=ROI_TYPE_PIN){
+			return false;
+		}
+		pos[0] = roiPos[idx*ROI_COLS + 1];
+		pos[1] = roiPos[idx*ROI_COLS + 2];
+		return true;
+	}
+	
+	public boolean getROI(int idx,int[] pos){
+		if(idx>=ROI_SIZE){
+			return false;
+		}
+		if(
+			roiPos[idx*ROI_COLS + 0]==ROI_TYPE_NONE ||
+			roiPos[idx*ROI_COLS + 0]==ROI_TYPE_PIN
+		){
+			return false;
+		}
+		pos[0] = roiPos[idx*ROI_COLS + 1];
+		pos[1] = roiPos[idx*ROI_COLS + 2];
+		pos[2] = roiPos[idx*ROI_COLS + 3];
+		pos[3] = roiPos[idx*ROI_COLS + 4];
+		return true;
+	}
+	
+	public void resetMark(){
+		
+		roiTmp[0] = roiTmp[1] = roiTmp[2] = roiTmp[3] = -1;
+		
+		for(int idx=0; idx<ROI_SIZE; idx++){
+			
+			roiPos[idx*ROI_COLS + 0] = 0;
+						
+			String txt = Gawain.prop.getProperty("imgROI"+idx,"").trim();
+			if(txt.length()!=0){
+				
+				int pos[]={0,0,0,0};
+				
+				if(Misc.trimPosition(txt,pos)==true){
+					
+					roiPos[idx*ROI_COLS + 0] = ROI_TYPE_PIN;
+					roiPos[idx*ROI_COLS + 1] = pos[0];
+					roiPos[idx*ROI_COLS + 2] = pos[1];
+					roiPos[idx*ROI_COLS + 3] = 1;
+					roiPos[idx*ROI_COLS + 4] = 1;
+					
+				}else if(Misc.trimRectangle(txt,pos)==true){
+					
+					roiPos[idx*ROI_COLS + 0] = ROI_TYPE_RECT;
+					roiPos[idx*ROI_COLS + 1] = pos[0];
+					roiPos[idx*ROI_COLS + 2] = pos[1];
+					roiPos[idx*ROI_COLS + 3] = pos[2];
+					roiPos[idx*ROI_COLS + 4] = pos[3];
+				}
+			}			
+		}
 	}
 	//-------------------------//
 	

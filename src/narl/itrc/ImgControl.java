@@ -54,11 +54,11 @@ public class ImgControl extends VBox {
 		lay0.getStyleClass().add("hbox-small");
 
 		lstType.getItems().addAll("Files","Vidcap","Pylon","Ebus","Muticam");
-		lstType.getSelectionModel().select(Integer.valueOf(Gawain.prop.getProperty("CamType","0")));
+		lstType.getSelectionModel().select(Integer.valueOf(Gawain.prop.getProperty("imgType","0")));
 		lstType.setMaxWidth(Double.MAX_VALUE);
 		
 		lstIndx.getItems().addAll("自動編號","編號-1","編號-2","編號-3","編號-4","編號-5");
-		lstIndx.getSelectionModel().select(Integer.valueOf(Gawain.prop.getProperty("CamIndx","0")));
+		lstIndx.getSelectionModel().select(Integer.valueOf(Gawain.prop.getProperty("imgIndx","0")));
 		lstIndx.setMaxWidth(Double.MAX_VALUE);
 
 		btnConfig.getStyleClass().add("btn-raised");

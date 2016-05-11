@@ -104,6 +104,27 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_Misc_imWrite(
 	imwrite(name,img);
 }
 
+extern "C" JNIEXPORT void JNICALL Java_narl_itrc_Misc_imWriteRoi(
+	JNIEnv * env,
+	jobject thiz,
+	jstring jname,
+	jlong ptrMat,
+	jintArray arrRoi
+){
+	char name[500];
+	jstrcpy(env,jname,name);
+
+	jint* val = env->GetIntArrayElements(arrRoi,NULL);
+	Rect zone(
+		val[0],val[1],
+		val[2],val[3]
+	);
+	Mat& img = *((Mat*)ptrMat);
+	Mat roi = img(zone);
+	imwrite(name,roi);
+	env->ReleaseIntArrayElements(arrRoi,val,0);
+}
+
 extern "C" JNIEXPORT long JNICALL Java_narl_itrc_Misc_imRead(
 	JNIEnv * env,
 	jobject thiz,

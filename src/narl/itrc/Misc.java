@@ -317,23 +317,7 @@ public class Misc {
 		dst = itm[1].trim();
 		return findRatio(src,dst);
 	}
-		
-	public static String[] trim2phy(String txt){
-		final String[] res = {null,null};
-		res[0] = "";
-		res[1] = "";
-		txt = txt.replaceAll("\\s","");//trim space!!!
-		char[] list = txt.toCharArray();
-		for(char cc:list){
-			if( (('0'<=cc&&cc<='9')||cc=='.'||cc=='+'||cc=='-')==false){
-				res[1] = res[1] + cc;
-			}else{
-				res[0] = res[0] + cc;
-			}
-		}
-		return res;
-	}
-	
+
 	public static String num2scale(double num){
 		String txt = String.format("%G",num);
 		int pos = txt.indexOf('E');
@@ -657,6 +641,54 @@ public class Misc {
 		return fmtDate.format(new Date(System.currentTimeMillis()));
 	}
 	
+	public static String[] trim2phy(String txt){
+		final String[] res = {null,null};
+		res[0] = "";
+		res[1] = "";
+		txt = txt.replaceAll("\\s","");//trim space!!!
+		char[] list = txt.toCharArray();
+		for(char cc:list){
+			if( (('0'<=cc&&cc<='9')||cc=='.'||cc=='+'||cc=='-')==false){
+				res[1] = res[1] + cc;
+			}else{
+				res[0] = res[0] + cc;
+			}
+		}
+		return res;
+	}
+	
+	private static final String REX_POSITION="[(]\\p{Digit}+[,]\\p{Digit}+[)]";
+	private static final String REX_SIZE="\\p{Digit}+[x]\\p{Digit}+";
+	
+	public static boolean trimPosition(String txt,int[] pos){
+		//example: (200,300) or (10,5)...
+		if(txt.matches(REX_POSITION)==false){
+			return false;
+		}
+		txt = txt.replace('(',' ').replace(')',' ').trim();
+		trim2Val(txt,pos,',',0);
+		return true;
+	}
+
+	public static boolean trimRectangle(String txt,int[] pos){
+		//example: (200,300)@3x3 or (10,5)@100x100...
+		if(txt.matches(REX_POSITION+"[@]"+REX_SIZE)==false){
+			return false;
+		}
+		int idx = txt.indexOf("@");
+		String pxt = txt.substring(0,idx);
+		pxt = pxt.replace('(',' ').replace(')',' ').trim();
+		trim2Val(pxt,pos,',',0);
+		trim2Val(txt.substring(idx+1),pos,'x',2);		
+		return true;
+	}
+
+	private static void trim2Val(String txt,int[] buf,char sp,int off){
+		int idx = txt.indexOf(sp);
+		buf[off+0] = Integer.valueOf(txt.substring(0,idx));
+		buf[off+1] = Integer.valueOf(txt.substring(idx+1));
+	}
+	
 	public static String trimPath(String txt){
 		int pos = txt.lastIndexOf(File.separatorChar);
 		if(pos<0){
@@ -710,21 +742,33 @@ public class Misc {
 	}
 	//--------------------------//
 
-	public static native void namedWindow(String name);//this will invoke OpenCV!!
+	public static native void namedWindow(String name);
 	
-	public static native void renderWindow(String name,long ptr);//this will invoke OpenCV!!
+	public static native void renderWindow(String name,long ptr);
 	
-	public static native void destroyWindow(String name);//this will invoke OpenCV!!
+	public static native void destroyWindow(String name);
 	
-	public static native void imWrite(String name,long ptr);//this will invoke OpenCV!!
+	public static native void imWrite(String name,long ptr);
+	
+	public static native void imWriteRoi(String name,long ptr,int[] roi);
 	
 	public static String imWriteX(String fullName,long ptr){		
 		fullName = checkSerial(fullName);
-		imWrite(fullName,ptr);
+		imWriteX(fullName,ptr,null);
 		return fullName;
 	}
 	
-	public static native long imRead(String name);//this will invoke OpenCV!!
+	public static String imWriteX(String fullName,long ptr,int[] roi){		
+		fullName = checkSerial(fullName);
+		if(roi==null){
+			imWrite(fullName,ptr);
+		}else{
+			imWriteRoi(fullName,ptr,roi);
+		}
+		return fullName;
+	}
+
+	public static native long imRead(String name);
 	
 	public static native void imRelease(long ptr);//just release Mat pointer
 
