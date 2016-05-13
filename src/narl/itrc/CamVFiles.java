@@ -3,6 +3,7 @@ package narl.itrc;
 import java.io.File;
 import java.util.List;
 import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.jfoenix.controls.JFXButton;
@@ -21,6 +22,8 @@ public class CamVFiles extends CamBundle {
 	public CamVFiles(){		
 	}
 
+	private static AtomicBoolean isGray = new AtomicBoolean(true);
+	
 	@Override
 	public void setup(int idx, String txtConfig) {
 		try {
@@ -31,7 +34,11 @@ public class CamVFiles extends CamBundle {
 				File fs = new File(txtConfig);
 				if(fs.exists()==true){
 					lstName.add(txtConfig);
-					setMatx(0,Misc.imRead(txtConfig));
+					int flag = 1;//IMREAD_COLOR
+					if(isGray.get()==true){
+						flag = 0;//IMREAD_GRAYSCALE
+					}
+					setMatx(0,Misc.imRead(txtConfig,flag));
 				}
 			}
 			updateOptEnbl(true);//it is always success!!!
@@ -50,7 +57,7 @@ public class CamVFiles extends CamBundle {
 			String txt = null;
 			try {
 				//we may change picture, so update them again
-				switch(mode.get()){
+				switch(modePlayer.get()){
 				case MODE_AUTO:
 					txt = lstName.pollFirst();
 					lstName.putLast(txt);
@@ -62,16 +69,20 @@ public class CamVFiles extends CamBundle {
 				case MODE_NEXT:
 					txt = lstName.pollFirst();
 					lstName.putLast(txt);
-					mode.set(MODE_REST);
+					modePlayer.set(MODE_REST);
 					break;
 				case MODE_PREV:
 					txt = lstName.pollLast();
 					lstName.putFirst(txt);
-					mode.set(MODE_REST);
+					modePlayer.set(MODE_REST);
 					break;
 				}
 				refreshInf(this);
-				setMatx(0,Misc.imRead(txt));
+				int flag = 1;//IMREAD_COLOR
+				if(isGray.get()==true){
+					flag = 0;//IMREAD_GRAYSCALE
+				}
+				setMatx(0,Misc.imRead(txt,flag));
 				//Misc.logv("read picture:"+txt);				
 			} catch (InterruptedException e) {
 				e.printStackTrace();
@@ -104,7 +115,7 @@ public class CamVFiles extends CamBundle {
 	 *  1 : just change to the next item<p>
 	 *  2 : just change to the previous item <p>
 	 */
-	private AtomicInteger mode = new AtomicInteger(MODE_REST);
+	private AtomicInteger modePlayer = new AtomicInteger(MODE_REST);
 	
 	private LinkedBlockingDeque<String> lstName = new LinkedBlockingDeque<String>();
 
@@ -129,7 +140,11 @@ public class CamVFiles extends CamBundle {
 				}
 				String name = lst.get(0).getAbsolutePath();
 				if(lst.size()==1){
-					setMatx(0,Misc.imRead(name));					
+					int flag = 1;//IMREAD_COLOR
+					if(isGray.get()==true){
+						flag = 0;//IMREAD_GRAYSCALE
+					}
+					setMatx(0,Misc.imRead(name,flag));					
 				}else{
 					name = Misc.trimFileName(name);
 				}
@@ -157,8 +172,8 @@ public class CamVFiles extends CamBundle {
 		btnPrev.setOnAction(new EventHandler<ActionEvent>(){
 			@Override
 			public void handle(ActionEvent event) {
-				if(mode.get()!=MODE_REST){ return; }
-				mode.set(MODE_PREV);
+				if(modePlayer.get()!=MODE_REST){ return; }
+				modePlayer.set(MODE_PREV);
 			}
 		});
 		
@@ -171,8 +186,8 @@ public class CamVFiles extends CamBundle {
 		btnNext.setOnAction(new EventHandler<ActionEvent>(){
 			@Override
 			public void handle(ActionEvent event) {
-				if(mode.get()!=MODE_REST){ return; }
-				mode.set(MODE_NEXT);
+				if(modePlayer.get()!=MODE_REST){ return; }
+				modePlayer.set(MODE_NEXT);
 			}
 		});
 		
@@ -181,22 +196,32 @@ public class CamVFiles extends CamBundle {
 			@Override
 			public void handle(ActionEvent event) {
 				if(chkAuto.selectedProperty().get()==true){
-					mode.set(MODE_AUTO);
+					modePlayer.set(MODE_AUTO);
 					btnPrev.setDisable(true);
 					btnNext.setDisable(true);
 				}else{
-					mode.set(MODE_REST);
+					modePlayer.set(MODE_REST);
 					btnPrev.setDisable(false);
 					btnNext.setDisable(false);
 				}
 			}
 		});
 		
+		final JFXCheckBox chkGray = new JFXCheckBox("灰階影像");
+		chkGray.setOnAction(new EventHandler<ActionEvent>(){
+			@Override
+			public void handle(ActionEvent event) {
+				isGray.set(chkGray.selectedProperty().get());
+			}
+		});
+		chkGray.setSelected(isGray.get());//this is default~~~
+		
 		GridPane pan = new GridPane();
 		pan.getStyleClass().add("grid-small");
-		pan.add(chkAuto,0,1,2,1);
-		pan.add(btnFile,0,2,2,1);
-		pan.addRow(3,btnPrev,btnNext);
+		pan.add(chkGray,0,1,2,1);
+		pan.add(chkAuto,0,2,2,1);
+		pan.add(btnFile,0,3,2,1);		
+		pan.addRow(4,btnPrev,btnNext);
 		
 		VBox lay0 = new VBox();
 		lay0.getStyleClass().add("vbox-small");

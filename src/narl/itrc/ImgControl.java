@@ -61,13 +61,13 @@ public class ImgControl extends VBox {
 		lstIndx.getSelectionModel().select(Integer.valueOf(Gawain.prop.getProperty("imgIndx","0")));
 		lstIndx.setMaxWidth(Double.MAX_VALUE);
 
-		btnConfig.getStyleClass().add("btn-raised");
-		btnConfig.setMaxWidth(Double.MAX_VALUE);
-		
 		btnEnable.getStyleClass().add("btn-raised");
 		btnEnable.setMaxWidth(Double.MAX_VALUE);
-				
-		lay0.getChildren().addAll(lstType,lstIndx,btnConfig,btnEnable);
+		
+		btnConfig.getStyleClass().add("btn-raised");
+		btnConfig.setMaxWidth(Double.MAX_VALUE);
+			
+		lay0.getChildren().addAll(lstType,lstIndx,btnEnable,btnConfig);
 		//------------------------//
 		lay1.getStyleClass().add("hbox-small");
 		

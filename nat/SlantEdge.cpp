@@ -168,7 +168,6 @@ Mat ftwos_v2(Mat& signal,float PixPerMM){
 		//printf("%6.3f, %.3f\n", freqPos,freqVal);
 		freqPos = freqPos + freqStp;
 	}
-
 	return freq;
 }
 
@@ -228,6 +227,9 @@ Mat sfrProc(Mat& src,float PixPerMM){
 }
 //---------------------------//
 
+extern Rect mapZone(JNIEnv *env,jobject src,const char* dstName);
+extern float getFloat(JNIEnv *env,jobject thiz,const char* name);
+
 extern "C" JNIEXPORT jfloatArray JNICALL Java_prj_daemon_FltrSlangEdge_procSFR(
 	JNIEnv* env,
 	jobject thiz,
@@ -237,13 +239,27 @@ extern "C" JNIEXPORT jfloatArray JNICALL Java_prj_daemon_FltrSlangEdge_procSFR(
 ){
 	Mat& img = *((Mat*)ptrImg);
 	Mat& ova = *((Mat*)ptrOva);
-	if(img.type()==CV_8UC1){
+	if(img.type()!=CV_8UC1){
 		return NULL;
 	}
 
-	jfloatArray res = env->NewFloatArray(100);
-	jfloat* buf = env->GetFloatArrayElements(res,0);
-	env->ReleaseFloatArrayElements(res,buf,0);
+	Rect zone = mapZone(env,thiz,"zone");
+	float ppmm = getFloat(env,thiz,"pixel_per_mm");
+	cout<<"zone="<<zone<<", ppm="<<ppmm<<endl;
+
+	Mat roi = img(zone);
+	Mat freq = sfrProc(roi,ppmm);
+
+	jfloatArray res = env->NewFloatArray(2*freq.cols);
+	jfloat* ptr = env->GetFloatArrayElements(res,0);
+
+	for(int i=0; i<freq.cols; i++){
+		Vec2f val = freq.at<Vec2f>(0,i);
+		ptr[i*2+0] = val[0];
+		ptr[i*2+1] = val[1];
+	}
+
+	env->ReleaseFloatArrayElements(res,ptr,0);
 	return res;
 }
 

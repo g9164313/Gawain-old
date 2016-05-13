@@ -51,8 +51,8 @@ using namespace std;
 
 extern void setJdouble(JNIEnv *env,jobject thiz,const char* name,double val);
 extern double getJdouble(JNIEnv *env,jobject thiz,const char* name);
-extern void setJfloat(JNIEnv *env,jobject thiz,const char* name,float val);
-extern float getJfloat(JNIEnv *env,jobject thiz,const char* name);
+extern void setFloat(JNIEnv *env,jobject thiz,const char* name,float val);
+extern float getFloat(JNIEnv *env,jobject thiz,const char* name);
 extern void setJlong(JNIEnv *env,jobject thiz,const char* name,long val);
 extern long getJlong(JNIEnv *env,jobject thiz,const char* name);
 extern void setJint(JNIEnv *env,jobject thiz,const char* name,int val);

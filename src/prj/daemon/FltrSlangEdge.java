@@ -9,7 +9,7 @@ import javafx.scene.chart.LineChart;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
 import javafx.scene.chart.XYChart.Series;
-import javafx.scene.control.Control;
+
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
@@ -25,31 +25,40 @@ public class FltrSlangEdge extends PanBase implements
 	//---------------------//
 	
 	private ImgRender render = null;
-	private float pixel_per_mm = 0.005f;
-	private float[] result = null;//frequency-value,frequency-value...
-	
+	private int[] zone={-1,-1,-1,-1};
+	private float pixel_per_mm = 0.0055f;
+	private float[] result = null;//frequency-value,frequency-value...	
 	private native float[] procSFR(CamBundle bnd, long ptrMat0, long patMat1);
 	
 	@Override
 	public boolean initData(ImgRender rnd) {
-		render = rnd;//always update this variable~~
 		appear();
-		chrMTF.getData().clear();
+		render = rnd;//always update this variable~~
+		render.getBundle().getROI(0,zone);
+		chrMTF.getData().clear();			
 		return false;
 	}
 
 	@Override
-	public boolean cookData(CamBundle bnd, long ptrMat0, long patMat1) {
-		result = procSFR(bnd,ptrMat0,patMat1);
+	public boolean cookData(CamBundle bnd) {
+		result = procSFR(
+			bnd,
+			bnd.getMatSrc(),
+			bnd.getMatOva()
+		);
 		return false;
 	}
 
 	@Override
 	public boolean showData(CamBundle bnd) {
+		if(result==null){
+			PanBase.msgBox.notifyError("SFR","不明原因的錯誤");
+			return true;
+		}
 		Series<Number,Number> serial = new XYChart.Series<Number,Number>();
-		for(float idx=0; idx<1.; idx=idx+0.1f){			
+		for(int i=0; i<result.length; i+=2){			
 			serial.getData().add(new XYChart.Data<Number,Number>(
-				idx, Math.random()
+				result[i], result[i+1]
 			));
 		}
 		chrMTF.getData().add(serial);

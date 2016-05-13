@@ -257,6 +257,9 @@ public abstract class CamBundle implements Gawain.EventHook {
 			Misc.imRelease(ptrMatx[idx]);
 		}
 		ptrMatx[idx] = ptr;
+		if(idx==0){
+			refreshInf(this);//always update iunformation again~~~
+		}
 	}
 	
 	public Image getImage(){

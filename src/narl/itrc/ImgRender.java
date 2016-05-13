@@ -32,6 +32,10 @@ public class ImgRender extends Task<Integer> {
 		ctrl = control;
 	}
 	
+	public CamBundle getBundle(){
+		return bund;
+	}
+	
 	public interface Filter{
 		/**
 		 * this invoked by controller(GUI thread)<p>
@@ -46,13 +50,11 @@ public class ImgRender extends Task<Integer> {
 		 * this invoked by render-thread<p>
 		 * user can process or cook data here<p>
 		 * @param bnd - camera bundle
-		 * @param ptrMat0 - Mat pointer of source image
-		 * @param ptrMat1 - Mat pointer of overlay image
 		 * @return 
 		 * 	true - we done<p>
 		 * 	false- ready, go to next turn<p> 
 		 */
-		abstract boolean cookData(CamBundle bnd,long ptrMat0,long patMat1);//this invoked by render-thread
+		abstract boolean cookData(CamBundle bnd);//this invoked by render-thread
 		/**
 		 * this invoked by GUI thread<p>
 		 * user can show charts or change the state of widget here<p>
@@ -69,11 +71,7 @@ public class ImgRender extends Task<Integer> {
 		if(fltrObj==null){
 			return;
 		}
-		boolean done = fltrObj.cookData(
-			bund,
-			bund.getMatSrc(),
-			bund.getMatOva()
-		);
+		boolean done = fltrObj.cookData(bund);
 		final Runnable eventShow = new Runnable(){
 			@Override
 			public void run() {

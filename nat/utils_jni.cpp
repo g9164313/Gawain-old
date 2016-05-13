@@ -11,12 +11,12 @@ double getJdouble(JNIEnv *env,jobject thiz,const char* name){
 	return env->GetDoubleField(thiz,id);
 }
 
-void setJfloat(JNIEnv *env,jobject thiz,const char* name,float val){
+void setFloat(JNIEnv *env,jobject thiz,const char* name,float val){
 	jclass _clazz = env->GetObjectClass(thiz);
 	jfieldID id = env->GetFieldID(_clazz,name,"F");
 	env->SetFloatField(thiz,id,val);
 }
-float getJfloat(JNIEnv *env,jobject thiz,const char* name){
+float getFloat(JNIEnv *env,jobject thiz,const char* name){
 	jclass _clazz = env->GetObjectClass(thiz);
 	jfieldID id = env->GetFieldID(_clazz,name,"F");
 	return env->GetFloatField(thiz,id);

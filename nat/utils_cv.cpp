@@ -128,12 +128,13 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_Misc_imWriteRoi(
 extern "C" JNIEXPORT long JNICALL Java_narl_itrc_Misc_imRead(
 	JNIEnv * env,
 	jobject thiz,
-	jstring jname
+	jstring jname,
+	int flags
 ){
 	char name[500];
 	jstrcpy(env,jname,name);
 	Mat* img = new Mat();
-	(*img) = imread(name);
+	(*img) = imread(name,flags);
 	return (jlong)img;
 }
 
@@ -207,6 +208,25 @@ void mapRect(JNIEnv *env, Rect& src, jobject dst) {
 	id = env->GetFieldID(_clazz, "height", "I");
 	env->SetIntField(dst, id, src.height);
 }
+Rect mapZone(JNIEnv *env,jobject src,const char* dstName) {
+	jclass _clazz = env->GetObjectClass(src);
+	jfieldID id;
+	jobject obj;
+	jintArray arr;
+	jint* ptr;
+	id =env->GetFieldID(_clazz,dstName,"[I");
+	obj=env->GetObjectField(src,id);
+	arr = *(reinterpret_cast<jintArray*>(&obj));
+	Rect zone;
+	ptr = env->GetIntArrayElements(arr,0);
+	zone.x = ptr[0];
+	zone.y = ptr[1];
+	zone.width = ptr[2];
+	zone.height= ptr[3];
+	env->ReleaseIntArrayElements(arr,ptr,0);
+	return zone;
+}
+
 
 void mapPoint(JNIEnv *env, jobject src, Point& dst) {
 	jclass _clazz = env->GetObjectClass(src);

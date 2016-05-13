@@ -768,7 +768,7 @@ public class Misc {
 		return fullName;
 	}
 
-	public static native long imRead(String name);
+	public static native long imRead(String name,int flags);
 	
 	public static native void imRelease(long ptr);//just release Mat pointer
 
