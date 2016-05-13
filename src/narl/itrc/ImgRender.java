@@ -1,7 +1,5 @@
 package narl.itrc;
 
-import java.util.concurrent.atomic.AtomicInteger;
-
 import com.sun.glass.ui.Application;
 
 import javafx.concurrent.Task;
@@ -35,37 +33,74 @@ public class ImgRender extends Task<Integer> {
 	}
 	
 	public interface Filter{
-		abstract void initData();//this invoked by controller
-		abstract void procData(CamBundle bnd,long ptrMat0,long patMat1);
-		abstract void markData(CamBundle bnd,long ptrMat1);//this invoked by render-thread
-		abstract void showData(CamBundle bnd,int count);//this invoked by GUI thread
+		/**
+		 * this invoked by controller(GUI thread)<p>
+		 * user can prepare data or check any required objects
+		 * @param rnd - the object of image-render
+		 * @return 
+		 * 	true - we done<p>
+		 * 	false- ready, go to next stage<p> 
+		 */
+		abstract boolean initData(ImgRender rnd);
+		/**
+		 * this invoked by render-thread<p>
+		 * user can process or cook data here<p>
+		 * @param bnd - camera bundle
+		 * @param ptrMat0 - Mat pointer of source image
+		 * @param ptrMat1 - Mat pointer of overlay image
+		 * @return 
+		 * 	true - we done<p>
+		 * 	false- ready, go to next turn<p> 
+		 */
+		abstract boolean cookData(CamBundle bnd,long ptrMat0,long patMat1);//this invoked by render-thread
+		/**
+		 * this invoked by GUI thread<p>
+		 * user can show charts or change the state of widget here<p>
+		 * @param bnd - camera bundle
+		 * @return 
+		 * 	true - we done<p>
+		 * 	false- ready, go to next turn<p> 
+		 */
+		abstract boolean showData(CamBundle bnd);//this invoked by GUI thread
 	}
+	private Filter fltrObj = null;
 	
-	public AtomicInteger fltrCnt = new AtomicInteger(0);
-	public Filter fltrObj = null;	
-	private Runnable fltrEnd = new Runnable(){
-		@Override
-		public void run() {
-			if(fltrObj==null){
-				return;
-			}
-			fltrObj.showData(bund,fltrCnt.get());
-		}
-	};
 	private void eventFilter(){
 		if(fltrObj==null){
 			return;
 		}
-		int cnt = fltrCnt.get();
-		if(cnt!=0){
-			fltrObj.procData(bund,bund.getMatSrc(),bund.getMatOva());
-			Application.invokeAndWait(fltrEnd);			
-			if(cnt>0){
-				cnt--;
-				fltrCnt.set(cnt);
+		boolean done = fltrObj.cookData(
+			bund,
+			bund.getMatSrc(),
+			bund.getMatOva()
+		);
+		final Runnable eventShow = new Runnable(){
+			@Override
+			public void run() {
+				if(fltrObj==null){
+					return;
+				}
+				if(fltrObj.showData(bund)==true){
+					fltrObj=null;
+				}
 			}
+		};
+		Application.invokeAndWait(eventShow);
+		if(done==true){
+			fltrObj=null;
 		}
-		fltrObj.markData(bund,bund.getMatOva());//keep drawing~~~
+	}
+		
+	public void hookFilter(Filter obj){
+		//this method must be invoked by GUI thread~~~
+		if(fltrObj!=null){
+			PanBase.msgBox.notifyWarning("Render","忙碌中...");
+			return;
+		}
+		if(obj.initData(this)==true){
+			return;
+		}
+		fltrObj = obj; 
 	}
 	
 	private Image buff = null;
@@ -73,8 +108,7 @@ public class ImgRender extends Task<Integer> {
 		return buff;
 	}
 	@Override
-	protected Integer call() throws Exception {
-		fltrCnt.set(0);//reset this variable~~~
+	protected Integer call() throws Exception {		
 		//stage.1 - try to open camera~~~
 		bund.setup(camIndx, camConf);
 

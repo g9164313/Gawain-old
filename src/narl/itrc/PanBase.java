@@ -77,6 +77,9 @@ public abstract class PanBase {
 		if(stage==null){
 			makeStage(null);
 		}
+		if(stage.isShowing()==true){
+			return;
+		}
 		stage.show();
 	}
 	

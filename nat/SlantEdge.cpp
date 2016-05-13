@@ -3,16 +3,16 @@
 using namespace std;
 using namespace cv;
 
-static const int ALPHA=4;//this variable means how many sub-pixel?
+static const int ALPHA=4;//this variable means how many sub-pixel
 
 void dump32FC1(const char* title,Mat& dat){
-	printf("%s=[",title);
+	printf("%s=[\n",title);
 	for(int i=0; i<dat.cols; i++){
 		float v = dat.at<float>(0,i);
-		if(i%8==0){
-			printf("..\n");
-		}
-		printf("%.4f, ",v);		
+		//if(i%8==0){
+		//	printf("..\n");
+		//}
+		printf("%d,  %.4f\n",i+1,v);
 	}
 	printf("];\n");
 }
@@ -141,31 +141,42 @@ void ftwos_v1(Mat& signal, Mat& freq){
 	freq = freq / dc;//normalize!!!
 }
 
-void ftwos_v2(Mat& signal, Mat& freq){
-	double dx = 1.;
-	double ds = 1./signal.cols;
-	int len = signal.cols;
-	freq = Mat::zeros(1,signal.cols/2,CV_32FC1);
+Mat ftwos_v2(Mat& signal,float PixPerMM){
+	float freqStp = ALPHA/(PixPerMM*signal.cols);
+	float freqPos = 0.f;
+	float freqDCV = 1.f;
+	float ds = 1./signal.cols;
+
+	Mat freq = Mat::zeros(1,signal.cols/ALPHA,CV_32FC2);
+
 	for(int j=0; j<freq.cols; j++){
-		double g = 2.* M_PI * dx * ds * (double)j;
+		double g = 2.* M_PI * ds * (double)j;
 		double a=0.,b=0.;
 		for (int i=0; i<signal.cols; i++) { 
 			double idx = g * (double)(i);
 			a = a + signal.at<float>(0,i) * cos(idx);
 			b = b + signal.at<float>(0,i) * sin(idx);
 		}
-		freq.at<float>(0,j) = sqrt(a * a + b * b); 
+		double freqVal = sqrt(a * a + b * b);
+		if(j==0){
+			freqDCV = freqVal;
+		}
+		freq.at<Vec2f>(0,j) = Vec2f(
+			freqPos,
+			freqVal/freqDCV
+		);
+		//printf("%6.3f, %.3f\n", freqPos,freqVal);
+		freqPos = freqPos + freqStp;
 	}
 
-	float dc = freq.at<float>(0,0);
-	freq = freq / dc;//normalize!!!
+	return freq;
 }
 
-void sfrProc(Mat& img){
+Mat sfrProc(Mat& src,float PixPerMM){
 
 	vector<Point2f> edge;
 
-	locate_centroids(img,edge);
+	locate_centroids(src,edge);
 
 	Vec4f ln;
 	fitLine(edge,ln,CV_DIST_L2,0,1,0.01);
@@ -173,21 +184,21 @@ void sfrProc(Mat& img){
 	float bias=ln[3]-ln[2]*slope;
 	//TODO: check slope is valid~~
 
-	int off,rng = img.rows;
+	int off,rng = src.rows;
 	//trick, just get a integer multiple of 'slope'
 	rng = ((int32_t)(rng*slope)) * (1.f/slope);
-	off = (img.rows - rng)/2;
+	off = (src.rows - rng)/2;
 	//re-composite edge line~~
 	edge.clear();
 	for(int i=off; i<(off+rng); i++){
-		//swap the cooridnate~~~
+		//swap the coordinate~~~
 		edge.push_back(Point2f(i*slope+bias,i-off));
 	}
 
-	//prepare the map of signal and edge	
-	Mat freq, node = img(Rect(
+	//prepare the map of signal and edge
+	Mat node = src(Rect(
 		0, off,
-		img.cols, rng
+		src.cols, rng
 	));
 	
 	Mat bins = Mat::zeros(1,node.cols*ALPHA,CV_32FC1);
@@ -200,9 +211,11 @@ void sfrProc(Mat& img){
 
 	apply_hamming_window(bins);
 
-	ftwos_v2(bins,freq);
+	return ftwos_v2(bins,PixPerMM);
 
-	dump32FC1("_sfr2",freq);	
+	//dump32FC1("_sfr2",freq);
+
+	//1 cycle = 1 pixel, freq=cycle/mm for image width
 
 	//check.point
 	/*imwrite("cc.0.png",node);
@@ -212,6 +225,30 @@ void sfrProc(Mat& img){
 		map.at<Vec3b>(i,edge[i].x) = Vec3b(255,0,0);
 	}
 	imwrite("cc.1.png",map);*/
-	return;
 }
+//---------------------------//
+
+extern "C" JNIEXPORT jfloatArray JNICALL Java_prj_daemon_FltrSlangEdge_procSFR(
+	JNIEnv* env,
+	jobject thiz,
+	jobject camBundle,
+	jlong ptrImg,
+	jlong ptrOva
+){
+	Mat& img = *((Mat*)ptrImg);
+	Mat& ova = *((Mat*)ptrOva);
+	if(img.type()==CV_8UC1){
+		return NULL;
+	}
+
+	jfloatArray res = env->NewFloatArray(100);
+	jfloat* buf = env->GetFloatArrayElements(res,0);
+	env->ReleaseFloatArrayElements(res,buf,0);
+	return res;
+}
+
+
+
+
+
 

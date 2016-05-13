@@ -18,7 +18,7 @@ public class PanCamera extends PanBase {
 		super.eventClose(event);
 		imgScrn.unbindCamera();//Important!!!, however we must release this~~~
 	}
-	
+
 	protected ImgPreview imgScrn = new ImgPreview();
 	protected ImgControl imgCtrl = new ImgControl();
 	
@@ -28,6 +28,8 @@ public class PanCamera extends PanBase {
 		root.setLeft(PanBase.decorate("控制",imgCtrl));
 		root.setCenter(PanBase.decorate("預覽",imgScrn));
 		imgScrn.attachControl(imgCtrl);
+		
+		imgCtrl.addFilter(new FltrSlangEdge()).setText("SFR分析");
 		return root;
 	}
 }

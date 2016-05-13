@@ -80,22 +80,15 @@ public class ImgControl extends VBox {
 	}
 	//------------------------//
 
-	public JFXButton addAction(ImgRender.Filter fltr,int cnt){
-		JFXButton btn = new JFXButton();
+	public JFXButton addFilter(ImgRender.Filter fltr){
+		final JFXButton btn = new JFXButton();
 		btn.setOnAction(new EventHandler<ActionEvent>(){
 			@Override
 			public void handle(ActionEvent event) {
 				if(scrn==null){
 					return;
 				}
-				ImgRender rr = scrn.render;
-				if(rr.fltrCnt.get()>0){
-					PanBase.msgBox.notifyError("Render","裝置忙碌中");
-					return;
-				}
-				fltr.initData();//prepare data~~~
-				rr.fltrObj = fltr;//use synchronized()???
-				rr.fltrCnt.set(cnt);				
+				scrn.render.hookFilter(fltr);				
 			}
 		});		
 		btn.getStyleClass().add("btn-raised");
