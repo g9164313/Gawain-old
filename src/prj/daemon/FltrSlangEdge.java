@@ -4,12 +4,12 @@ import com.jfoenix.controls.JFXButton;
 
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
+import javafx.geometry.Pos;
 import javafx.scene.Parent;
 import javafx.scene.chart.LineChart;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
 import javafx.scene.chart.XYChart.Series;
-
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
@@ -27,7 +27,7 @@ public class FltrSlangEdge extends PanBase implements
 	private ImgRender render = null;
 	private int[] zone={-1,-1,-1,-1};
 	private float pixel_per_mm = 0.0055f;
-	private float[] result = null;//frequency-value,frequency-value...	
+	private float[] result = null;//[x,y] [x,y] [x,y]...
 	private native float[] procSFR(CamBundle bnd, long ptrMat0, long patMat1);
 	
 	@Override
@@ -66,8 +66,6 @@ public class FltrSlangEdge extends PanBase implements
 	}
 	//---------------------//
 	
-	private JFXButton btnAction = new JFXButton("重新計算");
-	
 	private LineChart<Number,Number> chrMTF = new LineChart<Number,Number>(
 		new NumberAxis(),
 		new NumberAxis()
@@ -76,6 +74,20 @@ public class FltrSlangEdge extends PanBase implements
 	@Override
 	public Parent layout() {
 		
+		chrMTF.getXAxis().setLabel("cycle/mm");
+		chrMTF.getYAxis().setLabel("MTF");
+		chrMTF.setLegendVisible(false);
+		
+		VBox lay0 = new VBox();
+		lay0.getStyleClass().add("vbox-small");
+		lay0.getChildren().addAll(chrMTF);
+		//------------------------//
+		
+		JFXButton btnExport = new JFXButton("匯出");
+		btnExport.getStyleClass().add("btn-raised");
+		btnExport.setMaxWidth(Double.MAX_VALUE);
+		
+		JFXButton btnAction = new JFXButton("更新");
 		btnAction.getStyleClass().add("btn-raised");
 		btnAction.setMaxWidth(Double.MAX_VALUE);
 		btnAction.setOnAction(new EventHandler<ActionEvent>(){
@@ -87,18 +99,12 @@ public class FltrSlangEdge extends PanBase implements
 				render.hookFilter(FltrSlangEdge.this);
 			}
 		});
-		
-		chrMTF.getXAxis().setLabel("cycle/mm");
-		chrMTF.getYAxis().setLabel("MTF");
-		chrMTF.setLegendVisible(false);
-		
-		VBox lay0 = new VBox();
-		lay0.getStyleClass().add("vbox-small");
-		lay0.getChildren().addAll(chrMTF);
-		
+				
 		HBox lay1 = new HBox();
 		lay1.getStyleClass().add("hbox-small");
-		lay1.getChildren().addAll(btnAction);
+		lay1.getChildren().addAll(btnExport,btnAction);
+		lay1.setAlignment(Pos.CENTER);
+		//------------------------//
 		
 		BorderPane root = new BorderPane();
 		root.setCenter(lay0);

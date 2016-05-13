@@ -465,7 +465,7 @@ public abstract class PanListAction extends VBox {
 				return 1;//still work, but no function				
 			}
 			itm.arg1.set((int)System.currentTimeMillis());
-			itm.arg2.set((int)Misc.convertUnit(parm[1],"ms"));			
+			itm.arg2.set((int)Misc.phyConvert(parm[1],"ms"));			
 		}else{
 			int curTick = (int)System.currentTimeMillis();
 			int diff = itm.arg2.get();

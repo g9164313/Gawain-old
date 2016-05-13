@@ -144,7 +144,7 @@ public class PanInform extends GridPane {
 	
 	public void setPeriod(String freqUpdate,String freqSample){
 		//PeriodCount = count;
-		PeriodCount = (int)Misc.convertRatio(freqSample,freqUpdate);
+		PeriodCount = (int)Misc.phyConvertRatio(freqSample,freqUpdate);
 		
 		bufPrssVacc.clear();
 		bufTempTube.clear();

@@ -98,157 +98,75 @@ public class Misc {
 	}
 	//----------------------------------------//
 	
-	public static final String unitMm= "mm";
-	public static final String unitCm= "cm";
-	public static final String unitInch= "inch";
-	public static final String unitM = "m";
-	private static final String[] unitLength ={
-		unitMm,
-		unitCm,
-		unitInch,
-		unitM
+	public static final String[] unitLength ={
+		"cm","inch","m"
 	};
-	private static final double IM=25.4;
-	private static final double MI=1./25.4;
 	private static final double[][] ratioLength = {
-		//destination ||  source-->mm,cm,inch,m
-		{  1.,    10.,      IM,    1e3},
-		{ 0.1,     1.,   IM*10,    1e2},
-		{MI  , MI*10.,      1., MI*1e3},
-		{1e-3,   1e-2, IM*1e-3,     1.},
+		//destination ||  source-->cm,inch,m
+		{ 1.     , 2.5400,  100.    },
+		{ 10/25.4, 1.0000,  1e3/25.4},
+		{ 0.01   , 0.0254,  1.0     },
 	};
 	
-	public static final String unitSec= "sec";
-	public static final String unitMin= "min";
-	public static final String unitHr = "hr";
-	private static final String[] unitTime ={
-		unitSec,
-		unitMin,
-		unitHr
+	public static final String[] unitTime ={
+		"sec","min","hr"
 	};	
 	private static final double[][] ratioTime = {
 		//destination ||  source-->second,minute,hour
-		{1.      ,60.   ,3600.   },
-		{1./60.  ,1.    ,60.     },
-		{1./3600.,1./60 ,1.      },
+		{1.      ,60.   ,3600.},
+		{1./60.  ,1.    ,60.  },
+		{1./3600.,1./60 ,1.   },
 	};
 	
-	private static String[][] unitAll = {
-		unitTime,unitLength
+	public static final String[][] unitAll = {
+		unitLength,unitTime
 	};//the order is important~~~
 	
-	private static char[] scaleSig = {
+	public static final char[] scaleSig = {
 		'p','μ','u','m','k','M','G'
 	};//the order is important~~~
-	private static double[] scaleVal = {
+	private static final double[] scaleVal = {
 		1e-9,1e-6,1e-6,1e-3,1e3,1e6,1e9
 	};//the order is important~~~
 	
-	private static double findRatio(String u1,String u2){
-		if(u1.equalsIgnoreCase(u2)==true){
-			return 1.;
+	private static double findScale(String unit){
+		if(unit.length()==1){
+			return 1.;//it must be no scale signature
 		}
-		int i=0,idx1=0,idx2=0;
-		double[][] tbl = null;
-		for(i=0; i<unitAll.length; i++){
-			idx1 = match_unit(unitAll[i],u1);
-			if(idx1<0){
-				continue;
-			}
-			idx2 = match_unit(unitAll[i],u2);
-			if(idx2<0){
-				return 1.;//WTF???
-			}
-			break;
-		}		
-		switch(i){
-		case 0: tbl=ratioTime  ; break;
-		case 1: tbl=ratioLength; break;
-		default:
-			return 1.;
-		}
-		return tbl[idx2][idx1];
-	}
-	
-	private static double findScale(String u1,String u2){
-		//'scale' is always positive!!!!
-		char cc;
-		double s1=1., s2=1.;
-		cc = u1.charAt(0);
+		char ss = unit.charAt(0);
 		for(int i=0; i<scaleSig.length; i++){
-			if(cc==scaleSig[i]){
-				s1 = scaleVal[i];
-				break;
-			}			
+			if(scaleSig[i]==ss){
+				return scaleVal[i];
+			}
 		}
-		cc = u2.charAt(0);
-		for(int i=0; i<scaleSig.length; i++){
-			if(cc==scaleSig[i]){
-				s2 = scaleVal[i];
-				break;
-			}			
-		}
-		return s1/s2;
+		return 1.;
 	}
 	
-	public static double convert(
-		double srcVal,
-		String srcUnit,
-		String dstUnit
-	){
-		srcUnit = srcUnit.trim();//for safety~~~
-		dstUnit = dstUnit.trim();
-		if(srcUnit.equals(dstUnit)==true){
-			return srcVal;//we don't need convert value~~~~
-		}
-		double ratio = findRatio(srcUnit,dstUnit);
-		double scale = findScale(srcUnit,dstUnit);
-		if(ratio<0.){
-			return srcVal * scale;//ratio between units must be positive!!!
-		}
-		return srcVal * ratio * scale;// source * ratio = destination
-	}
-	
-	public static double convertUnit(
-		String srcValUnit,
-		String dstUnit
-	){
-		double srcVal=1.;
-		try{
-			String[] srcTxt = split(srcValUnit);
-			srcVal = Double.valueOf(srcTxt[0]); 
-			
-			dstUnit = dstUnit.trim();
-			
-			srcVal = convert(srcVal,srcTxt[1],dstUnit);
-			
-		}catch(NumberFormatException e){
+	private static double findRatio(String srcUnit,String dstUnit){
+		if(srcUnit.equalsIgnoreCase(dstUnit)==true){
 			return 1.;
 		}
-		return srcVal;
-	}
-	
-	public static double convertRatio(
-		String srcValUnit,
-		String dstValUnit
-	){
-		double srcVal=1.,dstVal=1.;
-		try{
-			String[] srcTxt = split(srcValUnit);
-			srcVal = Double.valueOf(srcTxt[0]); 
-		
-			String[] dstTxt = split(dstValUnit);
-			dstVal = Double.valueOf(dstTxt[0]);
-			
-			srcVal = convert(srcVal,srcTxt[1],dstTxt[1]);
-			
-		}catch(NumberFormatException e){
-			return 1.;
+		for(int k=0; k<unitAll.length; k++){
+			String[] unit = unitAll[k];
+			for(int i=0; i<unit.length; i++){
+				if(unit[i].equalsIgnoreCase(srcUnit)==true){
+					for(int j=0; j<unit.length; j++){
+						if(unit[j].equalsIgnoreCase(dstUnit)==true){
+							switch(k){
+							case 0:
+								return ratioLength[j][i];
+							case 1:
+								return ratioTime[j][i];
+							}
+						}
+					}
+				}
+			}
 		}
-		return srcVal/dstVal;
+		return 0.;//??? what is going on ???
 	}
 	
-	private static String[] split(String txt){
+	public static String[] phySplit(String txt){
 		txt = txt.replaceAll("\\s+", "");
 		String[] seg = {"",""};
 		char[] cc = txt.toCharArray();
@@ -264,45 +182,65 @@ public class Misc {
 		return seg;
 	}
 	
-	private static int match_unit(String[] lst,String u1){
-		for(int i=0; i<lst.length; i++){
-			if(lst[i].equalsIgnoreCase(u1)==true){
-				return i;
-			}
+	public static double phyConvert(
+		double srcVal,
+		String srcUnit,
+		String dstUnit
+	){
+		srcUnit = srcUnit.trim();//for safety~~~
+		dstUnit = dstUnit.trim();
+		if(srcUnit.equals(dstUnit)==true){
+			return srcVal;//we don't need convert value~~~~
 		}
-		return -1;
+		double srcScale = findScale(srcUnit);
+		if(srcScale!=1.){
+			srcUnit = srcUnit.substring(1);
+		}
+		double dstScale = findScale(dstUnit);
+		if(dstScale!=1.){
+			dstUnit = dstUnit.substring(1);
+		}
+		double scale = (srcScale/dstScale);		
+		double ratio = findRatio(srcUnit,dstUnit); 
+		return srcVal*scale*ratio;
 	}
 	
-	public static String[] match_unit(String un,String scale){
-		un = un.trim();
-		for(int i=0;i<scaleSig.length; i++){
-			if(un.charAt(0)==scaleSig[i]){
-				un = un.substring(1);
-				break;
-			}			
-		}		
-		for(int j=0; j<unitAll.length; j++){
-			for(int i=0; i<unitAll[j].length; i++){
-				if(unitAll[j][i].equalsIgnoreCase(un)==true){
-					return unitAll[j];
-				}
-			}			
+	public static double phyConvert(
+		String srcValUnit,
+		String dstUnit
+	){
+		double srcVal=1.;
+		try{
+			String[] srcTxt = phySplit(srcValUnit);
+			srcVal = Double.valueOf(srcTxt[0]);
+			srcVal = phyConvert(srcVal,srcTxt[1],dstUnit);	
+		}catch(NumberFormatException e){
+			return 1.;
 		}
-		String[] tmp;
-		int cnt = scale.length();
-		if(cnt==0){
-			tmp = new String[1];
-			tmp[0] = un;
-		}else{
-			tmp = new String[cnt];
-			for(int i=0; i<cnt; i++){
-				tmp[i] = ""+scale.charAt(i)+un; 
-			}
-		}		
-		return tmp;
+		return srcVal;
 	}
 	
-	public static double matchDenom(String src,String dst){		
+	public static double phyConvertRatio(
+		String srcValUnit,
+		String dstValUnit
+	){
+		double srcVal=1.,dstVal=1.;
+		try{
+			String[] srcTxt = phySplit(srcValUnit);
+			srcVal = Double.valueOf(srcTxt[0]); 
+
+			String[] dstTxt = phySplit(dstValUnit);
+			dstVal = Double.valueOf(dstTxt[0]);
+			
+			srcVal = phyConvert(srcVal,srcTxt[1],dstTxt[1]);
+			
+		}catch(NumberFormatException e){
+			return 1.;
+		}
+		return srcVal/dstVal;
+	}
+	
+	/*public static double matchDenom(String src,String dst){		
 		String[] itm = src.split("/");
 		if(itm.length!=2){
 			Misc.logw("invalid unit=%s",src);
@@ -316,7 +254,7 @@ public class Misc {
 		}
 		dst = itm[1].trim();
 		return findRatio(src,dst);
-	}
+	}*/
 
 	public static String num2scale(double num){
 		String txt = String.format("%G",num);

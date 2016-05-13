@@ -66,7 +66,7 @@ public class ImgControl extends VBox {
 		
 		btnConfig.getStyleClass().add("btn-raised");
 		btnConfig.setMaxWidth(Double.MAX_VALUE);
-			
+		
 		lay0.getChildren().addAll(lstType,lstIndx,btnEnable,btnConfig);
 		//------------------------//
 		lay1.getStyleClass().add("hbox-small");
