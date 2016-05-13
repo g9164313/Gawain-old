@@ -13,8 +13,10 @@ import javafx.scene.chart.XYChart.Series;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import narl.itrc.BoxPhyValue;
 import narl.itrc.CamBundle;
 import narl.itrc.ImgRender;
+import narl.itrc.Misc;
 import narl.itrc.PanBase;
 
 public class FltrSlangEdge extends PanBase implements
@@ -32,6 +34,8 @@ public class FltrSlangEdge extends PanBase implements
 	
 	@Override
 	public boolean initData(ImgRender rnd) {
+		pixel_per_mm = boxPPMM.getFloat();
+		Misc.logv("pixel-per-mm=%f",pixel_per_mm);
 		appear();
 		render = rnd;//always update this variable~~
 		render.getBundle().getROI(0,zone);
@@ -71,6 +75,8 @@ public class FltrSlangEdge extends PanBase implements
 		new NumberAxis()
 	);
 	
+	private BoxPhyValue boxPPMM = new BoxPhyValue("像素大小","5um").setType("mm");
+	
 	@Override
 	public Parent layout() {
 		
@@ -99,10 +105,14 @@ public class FltrSlangEdge extends PanBase implements
 				render.hookFilter(FltrSlangEdge.this);
 			}
 		});
-				
+		
 		HBox lay1 = new HBox();
 		lay1.getStyleClass().add("hbox-small");
-		lay1.getChildren().addAll(btnExport,btnAction);
+		lay1.getChildren().addAll(
+			boxPPMM.decorateTitle(),
+			btnExport,
+			btnAction
+		);
 		lay1.setAlignment(Pos.CENTER);
 		//------------------------//
 		
