@@ -22,7 +22,7 @@ public class BtnSettingCam extends BtnPopping {
 			"相機設定",
 			"ic_build_black_24dp_1x.png"
 		);
-		confCamera.setText(Gawain.prop.getProperty("imgConf",""));
+		infoConfig.textProperty().bind(ImgControl.txtConfig);
 	}
 	
 	@Override
@@ -79,11 +79,11 @@ public class BtnSettingCam extends BtnPopping {
 	}
 	
 	public String getCamText(){
-		return confCamera.getText();
+		return infoConfig.getText();
 	}
 	//--------------------------------------//
 	
-	private JFXTextField confCamera = new JFXTextField();
+	private JFXTextField infoConfig = new JFXTextField();
 	private Label infoType = new Label();
 	private JFXTextField infoWidth = new JFXTextField();
 	private JFXTextField infoHeight = new JFXTextField();
@@ -96,7 +96,7 @@ public class BtnSettingCam extends BtnPopping {
 		pan.getStyleClass().add("grid-small");
 		pan.setAlignment(Pos.BASELINE_LEFT);
 		
-		pan.addRow(0,new Label("設定："),confCamera);
+		pan.addRow(0,new Label("設定："),infoConfig);
 		pan.addRow(1,new Label("格式："),infoType);
 		pan.addRow(2,new Label("寬："),infoWidth);
 		pan.addRow(3,new Label("高："),infoHeight);
@@ -131,7 +131,7 @@ public class BtnSettingCam extends BtnPopping {
 			}
 		});
 
-		confCamera.setPrefWidth(210);
+		infoConfig.setPrefWidth(210);
 		//infoWidth.setPrefWidth(210);
 		//infoHeight.setPrefWidth(210);
 		

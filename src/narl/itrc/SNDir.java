@@ -4,14 +4,20 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.util.Arrays;
 
+/**
+ * When put files in this directory, it will append a count number to this file name
+ * @author qq
+ *
+ */
 public class SNDir extends File {
 
 	private static final long serialVersionUID = -2654865502562489786L;
 
 	public SNDir(String pathname) {
 		super(pathname);
-		if(exists()==false){ mkdirs(); }
-		//String txt = getAbsolutePath();
+		if(exists()==false){ 
+			mkdirs();
+		}
 	}
 
 	public SNDir(String pathname,String pattern) {
@@ -89,6 +95,15 @@ public class SNDir extends File {
 			fs = new File(txt);
 		}while(fs.exists()==true);
 		return txt;
+	}
+	
+	public String getSNName(){
+		return String.format(
+			"%s%c%s%08d%s",
+			getAbsolutePath(),
+			File.separatorChar,
+			defPart[0], defSN-1, defPart[1]			
+		);
 	}
 	
 	public String getSNName(String part0,int off){

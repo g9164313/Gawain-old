@@ -16,7 +16,7 @@ public class PanCamera extends PanBase {
 	@Override
 	protected void eventClose(WindowEvent event){ 
 		super.eventClose(event);
-		imgCtrl.release();
+		imgCtrl.release();//it must be shutdown!!!
 	}
 
 	protected ImgPreview imgPrvw = new ImgPreview();
@@ -27,7 +27,6 @@ public class PanCamera extends PanBase {
 		BorderPane root = new BorderPane();
 		root.setLeft(PanBase.decorate("控制",imgCtrl));
 		root.setCenter(PanBase.decorate("預覽",imgPrvw));
-
 		imgCtrl.addFilter(new FltrSlangEdge()).setText("SFR分析");
 		return root;
 	}

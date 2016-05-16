@@ -36,7 +36,7 @@ void updateEnbl(JNIEnv* env,jobject bnd,bool flag){
 		"updateOptEnbl",
 		"(Z)V"
 	);
-
+	env->CallVoidMethod(bnd,mid,(flag)?(JNI_TRUE):(JNI_FALSE));
 }
 
 void updateMesg(JNIEnv* env,jobject bnd,const char* txt){
@@ -49,9 +49,26 @@ void updateMesg(JNIEnv* env,jobject bnd,const char* txt){
 	env->CallVoidMethod(bnd,mid,env->NewStringUTF(txt));
 }
 
-void updateEnblMesg(JNIEnv* env,jobject bnd,bool flag,const char* txt){
-
-	//env->CallVoidMethod(bnd,midOptEnbl,(flag)?(JNI_TRUE):(JNI_FALSE));
+void updateEnblMesg(
+	JNIEnv* env,
+	jobject bnd,
+	bool flag,
+	const char* txt
+){
+	jclass clzz = env->GetObjectClass(bnd);
+	jmethodID mid;
+	mid = env->GetMethodID(
+		clzz,
+		"updateOptEnbl",
+		"(Z)V"
+	);
+	env->CallVoidMethod(bnd,mid,(flag)?(JNI_TRUE):(JNI_FALSE));
+	mid = env->GetMethodID(
+		clzz,
+		"updateMsgLast",
+		"(Ljava/lang/String;)V"
+	);
+	env->CallVoidMethod(bnd,mid,env->NewStringUTF(txt));
 }
 
 extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamBundle_refreshInf(
@@ -280,7 +297,7 @@ static void markRoiBoundary(
 		}break;
 	case 2:{//rectangle
 		rectangle(ova,zone,clr,stroke+1);
-		drawMarkCross(ova,zone_cc,clr,10);
+		//drawMarkCross(ova,zone_cc,clr,10);
 		}break;
 	case 3:{//circle
 		int radius = std::min(zone.width,zone.height)/2;
@@ -327,14 +344,17 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamBundle_markData(
 	env->ReleaseFloatArrayElements(jfloatArr0,roiVal,0);
 
 	jint* roiTmp = intArray2Ptr(env,clzz,thiz,"roiTmp",jintArr0);
-	if(roiTmp[0]>=0 && roiTmp[1]>=0){
-		Point c0,c1;
-		c0.x = roiTmp[0];
-		c0.y = roiTmp[1];
-		c1.x = roiTmp[2];
-		c1.y = roiTmp[3];
-		line(ova,c0,c1,markStroke);
-		circle(ova,c1,4,markStroke);
+	if(roiTmp[2]>=0 && roiTmp[3]>=0){
+		Point c0;
+		c0.x = roiTmp[2];
+		c0.y = roiTmp[3];
+		circle(ova,c0,4,markStroke);
+		if(roiTmp[0]!=roiTmp[2] || roiTmp[1]!=roiTmp[3]){
+			Point c1;
+			c1.x = roiTmp[0];
+			c1.y = roiTmp[1];
+			line(ova,c0,c1,markStroke);
+		}
 	}
 	env->ReleaseIntArrayElements(jintArr0,roiTmp,0);
 }

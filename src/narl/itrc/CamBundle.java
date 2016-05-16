@@ -179,14 +179,47 @@ public abstract class CamBundle implements Gawain.EventHook {
 	public SimpleBooleanProperty optEnbl = new SimpleBooleanProperty(false);
 	public SimpleStringProperty msgLast = new SimpleStringProperty("");
 
-	public native void refreshInf(CamBundle cam);//get type and size from current matrix
-	public native void mapOverlay(CamBundle cam);//copy data to overlay layer
-	public native void releasePtr(CamBundle cam);//release and delete all pointer~~~
+	/**
+	 * get type and size from current matrix.
+	 * @param cam - pass self
+	 */
+	public native void refreshInf(CamBundle cam);
 	
+	/**
+	 * copy data to overlay layer.
+	 * @param cam - pass self
+	 */
+	public native void mapOverlay(CamBundle cam);
+	
+	/**
+	 * release and delete all pointer~~~
+	 * @param cam - pass self
+	 */
+	public native void releasePtr(CamBundle cam);
+	
+	/**
+	 * prepare and initialize camera, the instance will be keep in ptrCntx
+	 * @param idx - camera index, -1 mean auto-selection
+	 * @param txtConfig - pass configuration to camera. 
+	 *   The definition is dependent on camera type. 
+	 *   When no configuration, it must be "zero length string"....
+	 */
 	public abstract void setup(int idx,String txtConfig);
+	
+	/**
+	 * just fetch image from camera
+	 */
 	public abstract void fetch();
+	
+	/**
+	 * close camera and release everything~~~
+	 */
 	public abstract void close();
 	
+	/**
+	 * generate a panel to control camera options
+	 * @return a panel, it will be one part of TabPane
+	 */
 	public abstract Node getPanSetting();
 	
 	public void syncSetup(){

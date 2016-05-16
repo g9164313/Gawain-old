@@ -3,6 +3,7 @@ package narl.itrc;
 import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXComboBox;
 
+import javafx.beans.property.SimpleStringProperty;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.layout.VBox;
@@ -11,8 +12,11 @@ public class ImgControl extends VBox {
 
 	private ImgRender render = new ImgRender(this);
 	
+	public static SimpleStringProperty txtConfig = new SimpleStringProperty("");
+	
 	public ImgControl(ImgPreview... preview){
 		render.setPreview(preview);
+		txtConfig.set(Gawain.prop.getProperty("imgConf",""));
 		initPanel();
 	}
 	
@@ -84,33 +88,34 @@ public class ImgControl extends VBox {
 	private boolean createBundle(){
 		ImgPreview[] prvw = render.getPreview();
 		int typ = lstType.getSelectionModel().getSelectedIndex();
+		String txt = txtConfig.get();
 		switch(typ){
 		case 0:
 			for(int i=0; i<prvw.length; i++){
 				prvw[i].bundle = new CamVFiles();
 				prvw[i].bundle.optIndex = i;
-				prvw[i].bundle.optConfig="";
+				prvw[i].bundle.optConfig=txt;
 			}
 			break;
 		case 1: 
 			for(int i=0; i<prvw.length; i++){
 				prvw[i].bundle = new CamVidcap();
 				prvw[i].bundle.optIndex = i;
-				prvw[i].bundle.optConfig="";
+				prvw[i].bundle.optConfig=txt;
 			}
 			break;
 		case 2:
 			for(int i=0; i<prvw.length; i++){
 				prvw[i].bundle = new CamPylon();
 				prvw[i].bundle.optIndex = i;
-				prvw[i].bundle.optConfig="";
+				prvw[i].bundle.optConfig=txt;
 			}
 			break;
 		case 3:
 			for(int i=0; i<prvw.length; i++){
 				prvw[i].bundle = new CamEBus();
 				prvw[i].bundle.optIndex = i;
-				prvw[i].bundle.optConfig="";
+				prvw[i].bundle.optConfig=txt;
 			}
 			break;
 		default: 

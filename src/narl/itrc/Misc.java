@@ -438,7 +438,9 @@ public class Misc {
 				"%s%c%s-%04d%s",
 				path,
 				File.separatorChar,
-				prex,chkSerialIndx,appx
+				prex,
+				chkSerialIndx,
+				appx
 			);
 			chkSerialIndx++;
 			dir = new File(fullName);

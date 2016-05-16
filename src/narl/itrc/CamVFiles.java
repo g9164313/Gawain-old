@@ -27,7 +27,7 @@ public class CamVFiles extends CamBundle {
 	@Override
 	public void setup(int idx, String txtConfig) {
 		try {
-			if(txtConfig==null){
+			if(txtConfig.length()==0){
 				lstName.put("####");
 				setMatx(0,Misc.imCreate(640,480,CvType.CV_8UC3));
 			}else{

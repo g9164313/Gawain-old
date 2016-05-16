@@ -88,7 +88,9 @@ public class ImgRender{
 					if(Application.GetApplication()==null){						
 						break;//Platform is shutdown
 					}
-					//TODO: how to save image???
+					for(ImgPreview pp:prvw){
+						doAction(pp);
+					}
 					eventFilter();//process image and show data~~~
 										
 					Platform.runLater(eventShow);
@@ -122,9 +124,8 @@ public class ImgRender{
 		}
 		core.cancel();
 	}
-	
+
 	private int bundSetup(){
-		Misc.logv("all-bundles setup");
 		int cnt = bund.length;
 		for(int i=0; i<bund.length; i++){
 			if(bund[i]==null){
@@ -141,7 +142,6 @@ public class ImgRender{
 	}
 
 	private void bundFetch(){
-		//Misc.logv("all-bundles fetch");
 		for(int i=0; i<bund.length; i++){
 			if(bund[i]==null){
 				buff[i] = null;				
@@ -154,7 +154,6 @@ public class ImgRender{
 	}
 	
 	private void bundClose(){
-		Misc.logv("all-bundles close");
 		for(CamBundle b:bund){
 			if(b!=null){
 				b.close();
@@ -184,6 +183,39 @@ public class ImgRender{
 		}
 		return core.isRunning();
 	}
+	
+	private SNDir dirSnap = new SNDir(Misc.pathTemp,"snap%.png");
+	
+	private void doAction(ImgPreview pp){
+		switch(pp.action.get()){
+		case ImgPreview.ACT_SNAP:{
+			Misc.imWrite(
+				dirSnap.genSNName(),
+				pp.bundle.getMatSrc()
+			);
+			/*int[] zone={0,0,0,0};
+			if(bundle.getROI(0,zone)==true){
+				Misc.imWriteX(
+					Misc.pathTemp+"roi.png",
+					pp.bundle.getMatSrc(),
+					zone
+				);
+			}*/
+			pp.action.set(ImgPreview.ACT_NONE);			
+			Application.invokeAndWait(new Runnable(){
+				@Override
+				public void run() {
+					PanBase.msgBox.notifyInfo(
+						"Snap",
+						"儲存成 "+Misc.trimPath(dirSnap.getSNName())
+					);
+				}
+			});
+			}break;
+		case ImgPreview.ACT_RECD:{
+			}break;
+		}
+	}	
 	//---------------------//
 	
 	public interface Filter{

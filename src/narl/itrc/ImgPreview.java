@@ -5,7 +5,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import com.jfoenix.controls.JFXComboBox;
 import com.jfoenix.controls.JFXRadioButton;
 
-import javafx.concurrent.WorkerStateEvent;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.event.EventType;
@@ -20,8 +19,8 @@ import javafx.scene.layout.FlowPane;
 
 public class ImgPreview extends BorderPane {
 	
-	private static final int DEF_WIDTH =800;
-	private static final int DEF_HEIGHT=600;
+	private static final int DEF_WIDTH =640;
+	private static final int DEF_HEIGHT=480;
 
 	public ImgPreview(){
 		this(null,DEF_WIDTH,DEF_HEIGHT);
@@ -34,6 +33,7 @@ public class ImgPreview extends BorderPane {
 
 	public static final int ACT_NONE = 0;
 	public static final int ACT_SNAP = 1;
+	public static final int ACT_RECD = 2;
 	public AtomicInteger action = new AtomicInteger(ACT_NONE);
 
 	public ImgRender render = null;
@@ -65,6 +65,7 @@ public class ImgPreview extends BorderPane {
 				if(render.isWorking()==false){
 					return;
 				}
+				//TODO: how to pass message???
 				if(action.get()==ACT_NONE){
 					action.set(ACT_SNAP);
 				}
@@ -82,7 +83,7 @@ public class ImgPreview extends BorderPane {
 		
 		lstPickType.getItems().addAll("Pin","矩形(實)","圓形(實)");
 		lstPickType.getSelectionModel().select(0);
-		lstPickType.setOnAction(eventPrepareHook);
+		//lstPickType.setOnAction(eventPrepareHook);
 		lstPickType.setDisable(true);
 		lstPickIndx.getItems().addAll(1,2,3,4);
 		lstPickIndx.getSelectionModel().select(0);
@@ -94,15 +95,10 @@ public class ImgPreview extends BorderPane {
 					lstPickType.setDisable(false);
 					lstPickIndx.setDisable(false);
 					btnPickCancel.setDisable(false);
-					eventPrepareHook.handle(null);
 				}else{					
 					lstPickType.setDisable(true);
 					lstPickIndx.setDisable(true);
-					btnPickCancel.setDisable(true);
-					screen.setOnMouseClicked(null);
-					screen.setOnDragDetected(null);
-					screen.setOnMouseDragged(null);
-					screen.setOnMouseReleased(null);
+					btnPickCancel.setDisable(true);					
 				}
 			}	
 		});
@@ -133,38 +129,14 @@ public class ImgPreview extends BorderPane {
 		pan1.setContent(screen);
 		pan1.setContextMenu(menu);
 
+		screen.setOnMousePressed(eventPrepareROI);
+		screen.setOnMouseDragged(eventPrepareROI);
+		screen.setOnMouseReleased(eventPrepareROI);
+		
 		setTop(pan0);
 		setCenter(pan1);
 	}
 	
-	private EventHandler<ActionEvent> eventPrepareHook = new EventHandler<ActionEvent>(){
-		@Override
-		public void handle(ActionEvent event) {
-			if(lstPickType.getSelectionModel().getSelectedIndex()==0){
-				screen.setOnMouseClicked(eventPreparePin);
-				screen.setOnDragDetected(null);
-				screen.setOnMouseDragged(null);
-				screen.setOnMouseReleased(null);
-			}else{
-				screen.setOnMouseClicked(null);
-				screen.setOnDragDetected(eventPrepareROI);
-				screen.setOnMouseDragged(eventPrepareROI);
-				screen.setOnMouseReleased(eventPrepareROI);
-			}
-		}
-	};
-	
-	private EventHandler<MouseEvent> eventPreparePin = new EventHandler<MouseEvent>(){
-		@Override
-		public void handle(MouseEvent e) {
-			if(render.isWorking()==false){
-				return;
-			}
-			int index = lstPickIndx.getSelectionModel().getSelectedItem()-1;
-			bundle.fixPin(index,e.getX(),e.getY());
-		}
-	};
-
 	private EventHandler<MouseEvent> eventPrepareROI = new EventHandler<MouseEvent>(){
 		@Override
 		public void handle(MouseEvent e) {
@@ -172,18 +144,38 @@ public class ImgPreview extends BorderPane {
 				return;
 			}
 			EventType<?> typ = e.getEventType();
-			if(typ==MouseEvent.DRAG_DETECTED){
-				bundle.stickPin(true, e.getX(),e.getY());
-			}else if(typ==MouseEvent.MOUSE_DRAGGED){
-				bundle.stickPin(false,e.getX(),e.getY());
-			}else if(typ==MouseEvent.MOUSE_RELEASED){
-				int shape = lstPickType.getSelectionModel().getSelectedIndex();
-				int index = lstPickIndx.getSelectionModel().getSelectedItem()-1;
-				switch(shape){
-				case 1: shape = CamBundle.ROI_TYPE_RECT; break;
-				case 2: shape = CamBundle.ROI_TYPE_CIRC; break;
-				}				
-				bundle.fixROI(index,shape);
+			if(lstPickType.getSelectionModel().getSelectedIndex()==0){
+				//put a pin in screen
+				if(typ==MouseEvent.MOUSE_PRESSED){
+					bundle.fixPin(
+						lstPickIndx.getSelectionModel().getSelectedItem()-1,
+						e.getX(),
+						e.getY()
+					);
+				}
+			}else{
+				//drag mouse and select a interesting region
+				if(typ==MouseEvent.MOUSE_PRESSED){
+					bundle.stickPin(
+						true, 
+						e.getX(),
+						e.getY()
+					);
+				}else if(typ==MouseEvent.MOUSE_DRAGGED){
+					bundle.stickPin(
+						false,
+						e.getX(),
+						e.getY()
+					);
+				}else if(typ==MouseEvent.MOUSE_RELEASED){					
+					int shape = lstPickType.getSelectionModel().getSelectedIndex();
+					int index = lstPickIndx.getSelectionModel().getSelectedItem()-1;
+					switch(shape){
+					case 1: shape = CamBundle.ROI_TYPE_RECT; break;
+					case 2: shape = CamBundle.ROI_TYPE_CIRC; break;
+					}				
+					bundle.fixROI(index,shape);
+				}
 			}
 		}
 	};
@@ -193,19 +185,7 @@ public class ImgPreview extends BorderPane {
 		@Override
 		public void run() {
 			if(snapAction==true){
-				String name = Misc.imWriteX(
-					Misc.pathTemp+"snap.png",
-					bundle.getMatSrc()
-				);
-				int[] zone={0,0,0,0};
-				if(bundle.getROI(0,zone)==true){
-					Misc.imWriteX(
-						Misc.pathTemp+"roi.png",
-						bundle.getMatSrc(),
-						zone
-					);
-				}
-				name = Misc.trimPath(name);		
+					
 				PanBase.msgBox.notifyInfo("Snap","儲存成"+name);
 			}
 		}
