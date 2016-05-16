@@ -14,9 +14,9 @@ import javafx.scene.control.Tab;
 import javafx.scene.layout.GridPane;
 import javafx.stage.WindowEvent;
 
-public class PanSettingCam extends BtnPopping {
+public class BtnSettingCam extends BtnPopping {
 
-	public PanSettingCam(){
+	public BtnSettingCam(){
 		super(
 			"相機設定",
 			"相機設定",

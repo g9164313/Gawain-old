@@ -16,19 +16,18 @@ public class PanCamera extends PanBase {
 	@Override
 	protected void eventClose(WindowEvent event){ 
 		super.eventClose(event);
-		imgScrn.unbindCamera();//Important!!!, however we must release this~~~
+		imgCtrl.release();
 	}
 
-	protected ImgPreview imgScrn = new ImgPreview();
-	protected ImgControl imgCtrl = new ImgControl();
+	protected ImgPreview imgPrvw = new ImgPreview();
+	protected ImgControl imgCtrl = new ImgControl(imgPrvw);
 	
 	@Override
 	public Parent layout() {
 		BorderPane root = new BorderPane();
 		root.setLeft(PanBase.decorate("控制",imgCtrl));
-		root.setCenter(PanBase.decorate("預覽",imgScrn));
-		imgScrn.attachControl(imgCtrl);
-		
+		root.setCenter(PanBase.decorate("預覽",imgPrvw));
+
 		imgCtrl.addFilter(new FltrSlangEdge()).setText("SFR分析");
 		return root;
 	}

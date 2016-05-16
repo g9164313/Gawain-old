@@ -170,9 +170,12 @@ public abstract class CamBundle implements Gawain.EventHook {
 	//-------------------------//
 	
 	protected static final int PTR_SIZE = 16;
-	
+		
 	private long ptrCntx = 0;//point to a container for whatever devices~~~
 	private long[] ptrMatx = new long[PTR_SIZE];//point to Mat, the first is source layer, the second is	
+	
+	public int optIndex = -1;
+	public String optConfig = "";
 	public SimpleBooleanProperty optEnbl = new SimpleBooleanProperty(false);
 	public SimpleStringProperty msgLast = new SimpleStringProperty("");
 
@@ -186,14 +189,18 @@ public abstract class CamBundle implements Gawain.EventHook {
 	
 	public abstract Node getPanSetting();
 	
-	private Thread thrSetup;
+	public void syncSetup(){
+		setup(optIndex,optConfig);
+	}
+	
+	private Thread thdSetup;
 	public void asynSetup(int idx,String txtConfig){
-		if(thrSetup!=null){
-			if(thrSetup.isAlive()==true){
+		if(thdSetup!=null){
+			if(thdSetup.isAlive()==true){
 				return;
 			}
 		}		
-		thrSetup = new Thread(new Runnable(){
+		thdSetup = new Thread(new Runnable(){
 			@Override
 			public void run() {
 				setup(idx,txtConfig);

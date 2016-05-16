@@ -33,28 +33,28 @@ public class FltrSlangEdge extends PanBase implements
 	private native float[] procSFR(CamBundle bnd, long ptrMat0, long patMat1);
 	
 	@Override
-	public boolean initData(ImgRender rnd) {
+	public boolean initData(ImgRender rndr) {
 		pixel_per_mm = boxPPMM.getFloat();
 		Misc.logv("pixel-per-mm=%f",pixel_per_mm);
+		render = rndr;
 		appear();
-		render = rnd;//always update this variable~~
-		render.getBundle().getROI(0,zone);
+		rndr.getBundle().getROI(0,zone);
 		chrMTF.getData().clear();			
 		return false;
 	}
 
 	@Override
-	public boolean cookData(CamBundle bnd) {
+	public boolean cookData(CamBundle[] bnd) {
 		result = procSFR(
-			bnd,
-			bnd.getMatSrc(),
-			bnd.getMatOva()
+			bnd[0],
+			bnd[0].getMatSrc(),
+			bnd[0].getMatOva()
 		);
 		return false;
 	}
 
 	@Override
-	public boolean showData(CamBundle bnd) {
+	public boolean showData(CamBundle[] bnd) {
 		if(result==null){
 			PanBase.msgBox.notifyError("SFR","不明原因的錯誤");
 			return true;
