@@ -17,6 +17,11 @@ public class CamVidcap extends CamBundle {
 		checkV4L2();
 	}
 	
+	public CamVidcap(int index,String config){
+		super(index,config);
+		checkV4L2();
+	}
+	
 	private native void implSetup(CamBundle cam,int id);
 	private native void implFetch(CamBundle cam);
 	private native void implClose(CamBundle cam);
@@ -55,7 +60,6 @@ public class CamVidcap extends CamBundle {
 		}
 	}
 
-	
 	class PanSetting extends PanOption {
 		private String arg1;
 		

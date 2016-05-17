@@ -25,10 +25,16 @@ public class ImgRender{
 	public ImgRender(ImgPreview... preview){
 		prvw = preview;
 	}
-
+	
+	public ImgRender(ImgControl control,ImgPreview... preview){
+		ctrl = control;
+		prvw = preview;
+	}
+	
 	public void setPreview(ImgPreview... preview){
 		prvw = preview;
-	}	
+	}
+	
 	public ImgPreview[] getPreview(){
 		return prvw;
 	}
@@ -190,7 +196,7 @@ public class ImgRender{
 		switch(pp.action.get()){
 		case ImgPreview.ACT_SNAP:{
 			Misc.imWrite(
-				dirSnap.genSNName(),
+				dirSnap.genSNTxt(),
 				pp.bundle.getMatSrc()
 			);
 			/*int[] zone={0,0,0,0};
@@ -207,7 +213,7 @@ public class ImgRender{
 				public void run() {
 					PanBase.msgBox.notifyInfo(
 						"Snap",
-						"儲存成 "+Misc.trimPath(dirSnap.getSNName())
+						"儲存成 "+Misc.trimPath(dirSnap.getSNTxt())
 					);
 				}
 			});

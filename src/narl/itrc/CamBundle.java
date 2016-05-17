@@ -13,9 +13,15 @@ public abstract class CamBundle implements Gawain.EventHook {
 
 	public CamBundle(){
 		Gawain.hook(this);
-		roiTmp[0] = roiTmp[1] = roiTmp[2] = roiTmp[3] = -1;//don't draw it~~~
+		clearRoiTmp();
 	}
 
+	public CamBundle(int index,String config){
+		this();
+		optIndex = index;
+		optConfig= config;		
+	}
+	
 	@Override
 	public void shutdown() {
 		close();
@@ -99,7 +105,7 @@ public abstract class CamBundle implements Gawain.EventHook {
 		roiPos[idx*ROI_COLS + 3] = rh - lf;
 		roiPos[idx*ROI_COLS + 4] = bm - tp;
 		//Misc.logv("ROI%d=(%d,%d)@%dx%d",roiIdx,lf,tp,rh - lf,bm - tp);
-		roiTmp[0] = roiTmp[1] = roiTmp[2] = roiTmp[3] = -1;
+		clearRoiTmp();
 	}
 	
 	public void delMark(int idx){
@@ -137,7 +143,7 @@ public abstract class CamBundle implements Gawain.EventHook {
 	
 	public void resetMark(){
 		
-		roiTmp[0] = roiTmp[1] = roiTmp[2] = roiTmp[3] = -1;
+		clearRoiTmp();
 		
 		for(int idx=0; idx<ROI_SIZE; idx++){
 			
@@ -166,6 +172,10 @@ public abstract class CamBundle implements Gawain.EventHook {
 				}
 			}			
 		}
+	}
+	
+	private void clearRoiTmp(){
+		roiTmp[0] = roiTmp[1] = roiTmp[2] = roiTmp[3] = -1;
 	}
 	//-------------------------//
 	

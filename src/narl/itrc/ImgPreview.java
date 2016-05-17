@@ -26,6 +26,10 @@ public class ImgPreview extends BorderPane {
 		this(null,DEF_WIDTH,DEF_HEIGHT);
 	}
 	
+	public ImgPreview(CamBundle bnd){
+		this(bnd,DEF_WIDTH,DEF_HEIGHT);
+	}
+	
 	public ImgPreview(CamBundle bnd,int width,int height){
 		bundle = bnd;
 		initBoard(width,height);

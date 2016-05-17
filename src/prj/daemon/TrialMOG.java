@@ -107,10 +107,10 @@ public class TrialMOG extends DevGrabber {
 		}else if(tkn[0].startsWith("SAVE")==true){
 			if(tkn.length>=2){
 				if(tkn[1].equals("BACK")==true){
-					Misc.imWrite(dirBack.genSNName(), pDat);
+					Misc.imWrite(dirBack.genSNTxt(), pDat);
 					checkInfo1(true);					
 				}else if(tkn[1].equals("FORE")==true){
-					Misc.imWrite(dirFore.genSNName(), pDat);
+					Misc.imWrite(dirFore.genSNTxt(), pDat);
 					checkInfo1(false);
 				}
 			}
@@ -132,8 +132,8 @@ public class TrialMOG extends DevGrabber {
 			msgStatus.setValue("內部錯誤");
 			return;
 		}
-		String img_name = dirMeas.genSNName();
-		String obj_name = dirMeas.getSNName("obj",-1);
+		String img_name = dirMeas.genSNTxt();
+		String obj_name = dirMeas.getSNTxt("obj");
 		boolean isOK = modMeasurement(
 			ptrModBack,ptrModFore,
 			objInfo[0],objInfo[1],
