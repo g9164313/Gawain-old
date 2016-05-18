@@ -13,6 +13,11 @@ public class BtnToggle extends JFXButton implements EventHandler<ActionEvent> {
 	private String[] name={"",""};
 	private ImageView[] icon={null,null};
 
+	/**
+	 * create a toggle button with two title name and icon picture<p>
+	 * When user trigger action, button will change title(and icon) to the second one  
+	 * @param txt - tile and icon name, etc...
+	 */
 	public BtnToggle(String... txt){
 		switch(txt.length){
 		case 1:

@@ -26,8 +26,8 @@ public class ImgControl extends VBox {
 	public JFXComboBox<String> lstType = new JFXComboBox<String>();
 	
 	public BtnToggle btnPlayer = new BtnToggle(
-		"播放影像","ic_play_arrow_black_24dp_1x.png",
-		"暫停播放","ic_pause_black_24dp_1x.png"
+		"播放影像","ic_play_arrow_black_24dp_2x.png",
+		"暫停播放","ic_pause_black_24dp_2x.png"
 	);
 	
 	private void initPanel(){

@@ -14,10 +14,11 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
 
-public class ImgPreview extends BorderPane {
+public class ImgPreview extends ScrollPane {
 	
 	private static final int DEF_WIDTH =640;
 	private static final int DEF_HEIGHT=480;
@@ -32,7 +33,7 @@ public class ImgPreview extends BorderPane {
 	
 	public ImgPreview(CamBundle bnd,int width,int height){
 		bundle = bnd;
-		initBoard(width,height);
+		initLayout(width,height);
 	}
 
 	public static final int ACT_NONE = 0;
@@ -54,14 +55,12 @@ public class ImgPreview extends BorderPane {
 	private Button btnPickCancel = new Button("取消");	
 	private ContextMenu menu = new ContextMenu();
 	
-	public void initScreen(ImgRender rnd){
-		render = rnd;
-		msgLast.textProperty().unbind();
-		msgLast.textProperty().bind(bundle.msgLast);
-	} 
-		
-	private void initBoard(int width,int height){		
-		getStyleClass().add("board-center");
+	private void initLayout(int width,int height){		
+
+		setContent(screen);
+		setContextMenu(menu);
+		setFitToWidth(true);
+		setFitToHeight(true);
 		
 		btnSnap.setOnAction(new EventHandler<ActionEvent>(){
 			@Override
@@ -127,18 +126,20 @@ public class ImgPreview extends BorderPane {
 			btnPickCancel,
 			msgLast
 		);
-
-		ScrollPane pan1 = new ScrollPane();
-		pan1.setPrefSize(width, height);
-		pan1.setContent(screen);
-		pan1.setContextMenu(menu);
+		
+		//ScrollPane pan1 = new ScrollPane();
+		//pan1.setContent(screen);
+		//pan1.setContextMenu(menu);
 
 		screen.setOnMousePressed(eventPrepareROI);
 		screen.setOnMouseDragged(eventPrepareROI);
 		screen.setOnMouseReleased(eventPrepareROI);
-		
-		setTop(pan0);
-		setCenter(pan1);
+	}
+	
+	public void initScreen(ImgRender rnd){
+		render = rnd;
+		msgLast.textProperty().unbind();
+		msgLast.textProperty().bind(bundle.msgLast);
 	}
 	
 	private EventHandler<MouseEvent> eventPrepareROI = new EventHandler<MouseEvent>(){

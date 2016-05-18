@@ -12,7 +12,9 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -24,7 +26,12 @@ import javafx.util.Duration;
 public abstract class PanBase {
 
 	protected String title = "::panel::";
-
+	
+	protected static final int FIRST_NONE = 0;
+	protected static final int FIRST_FULLSCREEN = 1;
+	protected static final int FIRST_MAXIMIZED = 2;
+	protected int firstAction = FIRST_NONE;
+	
 	private Scene scene=null;
 	private Stage stage=null;
 	
@@ -80,6 +87,7 @@ public abstract class PanBase {
 		if(stage.isShowing()==true){
 			return;
 		}
+		doFirstAction();
 		stage.show();
 	}
 	
@@ -92,8 +100,29 @@ public abstract class PanBase {
 		if(stage==null){
 			makeStage(null);
 		}
+		doFirstAction();
 		stage.showAndWait();
 	}
+	
+	private void doFirstAction(){
+		switch(firstAction){
+		case FIRST_FULLSCREEN:
+			stage.setFullScreen(true);
+			break;
+		case FIRST_MAXIMIZED:
+			stage.setMaximized(true);
+			break;
+		}
+	}
+	
+	/*protected void maximize(){
+		Screen scr = Screen.getPrimary();
+		Rectangle2D bnd = scr.getVisualBounds();
+		stage.setX(bnd.getMinX());
+		stage.setY(bnd.getMinY());
+		stage.setWidth(bnd.getWidth());
+		stage.setHeight(bnd.getHeight());
+	}*/
 	
 	public void dismiss(){
 		if(stage==null){
@@ -129,12 +158,15 @@ public abstract class PanBase {
 		scene = new Scene(layout());
 		scene.getStylesheets().add(Gawain.class.getResource("res/style.css").toExternalForm());
 	}
-	
-	protected void eventShowing(WindowEvent e){ }
-	protected void eventShown(WindowEvent e){ }
-	protected void eventWatch(int cnt){ }
+
+	protected void eventShowing(WindowEvent e){
+	}
+	protected void eventShown(WindowEvent e){
+	}
+	protected void eventWatch(int cnt){
+	}
 	protected void eventClose(WindowEvent e){
-		msgBox.stop();
+		msgBox.stop();//user must close this message box
 	}
 	
 	private EventHandler<WindowEvent> eventWinHandle = new EventHandler<WindowEvent>(){
@@ -246,22 +278,33 @@ public abstract class PanBase {
 	}
 	//------------------------//
 
-	public static Pane decorate(String txt,Node content){
+	public static Pane decorate(String txt,Node cntxt){
 		
-		Label tt = new Label(" "+txt+" ");
-		
-		tt.getStyleClass().add("group-title");
-		StackPane.setAlignment(tt,Pos.TOP_LEFT);
-
-		StackPane body = new StackPane();
-		content.getStyleClass().add("group-content");
-		body.getChildren().add(content);
+		Label title = new Label(" "+txt);
+		title.getStyleClass().add("group-title");
+		cntxt.getStyleClass().add("group-content");
+		StackPane.setAlignment(title,Pos.TOP_LEFT);
+		StackPane.setAlignment(cntxt,Pos.BOTTOM_LEFT);
+				
+		//StackPane body = new StackPane();
+		//body.getChildren().add(cntxt);
 		
 		StackPane grp = new StackPane();
 		grp.getStyleClass().add("group-border");
-		grp.getChildren().addAll(tt,body);
-		
+		grp.getChildren().addAll(title,cntxt);
 		return grp;
+	}
+	
+	public static HBox decorateHBox(Object... args){
+		HBox lay = new HBox();
+		for(int i=0; i<args.length; i+=2){
+			String title = (String)(args[i+0]);
+			Node cntxt = (Node)(args[i+1]);
+			Pane panel = decorate(title,cntxt);
+			HBox.setHgrow(panel,Priority.ALWAYS);
+			lay.getChildren().add(panel);
+		}
+		return lay;
 	}
 }
 

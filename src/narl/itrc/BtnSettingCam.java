@@ -20,7 +20,7 @@ public class BtnSettingCam extends BtnPopping {
 		super(
 			"相機設定",
 			"相機設定",
-			"ic_build_black_24dp_1x.png"
+			"ic_build_black_24dp_2x.png"
 		);
 		infoConfig.textProperty().bind(ImgControl.txtConfig);
 	}

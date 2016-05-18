@@ -457,9 +457,11 @@ public class Misc {
 	}
 	
 	public static ImageView getIcon(String iconName){
-		return new ImageView(
-			new Image(Gawain.class.getResourceAsStream("/narl/itrc/res/"+iconName))
-		);
+		return new ImageView(getImage(iconName));
+	}
+	
+	public static Image getImage(String name){
+		return new Image(Gawain.class.getResourceAsStream("/narl/itrc/res/"+name));
 	}
 	
 	public static FileChooser genChooseImage(){

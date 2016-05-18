@@ -15,6 +15,14 @@
 	-fx-text-fill: WHITE;
 }
 
+.btn-raised2 {
+	-fx-padding: 0.7em 0.57em;
+	-fx-font-size: 14px;
+	-fx-button-type: RAISED;
+	-fx-background-color:  #009688;
+	-fx-text-fill: WHITE;
+}
+
 .btn-flat-tick {
 	-fx-padding: 0.7em 0.57em;
 	-fx-font-size: 7px;
@@ -61,19 +69,18 @@
 
 
 .group-title {
-  -fx-translate-y: -16;
+  -fx-translate-y: -22;
 }
-
+.group-content {
+	-fx-padding: 3 3 3 3;
+}
 .group-border {
   -fx-content-display: top;
-  -fx-border-insets: 20 7 7 7;
+  -fx-border-insets: 27 8 8 8;
   -fx-border-color: black;
   -fx-border-width: 1;
 }
 
-.group-content {
-	-fx-padding: 3 3 3 3;
-}
 
 .swt-raise {
 	-switch-color         : rgb(77, 102, 204);
