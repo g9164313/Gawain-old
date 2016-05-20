@@ -6,10 +6,13 @@ import com.jfoenix.controls.JFXTabPane;
 
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
+import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.geometry.Side;
 import javafx.scene.Node;
 import javafx.scene.Parent;
+import javafx.scene.PerspectiveCamera;
+import javafx.scene.Scene;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane.TabClosingPolicy;
@@ -71,7 +74,15 @@ public class Entry extends PanBase {
 			}
 		});
 		
-		PanJoystick joyStick = new PanJoystick(SIZE);
+		PanJoystick joyStick = new PanJoystick(Orientation.VERTICAL,SIZE);
+
+		VBox lay1 = new VBox();
+		lay1.getStyleClass().add("vbox-small");
+		lay1.getChildren().addAll(
+			btnAction,
+			btnAligment,
+			joyStick
+		);
 		
 		JFXButton btnClose = new JFXButton("關閉程式");
 		btnClose.getStyleClass().add("btn-raised2");
@@ -83,15 +94,7 @@ public class Entry extends PanBase {
 				Entry.this.dismiss();
 			}
 		});
-		
-		VBox lay1 = new VBox();
-		lay1.getStyleClass().add("vbox-small");
-		lay1.getChildren().addAll(
-			btnAction,
-			btnAligment,
-			joyStick
-		);
-		
+
 		AnchorPane lay2 = new AnchorPane();
 		AnchorPane.setTopAnchor(lay1, 17.);
 		AnchorPane.setBottomAnchor(btnClose, 17.);
@@ -120,7 +123,7 @@ public class Entry extends PanBase {
 		Tab stp2 = new Tab("曝光");
 		stp2.setContent(layScanning());
 		
-		root.getTabs().addAll(stp1,stp2);
+		root.getTabs().addAll(stp1,stp2);        
 		return root;
 	}
 }

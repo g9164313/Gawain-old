@@ -26,8 +26,8 @@ public class ImgControl extends VBox {
 	public JFXComboBox<String> lstType = new JFXComboBox<String>();
 	
 	public BtnToggle btnPlayer = new BtnToggle(
-		"播放影像","ic_play_arrow_black_24dp_2x.png",
-		"暫停播放","ic_pause_black_24dp_2x.png"
+		"播放影像","play.png",
+		"暫停播放","pause.png"
 	);
 	
 	private void initPanel(){
@@ -48,7 +48,7 @@ public class ImgControl extends VBox {
 		BtnSettingCam btnConfig = new BtnSettingCam();
 		btnConfig.getStyleClass().add("btn-raised");
 		btnConfig.setMaxWidth(Double.MAX_VALUE);
-		
+
 		BtnToggle btnEnable = new BtnToggle(
 			"開啟裝置","camera.png",
 			"關閉裝置","camera-off.png"

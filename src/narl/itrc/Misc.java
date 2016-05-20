@@ -461,7 +461,7 @@ public class Misc {
 	}
 	
 	public static Image getImage(String name){
-		return new Image(Gawain.class.getResourceAsStream("/narl/itrc/res/"+name));
+		return new Image(Gawain.class.getResourceAsStream("/narl/itrc/res/icon/"+name));
 	}
 	
 	public static FileChooser genChooseImage(){
