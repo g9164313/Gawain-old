@@ -156,7 +156,7 @@ public abstract class PanBase {
 		}
 		//first initialization...
 		scene = new Scene(layout());
-		scene.getStylesheets().add(Gawain.class.getResource("res/style.css").toExternalForm());
+		scene.getStylesheets().add(Gawain.class.getResource("res/styles.css").toExternalForm());
 	}
 
 	protected void eventShowing(WindowEvent e){

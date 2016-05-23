@@ -14,26 +14,21 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.AnchorPane;
-import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
 
 public class ImgPreview extends ScrollPane {
 	
-	private static final int DEF_WIDTH =640;
-	private static final int DEF_HEIGHT=480;
-
 	public ImgPreview(){
-		this(null,DEF_WIDTH,DEF_HEIGHT);
+		this(null,0,0);
 	}
 	
 	public ImgPreview(CamBundle bnd){
-		this(bnd,DEF_WIDTH,DEF_HEIGHT);
+		this(bnd,0,0);
 	}
 	
 	public ImgPreview(CamBundle bnd,int width,int height){
 		bundle = bnd;
-		initLayout(width,height);
+		initLayout();
 	}
 
 	public static final int ACT_NONE = 0;
@@ -55,8 +50,8 @@ public class ImgPreview extends ScrollPane {
 	private Button btnPickCancel = new Button("取消");	
 	private ContextMenu menu = new ContextMenu();
 	
-	private void initLayout(int width,int height){		
-
+	private void initLayout(){	
+		setMinSize(320,240);
 		setContent(screen);
 		setContextMenu(menu);
 		setFitToWidth(true);

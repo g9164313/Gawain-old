@@ -76,34 +76,34 @@ public class Entry extends PanBase {
 		
 		PanJoystick joyStick = new PanJoystick(Orientation.VERTICAL,SIZE);
 
-		VBox lay1 = new VBox();
-		lay1.getStyleClass().add("vbox-small");
-		lay1.getChildren().addAll(
-			btnAction,
-			btnAligment,
-			joyStick
-		);
-		
 		JFXButton btnClose = new JFXButton("關閉程式");
 		btnClose.getStyleClass().add("btn-raised2");
 		btnClose.setPrefWidth(SIZE);
-		btnClose.setGraphic(Misc.getIcon("window-close.png"));
+		btnClose.setGraphic(Misc.getIcon("close.png"));
 		btnClose.setOnAction(new EventHandler<ActionEvent>(){
 			@Override
 			public void handle(ActionEvent event) {
 				Entry.this.dismiss();
 			}
 		});
+		
+		VBox lay1 = new VBox();
+		lay1.getStyleClass().add("vbox-small");
+		lay1.getChildren().addAll(
+			btnAction,
+			btnAligment,
+			joyStick,
+			btnClose
+		);
 
-		AnchorPane lay2 = new AnchorPane();
+		/*AnchorPane lay2 = new AnchorPane();
 		AnchorPane.setTopAnchor(lay1, 17.);
 		AnchorPane.setBottomAnchor(btnClose, 17.);
-		lay2.getChildren().addAll(lay1,btnClose);
+		lay2.getChildren().addAll(lay1,btnClose);*/
 		
-		BorderPane root = new BorderPane();
-		
+		BorderPane root = new BorderPane();		
 		root.setCenter(lay0);
-		root.setRight(lay2);
+		root.setRight(lay1);
 		return root;
 	}
 	

@@ -3,12 +3,17 @@ package narl.itrc;
 import com.jfoenix.controls.JFXRadioButton;
 
 import eu.hansolo.enzo.flippanel.FlipPanel;
+import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.event.EventType;
 import javafx.geometry.Orientation;
+import javafx.scene.Node;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.RadioButton;
+import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.image.Image;
 import javafx.scene.input.MouseEvent;
@@ -53,56 +58,126 @@ public class PanJoystick extends FlowPane {
 		}
 		private int prevQuad = 0;
 		@Override
-		public void handle(MouseEvent e) {
-			EventType<?> typ = e.getEventType();
-			//TODO: drive controller!!!
-			if(typ==MouseEvent.MOUSE_PRESSED){
-				prevQuad = getQuadrant(e);
+		public void handle(MouseEvent event) {
+			//TODO: map all directions event to 'real' device
+			EventType<?> typ = event.getEventType();
+			if(typ==MouseEvent.MOUSE_PRESSED){				
+				prevQuad = getQuadrant(event);
 				drawStick(prevQuad,1);
+				
+				switch(addr){
+				case ADDR_JOGGING:
+					break;
+				case ADDR_RELATIVE:
+					break;
+				case ADDR_ABSOLUTE:
+					break;
+				}
+				
 			}else if(typ==MouseEvent.MOUSE_RELEASED){
 				drawStick(prevQuad,0);
+				
+				switch(addr){
+				case ADDR_JOGGING:
+					break;
+				case ADDR_RELATIVE:
+					break;
+				case ADDR_ABSOLUTE:
+					break;
+				}
 			}
 		}
 	};
 	
 	private EventHandler<MouseEvent> eventAccss = new EventHandler<MouseEvent>(){
-		private boolean isUpKey(MouseEvent e){
+		private boolean isUpKey(MouseEvent event){
 			double pos;
 			if(ori==Orientation.HORIZONTAL){
-				pos = e.getY();				
+				pos = event.getY();				
 			}else{
-				pos = e.getX();
+				pos = event.getX();
 			}
 			if(pos<acc_bound){
 				return true;
 			}
 			return false;
 		}
-		private boolean prevFlag;
+		private boolean prevBlck;
 		@Override
-		public void handle(MouseEvent e) {
-			EventType<?> typ = e.getEventType();
-			//TODO: drive controller!!!
+		public void handle(MouseEvent event) {
+			//TODO: map this Up-down event to 'real' device
+			EventType<?> typ = event.getEventType();
 			if(typ==MouseEvent.MOUSE_PRESSED){
-				prevFlag = isUpKey(e);
-				drawAccss(prevFlag,1);				
+				prevBlck = isUpKey(event);
+				drawAccss(prevBlck,1);
+
 			}else if(typ==MouseEvent.MOUSE_RELEASED){
-				drawAccss(prevFlag,0);
+				drawAccss(prevBlck,0);
+				switch(addr){
+				case ADDR_JOGGING:
+					break;
+				case ADDR_RELATIVE:
+					break;
+				case ADDR_ABSOLUTE:
+					break;
+				}
 			}
 		}
 	};
+
+	private EventHandler<ActionEvent> eventZero = new EventHandler<ActionEvent>(){
+		@Override
+		public void handle(ActionEvent event) {
+			//TODO: map this event to 'real' device
+			Button btn = (Button)event.getSource();
+			char tkn = (char)(btn.getUserData());
+			Misc.logv("reset axis-%c value to zero",tkn);
+		}
+	};
+	
+	private final int ADDR_JOGGING = 0;	
+	private final int ADDR_RELATIVE = 1;
+	private final int ADDR_ABSOLUTE = 2;
+	private int  addr = ADDR_JOGGING;
+	private char axis = ' ';
+	private boolean pola = true;
+	private void map2dev(){
+		if(axis==' '){
+			return;
+		}
+		int val = 0;
+		switch(addr){
+		case ADDR_JOGGING:
+			break;
+		case ADDR_RELATIVE:
+			val = Integer.valueOf(boxStep.getText());
+			if(pola==false){
+				val = -1 * val;
+			}
+			//TODO: go go go~~~
+			break;
+		case ADDR_ABSOLUTE:
+			val = Integer.valueOf(boxStep.getText());
+			if(pola==false){
+				val = -1 * val;
+			}
+			//TODO: go go go~~~
+			break;
+		}
+	}  
+	//-------------------//
 	
 	private Canvas canStick = new Canvas();//stick(4-direction & clockwise)
 	private Canvas canAccss = new Canvas();//accessory(Up & Down)
-	private FlipPanel flpOption = new FlipPanel(Orientation.VERTICAL);
+	private final String DEF_STEP_VAL = "00000000";
 	private Label[] txtAxis = {
-		new Label("00000000")/* X-axis: step or distance */,
-		new Label()/* Y-axis: step or distance */,
-		new Label()/* Z-axis: step or distance */,
-		new Label()/* A-axis: step or distance */,
+		new Label(DEF_STEP_VAL)/* X-axis: step or distance */,
+		new Label(DEF_STEP_VAL)/* Y-axis: step or distance */,
+		new Label(DEF_STEP_VAL)/* Z-axis: step or distance */,
+		new Label(DEF_STEP_VAL)/* A-axis: step or distance */,
 	};
-	private ToggleGroup grpMode = new ToggleGroup();
-	
+	private TextField boxStep = new TextField("10000");
+
 	private void initLayout(double size){
 		
 		initStick(size);
@@ -115,12 +190,72 @@ public class PanJoystick extends FlowPane {
 		initAccss(size);		
 		drawAccss(true,0);
 		drawAccss(false,0);
+
+		PanFlipper panOption = new PanFlipper(){
+			@Override
+			Node initFront() {
+				GridPane lay0 = new GridPane();
+				lay0.getStyleClass().add("grid-small");
+				
+				Button btn;				
+				btn = new Button("歸零");
+				btn.setUserData('x');
+				btn.setOnAction(eventZero);				
+				lay0.addRow(0,new Label("X："),txtAxis[0],btn);
+				
+				btn = new Button("歸零");
+				btn.setUserData('y');
+				btn.setOnAction(eventZero);
+				lay0.addRow(1,new Label("Y："),txtAxis[1],btn);
+				
+				btn = new Button("歸零");
+				btn.setUserData('z');
+				btn.setOnAction(eventZero);
+				lay0.addRow(2,new Label("Z："),txtAxis[2],btn);
+				
+				btn = new Button("歸零");
+				btn.setUserData('a');
+				btn.setOnAction(eventZero);
+				lay0.addRow(3,new Label("A："),txtAxis[3],btn);
+				return lay0;
+			}
+			@Override
+			Node initBack() {
+				GridPane lay0 = new GridPane();
+				lay0.getStyleClass().add("grid-small");
+				ToggleGroup grp = new ToggleGroup();
+				
+				RadioButton rad0= new RadioButton("連續(jogging)");
+				rad0.setOnAction(EVENT->{ addr = ADDR_JOGGING; });
+				rad0.setToggleGroup(grp);
+				rad0.setSelected(true);//default~~~
+				
+				RadioButton rad1 = new RadioButton("相對(relative)");
+				rad1.setOnAction(EVENT->{ addr = ADDR_RELATIVE; });
+				rad1.setToggleGroup(grp);
+				
+				RadioButton rad2 = new RadioButton("絕對(absolute)");
+				rad2.setOnAction(EVENT->{ addr = ADDR_ABSOLUTE; });
+				rad2.setToggleGroup(grp);
+				
+				boxStep.disableProperty().bind(rad0.selectedProperty());
+				lay0.add(rad0, 0, 0, 2, 1);
+				lay0.add(rad1, 0, 1, 2, 1);
+				lay0.add(rad2, 0, 2, 2, 1);
+				lay0.add(boxStep, 0, 3);
+				return lay0;
+			}
+		};
+		if(ori==Orientation.HORIZONTAL){			
+			panOption.setPrefHeight(size);
+		}else{
+			panOption.setPrefWidth(size);
+		}
 		
-		initOption(size);
-		
-		setVgap(7);
-	    setHgap(7);
-		getChildren().addAll(canStick,canAccss);
+		setVgap(3);
+	    setHgap(3);
+	    setPrefWrapLength(size);
+		getChildren().addAll(canStick,canAccss,panOption);		
 	}
 
 	private Orientation ori;
@@ -317,39 +452,5 @@ public class PanJoystick extends FlowPane {
 			canAccss.getWidth(),
 			canAccss.getHeight()
 		);
-	}
-	
-	private void initOption(double size){
-		StackPane pane;
-		
-		/*GridPane lay0 = new GridPane();
-		lay0.getStyleClass().add("grid-small");
-		lay0.addRow(0,new Label("X："),txtAxis[0]);
-		lay0.addRow(1,new Label("Y："),txtAxis[1]);
-		lay0.addRow(2,new Label("Z："),txtAxis[2]);
-		lay0.addRow(3,new Label("A："),txtAxis[3]);
-		pane = new StackPane();
-        pane.getStyleClass().add("panel");
-        pane.getChildren().addAll(lay0);
-		flpOption.getFront().getChildren().add(pane);
-		
-		VBox lay1 = new VBox();
-		lay1.getStyleClass().add("vbox-small");
-		JFXRadioButton rad0= new JFXRadioButton("連續");
-		rad0.setToggleGroup(grpMode);
-		JFXRadioButton rad1 = new JFXRadioButton("步進");
-		rad1.setToggleGroup(grpMode);		
-		lay1.getChildren().addAll(rad0,rad1);
-		pane = new StackPane();
-        pane.getStyleClass().add("panel");
-        pane.getChildren().addAll(lay1);
-		flpOption.getBack().getChildren().add(pane);*/
-		
-		/*if(ori==Orientation.HORIZONTAL){			
-			
-		}else{
-			flpOption.prefWidth(size);
-			flpOption.prefHeight(size);
-		}*/
 	}
 }

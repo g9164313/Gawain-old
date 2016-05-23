@@ -128,7 +128,7 @@ public class Gawain extends Application {
 	
 	private static final String LICE_CIPHER="AES";
 	private static final String LICE_SECKEY=Gawain.class.toString();	
-	private static int liceCnt = 1;//days
+	private static float liceDay = 1.f;//unit is days
 	private static SecretKeySpec liceKey = null;
 	private static Cipher liceCip = null;
 	
@@ -153,13 +153,14 @@ public class Gawain extends Application {
 	private static EventHandler<ActionEvent> eventPeekLice = new EventHandler<ActionEvent>(){
 		@Override
 		public void handle(ActionEvent event) {
-			if(liceCnt<0){
+			//check license key per hour 
+			if(liceDay<0.f){
 				Misc.logv("License is expired!!!");
 				System.exit(0);
 				return;
 			}			
-			liceCnt--;
-			String txt = String.valueOf(liceCnt);			
+			liceDay = liceDay - (1.f/24.f);
+			String txt = String.format("%.2f",liceDay);			
 			try {
 				liceCip.init(Cipher.ENCRYPT_MODE,liceKey);
 				liceWrite(liceCip.doFinal(txt.getBytes()));
@@ -173,7 +174,7 @@ public class Gawain extends Application {
 				e.printStackTrace();
 				System.exit(-13);
 			}
-			Misc.logv("check licence - %d",liceCnt);
+			Misc.logv("check licence - %.2fday",liceDay);
 		}
 	};
 	
@@ -201,20 +202,20 @@ public class Gawain extends Application {
 			String txt = jj.getComment();
 			if(txt==null){				
 				if(isBorn()==false){
-					Misc.loge("This is not a birthday!!");
+					Misc.loge("It is Fail,This is not a birthday!!");
 					System.exit(-204);
 				}
 				//first,bind a license~~
 				txt = prop.getProperty("LICENCE=","1");//default is one day~~~
-				liceCnt = Integer.valueOf(txt);
+				liceDay = Float.valueOf(txt);
 				liceCip.init(Cipher.ENCRYPT_MODE,liceKey);
 				liceWrite(liceCip.doFinal(txt.getBytes()));
 			}else{
 				//check whether license is valid~~
 				liceCip.init(Cipher.DECRYPT_MODE,liceKey);	
 				txt = new String(liceCip.doFinal(Misc.txt2hex(txt)));
-				liceCnt = Integer.valueOf(txt);
-				if(liceCnt<0){
+				liceDay = Float.valueOf(txt);
+				if(liceDay<0.f){
 					Misc.logv("License is expired!!!");
 					System.exit(0);
 				}
@@ -222,7 +223,7 @@ public class Gawain extends Application {
 			jj.close();
 			
 			Timeline timer = new Timeline(new KeyFrame(
-				Duration.hours(liceCnt*24),
+				Duration.hours(1),
 				eventPeekLice
 			));
 			timer.setCycleCount(Timeline.INDEFINITE);
