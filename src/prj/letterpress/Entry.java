@@ -107,8 +107,12 @@ public class Entry extends PanBase {
 		return root;
 	}
 	
+	private PanMapWafer wmap = new PanMapWafer();
+	
 	private Node layScanning(){
 		BorderPane root = new BorderPane();
+		root.setCenter(wmap);
+		root.setRight(wmap.getConsole());
 		return root;
 	}
 	
@@ -123,7 +127,8 @@ public class Entry extends PanBase {
 		Tab stp2 = new Tab("曝光");
 		stp2.setContent(layScanning());
 		
-		root.getTabs().addAll(stp1,stp2);        
+		root.getTabs().addAll(stp1,stp2);
+		root.getSelectionModel().select(1);
 		return root;
 	}
 }

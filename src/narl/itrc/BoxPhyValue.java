@@ -32,6 +32,7 @@ public class BoxPhyValue extends JFXTextField implements
 	protected void eventEnter(double value,String unit,String text){
 		//user can override this function~~~
 	}
+	
 	@Override
 	public void handle(ActionEvent event) {
 		if(validate()==false){
@@ -58,24 +59,30 @@ public class BoxPhyValue extends JFXTextField implements
 	
 	/**
 	 * set the unit of physical value<p>
+	 * @param unit - it can be 'human-readable', like "um", "mm","sec", etc...
 	 */
 	public BoxPhyValue setType(String unit){		
 		ValidatorBase vald = new ValidatorBase(){
 			@Override
-			protected void eval() {
-				
+			protected void eval() {				
 				hasErrors.set(false);
 			}
 		};
 		vald.setMessage("範例: 123.456"+unit);
 		dstUnit = unit;
-		checkType(unit);		
+		checkType(unit);
 		getValidators().add(vald);
 		return this;
 	}
 	
+	public BoxPhyValue setValue(String txt){
+		//Do we need to check input???
+		setText(txt.trim());
+		return this;
+	}
+	
 	private void checkType(String unit){
-		
+		//Do we need this???
 	}
 	
 	public HBox decorateTitle(){

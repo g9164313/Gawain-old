@@ -98,14 +98,23 @@ public class Misc {
 	}
 	//----------------------------------------//
 	
+	
+	private static final double l0_254 = 1./25.4;
+	private static final double l1_254 = 10./25.4;
+	private static final double l3_254 = 1000./25.4;
+	private static final double l4_254 = 1e4/25.4;
+	private static final double l6_254 = 1e6/25.4;
+	private static final double D5_254 = 2.54e-5;
+	
 	public static final String[] unitLength ={
-		"cm","inch","m"
+		"mil","cm","inch","m"
 	};
 	private static final double[][] ratioLength = {
-		//destination ||  source-->cm,inch,m
-		{ 1.     , 2.5400,  100.    },
-		{ 10/25.4, 1.0000,  1e3/25.4},
-		{ 0.01   , 0.0254,  1.0     },
+		//destination ||  source-->mil, cm, inch, m
+		{  1.0000 , l4_254, 1000.0, l6_254 },
+		{  0.00254, 1.0000, 2.5400, 100.00 },
+		{  0.00100, l1_254, 1.0000, l3_254 },
+		{  D5_254 , 0.0100, 0.0254, 1.0000 },
 	};
 	
 	public static final String[] unitTime ={

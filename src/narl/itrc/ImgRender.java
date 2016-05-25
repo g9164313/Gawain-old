@@ -8,7 +8,7 @@ import javafx.concurrent.WorkerStateEvent;
 import javafx.event.EventHandler;
 import javafx.scene.image.Image;
 
-public class ImgRender{
+public class ImgRender {
 	
 	private ImgControl ctrl = null;
 	private ImgPreview[] prvw = null;
