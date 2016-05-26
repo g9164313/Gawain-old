@@ -142,6 +142,9 @@ public class Misc {
 		if(unit.length()==1){
 			return 1.;//it must be no scale signature
 		}
+		if(unit.equalsIgnoreCase("mil")==true){
+			return 1.;//skip this unit, it shouldn't append scale signature
+		}
 		char ss = unit.charAt(0);
 		for(int i=0; i<scaleSig.length; i++){
 			if(scaleSig[i]==ss){
