@@ -22,6 +22,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import javafx.stage.WindowEvent;
 import narl.itrc.BtnToggle;
 import narl.itrc.CamBundle;
 import narl.itrc.CamVidcap;
@@ -43,6 +44,11 @@ public class Entry extends PanBase {
 	private ImgPreview prv0 = new ImgPreview(cam0);
 	private ImgPreview prv1 = new ImgPreview(cam1);
 	private ImgRender rndr = new ImgRender(prv0,prv1);
+	
+	@Override
+	protected void eventShown(WindowEvent e){
+		//rndr.launch();
+	}
 	
 	private Node layAligment(){
 		final int SIZE=200;
