@@ -1,7 +1,11 @@
 package prj.letterpress;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 
+import prj.letterpress.PanMapBase.Die;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
@@ -9,6 +13,7 @@ import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.ArcType;
 import narl.itrc.BoxPhyValue;
+import narl.itrc.PanBase;
 import narl.itrc.PanDecorate;
 
 import com.jfoenix.controls.JFXComboBox;
@@ -105,7 +110,7 @@ public class PanMapWafer extends PanMapBase {
 			
 		});
 		
-		con = new GridPane();
+		/*con = new GridPane();
 		con.getStyleClass().add("grid-small");
 		con.addRow(0,new Label("掃描方式"),new Label("："),chkMethod);
 		con.addRow(1,new Label("晶圓大小"),new Label("："),chkWafD);		
@@ -113,9 +118,18 @@ public class PanMapWafer extends PanMapBase {
 		con.addRow(3,new Label("顆粒高")  ,new Label("："),boxDieH);
 		con.addRow(4,new Label("走道寬")  ,new Label("："),boxLane);
 		con.addRow(5,new Label("比例尺")  ,new Label("："),txtScale);
-		con.add(txtInfo, 0, 5, 4, 1);
+		con.add(txtInfo, 0, 5, 4, 1);*/
 		
-		return PanDecorate.group("配置圖設定",con);
+		return PanDecorate.group(
+			"配置圖設定",
+			PanBase.decorateGrid(
+				"掃描方式",chkMethod,
+				"晶圓大小",chkWafD,
+				"顆粒寬",boxDieW,
+				"顆粒高",boxDieH,
+				"走道寬",boxLane,
+				"比例尺",txtScale
+		));
 	}
 
 	@Override
@@ -200,7 +214,7 @@ public class PanMapWafer extends PanMapBase {
 				if(is_valid==true){					
 					count++;
 					if(lstCell!=null){
-						lstCell.add(new Die().setLfTp(xx, yy));
+						lstCell.add(new Die().setLfBm(xx, yy));
 					}
 				}
 			}
@@ -208,4 +222,18 @@ public class PanMapWafer extends PanMapBase {
 		return count;
 	}
 	
+	protected void eventExport(File fs){ 
+		//This is just experiment code
+		try {
+			PrintWriter wr = new PrintWriter(fs);
+			for(int i=0; i<lstDie.size(); i++){
+				Die die = lstDie.get(i);
+				double[] pos = die.getPosition();
+				wr.printf("%03d) - %.3fmm, %.3fmm\r\n",i,pos[0],pos[1]);
+			}
+			wr.close();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
+	}
 }

@@ -475,7 +475,7 @@ public class Misc {
 	public static Image getImage(String name){
 		return new Image(Gawain.class.getResourceAsStream("/narl/itrc/res/icon/"+name));
 	}
-	
+
 	public static FileChooser genChooseImage(){
 		final FileChooser.ExtensionFilter exts[] = {
 			new FileChooser.ExtensionFilter("PNG","*.png"),

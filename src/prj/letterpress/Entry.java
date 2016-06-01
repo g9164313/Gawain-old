@@ -60,7 +60,7 @@ public class Entry extends PanBase {
 
 		JFXButton btnAction = new JFXButton("快速執行");
 		btnAction.getStyleClass().add("btn-raised");
-		btnAction.setPrefWidth(SIZE);
+		btnAction.setMaxWidth(Double.MAX_VALUE);
 		btnAction.setGraphic(Misc.getIcon("run.png"));
 		btnAction.setOnAction(new EventHandler<ActionEvent>(){
 			@Override
@@ -71,7 +71,7 @@ public class Entry extends PanBase {
 		
 		JFXButton btnAligment = new JFXButton("標靶定位");
 		btnAligment.getStyleClass().add("btn-raised");
-		btnAligment.setPrefWidth(SIZE);
+		btnAligment.setMaxWidth(Double.MAX_VALUE);
 		btnAligment.setGraphic(Misc.getIcon("selection.png"));
 		btnAligment.setOnAction(new EventHandler<ActionEvent>(){
 			@Override
@@ -84,13 +84,10 @@ public class Entry extends PanBase {
 
 		JFXButton btnClose = new JFXButton("關閉程式");
 		btnClose.getStyleClass().add("btn-raised2");
-		btnClose.setPrefWidth(SIZE);
+		btnClose.setMaxWidth(Double.MAX_VALUE);
 		btnClose.setGraphic(Misc.getIcon("close.png"));
-		btnClose.setOnAction(new EventHandler<ActionEvent>(){
-			@Override
-			public void handle(ActionEvent event) {
-				Entry.this.dismiss();
-			}
+		btnClose.setOnAction(EVENT->{
+			Entry.this.dismiss();
 		});
 		
 		VBox lay1 = new VBox();
@@ -116,9 +113,54 @@ public class Entry extends PanBase {
 	private PanMapWafer wmap = new PanMapWafer();
 	
 	private Node layScanning(){
+
+		JFXButton btnAction = new JFXButton("快速執行");
+		btnAction.getStyleClass().add("btn-raised");
+		btnAction.setGraphic(Misc.getIcon("run.png"));
+		btnAction.setMaxWidth(Double.MAX_VALUE);
+		btnAction.setOnAction(EVENT->{
+			
+		});
+		
+		JFXButton btnScan = new JFXButton("掃描程序");
+		btnScan.getStyleClass().add("btn-raised");
+		btnScan.setGraphic(Misc.getIcon("play.png"));
+		btnScan.setMaxWidth(Double.MAX_VALUE);
+		btnScan.setOnAction(EVENT->{
+			
+		});
+		
+		JFXButton btnLight = new JFXButton("光源照射");
+		btnLight.getStyleClass().add("btn-raised");
+		btnLight.setGraphic(Misc.getIcon("blur.png"));
+		btnLight.setMaxWidth(Double.MAX_VALUE);
+		btnLight.setOnAction(EVENT->{
+			
+		});
+		
+		
+		
+		JFXButton btnClose = new JFXButton("關閉程式");
+		btnClose.getStyleClass().add("btn-raised2");
+		btnClose.setGraphic(Misc.getIcon("close.png"));
+		btnClose.setMaxWidth(Double.MAX_VALUE);		
+		btnClose.setOnAction(EVENT->{
+			Entry.this.dismiss();
+		});
+		
+		VBox lay1 = new VBox();
+		lay1.getStyleClass().add("vbox-small");
+		lay1.getChildren().addAll(
+			btnAction,
+			btnScan,
+			btnLight,
+			wmap.getConsole(),
+			btnClose
+		);
+		
 		BorderPane root = new BorderPane();
 		root.setCenter(wmap);
-		root.setRight(wmap.getConsole());
+		root.setRight(lay1);
 		return root;
 	}
 	

@@ -59,6 +59,12 @@ public abstract class PanDecorate extends StackPane {
 		};
 	}
 	
+	/**
+	 * Use static method to generate the group frame.
+	 * @param txt - group title
+	 * @param cntxt - group context
+	 * @return
+	 */
 	public static Pane group(String txt,Node cntxt){
 		return new PanDecorate(txt,cntxt){
 			@Override

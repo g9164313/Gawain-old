@@ -306,5 +306,23 @@ public abstract class PanBase {
 		}
 		return lay;
 	}
+	
+	/**
+	 * Decorate control item with a table grid.<p>
+	 * User must pay attention to argument sequence.Column symbol will be added automatically.<p> 
+	 * @param arg - the sequence must be Label and Control, etc.
+	 * @return
+	 */
+	public static GridPane decorateGrid(Object... arg){
+		GridPane pan = new GridPane();
+		pan.getStyleClass().add("grid-small");
+		int cnt = arg.length/2;
+		for(int i=0; i<cnt; i++){
+			Label txt = new Label((String)arg[i*2+0]);
+			Node obj = (Node)(arg[i*2+1]);
+			pan.addRow(i,txt,new Label("："),obj);
+		}		
+		return pan;
+	}
 }
 

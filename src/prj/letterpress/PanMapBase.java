@@ -1,26 +1,35 @@
 package prj.letterpress;
 
+import java.io.File;
 import java.util.ArrayList;
-
 
 import javafx.event.EventHandler;
 import javafx.event.EventType;
+import javafx.geometry.Side;
 import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.SnapshotParameters;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.control.ContextMenu;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.image.WritableImage;
+import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.ArcType;
 import javafx.scene.transform.Affine;
+import javafx.stage.FileChooser;
+import javafx.stage.Window;
 import narl.itrc.Misc;
 import narl.itrc.PanDecorate;
 
 abstract class PanMapBase extends PanDecorate {
-	
+
 	private static final SnapshotParameters parm = new SnapshotParameters();
+	
+	private final ContextMenu menu = new ContextMenu();
 	
 	protected static final Color clrCellGround = Color.web("#b0bec5");
 	protected static final Color clrCellSelect = Color.web("#ffeb3b");
@@ -37,7 +46,22 @@ abstract class PanMapBase extends PanDecorate {
 	
 	private void init(){
 		parm.setFill(Color.TRANSPARENT);
+		
+		MenuItem m1 = new MenuItem("匯出layout");
+		m1.setOnAction(EVENT->{
+			FileChooser dia = new FileChooser();
+			dia.setInitialFileName("layout.txt");
+			dia.setTitle("匯出layout");
+			File fs = dia.showSaveDialog(PanMapBase.this.getScene().getWindow());
+			if(fs==null){
+				return;
+			}
+			eventExport(fs);
+		});
+		menu.getItems().add(m1);
 	}
+	
+	protected void eventExport(File fs){ }
 	
 	/**
 	 * put cell in map, this is the basic unit!!!
@@ -62,29 +86,52 @@ abstract class PanMapBase extends PanDecorate {
 
 		public Die setCenter(double cx,double cy){
 			pos[0] = cx;
-			pos[1] = cy;
+			pos[1] = cy;			
 			//center
 			vtx[0][0] = Math.round((float)cx*scale); 
 			vtx[0][1] = Math.round((float)cy*scale);
+			int ww = dieGrid[0]/2;
+			int hh = dieGrid[1]/2;
 			//left-top
-			vtx[1][0] = vtx[0][0] - dieGrid[0]; 
-			vtx[1][1] = vtx[0][1] + dieGrid[1];
+			vtx[1][0] = vtx[0][0] - ww; 
+			vtx[1][1] = vtx[0][1] + hh;
 			//right-top
-			vtx[2][0] = vtx[0][0] - dieGrid[0]; 
-			vtx[2][1] = vtx[0][1] + dieGrid[1];
+			vtx[2][0] = vtx[0][0] + ww; 
+			vtx[2][1] = vtx[0][1] + hh;
 			//left-bottom
-			vtx[3][0] = vtx[0][0] - dieGrid[0]; 
-			vtx[3][1] = vtx[0][1] + dieGrid[1];
+			vtx[3][0] = vtx[0][0] - ww; 
+			vtx[3][1] = vtx[0][1] - hh;
 			//right-bottom
-			vtx[4][0] = vtx[0][0] - dieGrid[0]; 
-			vtx[4][1] = vtx[0][1] + dieGrid[1];
+			vtx[4][0] = vtx[0][0] + ww; 
+			vtx[4][1] = vtx[0][1] - hh;
 			return this;
 		}
 		
 		public Die setLfTp(double left,double top){
 			return setCenter(
-				left+dieSize[0],
-				top -dieSize[1]
+				left+dieSize[0]/2.,
+				top -dieSize[1]/2.
+			);
+		}
+		
+		public Die setRhTp(double right,double top){
+			return setCenter(
+				right-dieSize[0]/2.,
+				top  -dieSize[1]/2.
+			);
+		}
+		
+		public Die setLfBm(double left,double bottom){
+			return setCenter(
+				left  +dieSize[0]/2.,
+				bottom+dieSize[1]/2.
+			);
+		}
+	
+		public Die setRhBm(double right,double bottom){
+			return setCenter(
+				right -dieSize[0]/2.,
+				bottom+dieSize[1]/2.
 			);
 		}
 		
@@ -95,7 +142,22 @@ abstract class PanMapBase extends PanDecorate {
 		public int[] getLfTp(){ return vtx[1]; }
 		public int[] getRhTp(){ return vtx[2]; }
 		public int[] getLfBm(){ return vtx[3]; }
-		public int[] getRhBm(){ return vtx[4]; }		
+		public int[] getRhBm(){ return vtx[4]; }
+		
+		public boolean isHold(int xx,int yy){			
+			if(vtx[1][0]<=xx && xx<=vtx[2][0]){
+				if(vtx[3][1]<=yy && yy<=vtx[1][1]){
+					/*Misc.logv(
+						"[%03d,%03d] -[%03d,%03d] - (%d,%d)",
+						vtx[1][0],vtx[2][0],
+						vtx[3][1],vtx[1][1],
+						xx,yy
+					);*/
+					return true;
+				}
+			}
+			return false;
+		}
 	}
 	protected ArrayList<Die> lstDie = new ArrayList<Die>();
 	
@@ -163,6 +225,12 @@ abstract class PanMapBase extends PanDecorate {
 	}
 	
 	/**
+	 * When we need to re-draw, use this image to refresh canvas.<p>
+	 * This method is like buffered image.<p>
+	 */
+	private WritableImage mapGround = null;
+	
+	/**
 	 * Generate canvas to draw map, it also hook the event handler.<p>
 	 * Attention, This canvas is Cartesian coordinate system.<p> 
 	 */
@@ -184,9 +252,11 @@ abstract class PanMapBase extends PanDecorate {
 		gc.setStroke(Color.BLACK);
 		gc.setLineWidth(1.);
 		
-		drawDies(gc);
+		drawAllDie(gc);
 		drawShape(gc);		
 		drawCross(gc);
+		
+		mapGround = mapScreen.snapshot(parm,null);
 		
 		setHandler();
 	}
@@ -204,48 +274,141 @@ abstract class PanMapBase extends PanDecorate {
 		gc.restore();
 	}
 	
-	private void drawDies(GraphicsContext gc){
+	private void drawAllDie(GraphicsContext gc){
 		gc.save();		
 		gc.setStroke(Color.BLACK);
 		gc.setLineWidth(0.5);
 		for(Die die:lstDie){
-			gc.setFill(die.clrState);
-			int[] pos = die.getLfTp();
-			gc.fillRect(
-				pos[0], pos[1],
-				dieGrid[0], dieGrid[1]
-			);
-			gc.strokeRect(
-				pos[0]+1, pos[1]+1, 
-				dieGrid[0]-2, dieGrid[1]-2
-			);
-		}
+			drawDie(gc,die,die.clrState);
+		}		
 		gc.restore();
+	}
+	
+	private void drawDie(GraphicsContext gc,Die die,Color state){
+		int[] pos = die.getLfBm();
+		gc.setFill(state);		
+		gc.fillRect(
+			pos[0], pos[1],
+			dieGrid[0], dieGrid[1]
+		);
+		gc.strokeRect(
+			pos[0]+1, pos[1]+1, 
+			dieGrid[0]-2, dieGrid[1]-2
+		);		
+		/*int[] org = die.getOrig();
+		gc.setStroke(Color.RED);
+		gc.strokeArc(
+			org[0]-5,org[1]-5, 
+			10, 10, 
+			0, 360, 
+			ArcType.OPEN
+		);*/
+	}
+
+	private void drawCursor(Die die){
+		GraphicsContext gc = mapScreen.getGraphicsContext2D();
+		gc.save();
+		gc.setStroke(Color.BLACK);
+		gc.setLineWidth(0.5);
+		drawDie(gc,die,clrCellSelect);
+		gc.restore();
+	}
+	
+	private void clearCursor(Die die){
+		GraphicsContext gc = mapScreen.getGraphicsContext2D();
+		
+		//draw function is still affected by Transform().
+		int[] dst = die.getLfBm();
+		int[] src = {
+			dst[0] + mapGrid[0]/2,
+			dst[1] + mapGrid[1]/2
+		};
+		
+		gc.drawImage(
+			mapGround,			
+			src[0],src[1],
+			dieGrid[0], dieGrid[0], 
+			dst[0],dst[1],
+			dieGrid[0], dieGrid[0]
+		);
 	}
 	
 	private void setHandler(){
 		//mapScreen.setOnMouseClicked(event);
 		mapScreen.setOnMouseMoved(EVENT->{
-			//EventType<?> typ = EVENT.getEventType();
-			//int mx = (int)EVENT.getX() - mapGrid[0]/2;
-			//int my = (int)EVENT.getY() - mapGrid[1]/2;
+			EventType<?> typ = EVENT.getEventType();
+			int mx = (int)EVENT.getX() - mapGrid[0]/2;
+			int my = (int)EVENT.getY() - mapGrid[1]/2;
+			updateCursor(mx,my);
 			//Misc.logv("mouse=(%03d,%03d)",mx,my);
 		});
+		mapScreen.setOnMouseClicked(EVENT->{
+			MouseButton mb = EVENT.getButton();
+			int mx = (int)(EVENT.getX() - mapScreen.getWidth() +5);
+			int my = (int)(mapScreen.getHeight() - EVENT.getY()+5);
+			if(mb==MouseButton.PRIMARY){
+				if(menu.isShowing()==true){
+					menu.hide();
+					return;
+				}
+				//move postion??
+			}else if(mb==MouseButton.SECONDARY){
+				menu.show(mapScreen,Side.RIGHT,mx,my);				
+			}
+		});
 		mapScreen.setOnMouseEntered(EVENT->{
+			cursor = null;
 			getScene().setCursor(Cursor.CROSSHAIR);
 		});
 		mapScreen.setOnMouseExited(EVENT->{
+			cursor = null;
 			getScene().setCursor(Cursor.DEFAULT);
-		});
+		});		
 	}
 	
-	private WritableImage mapGround = null;
+	private Die cursor = null;
+	private void updateCursor(int mx,int my){
+		if(lstDie.isEmpty()==true){
+			cursor = null;
+			return;
+		}
+		
+		if(cursor!=null){
+			//check whether cursor is in the previous zone~~
+			if(cursor.isHold(mx,my)==true){
+				return;
+			}
+			//clear previous cursor
+			clearCursor(cursor);
+		}
+		
+		//find where cursor is,or which die hold this cursor~~~
+		for(Die die:lstDie){
+			if(die.isHold(mx,my)==true){
+				cursor = die;				
+				drawCursor(cursor);
+				return;
+			}
+		}
+	}
+
 	private Canvas mapScreen;//let parent create this object!!!	
 	@Override
 	public Node layoutBody() {
 		mapScreen = new Canvas();//this is dummy~~~		
 		ScrollPane root = new ScrollPane();
 		root.setContent(mapScreen);
+		/*root.setContextMenu(menu);
+		root.setOnMouseClicked(EVENT->{
+			Window win = PanMapBase.this.getScene().getWindow();
+			MouseButton mb = EVENT.getButton();
+			int mx = (int)EVENT.getX();
+			int my = (int)EVENT.getY();
+			if(mb==MouseButton.SECONDARY){
+				menu.show(mapScreen,Side.RIGHT, 0, 0);
+				Misc.logv("right-click, (%03d,%03d)",mx,my);
+			}
+		});*/
 		return root;
 	}	
 }
