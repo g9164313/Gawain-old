@@ -727,6 +727,17 @@ public class Misc {
 	public static native void imRelease(long ptr);//just release Mat pointer
 
 	public static native long imCreate(int width,int height,int type);//just release Mat pointer
+	
+	//--------------------------//
+	//I don't know how to set up category for below lines
+	
+	public static double hypot(double[] pa,double[] pb){
+		return Math.hypot(pa[0]-pb[0], pa[1]-pb[1]);
+	}
+	
+	public static float hypot(int[] pa,int[] pb){
+		return (float) Math.hypot(pa[0]-pb[0], pa[1]-pb[1]);
+	}
 }
 
 

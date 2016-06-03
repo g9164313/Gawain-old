@@ -10,6 +10,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Control;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
@@ -303,6 +304,19 @@ public abstract class PanBase {
 			Pane panel = decorate(title,cntxt);
 			HBox.setHgrow(panel,Priority.ALWAYS);
 			lay.getChildren().add(panel);
+		}
+		return lay;
+	}
+	
+	public static HBox fillHBox(Object... args){
+		HBox lay = new HBox();
+		lay.getStyleClass().add("hbox-small");
+		for(int i=0; i<args.length; i++){
+			Control ctl = (Control)(args[i]);
+			//why do we need this to stretch widget??
+			ctl.setMaxWidth(Double.MAX_VALUE);
+			HBox.setHgrow(ctl,Priority.ALWAYS);
+			lay.getChildren().add(ctl);
 		}
 		return lay;
 	}

@@ -27,6 +27,12 @@
     -fx-spacing: 13.0;
 }
 
+.hbox-test, .vbox-test{
+	-fx-background-color: #335588;
+    -fx-padding: 7.0;
+    -fx-spacing: 13.0;
+}
+
 .flow-small {
     -fx-hgap: 7.0;
     -fx-vgap: 7.0;

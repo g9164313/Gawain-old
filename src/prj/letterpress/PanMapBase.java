@@ -2,9 +2,8 @@ package prj.letterpress;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 
-import javafx.event.EventHandler;
-import javafx.event.EventType;
 import javafx.geometry.Side;
 import javafx.scene.Cursor;
 import javafx.scene.Node;
@@ -16,12 +15,9 @@ import javafx.scene.control.MenuItem;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.image.WritableImage;
 import javafx.scene.input.MouseButton;
-import javafx.scene.input.MouseEvent;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.ArcType;
 import javafx.scene.transform.Affine;
 import javafx.stage.FileChooser;
-import javafx.stage.Window;
 import narl.itrc.Misc;
 import narl.itrc.PanDecorate;
 
@@ -68,8 +64,17 @@ abstract class PanMapBase extends PanDecorate {
 	 * @author qq
 	 *
 	 */
-	public class Die{
+	public class Die {
 		public Color clrState = clrCellGround;
+		
+		/**
+		 * this variable indicates the scan sequence.<p>
+		 * Key is one-based number!!!.<p>
+		 * 0 - none.<p>
+		 * 1~n - the scan priority, "1" mean the first position.<p>   
+		 */
+		public int key = 0;
+		
 		/**
 		 * this is the center position of die. unit is 'mm'
 		 */
@@ -159,8 +164,18 @@ abstract class PanMapBase extends PanDecorate {
 			return false;
 		}
 	}
+	
+	/**
+	 * this variable keeps all dies information.
+	 */
 	protected ArrayList<Die> lstDie = new ArrayList<Die>();
 	
+	/**
+	 * this variable shows path, it means how to scan mapping data.<p>
+	 * Remember, path must be made by child class.<p>
+	 * 'key' value presents the path sequence.<p>
+	 */
+	protected HashMap<Integer,Die> lstPath = new HashMap<Integer,Die>();
 	
 	private final int MIN_SCALE = 1;
 	private final int MAX_SCALE = 10;
@@ -169,7 +184,32 @@ abstract class PanMapBase extends PanDecorate {
 	 * unit is 'pix/mm'. It also has range (1~10)
 	 */
 	private int scale = 4;
-		
+	
+	protected void incScale(){
+		if(scale==MAX_SCALE){
+			return;
+		}
+		scale++;
+		resetScale();
+		generate();
+	}
+	
+	protected void decScale(){
+		if(scale==MIN_SCALE){
+			return;
+		}
+		scale--;
+		resetScale();
+		generate();
+	}
+	
+	private void resetScale(){
+		dieGrid[0] = oddval(dieSize[0]);
+		dieGrid[1] = oddval(dieSize[1]);
+		mapGrid[0] = oddval(mapSize[0]);
+		mapGrid[1] = oddval(mapSize[1]);
+	}
+	
 	/**
 	 * Indicate this size of die or granule, unit is 'mm'.<p>
 	 * "Die" is the basic zone to compose "Map".
@@ -234,17 +274,26 @@ abstract class PanMapBase extends PanDecorate {
 	 * Generate canvas to draw map, it also hook the event handler.<p>
 	 * Attention, This canvas is Cartesian coordinate system.<p> 
 	 */
+
 	protected void generate(){
+		GraphicsContext gc = mapScreen.getGraphicsContext2D();
+		double ww = mapScreen.getWidth();
+		double hh = mapScreen.getHeight();
+		gc.clearRect(-ww/2, -hh/2,ww, hh);//clear 'old screen'
+
 		mapScreen.setWidth(mapGrid[0]);
 		mapScreen.setHeight(mapGrid[1]);
-		mapScreen.setScaleX( 1.);
-		mapScreen.setScaleY(-1.);
-		GraphicsContext gc = mapScreen.getGraphicsContext2D();
-		gc.translate(
-			mapGrid[0]/2,
-			mapGrid[1]/2
-		);
 		
+		Affine aff = gc.getTransform();
+		aff.setTx(mapGrid[0]/2);
+		aff.setTy(mapGrid[1]/2);
+		//gc.translate(
+		//	mapGrid[0]/2,
+		//	mapGrid[1]/2
+		//);//bug!!, this is not 'set', this function just 'accumulate' value
+		gc.setTransform(aff);
+		
+		lstPath.clear();
 		lstDie.clear();
 		layoutDie(lstDie);
 		
@@ -336,11 +385,9 @@ abstract class PanMapBase extends PanDecorate {
 	private void setHandler(){
 		//mapScreen.setOnMouseClicked(event);
 		mapScreen.setOnMouseMoved(EVENT->{
-			EventType<?> typ = EVENT.getEventType();
 			int mx = (int)EVENT.getX() - mapGrid[0]/2;
 			int my = (int)EVENT.getY() - mapGrid[1]/2;
 			updateCursor(mx,my);
-			//Misc.logv("mouse=(%03d,%03d)",mx,my);
 		});
 		mapScreen.setOnMouseClicked(EVENT->{
 			MouseButton mb = EVENT.getButton();
@@ -351,7 +398,7 @@ abstract class PanMapBase extends PanDecorate {
 					menu.hide();
 					return;
 				}
-				//move postion??
+				//TODO:move position??
 			}else if(mb==MouseButton.SECONDARY){
 				menu.show(mapScreen,Side.RIGHT,mx,my);				
 			}
@@ -386,7 +433,8 @@ abstract class PanMapBase extends PanDecorate {
 		for(Die die:lstDie){
 			if(die.isHold(mx,my)==true){
 				cursor = die;				
-				drawCursor(cursor);
+				drawCursor(die);
+				//Misc.logv("die.key=%d",die.key);
 				return;
 			}
 		}
@@ -396,6 +444,8 @@ abstract class PanMapBase extends PanDecorate {
 	@Override
 	public Node layoutBody() {
 		mapScreen = new Canvas();//this is dummy~~~		
+		mapScreen.setScaleY(-1.);
+		
 		ScrollPane root = new ScrollPane();
 		root.setContent(mapScreen);
 		/*root.setContextMenu(menu);
@@ -410,5 +460,5 @@ abstract class PanMapBase extends PanDecorate {
 			}
 		});*/
 		return root;
-	}	
+	}
 }

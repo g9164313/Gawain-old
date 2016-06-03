@@ -74,6 +74,7 @@ LD_LIBS += $(shell pkg-config --libs libmodbus)
 #LD_LIBS += $(shell pkg-config --libs Qt5Core Qt5Gui Qt5Widgets Qt5Test) 
 LD_LIBS += $(LIB_EBUS)
 LD_LIBS += $(LIB_PYLON)
+LD_LIBS += -lgclibo -lgclib
 #LD_LIBS += $(LIB_MULTICAM)
 
 OBJECTS = $(SOURCES:.cpp=.o)
@@ -107,8 +108,9 @@ $(TARGET_EXE):  ./wrap-unix/main1.cpp utils_jni.cpp utils_cv.cpp SlantEdge.cpp
 #$(TARGET_JNI):
 #	javah  -o ./src/$@ -cp $(DIR_CLASS) $(NAT_CLASS)
 
-all: $(TARGET_SO)
+#all: $(TARGET_SO)
 all: $(TARGET_EXE)
+#all: $(TARGET_SO) $(TARGET_EXE)
 #all: clean $(TARGET_SO) $(TARGET_EXE)
 
 clean:

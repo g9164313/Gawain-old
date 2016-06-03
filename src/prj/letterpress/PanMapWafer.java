@@ -6,13 +6,19 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 
 import prj.letterpress.PanMapBase.Die;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.Priority;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.ArcType;
 import narl.itrc.BoxPhyValue;
+import narl.itrc.Misc;
 import narl.itrc.PanBase;
 import narl.itrc.PanDecorate;
 
@@ -82,35 +88,41 @@ public class PanMapWafer extends PanMapBase {
 			return null;//we just create one console
 		}
 		final double CHK_SIZE = 110.;
-
+		
+		final EventHandler<ActionEvent> eventRedraw = 
+			new EventHandler<ActionEvent>()
+		{
+			@Override
+			public void handle(ActionEvent event) {
+				setMapSize(getDiameter());
+				setDieSize(
+					boxDieW.getValue(),
+					boxDieH.getValue()
+				);
+				generate();
+			}
+		};
+		
 		chkWafD.setPrefWidth(CHK_SIZE);
-		chkWafD.setOnAction(EVENT->{
-			setMapSize(getDiameter());
-			//TODO: refresh canvas
-		});
+		chkWafD.setOnAction(eventRedraw);
 		
 		JFXComboBox<String> chkMethod = new JFXComboBox<String>();
 		chkMethod.setPrefWidth(CHK_SIZE);
-		chkMethod.getItems().addAll(
-			"method-1",
-			"method-2"
-		);
+		chkMethod.getItems().addAll("循序掃描");
 		chkMethod.getSelectionModel().select(0);
-		chkMethod.setOnAction(EVENT->{
-			//TODO: refresh canvas
-		});
-		
-		boxDieW.setOnAction(EVENT->{
-			
-		});
-		boxDieH.setOnAction(EVENT->{
-			
-		});
+				
+		boxDieW.setOnAction(eventRedraw);
+		boxDieH.setOnAction(eventRedraw);
 		boxLane.setOnAction(EVENT->{
-			
+			//???
 		});
 		
-		/*con = new GridPane();
+		Button btnInc = new Button("+");
+		btnInc.setOnAction(EVENT->{	incScale();	});
+		Button btnDec = new Button("-");
+		btnDec.setOnAction(EVENT->{	decScale();	});
+		
+		con = new GridPane();
 		con.getStyleClass().add("grid-small");
 		con.addRow(0,new Label("掃描方式"),new Label("："),chkMethod);
 		con.addRow(1,new Label("晶圓大小"),new Label("："),chkWafD);		
@@ -118,18 +130,11 @@ public class PanMapWafer extends PanMapBase {
 		con.addRow(3,new Label("顆粒高")  ,new Label("："),boxDieH);
 		con.addRow(4,new Label("走道寬")  ,new Label("："),boxLane);
 		con.addRow(5,new Label("比例尺")  ,new Label("："),txtScale);
-		con.add(txtInfo, 0, 5, 4, 1);*/
+		con.add(new Label("ZOOM"), 0, 6, 1, 1);
+		con.add(PanBase.fillHBox(btnInc,btnDec), 1, 6, 2, 1);
+		//con.add(txtInfo, 0, 5, 4, 1);
 		
-		return PanDecorate.group(
-			"配置圖設定",
-			PanBase.decorateGrid(
-				"掃描方式",chkMethod,
-				"晶圓大小",chkWafD,
-				"顆粒寬",boxDieW,
-				"顆粒高",boxDieH,
-				"走道寬",boxLane,
-				"比例尺",txtScale
-		));
+		return PanDecorate.group("配置圖設定",con);
 	}
 
 	@Override
@@ -177,6 +182,8 @@ public class PanMapWafer extends PanMapBase {
 			diw,dih,rad,
 			lst
 		);
+		//which scan path is depend on check-box
+		calculate_sequence_path();
 	}
 	
 	private int calculate_valid_grid(
@@ -192,7 +199,7 @@ public class PanMapWafer extends PanMapBase {
 		int cnt_h = Math.round((float)(wafRadius*2/dieHeight));		
 		if(cnt_h%2==0){ cnt_h++; }
 		
-		for(int j=-cnt_h/2; j<=cnt_h/2; j++){
+		for(int j=cnt_h/2; j>-cnt_h/2; --j){
 			for(int i=-cnt_w/2; i<=cnt_w/2; i++){
 				double xx = i*dieWidth  - offsetX;
 				double yy = j*dieHeight - offsetY;
@@ -204,8 +211,7 @@ public class PanMapWafer extends PanMapBase {
 				};
 				boolean is_valid = true;
 				for(int k=0; k<4; k++){
-					double dist = vtx[k][0]*vtx[k][0]+vtx[k][1]*vtx[k][1];
-					dist = Math.sqrt(dist);
+					double dist = Math.hypot(vtx[k][0],vtx[k][1]);
 					if(dist>wafRadius){
 						is_valid = false;
 						break;
@@ -214,12 +220,55 @@ public class PanMapWafer extends PanMapBase {
 				if(is_valid==true){					
 					count++;
 					if(lstCell!=null){
-						lstCell.add(new Die().setLfBm(xx, yy));
+						lstCell.add(new Die().setLfBm(xx,yy));
 					}
 				}
 			}
 		}
 		return count;
+	}
+	
+	private void calculate_sequence_path(){		
+		//the sequence is dependent on "calculate_valid_grid()"
+		
+		int cnt = lstDie.size() - 1;
+		//always put the last die
+		Die d1,d2;
+		d1 = lstDie.get(cnt);
+		d1.key = cnt + 1;
+		lstPath.put(d1.key,d1);
+		
+		for(int i=0; i<cnt; i++){
+			d1 = lstDie.get(i);
+			d2 = lstDie.get(i+1);
+			double[] p1 = d1.getPosition();
+			double[] p2 = d2.getPosition();
+			d1.key = i+1;//key is one-based number!!!
+			lstPath.put(d1.key,d1);
+			if(p1[1]==p2[1]){
+				//check whether they are in one line(row).				
+				continue;
+			}
+			//check the boundary of next line
+			int k = i+1;
+			int j = i+2;			
+			Die d3 = null;
+			for(; j<cnt; j++){
+				d3 = lstDie.get(j);
+				double[] p3 = d3.getPosition();
+				if(p2[1]!=p3[1]){
+					i = --j;//override this for next turn~~~
+					break;
+				}
+			}
+			//inverse all key number
+			int sum = j + k;
+			for(; k<=j; k++){
+				d3 = lstDie.get(k);
+				d3.key = sum - k + 1;//key is one-based number!!!
+				lstPath.put(d3.key,d3);
+			}
+		}
 	}
 	
 	protected void eventExport(File fs){ 
