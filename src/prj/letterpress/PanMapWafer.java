@@ -58,10 +58,11 @@ public class PanMapWafer extends PanMapBase {
 			"12''晶圓"
 		);
 		chkWafD.getSelectionModel().select(diameter2index(8));//default is 8' wafer
-			
-		boxDieW = new BoxPhyValue("寬").setType("mm").setValue("68mm");
-		boxDieH = new BoxPhyValue("高").setType("mm").setValue("26mm");
-		boxLane = new BoxPhyValue("寬").setType("mm").setValue("0mm");
+		//13x13mm has bug???
+		//default is 68x26mm
+		boxDieW = new BoxPhyValue("顆粒寬").setType("mm").setValue("13mm");
+		boxDieH = new BoxPhyValue("顆粒高").setType("mm").setValue("13mm");
+		boxLane = new BoxPhyValue("走道寬").setType("mm").setValue("0mm");
 	}
 		
 	private int diameter2index(int val){
@@ -155,7 +156,7 @@ public class PanMapWafer extends PanMapBase {
 		double diw = boxDieW.getValue();
 		double dih = boxDieH.getValue();
 		
-		int max = Math.round((float)((rad*rad*Math.PI)/(diw*dih)));
+		//int max = Math.round((float)((rad*rad*Math.PI)/(diw*dih)));
 		//list all possibility
 		double pos[][]={
 			{0     ,0     },
@@ -199,7 +200,8 @@ public class PanMapWafer extends PanMapBase {
 		int cnt_h = Math.round((float)(wafRadius*2/dieHeight));		
 		if(cnt_h%2==0){ cnt_h++; }
 		
-		for(int j=cnt_h/2; j>-cnt_h/2; --j){
+		//for(int j=cnt_h/2; j>-cnt_h/2; --j){
+		for(int j=-cnt_h/2; j<=cnt_h/2; j++){
 			for(int i=-cnt_w/2; i<=cnt_w/2; i++){
 				double xx = i*dieWidth  - offsetX;
 				double yy = j*dieHeight - offsetY;

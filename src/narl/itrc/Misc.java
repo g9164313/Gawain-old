@@ -738,6 +738,10 @@ public class Misc {
 	public static float hypot(int[] pa,int[] pb){
 		return (float) Math.hypot(pa[0]-pb[0], pa[1]-pb[1]);
 	}
+	
+	public static int hypotInt(int[] pa,int[] pb){
+		return Math.round((float)Math.hypot(pa[0]-pb[0], pa[1]-pb[1]));
+	}
 }
 
 
