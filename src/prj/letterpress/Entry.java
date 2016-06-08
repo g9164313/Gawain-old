@@ -4,6 +4,7 @@ import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXSpinner;
 import com.jfoenix.controls.JFXTabPane;
 
+import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Orientation;
@@ -31,6 +32,7 @@ import narl.itrc.ImgRender;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
 import narl.itrc.PanJoystick;
+import narl.itrc.TskAction;
 
 public class Entry extends PanBase {
 
@@ -62,10 +64,13 @@ public class Entry extends PanBase {
 		btnAction.getStyleClass().add("btn-raised");
 		btnAction.setMaxWidth(Double.MAX_VALUE);
 		btnAction.setGraphic(Misc.getIcon("run.png"));
-		btnAction.setOnAction(new EventHandler<ActionEvent>(){
+		btnAction.setOnAction(new TskAction(Entry.this){
+			private int cnt = 1;
 			@Override
-			public void handle(ActionEvent event) {
-				
+			public int looper(Task<Integer> task) {
+				Misc.logv("ggyy-%d",cnt++);
+				Misc.delay(50);
+				return 0;
 			}
 		});
 		
@@ -73,11 +78,8 @@ public class Entry extends PanBase {
 		btnAligment.getStyleClass().add("btn-raised");
 		btnAligment.setMaxWidth(Double.MAX_VALUE);
 		btnAligment.setGraphic(Misc.getIcon("selection.png"));
-		btnAligment.setOnAction(new EventHandler<ActionEvent>(){
-			@Override
-			public void handle(ActionEvent event) {
-				
-			}
+		btnAligment.setOnAction(EVENT->{
+			
 		});
 		
 		PanJoystick joyStick = new PanJoystick(Orientation.VERTICAL,SIZE);
@@ -86,9 +88,7 @@ public class Entry extends PanBase {
 		btnClose.getStyleClass().add("btn-raised2");
 		btnClose.setMaxWidth(Double.MAX_VALUE);
 		btnClose.setGraphic(Misc.getIcon("close.png"));
-		btnClose.setOnAction(EVENT->{
-			Entry.this.dismiss();
-		});
+		btnClose.setOnAction(EVENT->Entry.this.dismiss());
 		
 		VBox lay1 = new VBox();
 		lay1.getStyleClass().add("vbox-small");
@@ -139,14 +139,11 @@ public class Entry extends PanBase {
 		});
 		
 		
-		
 		JFXButton btnClose = new JFXButton("關閉程式");
 		btnClose.getStyleClass().add("btn-raised2");
 		btnClose.setGraphic(Misc.getIcon("close.png"));
 		btnClose.setMaxWidth(Double.MAX_VALUE);		
-		btnClose.setOnAction(EVENT->{
-			Entry.this.dismiss();
-		});
+		btnClose.setOnAction(EVENT->Entry.this.dismiss());
 		
 		VBox lay1 = new VBox();
 		lay1.getStyleClass().add("vbox-small");
@@ -176,7 +173,8 @@ public class Entry extends PanBase {
 		stp2.setContent(layScanning());
 		
 		root.getTabs().addAll(stp1,stp2);
-		root.getSelectionModel().select(1);
+		root.getSelectionModel().select(0);
+		//root.getSelectionModel().select(1);
 		return root;
 	}
 }

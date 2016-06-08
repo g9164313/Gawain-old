@@ -5,12 +5,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import com.sun.glass.ui.Application;
 
 import javafx.concurrent.Task;
-import javafx.concurrent.WorkerStateEvent;
-import javafx.event.EventHandler;
 
 abstract class TskBase {
 
-	private Task<Integer> tsk;
+	private Task<Integer> task;
 	
 	private boolean reentry = false;
 	
@@ -18,6 +16,8 @@ abstract class TskBase {
 	 * no special mean, user can arbitrarily use this variable
 	 */
 	public AtomicInteger arg1 = new AtomicInteger(0);
+	
+	protected int result = 0;
 	
 	public TskBase(){		
 	}
@@ -40,7 +40,7 @@ abstract class TskBase {
 	 * @param task - Task<Integer>
 	 * @return 0 - working, !0 - exist
 	 */
-	abstract int looper(Task<Integer> task);
+	public abstract int looper(Task<Integer> task);
 	
 	/**
 	 * This happened when user cancel task, use can also override routine<p>
@@ -50,50 +50,44 @@ abstract class TskBase {
 	}
 	
 	public void stop(){
-		if(tsk!=null){
-			if(tsk.isRunning()==false){
-				tsk.cancel();
+		if(task!=null){
+			if(task.isDone()==false){
+				task.cancel();
 			}
 		}
 	}
-	
-	private int result = 0;
-	
+
 	public boolean start(){
 		return start("unknow-task");
 	}
 	
 	public boolean start(String name){
 		
-		if(tsk!=null){
-			if(tsk.isRunning()==true){
+		if(task!=null){
+			if(task.isRunning()==true){
 				if(reentry==true){
 					do{
-						tsk.cancel();
-					}while(tsk.isDone()==false);
+						task.cancel();
+					}while(task.isDone()==false);
 				}else{
 					return false;
 				}				
 			}			
 		}
 		
-		tsk = new Task<Integer>(){
+		if(eventInit()==false){
+			result = -1;
+			return false;
+		}
+		
+		task = new Task<Integer>(){
 			@Override
 			protected Integer call() throws Exception {
 				result = 0;
-				Application.invokeAndWait(new Runnable(){
-					@Override
-					public void run() {
-						if(eventInit()==false){
-							result = -1;
-						}
-					}					
-				});
-				while(tsk.isCancelled()==false && result==0){
-					result = looper(tsk);
+				while(task.isCancelled()==false && result==0){
+					result = looper(task);
 					if(Application.GetApplication()==null){						
-						//Platform is shutdown
-						result = -2;
+						result = -2;//Platform is shutdown
 						break;
 					}
 				}
@@ -101,14 +95,9 @@ abstract class TskBase {
 			}
 		};
 		
-		tsk.setOnCancelled(new EventHandler<WorkerStateEvent>(){
-			@Override
-			public void handle(WorkerStateEvent event) {
-				eventCancel();
-			}
-		});
+		task.setOnCancelled(EVENT->eventCancel());
 		
-		new Thread(tsk,name).start();
+		new Thread(task,name).start();
 		
 		return true;
 	}	

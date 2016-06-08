@@ -432,7 +432,7 @@ abstract class PanMapBase extends PanDecorate {
 		gc.restore();
 	}
 	
-	private void clearCursor(Die die){
+	/*private void clearCursor(Die die){
 		GraphicsContext gc = mapScreen.getGraphicsContext2D();
 		//draw function is still affected by Transform().
 		int[] dst = die.getLfBm();
@@ -447,8 +447,7 @@ abstract class PanMapBase extends PanDecorate {
 			dst[0],dst[1],
 			dieGrid[0], dieGrid[0]
 		);
-
-	}
+	}*/
 	
 	private void clearGround(){
 		mapScreen.getGraphicsContext2D().drawImage(

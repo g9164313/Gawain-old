@@ -130,7 +130,7 @@ public class PanJoystick extends FlowPane {
 			}
 		};
 		@Override
-		int looper(Task<Integer> task) {
+		public int looper(Task<Integer> task) {
 			switch(addr){
 			case ADDR_JOGGING:
 				//TODO: start jogging~~~

@@ -1,5 +1,8 @@
 package narl.itrc;
 
+import com.jfoenix.controls.JFXSpinner;
+import com.sun.glass.ui.Application;
+
 import eu.hansolo.enzo.notification.Notification;
 import eu.hansolo.enzo.notification.NotifierBuilder;
 import javafx.animation.KeyFrame;
@@ -32,19 +35,19 @@ public abstract class PanBase {
 	protected static final int FIRST_FULLSCREEN = 1;
 	protected static final int FIRST_MAXIMIZED = 2;
 	protected int firstAction = FIRST_NONE;
-	
+
 	private Scene scene=null;
 	private Stage stage=null;
 	
 	public abstract Parent layout();
 	
 	public PanBase(){
-		initMsgBox();
+		init_msgbox();
 	}
 	
 	public PanBase(String txt){
 		setTitle(txt);
-		initMsgBox();
+		init_msgbox();
 	}
 	
 	public void setTitle(String txt){
@@ -65,7 +68,7 @@ public abstract class PanBase {
 		stage.initOwner(parent);
 		stage.setResizable(false);
 		stage.centerOnScreen();
-		init(stage);
+		init_stage(stage);
 	}
 	
 	public void makeStage(Window parent){
@@ -73,12 +76,12 @@ public abstract class PanBase {
 		stage.initModality(Modality.NONE); 
 		stage.initOwner(parent);
 		stage.centerOnScreen();
-		init(stage);
+		init_stage(stage);
 	}
 	
 	public void appear(Stage stg){
 		stage = stg;
-		init(stg);		
+		init_stage(stg);		
 		appear();
 	}
 	public void appear(){
@@ -94,7 +97,7 @@ public abstract class PanBase {
 	
 	public void standby(Stage stg){
 		stage = stg;
-		init(stg);
+		init_stage(stg);
 		standby();
 	}
 	public void standby(){
@@ -133,7 +136,7 @@ public abstract class PanBase {
 		stage = null;
 	}
 	
-	private void init(Stage stg){		
+	private void init_stage(Stage stg){		
 		init_scene();
 		//check whether we need to hook event~~~
 		if(stg.getOnShowing()==null){
@@ -149,17 +152,77 @@ public abstract class PanBase {
 		stg.setTitle(title);
 		stg.setScene(scene);
 		stg.sizeToScene();
+		stg.setUserData(PanBase.this);
 	}
-		
+	
+	private TskBase task = null;
+	private JFXSpinner spin=new JFXSpinner();	
+	private Parent root = null;
+	
+	public void spinning(
+		final boolean flag
+	){
+		spinning(flag,null);
+	}
+	
+	public void spinning(
+		final boolean flag,
+		final TskBase spinTask
+	){
+		task = spinTask;
+		if(flag==false && task!=null){
+			task.stop();
+		}
+		root.setDisable(flag);
+		spin.setVisible(flag);
+	}
+	
+	public void invokeSpinning(
+		final boolean flag
+	){
+		invokeSpinning(flag,null);
+	}
+	
+	public void invokeSpinning(
+		final boolean flag,
+		final TskBase spinTask
+	){
+		if(Application.GetApplication()==null){
+			return;
+		}
+		Application.invokeAndWait(()->spinning(flag,spinTask));
+	}
+	
 	private void init_scene(){
 		if(scene!=null){
 			return;
 		}
 		//first initialization...
-		scene = new Scene(layout());
+		spin.setVisible(false);
+		spin.setRadius(64);
+		spin.setOnMouseClicked(EVENT->{
+			spinning(false,task);
+		});
+		root = layout();		
+		scene = new Scene(new StackPane(root,spin));
 		scene.getStylesheets().add(Gawain.class.getResource("res/styles.css").toExternalForm());
+		scene.setUserData(PanBase.this);
 	}
 
+	public static Notification.Notifier msgBox = null;
+	
+	private void init_msgbox(){
+		if(msgBox!=null){
+			//we already had message box~~~
+			return;
+		}
+		msgBox = NotifierBuilder.create()
+			.popupLocation(Pos.CENTER)
+			.popupLifeTime(Duration.millis(1500))
+			.build();
+	}
+	//------------------------//
+	
 	protected void eventShowing(WindowEvent e){
 	}
 	protected void eventShown(WindowEvent e){
@@ -239,20 +302,6 @@ public abstract class PanBase {
 			watch.stop();
 			watch = null;
 		}		
-	}
-	//------------------------//
-	
-	public static Notification.Notifier msgBox = null;
-	
-	private void initMsgBox(){
-		if(msgBox!=null){
-			//we already had message box~~~
-			return;
-		}
-		msgBox = NotifierBuilder.create()
-			.popupLocation(Pos.CENTER)
-			.popupLifeTime(Duration.millis(1500))
-			.build();
 	}	
 	//------------------------//
 

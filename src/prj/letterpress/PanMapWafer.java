@@ -5,20 +5,15 @@ import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 
-import prj.letterpress.PanMapBase.Die;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
-import javafx.scene.layout.Priority;
-import javafx.scene.paint.Color;
 import javafx.scene.shape.ArcType;
 import narl.itrc.BoxPhyValue;
-import narl.itrc.Misc;
 import narl.itrc.PanBase;
 import narl.itrc.PanDecorate;
 
@@ -26,7 +21,6 @@ import com.jfoenix.controls.JFXComboBox;
 
 public class PanMapWafer extends PanMapBase {
 
-	private Label txtInfo = new Label("---------");
 	private Label txtScale= new Label("??? mm/px");	
 	private JFXComboBox<String> chkWafD;
 	private BoxPhyValue boxDieW;	
@@ -58,8 +52,6 @@ public class PanMapWafer extends PanMapBase {
 			"12''晶圓"
 		);
 		chkWafD.getSelectionModel().select(diameter2index(8));//default is 8' wafer
-		//13x13mm has bug???
-		//default is 68x26mm
 		boxDieW = new BoxPhyValue("顆粒寬").setType("mm").setValue("13mm");
 		boxDieH = new BoxPhyValue("顆粒高").setType("mm").setValue("13mm");
 		boxLane = new BoxPhyValue("走道寬").setType("mm").setValue("0mm");
@@ -263,6 +255,8 @@ public class PanMapWafer extends PanMapBase {
 					break;
 				}
 			}
+			//check whether we got the tail of line~~~
+			if(j==cnt){	i = cnt; }
 			//inverse all key number
 			int sum = j + k;
 			for(; k<=j; k++){
