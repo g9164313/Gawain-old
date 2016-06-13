@@ -125,7 +125,7 @@ public class ImgControl extends VBox {
 	}
 
 	public void release(){
-		if(render.isWorking()==true){
+		if(render.isAlive()==true){
 			render.cancel();
 		}
 	}

@@ -60,7 +60,7 @@ public class ImgPreview extends ScrollPane {
 		btnSnap.setOnAction(new EventHandler<ActionEvent>(){
 			@Override
 			public void handle(ActionEvent event) {
-				if(render.isWorking()==false){
+				if(render.isAlive()==false){
 					return;
 				}
 				//TODO: how to pass message???
@@ -73,7 +73,7 @@ public class ImgPreview extends ScrollPane {
 		btnReco.setOnAction(new EventHandler<ActionEvent>(){
 			@Override
 			public void handle(ActionEvent event) {
-				if(render.isWorking()==false){
+				if(render.isAlive()==false){
 					return;
 				}
 			}	
@@ -104,7 +104,7 @@ public class ImgPreview extends ScrollPane {
 		btnPickCancel.setOnAction(new EventHandler<ActionEvent>(){
 			@Override
 			public void handle(ActionEvent event) {
-				if(render.isWorking()==false){
+				if(render.isAlive()==false){
 					return;
 				}
 				int index = lstPickIndx.getSelectionModel().getSelectedItem()-1;
@@ -140,7 +140,7 @@ public class ImgPreview extends ScrollPane {
 	private EventHandler<MouseEvent> eventPrepareROI = new EventHandler<MouseEvent>(){
 		@Override
 		public void handle(MouseEvent e) {
-			if(render.isWorking()==false){
+			if(render.isAlive()==false){
 				return;
 			}
 			EventType<?> typ = e.getEventType();

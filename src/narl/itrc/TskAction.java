@@ -26,10 +26,21 @@ public abstract class TskAction extends TskBase
 			pan = (PanBase)obj;			
 		}		
 	}
+		
+	protected void spinning(boolean flag){
+		if(pan!=null){
+			pan.spinning(flag);
+		}
+	} 
 	
 	@Override
+	protected void eventFinish(){
+		spinning(false);
+	}
+
+	@Override
 	public void handle(ActionEvent event) {
-		if(eventInit()==false){
+		if(eventBegin()==false){
 			return;
 		}
 		if(pan!=null){

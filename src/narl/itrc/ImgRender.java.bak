@@ -1,10 +1,11 @@
 package narl.itrc;
 
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.sun.glass.ui.Application;
 
 import javafx.application.Platform;
+import javafx.concurrent.Task;
 import javafx.scene.image.Image;
 
 public class ImgRender {
@@ -51,17 +52,85 @@ public class ImgRender {
 		return bund[idx];
 	}
 	
-	private void bundPrepare(){
+	private void initBundle(){
 		bund = new CamBundle[prvw.length];
 		for(int i=0; i<prvw.length; i++){
 			bund[i] = prvw[i].bundle;
 		}
 		buff = new Image[prvw.length];
-		for(ImgPreview pp:prvw){
-			pp.initScreen(ImgRender.this);
-		}
 	}
 	
+	private Task<Integer> task = null;
+	/**
+	 *  User must call "cancel()" to release camera!!! 
+	 */	
+	public void launch(){
+		if(isWorking()==true){
+			return;
+		}
+		initBundle();
+		task = new Task<Integer>(){
+			@Override
+			protected Integer call() throws Exception {
+				if(bund==null){ 
+					return -1;//WTF???
+				}				
+				//stage.1 - try to open camera~~~
+				if(bundSetup()==0){
+					return -2;//no camera!!!
+				}
+				flagWait.set(0);
+				
+				//stage.2 - continue to grab image from camera			
+				while(isLive()==true){
+					
+					if(ctrl!=null){
+						//check whether we need to play video~~~
+						if(ctrl.btnPlayer.getState()==false){
+							Thread.sleep(50);
+							continue;
+						}
+					}
+					
+					if(flagWait.get()!=0){
+						flagWait.set(2);
+						Thread.sleep(60000);
+						continue;
+					}
+					
+					bundFetch();
+					if(Application.GetApplication()==null){						
+						break;//Platform is shutdown
+					}
+					for(ImgPreview pp:prvw){
+						doAction(pp);
+					}
+					eventFilter();//process image and show data~~~
+					
+					Platform.runLater(eventShow);
+				}
+				return 0;
+			}
+		};
+		task.setOnScheduled(EVENT->{
+			for(ImgPreview pp:prvw){
+				pp.initScreen(ImgRender.this);
+			}
+		});
+		task.setOnCancelled(EVENT->{
+			Misc.logv("Render cancel");
+			bundClose();
+		});
+		new Thread(task,"imgRender").start();
+	}
+
+	public void cancel(){
+		if(isWorking()==false){
+			return;
+		}
+		task.cancel();
+	}
+
 	private int bundSetup(){
 		int cnt = bund.length;
 		for(int i=0; i<bund.length; i++){
@@ -98,126 +167,6 @@ public class ImgRender {
 		}
 	}
 	
-	private Runnable looper = new Runnable(){
-		@Override
-		public void run() {
-			if(bund==null){ 
-				return;//WTF???
-			}				
-			//stage.1 - try to open camera~~~
-			if(bundSetup()==0){
-				return;//no camera!!!
-			}
-			//reset flag~~~
-			wait0.set(false);
-			wait1.set(false);
-			//stage.2 - continue to grab image from camera			
-			do{
-				if(ctrl!=null){
-					//check whether we need to play video~~~
-					if(ctrl.btnPlayer.getState()==false){
-						try {
-							Thread.sleep(50);
-						} catch (InterruptedException e) {
-							e.printStackTrace();
-						}
-						continue;
-					}
-				}
-				if(wait0.get()==true){
-					synchronized(task){ try{
-						wait1.set(true);
-						task.wait();
-						wait1.set(false);
-					} catch (InterruptedException e) {						
-						e.printStackTrace();
-						continue;
-					}}
-				}
-				if(Application.GetApplication()==null){
-					break;//Application is dead!!!
-				}
-				bundFetch();
-				for(ImgPreview pp:prvw){
-					doAction(pp);
-				}
-				passFilter();//process image and show data~~~
-				Platform.runLater(eventShow);
-			}while(isWorking()==true);
-		}
-	};
-		
-	private Thread task = null;
-	/**
-	 *  User must call "cancel()" to release camera!!! 
-	 */	
-	public void launch(){
-		if(isAlive()==true){
-			return;
-		}
-		bundPrepare();
-		task = new Thread(looper,"imgRender");
-		task.start();
-	}
-
-	public void cancel(){
-		if(isAlive()==false){
-			return;
-		}
-		Misc.logv("cancel render");
-		bundClose();
-	}
-	
-	private AtomicBoolean wait0 = new AtomicBoolean(false);
-	private AtomicBoolean wait1 = new AtomicBoolean(false);
-	
-	public void sleep(){
-		wait0.set(true);
-		do{
-			try {
-				Thread.sleep(5);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}while(wait1.get()==false);
-	}
-	
-	public void invoke(){
-		wait0.set(false);//for next turn!!!
-		synchronized(task){ task.notify(); }
-		while(wait1.get()==true){
-			try {
-				Thread.sleep(5);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}
-	}
-	
-	public boolean isAlive(){
-		if(task==null){
-			return false;
-		}
-		return task.isAlive();
-	}
-	
-	private boolean isWorking(){
-		if(Application.GetApplication()==null){						
-			return false;//Platform is shutdown
-		}
-		//First,check all camera are live~
-		for(CamBundle b:bund){
-			if(b!=null){
-				if(b.optEnbl.get()==true){
-					return true;
-				}
-			}			
-		}
-		//Second, here, we have no camera :-)
-		//just check whether thread is alive~~~
-		return isAlive();
-	}
-	
 	/**
 	 * Really "render" screen and this interface is executed by GUI thread.<p>
 	 */
@@ -236,6 +185,40 @@ public class ImgRender {
 		}
 	};
 
+	public boolean isWorking(){
+		if(task==null){
+			return false;
+		}
+		return task.isRunning();
+	}
+	
+	private boolean isLive(){
+		//First,check user cancel task~
+		if(task.isCancelled()==true){
+			return false;
+		}
+		//Second,check all camera are live~
+		for(CamBundle b:bund){
+			if(b!=null){
+				if(b.optEnbl.get()==true){
+					return true;
+				}
+			}			
+		}
+		return false;//no camera, we can stop working :-)
+	}
+	
+	private AtomicInteger flagWait = new AtomicInteger(0);
+	public void sleep(){
+		flagWait.set(1);
+		//while(flagWait.get()==1);
+	}	
+	public synchronized void invoke(){
+		//if(flagWait.get()!=2){ return; }
+		flagWait.set(0);
+		Thread.interrupted();
+	}
+	
 	private SNDir dirSnap = new SNDir(Misc.pathTemp,"snap%.png");
 	
 	private void doAction(ImgPreview pp){
@@ -301,7 +284,7 @@ public class ImgRender {
 	}
 	private Filter fltrObj = null;
 	
-	private void passFilter(){
+	private void eventFilter(){
 		if(fltrObj==null){
 			return;
 		}

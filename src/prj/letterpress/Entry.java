@@ -1,30 +1,19 @@
 package prj.letterpress;
 
 import com.jfoenix.controls.JFXButton;
-import com.jfoenix.controls.JFXSpinner;
 import com.jfoenix.controls.JFXTabPane;
 
 import javafx.concurrent.Task;
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
 import javafx.geometry.Orientation;
-import javafx.geometry.Pos;
 import javafx.geometry.Side;
 import javafx.scene.Node;
 import javafx.scene.Parent;
-import javafx.scene.PerspectiveCamera;
-import javafx.scene.Scene;
-import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane.TabClosingPolicy;
-import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.WindowEvent;
-import narl.itrc.BtnToggle;
 import narl.itrc.CamBundle;
 import narl.itrc.CamVidcap;
 import narl.itrc.ImgPreview;
@@ -47,9 +36,12 @@ public class Entry extends PanBase {
 	private ImgPreview prv1 = new ImgPreview(cam1);
 	private ImgRender rndr = new ImgRender(prv0,prv1);
 	
+	private TskAction tsk0 = new TskAligment(rndr,Entry.this);
+	private TskAction tsk1 = new TskScanning();
+	
 	@Override
 	protected void eventShown(WindowEvent e){
-		//rndr.launch();
+		rndr.launch();
 	}
 	
 	private Node layAligment(){
@@ -64,23 +56,13 @@ public class Entry extends PanBase {
 		btnAction.getStyleClass().add("btn-raised");
 		btnAction.setMaxWidth(Double.MAX_VALUE);
 		btnAction.setGraphic(Misc.getIcon("run.png"));
-		btnAction.setOnAction(new TskAction(Entry.this){
-			private int cnt = 1;
-			@Override
-			public int looper(Task<Integer> task) {
-				Misc.logv("ggyy-%d",cnt++);
-				Misc.delay(50);
-				return 0;
-			}
-		});
+		//btnAction.setOnAction();
 		
 		JFXButton btnAligment = new JFXButton("標靶定位");
 		btnAligment.getStyleClass().add("btn-raised");
 		btnAligment.setMaxWidth(Double.MAX_VALUE);
 		btnAligment.setGraphic(Misc.getIcon("selection.png"));
-		btnAligment.setOnAction(EVENT->{
-			
-		});
+		btnAligment.setOnAction(tsk0);
 		
 		PanJoystick joyStick = new PanJoystick(Orientation.VERTICAL,SIZE);
 
@@ -118,26 +100,30 @@ public class Entry extends PanBase {
 		btnAction.getStyleClass().add("btn-raised");
 		btnAction.setGraphic(Misc.getIcon("run.png"));
 		btnAction.setMaxWidth(Double.MAX_VALUE);
-		btnAction.setOnAction(EVENT->{
-			
-		});
+		//btnAction.setOnAction();
 		
 		JFXButton btnScan = new JFXButton("掃描程序");
 		btnScan.getStyleClass().add("btn-raised");
 		btnScan.setGraphic(Misc.getIcon("play.png"));
 		btnScan.setMaxWidth(Double.MAX_VALUE);
-		btnScan.setOnAction(EVENT->{
-			
-		});
+		btnScan.setOnAction(tsk1);
 		
 		JFXButton btnLight = new JFXButton("光源照射");
 		btnLight.getStyleClass().add("btn-raised");
 		btnLight.setGraphic(Misc.getIcon("blur.png"));
 		btnLight.setMaxWidth(Double.MAX_VALUE);
-		btnLight.setOnAction(EVENT->{
-			
+		btnLight.setOnAction(new TskAction(Entry.this){
+			@Override
+			protected void DelayBegin(long tick){
+			}
+			@Override
+			protected void DelayFinish(long tick){
+			}			
+			@Override
+			public int looper(Task<Integer> task) {
+				return DelayLooper(2000);
+			}			
 		});
-		
 		
 		JFXButton btnClose = new JFXButton("關閉程式");
 		btnClose.getStyleClass().add("btn-raised2");
@@ -173,8 +159,8 @@ public class Entry extends PanBase {
 		stp2.setContent(layScanning());
 		
 		root.getTabs().addAll(stp1,stp2);
-		root.getSelectionModel().select(0);
-		//root.getSelectionModel().select(1);
+		//root.getSelectionModel().select(0);
+		root.getSelectionModel().select(1);
 		return root;
 	}
 }

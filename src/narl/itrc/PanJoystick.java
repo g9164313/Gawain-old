@@ -114,7 +114,7 @@ public class PanJoystick extends FlowPane {
 	
 	private TskBase tskTrigger = new TskBase(){
 		private int valStep = 0;
-		protected boolean eventInit(){
+		protected boolean eventBegin(){
 			valStep = Integer.valueOf(boxStep.getText());
 			if(axis[1]=='+'){
 				return true;
