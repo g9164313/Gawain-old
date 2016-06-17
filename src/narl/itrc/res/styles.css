@@ -47,8 +47,8 @@
 
 .grid-small{
     -fx-padding: 7px  7px 7px 7px;
-    -fx-hgap: 7px;
-    -fx-vgap: 7px;    
+    -fx-hgap: 13px;
+    -fx-vgap: 13px;    
 }
 
 .anchor-small {

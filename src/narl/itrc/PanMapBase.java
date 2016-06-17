@@ -1,4 +1,4 @@
-package prj.letterpress;
+package narl.itrc;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -18,10 +18,8 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.paint.Color;
 import javafx.scene.transform.Affine;
 import javafx.stage.FileChooser;
-import narl.itrc.Misc;
-import narl.itrc.PanDecorate;
 
-abstract class PanMapBase extends PanDecorate {
+public abstract class PanMapBase extends PanDecorate {
 
 	private static final SnapshotParameters parm = new SnapshotParameters();
 	
@@ -316,9 +314,9 @@ abstract class PanMapBase extends PanDecorate {
 		setHandler();
 	}
 	
-	abstract void layoutDie(ArrayList<Die> lst);
+	public abstract void layoutDie(ArrayList<Die> lst);
 	
-	abstract void drawShape(GraphicsContext gc);
+	public abstract void drawShape(GraphicsContext gc);
 	
 	private void drawCross(GraphicsContext gc){
 		gc.save();

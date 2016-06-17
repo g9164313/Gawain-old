@@ -2,7 +2,6 @@ package narl.itrc;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.net.URISyntaxException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -11,6 +10,8 @@ import java.util.Enumeration;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
+import javafx.collections.ObservableList;
+import javafx.scene.control.ComboBox;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.stage.DirectoryChooser;
@@ -29,8 +30,9 @@ public class Misc {
 	public static void loge(String fmt,Object... arg){
 		System.err.printf("[ERROR  ] "+fmt+"\n", arg);
 	}
-		
-	public static Thread tskCheck(Thread tsk,Class<?> clazz,Object... parm){
+	
+	//Should we deprecate this function???
+	/*public static Thread tskCheck(Thread tsk,Class<?> clazz,Object... parm){
 		if(tsk!=null){
 			while(tsk.isAlive()==true){
 				delay(100);
@@ -60,18 +62,19 @@ public class Misc {
 		}
 		tsk.start();
 		return tsk;
-	}
+	}*/
 	
-	public static void tskDelay(long tick){
-		try {
-			Thread.sleep(tick);
-		} catch (InterruptedException e) {			
-			logw(
-				"fail to sleep --> %s",
-				Thread.currentThread().getName()
-			);
-			delay(tick);
+	public static void selectTxt(ComboBox<String> box,String txt){
+		ObservableList<String> lst = box.getItems();
+		int cnt = lst.size();
+		for(int i=0; i<cnt; i++){
+			if(lst.get(i).equalsIgnoreCase(txt)==true){
+				box.getSelectionModel().select(i);
+				return;
+			}
 		}
+		box.getItems().add(txt);
+		box.getSelectionModel().select(cnt);
 	}
 	
 	public static void delay(long millisec){
@@ -81,23 +84,7 @@ public class Misc {
 			t2 = System.currentTimeMillis();
 		}
 	}
-		
-	private static boolean _verify_digit(String txt,String cc){
-		char[] chars = new char[txt.length()];
-		txt.getChars(0, chars.length, chars, 0);
-		for (int i = 0; i < chars.length; i++) {
-			if('0'<=chars[i] && chars[i]<='9'){
-				continue;
-			}			
-			if(cc.indexOf(chars[i])>=0){
-				continue;
-			}
-			return false;
-		}
-		return true;
-	}
 	//----------------------------------------//
-	
 	
 	private static final double l0_254 = 1./25.4;
 	private static final double l1_254 = 10./25.4;
@@ -303,8 +290,6 @@ public class Misc {
 	
 	public static final String arch = check_arch();
 	
-	public static final String os = check_os();
-	
 	public static final String pathRoot = check_root();
 	
 	public static final String pathTemp = check_tmp();
@@ -334,7 +319,23 @@ public class Misc {
 		return name;
 	}
 	
-	private static String check_os(){
+	public static boolean isPOSIX(){
+		String name = System.getProperty("os.name").toLowerCase();
+		if(name.indexOf("linux")>=0){
+			return true;
+		}
+		return false;
+	}
+	
+	public static boolean isFxxkMicrosoft(){
+		String name = System.getProperty("os.name").toLowerCase();
+		if(name.indexOf("win")>=0){
+			return true;
+		}
+		return false;
+	}
+	
+	public static String getOSName(){
 		String name = System.getProperty("os.name").toLowerCase();
 		if(name.indexOf("win")>=0){
 			return "win";

@@ -47,6 +47,13 @@ public class Gawain extends Application {
 		}
 		hook.add(h);
 	}
+	
+	private static void hookShutdown(){
+		//release resource~~~
+		for(EventHook h:hook){
+			h.shutdown();
+		}
+	}
 	//--------------------------------------------//
 	
 	public static Properties prop = new Properties();
@@ -284,6 +291,7 @@ public class Gawain extends Application {
 	
 	public static void main(String[] argv) {
 		propInit();
+		
 		//parse arguments~~~~
 		for(int i=0; i<argv.length; i++){
 			if(argv[i].toLowerCase().startsWith("-unpack")==true){
@@ -291,13 +299,12 @@ public class Gawain extends Application {
 			}
 		}
 		//liceBind();//check dark license~~~
-		launch(argv);//deprecate: startSWT();
+		
+		launch(argv);
+		
 		propSave();
-
-		for(EventHook h:hook){
-			//should we move this??
-			h.shutdown();//release everything~~~
-		}
+		
+		hookShutdown();
 	}
 }
 

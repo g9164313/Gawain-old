@@ -29,6 +29,8 @@ public class Entry extends PanBase {
 		//firstAction = FIRST_MAXIMIZED;
 	}
 	
+	private PanMapWafer wmap = new PanMapWafer();
+	
 	private CamBundle cam0 = new CamVidcap(0,"");
 	private CamBundle cam1 = new CamVidcap(1,"");
 	
@@ -36,12 +38,14 @@ public class Entry extends PanBase {
 	private ImgPreview prv1 = new ImgPreview(cam1);
 	private ImgRender rndr = new ImgRender(prv0,prv1);
 	
+	private DevB140M stg0 = new DevB140M();
+	
 	private TskAction tsk0 = new TskAligment(rndr,Entry.this);
-	private TskAction tsk1 = new TskScanning();
+	private TskAction tsk1 = new TskScanning(wmap);
 	
 	@Override
 	protected void eventShown(WindowEvent e){
-		rndr.launch();
+		//rndr.launch();
 	}
 	
 	private Node layAligment(){
@@ -91,9 +95,7 @@ public class Entry extends PanBase {
 		root.setRight(lay1);
 		return root;
 	}
-	
-	private PanMapWafer wmap = new PanMapWafer();
-	
+
 	private Node layScanning(){
 
 		JFXButton btnAction = new JFXButton("快速執行");
@@ -158,9 +160,13 @@ public class Entry extends PanBase {
 		Tab stp2 = new Tab("曝光");
 		stp2.setContent(layScanning());
 		
-		root.getTabs().addAll(stp1,stp2);
+		Tab pg1 = new Tab("B140M");
+		pg1.setContent(stg0.layoutConsole());
+		
+		root.getTabs().addAll(stp1,stp2,pg1);
 		//root.getSelectionModel().select(0);
 		root.getSelectionModel().select(1);
+		//root.getSelectionModel().select(2);
 		return root;
 	}
 }

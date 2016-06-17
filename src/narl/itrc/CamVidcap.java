@@ -60,7 +60,7 @@ public class CamVidcap extends CamBundle {
 		}
 	}
 
-	class PanSetting extends PanOption {
+	class PanSetting extends PanListOption {
 		private String arg1;
 		
 		public PanSetting(int idx){

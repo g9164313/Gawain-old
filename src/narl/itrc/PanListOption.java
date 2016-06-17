@@ -18,7 +18,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.SingleSelectionModel;
 import javafx.scene.layout.GridPane;
 
-public abstract class PanOption extends PanBase {
+public abstract class PanListOption extends PanBase {
 	
 	class ItemOption {
 		public Label name;
@@ -40,7 +40,7 @@ public abstract class PanOption extends PanBase {
 					Number oldValue, 
 					Number newValue
 				) {
-					PanOption.this.slider2value(
+					PanListOption.this.slider2value(
 						name.getText(), 
 						newValue.intValue()
 					);
@@ -59,7 +59,7 @@ public abstract class PanOption extends PanBase {
 			{
 				@Override
 				public void handle(ActionEvent event) {
-					PanOption.this.boxcheck2value(
+					PanListOption.this.boxcheck2value(
 						name.getText(),
 						chk.selectedProperty().get()
 					);
@@ -82,7 +82,7 @@ public abstract class PanOption extends PanBase {
 				@Override
 				public void handle(ActionEvent event) {
 					SingleSelectionModel<String> model = cmb.getSelectionModel();
-					PanOption.this.boxcombo2value(
+					PanListOption.this.boxcombo2value(
 						name.getText(),
 						model.getSelectedIndex(),
 						model.getSelectedItem()
@@ -138,7 +138,7 @@ public abstract class PanOption extends PanBase {
 
 	protected ArrayList<ItemOption> lstOpt = new ArrayList<ItemOption>();
 	
-	public PanOption(){		
+	public PanListOption(){		
 	}
 		
 	public abstract void slider2value(String name,int newValue);

@@ -87,7 +87,7 @@ OBJECTS = $(SOURCES:.cpp=.o)
 EXEC_ING := $(word 2,$(shell pgrep -f "narl.itrc.Gawain"))
 
 #$(TARGET_SO):  utils_jni.cpp dev_modbus.cpp dev_dio3232.cpp 
-$(TARGET_SO):  utils_jni.cpp utils_cv.cpp  CamBundle.cpp CamVidcap.cpp  CamPylon.cpp  CamEbus.cpp SlantEdge.cpp
+$(TARGET_SO):  DevTTY.cpp utils_jni.cpp utils_cv.cpp  CamBundle.cpp CamVidcap.cpp  CamPylon.cpp  CamEbus.cpp SlantEdge.cpp
 	$(CC) $(CC_FLAG)  -fPIC -shared -o $@ $^ $(LD_LIBS)
 	cp -rf $@ ../bin/narl/itrc/nat
 	cp -rf $@ ../src/narl/itrc/nat
@@ -99,7 +99,7 @@ else
 endif
 	
 
-$(TARGET_EXE):  ./wrap-unix/main1.cpp utils_jni.cpp utils_cv.cpp SlantEdge.cpp
+$(TARGET_EXE):  ./wrap-unix/main1.cpp
 	$(CC) $(CC_FLAG) -o $@ $^ $(LD_LIBS)
 
 #$(TARGET_EXE):  /home/qq/labor/opencv-3.1/contrib/modules/text/samples/character_recognition.cpp
@@ -108,7 +108,7 @@ $(TARGET_EXE):  ./wrap-unix/main1.cpp utils_jni.cpp utils_cv.cpp SlantEdge.cpp
 #$(TARGET_JNI):
 #	javah  -o ./src/$@ -cp $(DIR_CLASS) $(NAT_CLASS)
 
-#all: $(TARGET_SO)
+all: $(TARGET_SO)
 all: $(TARGET_EXE)
 #all: $(TARGET_SO) $(TARGET_EXE)
 #all: clean $(TARGET_SO) $(TARGET_EXE)

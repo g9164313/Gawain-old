@@ -82,7 +82,7 @@ public class Loader extends DlgTask {
 			}
 			//check suffix name again!!!
 			for(int i=0; i<tmp.length; i++){
-				if(Misc.os.equalsIgnoreCase("win")==true){
+				if(Misc.isFxxkMicrosoft()==true){
 					if(tmp[i].endsWith(".dll")==true){
 						tmp[i] = tmp[i].substring(0,tmp[i].length()-4);
 					}
@@ -147,7 +147,7 @@ public class Loader extends DlgTask {
 		}else{
 			src = String.format(
 				"%s_%s_%s",
-				node,Misc.arch,Misc.os
+				node,Misc.arch,Misc.getOSName()
 			);
 			dst = Misc.pathTemp+node;			
 			lst = Gawain.prop.getProperty(node,"").replace(' ',',').split(",");
@@ -172,7 +172,7 @@ public class Loader extends DlgTask {
 	public void export_file(String dst,String src,String name,boolean isBase){
 		InputStream ss = null;
 		OutputStream dd = null;
-		if(Misc.os.equalsIgnoreCase("win")==true){
+		if(Misc.isFxxkMicrosoft()==true){
 			if(name.endsWith(".dll")==false){
 				name=name+".dll";
 			}

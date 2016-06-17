@@ -1,0 +1,239 @@
+package narl.itrc;
+
+import java.io.File;
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
+
+import javafx.beans.property.SimpleStringProperty;
+
+public class DevTTY implements Gawain.EventHook {
+
+	private final String TXT_NONE  = "--------";
+	private final String TXT_UNKNOW= "????";
+	
+	public DevTTY(){
+		Gawain.hook(this);
+		//how to open a default terminal?
+	}
+	
+	public DevTTY(String txt){		
+		Gawain.hook(this);
+		open(txt);
+	}
+	
+	@Override
+	public void shutdown() {
+		close();
+	}
+	
+	private long handle = 0L;
+	private boolean sync0= true;//This is tri_state variable, default is block mode
+	private boolean sync1= true;//This is tri_state variable
+	
+	public SimpleStringProperty ctrlName = new SimpleStringProperty(TXT_NONE);
+	
+	public String getCtrlName(){
+		return ctrlName.get();
+	}
+	
+	public void setName(String txt){
+		open(txt);
+	}
+	
+	public void setSync(boolean flag){
+		sync0 = flag;
+	}
+	
+	public boolean isLive(){
+		if(handle==0){
+			return false;
+		}
+		return true;
+	}
+	
+	private String infoName=TXT_UNKNOW;
+	private int  infoBaud = -1;
+	private char infoData = '?';
+	private char infoPart = '?';
+	private char infoStop = '?';
+	
+	public String getName(){
+		return infoName;
+	}
+	public String getBaud(){
+		return String.valueOf(infoBaud);
+	}
+	public String getDataBit(){
+		return String.valueOf(infoData);
+	}
+	public String getParity(){
+		return String.valueOf(infoPart);
+	}
+	public String getStopBit(){
+		return String.valueOf(infoStop);
+	}
+	private void resetInfo(){
+		ctrlName.setValue(TXT_NONE);
+		infoName = TXT_UNKNOW;
+		infoBaud = -1;
+		infoData = '?';
+		infoPart = '?';
+		infoStop = '?';
+	}
+	
+	/**
+	 * Parse the control statement like "/dev/ttyS0,9600,8n1".<p>
+	 * The control statement is composed of baud-rate,data-bit,parity,stop-bit.<p>
+	 * Parity can be 'n'(none),'o'(odd),'e'(event),'m'(mask) and 's'(space).<p>
+	 * @param txt - control statement.
+	 */
+	public void open(String txt){
+		//reset the previous connection!!!
+		resetInfo();
+		close();
+		String[] arg = txt.trim().split(",");
+		//check we have 3 arguments at least
+		if(arg.length<3){
+			return;
+		}
+		//check the fist argument is device name
+		infoName = arg[0];
+		if(Misc.isPOSIX()==true){
+			if(new File(infoName).exists()==false){
+				return;
+			}
+		}else{
+			//how to check whether fxxking windows system has terminal
+		}
+		//check the second argument is integer
+		try{
+			infoBaud = Integer.valueOf(arg[1]);
+		}catch(NumberFormatException e){
+			return;
+		}
+		char[] ctrl = arg[2].toCharArray();
+		infoData = ctrl[0];
+		infoPart = ctrl[1];
+		infoStop = ctrl[2];
+		implOpen(
+			infoName,
+			infoBaud,
+			infoData,
+			infoPart,
+			infoStop,
+			'?'
+		);		
+		if(handle!=0){ 
+			ctrlName.setValue(txt);//we success!!!
+		}
+	}
+	
+	/**
+	 * Read text from terminal.<p>
+	 * @return NULL - if no data<p>
+	 * Text - what we got.<p>
+	 */
+	public String readTxt(){
+		byte[] buf = readBuf();
+		if(buf==null){
+			return null;
+		}
+		try {
+			return new String(buf,"UTF-8");
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();			
+		}
+		return null;
+	}
+	
+	public String readTxt(boolean sync){
+		sync0 = sync;
+		return readTxt();
+	}
+	
+	public byte[] readBuf(){
+		return implRead();
+	}
+	
+	public byte[] readBuf(boolean sync){
+		sync0 = sync;
+		return readBuf();
+	}
+	
+	public void writeTxt(String txt){
+		if(txt.length()==0){
+			return;
+		}
+		byte[] buf = txt.getBytes(Charset.forName("UTF-8"));
+		implWrite(buf);
+	}
+	
+	public void writeTxt(byte[] buf){
+		implWrite(buf);
+	}
+	
+	public String fetch(String cmd,char tail){
+		//panel shouldn't use this
+		writeTxt(cmd);
+		String txt = "";
+		int max=5;
+		for(;max>0;){
+			String tmp = readTxt();
+			if(tmp==null){
+				max--;
+				continue;
+			}
+			txt = txt + tmp;
+			int  len = txt.length();
+			char end = txt.charAt(len-1);
+			if(end==tail){
+				return txt;
+			}
+		}
+		return txt;
+	}
+	
+	public String fetch(String cmd,String tail){
+		//panel shouldn't use this
+		writeTxt(cmd);
+		String txt = "";
+		char[] _tail = tail.toCharArray();		
+		int max=5;
+		for(;max>0;){
+			txt = txt + readTxt();
+			int  len = txt.length();
+			char end = txt.charAt(len-1);
+			for(int i=0; i<_tail.length; i++){
+				if(end==_tail[i]){
+					return txt;
+				}
+			}
+		}
+		return txt;
+	}
+	
+	/**
+	 * Disconnect terminal!!!
+	 */
+	public void close(){
+		if(handle==0L){
+			return;
+		}
+		implClose();
+	}
+	
+	private native void implOpen(
+		String name,
+		int  baud_rate,
+		char data_bit,
+		char parity,
+		char stop_bit,
+		char flow_mode
+	);
+
+	private native byte[] implRead();
+	
+	private native void implWrite(byte[] buf);
+	
+	private native void implClose();
+}

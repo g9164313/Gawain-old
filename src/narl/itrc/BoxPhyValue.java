@@ -22,9 +22,9 @@ public class BoxPhyValue extends JFXTextField implements
 	}
 
 	public BoxPhyValue(String title,String value){
-		setText(value);
 		setPromptText(title);
 		setTooltip(new Tooltip(title));
+		setText(value);		
 		setOnAction(this);
 		setPrefWidth(100);
 	}

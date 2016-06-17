@@ -16,6 +16,7 @@ import javafx.scene.shape.ArcType;
 import narl.itrc.BoxPhyValue;
 import narl.itrc.PanBase;
 import narl.itrc.PanDecorate;
+import narl.itrc.PanMapBase;
 
 import com.jfoenix.controls.JFXComboBox;
 
@@ -131,7 +132,7 @@ public class PanMapWafer extends PanMapBase {
 	}
 
 	@Override
-	void drawShape(GraphicsContext gc) {
+	public void drawShape(GraphicsContext gc) {
 		gc.save();
 		gc.strokeArc(
 			-mapGrid[0]/2, -mapGrid[1]/2, 
@@ -143,7 +144,7 @@ public class PanMapWafer extends PanMapBase {
 	}
 
 	@Override
-	void layoutDie(ArrayList<Die> lst) {
+	public void layoutDie(ArrayList<Die> lst) {
 		double rad = getDiameter()/2.;
 		double diw = boxDieW.getValue();
 		double dih = boxDieH.getValue();
