@@ -4,5 +4,19 @@ This is a JavaFX Project bundle.It includes applications to process images or op
 # How to start?
 The main entry of this project is in "narl/itrc/Gawain.java", then it will load the config file,"narl/itrc/res/conf.properties".Find the key,"LAUNCH" and use this property value as class path to set all stage or scene.
 
+# Required Packages
+This project requires below packages:
++ Enzo
++ JFoenix
+
+Other functions, like math calculation or reading excel file, we will choose the below packages:  
++ Apache commons math3
++ Jexcelapi
++ Postgresql.jdbc4
+
+
+ 
+
+
 
 
