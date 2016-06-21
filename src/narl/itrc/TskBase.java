@@ -40,7 +40,7 @@ abstract class TskBase {
 	 * @param task - Task<Integer>
 	 * @return 0 - working, !0 - exist
 	 */
-	public abstract int looper(Task<Integer> task);
+	public abstract int looper(Task<Integer> tsk);
 	
 	/**
 	 * When task is finished, <p>

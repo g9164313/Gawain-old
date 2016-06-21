@@ -2,7 +2,6 @@ package prj.letterpress;
 
 import com.jfoenix.controls.JFXCheckBox;
 
-import javafx.event.Event;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -11,8 +10,8 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import narl.itrc.BoxIntValue;
+import narl.itrc.DevMotion;
 import narl.itrc.DevTTY;
-import narl.itrc.Misc;
 import narl.itrc.PanBase;
 
 /**
@@ -23,20 +22,43 @@ import narl.itrc.PanBase;
  * @author qq
  *
  */
-public class DevB140M extends DevTTY {
+public class DevB140M extends DevMotion {
+	
+	private DevTTY tty = new DevTTY(); 
 	
 	public DevB140M(){
-		super("/dev/ttyS0,115200,8n1");//this is hard code!!!
-		watch();
+		tty.open("/dev/ttyS0,115200,8n1");//this is hard code!!!
+		//watch();
 	}
 	
 	public DevB140M(String tty_name){
-		super(tty_name);
-		watch();
+		tty.open(tty_name);
+		//watch();
+		//The DP command is useful to redefine the absolute position.
 	}
 	
+	/**
+	 * Send command to device and wait for response. 
+	 * @param cmd - command 
+	 * @return
+	 */
+	public String exec(String cmd){
+		//Misc.logv("exec -> "+cmd);
+		String txt = tty.fetch(cmd,':');
+		int pos = txt.indexOf('\n');
+		if(pos<0){
+			return txt;
+		}
+		txt = txt.substring(pos+1);//strip "echo" message, but why???
+		pos = txt.indexOf('\n');
+		if(pos<0){
+			return txt;
+		}
+		return txt.substring(0,pos-1);
+	}
+		
 	private void watch(){
-		if(isLive()==false){
+		if(tty.isLive()==false){
 			return;
 		}
 		//String txt = exec("MG TIME\r");
@@ -44,13 +66,35 @@ public class DevB140M extends DevTTY {
 		setBox(exec("SP ?,?,?,?\r"),boxSSpd);
 		setBox(exec("AC ?,?,?,?\r"),boxASpd);
 		setBox(exec("DC ?,?,?,?\r"),boxDSpd);
+		setTxt(exec("TP\r"),txtCount);
 	}
 	
-	private void setBox(String txt,BoxIntValue[] box){
-		String[] arg = txt.split(",");
+	private void setBox(String msg,BoxIntValue[] box){
+		String[] arg = msg.split(",");
 		for(int i=0; i<arg.length; i++){
 			box[i].setValue(arg[i].trim());
 		}
+	}
+	
+	private void setTxt(String msg,Label[] txt){
+		String[] arg = msg.split(",");
+		for(int i=0; i<arg.length; i++){
+			txt[i].setText(arg[i].trim());
+		}
+	}
+	
+	public int[] getCounter(){
+		int[] pos = {0,0,0,0};
+		String txt = exec("TP\r");
+		String[] val = txt.split(",");
+		try{
+			pos[0] = Integer.valueOf(val[0]);
+			pos[1] = Integer.valueOf(val[1]);
+			pos[2] = Integer.valueOf(val[2]);
+			pos[3] = Integer.valueOf(val[3]);
+		}catch(NumberFormatException e){			
+		}
+		return pos;
 	}
 	
 	/**
@@ -110,20 +154,27 @@ public class DevB140M extends DevTTY {
 		box[idx].setValue(tmp);
 		//Misc.logv("reload:"+tmp);
 	}
-	
-	public String exec(String cmd){
-		String txt = fetch(cmd,':');
-		int pos = txt.indexOf('\n');
-		if(pos<0){
-			return "";
+
+	@Override
+	public void mapping(boolean abs,Double[] value) {
+		String cmd;
+		if(abs==true){
+			cmd = "PA ";
+		}else{
+			cmd = "PR ";
 		}
-		txt = txt.substring(pos+1);//strip "echo" message~~~
-		pos = txt.indexOf('\n');
-		if(pos<0){
-			return "";
+		for(int i=0; i<value.length; i++){
+			if(value[i]!=null){
+				cmd = cmd + String.format("%d, ",value[i].intValue());
+			}else{
+				cmd = cmd + ", ";
+			}
 		}
-		return txt.substring(0,pos-1);
+		cmd = cmd.substring(0, cmd.length()-2);
+		cmd = cmd + ";BG;MC;\r";	
+		exec(cmd);
 	}
+	//----------------------------------//
 	
 	private JFXCheckBox chkOut[]={
 		new JFXCheckBox("OUT1"),
@@ -153,6 +204,14 @@ public class DevB140M extends DevTTY {
 		new BoxIntValue("D-Deceleration").setEventEnter(event->setSpeed('d',3))
 	};
 	
+	private final String NON_COUNT="--------";
+	private Label txtCount[]={
+		new Label(NON_COUNT),
+		new Label(NON_COUNT),
+		new Label(NON_COUNT),
+		new Label(NON_COUNT)
+	};
+	
 	private Node layoutAxisInfo(String title,int idx){
 		GridPane root = new GridPane(); 
 		root.getStyleClass().add("grid-small");
@@ -164,6 +223,7 @@ public class DevB140M extends DevTTY {
 		root.addRow(1,new Label("速度(脈衝/秒)"),new Label("："),boxSSpd[idx]);
 		root.addRow(2,new Label("加速度"),new Label("："),boxASpd[idx]);
 		root.addRow(3,new Label("減速度"),new Label("："),boxDSpd[idx]);
+		root.addRow(4,new Label("計數器"),new Label("："),txtCount[idx]);
 		
 		return PanBase.decorate(title,root);
 	}
@@ -179,7 +239,7 @@ public class DevB140M extends DevTTY {
 		
 		final Button btnName = new Button("dev-name");
 		//btnName.setMaxWidth(Double.MAX_VALUE);
-		btnName.textProperty().bind(ctrlName);
+		btnName.textProperty().bind(tty.ctrlName);
 		btnName.setOnAction(event->{
 		});
 		//GridPane.setHgrow(btnName,Priority.ALWAYS);

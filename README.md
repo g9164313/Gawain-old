@@ -5,3 +5,4 @@ This is a JavaFX Project bundle.It includes applications to process images or op
 The main entry of this project is in "narl/itrc/Gawain.java", then it will load the config file,"narl/itrc/res/conf.properties".Find the key,"LAUNCH" and use this property value as class path to set all stage or scene.
 
 
+

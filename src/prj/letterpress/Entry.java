@@ -41,7 +41,7 @@ public class Entry extends PanBase {
 	private DevB140M stg0 = new DevB140M();
 	
 	private TskAction tsk0 = new TskAligment(rndr,Entry.this);
-	private TskAction tsk1 = new TskScanning(wmap);
+	private TskAction tsk1 = new TskScanning(stg0,wmap,Entry.this);
 	
 	@Override
 	protected void eventShown(WindowEvent e){

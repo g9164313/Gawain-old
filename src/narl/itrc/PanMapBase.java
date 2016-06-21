@@ -4,6 +4,8 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import com.sun.glass.ui.Application;
+
 import javafx.geometry.Side;
 import javafx.scene.Cursor;
 import javafx.scene.Node;
@@ -25,19 +27,24 @@ public abstract class PanMapBase extends PanDecorate {
 	
 	private final ContextMenu menu = new ContextMenu();
 	
-	protected static final Color clrCellGround = Color.web("#b0bec5");
-	protected static final Color clrCellSelect = Color.web("#ffeb3b");
-	protected static final Color clrCellWorking= Color.web("#3f51b5");
+	protected static final Color clrGround = Color.web("#b0bec5");
+	protected static final Color clrSelect = Color.web("#ffeb3b");
+	protected static final Color clrWalking= Color.web("#64b5f6");
+	
+	public PanMapBase(){
+		init();
+	}
 	
 	public PanMapBase(String title){
 		super(title);
 		init();
 	}
 	
-	public PanMapBase(){
+	public PanMapBase(String title, DevMotion stage){
+		super(title);
 		init();
 	}
-	
+
 	private void init(){
 		parm.setFill(Color.TRANSPARENT);
 
@@ -54,7 +61,7 @@ public abstract class PanMapBase extends PanDecorate {
 		});
 		menu.getItems().add(m1);
 	}
-	
+
 	protected void eventExport(File fs){ }
 	
 	/**
@@ -63,7 +70,7 @@ public abstract class PanMapBase extends PanDecorate {
 	 *
 	 */
 	public class Die {
-		public Color clrState = clrCellGround;
+		public Color clrState = clrGround;
 		
 		/**
 		 * this variable indicates the scan sequence.<p>
@@ -74,7 +81,8 @@ public abstract class PanMapBase extends PanDecorate {
 		public int key = 0;
 		
 		/**
-		 * this is the center position of die. unit is 'mm'
+		 * This is the center position of die. unit is 'mm'.<p>
+		 * Remember, it is 'Absolute Location'.<p>
 		 */
 		private double[] pos = {0.,0.};
 		
@@ -162,7 +170,7 @@ public abstract class PanMapBase extends PanDecorate {
 			return false;
 		}
 	}
-	
+		
 	/**
 	 * this variable keeps all dies information.
 	 */
@@ -174,6 +182,47 @@ public abstract class PanMapBase extends PanDecorate {
 	 * 'key' value presents the path sequence.<p>
 	 */
 	protected HashMap<Integer,Die> lstPath = new HashMap<Integer,Die>();
+	
+	/**
+	 * Keep the index of sequence path.<p>
+	 * When this variable is less than 0, it means none of sequence.<p>
+	 */
+	private int curSeq = 0;
+	/**
+	 * Get absolute location along the sequence path.<p>
+	 * Just keep calling this function.<p>
+	 * When we reach the end of sequence path, it returned null.<p> 
+	 * @param unit - length unit, default unit is 'mm'.
+	 * @return location value (x,y).<p> null - the end of sequence path.<p>
+	 */
+	public double[] getSequencePath(String unit){
+		if(curSeq<=0){
+			curSeq = 1;
+		}		
+		Die dd = lstPath.get(curSeq);
+		if(dd==null){
+			curSeq = 0;
+			clearGround();
+			return null;
+		}		
+		double[] val = dd.getPosition().clone();
+		val[0] = Misc.phyConvert(val[0], "mm", unit);
+		val[1] = Misc.phyConvert(val[1], "mm", unit);
+		drawSeqDie();
+		curSeq++;//for the next location~~
+		return val;
+	}
+	
+	public double[] getSequencePath(){
+		return getSequencePath("mm");
+	}	
+	
+	/**
+	 * Reset the sequence path.(Just reset index).<p>
+	 */
+	public void resetSequence(){
+		curSeq = 0;
+	}
 	
 	private final int MIN_SCALE = 1;
 	private final int MAX_SCALE = 10;
@@ -327,45 +376,6 @@ public abstract class PanMapBase extends PanDecorate {
 		gc.restore();
 	}
 	
-	private void drawAllDie(GraphicsContext gc){
-		gc.save();		
-		gc.setStroke(Color.BLACK);		
-		for(Die die:lstDie){
-			gc.setLineWidth(0.5);
-			drawDie(gc,die,die.clrState);
-			if(
-				lstPath.isEmpty()==true||
-				arrowSize<=0
-			){
-				continue;
-			}
-			gc.setLineWidth(2);
-			drawArrow(gc,die);			
-		}
-		gc.restore();
-	}
-	
-	private void drawDie(GraphicsContext gc,Die die,Color state){
-		int[] pos = die.getLfBm();
-		gc.setFill(state);		
-		gc.fillRect(
-			pos[0], pos[1],
-			dieGrid[0], dieGrid[1]
-		);
-		gc.strokeRect(
-			pos[0]+1, pos[1]+1, 
-			dieGrid[0]-2, dieGrid[1]-2
-		);		
-		/*int[] org = die.getOrig();
-		gc.setStroke(Color.RED);
-		gc.strokeArc(
-			org[0]-5,org[1]-5, 
-			10, 10, 
-			0, 360, 
-			ArcType.OPEN
-		);*/
-	}
-
 	private int arrowSize = -1;
 	private float feathOff1 = 1.f;
 	private float feathOff2 = 1.f;
@@ -400,7 +410,9 @@ public abstract class PanMapBase extends PanDecorate {
 		float[] fth2 = {-fth1[0],-fth1[1]};
 		
 		vaa[0] = vaa[0] + (int)(feathOff1*dir[0]);
-		vaa[1] = vaa[1] + (int)(feathOff1*dir[1]);		
+		vaa[1] = vaa[1] + (int)(feathOff1*dir[1]);
+		
+		gc.setLineWidth(2);
 		gc.strokeLine(
 			vaa[0]+(int)(feathOff2*fth1[0]),
 			vaa[1]+(int)(feathOff2*fth1[1]),
@@ -413,15 +425,51 @@ public abstract class PanMapBase extends PanDecorate {
 		);
 	}
 	
-	private void drawCursor(Die die){
+	private void drawAllDie(GraphicsContext gc){
+		gc.save();	
+		for(Die die:lstDie){
+			drawDie(gc,die,die.clrState);
+			if(
+				lstPath.isEmpty()==true||
+				arrowSize<=0
+			){
+				continue;
+			}			
+			drawArrow(gc,die);			
+		}
+		gc.restore();
+	}
+	
+	private void drawDie(GraphicsContext gc,Die die,Color state){
+		int[] pos = die.getLfBm();
+		gc.setStroke(Color.BLACK);
+		gc.setLineWidth(0.5);
+		gc.setFill(state);		
+		gc.fillRect(
+			pos[0], pos[1],
+			dieGrid[0], dieGrid[1]
+		);
+		gc.strokeRect(
+			pos[0]+1, pos[1]+1, 
+			dieGrid[0]-2, dieGrid[1]-2
+		);		
+		/*int[] org = die.getOrig();
+		gc.setStroke(Color.RED);
+		gc.strokeArc(
+			org[0]-5,org[1]-5, 
+			10, 10, 
+			0, 360, 
+			ArcType.OPEN
+		);*/
+	}
+
+	private void _drawCursor(Die die){
 		int[] pos = die.getLfBm();
 		pos[0] = pos[0] + 7;
 		pos[1] = pos[1] + dieGrid[1]/4;
 		GraphicsContext gc = mapScreen.getGraphicsContext2D();
 		gc.save();
-		gc.setStroke(Color.BLACK);
-		gc.setLineWidth(0.5);
-		drawDie(gc,die,clrCellSelect);
+		drawDie(gc,die,clrSelect);
 		gc.setFill(Color.BLACK);	
 		gc.fillText(
 			String.format("%d",die.key),
@@ -430,36 +478,70 @@ public abstract class PanMapBase extends PanDecorate {
 		gc.restore();
 	}
 	
-	/*private void clearCursor(Die die){
+	private void _drawSeqDie(){		
 		GraphicsContext gc = mapScreen.getGraphicsContext2D();
-		//draw function is still affected by Transform().
-		int[] dst = die.getLfBm();
-		int[] src = {
-			dst[0] + mapGrid[0]/2,
-			dst[1] + mapGrid[1]/2
-		};
-		gc.drawImage(
-			mapGround,			
-			src[0],src[1],
-			dieGrid[0], dieGrid[0], 
-			dst[0],dst[1],
-			dieGrid[0], dieGrid[0]
-		);
-	}*/
+		gc.save();
+		Die die = lstPath.get(curSeq);
+		if(die!=null){
+			drawDie(gc,die,clrWalking);
+		}		
+		gc.restore();
+	}
 	
-	private void clearGround(){
+	public void drawSeqDie(){
+		if(Application.isEventThread()==true){
+			_drawSeqDie();
+		}else{
+			Application.invokeAndWait(new Runnable(){
+				@Override
+				public void run() {
+					_clearGround();
+					_drawSeqDie();
+				}
+			});
+		}
+	}
+
+	private void _clearGround(){
 		mapScreen.getGraphicsContext2D().drawImage(
-		mapGround,			
-		-mapGrid[0]/2,-mapGrid[0]/2
+			mapGround,			
+			-mapGrid[0]/2,-mapGrid[0]/2
 		);		
 	}
 	
+	public void clearGround(){
+		if(Application.isEventThread()==true){
+			_clearGround();
+		}else{
+			Application.invokeAndWait(new Runnable(){
+				@Override
+				public void run() {
+					_clearGround();
+				}
+			});
+		}
+	}
+	
+	private void redrawDie(int mx,int my){
+		_clearGround();
+		//find where cursor is,or which die hold this cursor~~~
+		for(Die die:lstDie){
+			if(die.isHold(mx,my)==true){			
+				_drawCursor(die);
+				break;
+			}
+		}
+		if(curSeq>0){
+			_drawSeqDie();
+		}
+	}
+
 	private void setHandler(){
 		//mapScreen.setOnMouseClicked(event);
 		mapScreen.setOnMouseMoved(EVENT->{
 			int mx = (int)EVENT.getX() - mapGrid[0]/2;
 			int my = (int)EVENT.getY() - mapGrid[1]/2;
-			updateCursor(mx,my);
+			redrawDie(mx,my);
 		});
 		mapScreen.setOnMouseClicked(EVENT->{
 			MouseButton mb = EVENT.getButton();
@@ -470,7 +552,6 @@ public abstract class PanMapBase extends PanDecorate {
 					menu.hide();
 					return;
 				}
-				//TODO:move position??
 			}else if(mb==MouseButton.SECONDARY){
 				menu.show(mapScreen,Side.RIGHT,mx,my);				
 			}
@@ -481,35 +562,9 @@ public abstract class PanMapBase extends PanDecorate {
 		});
 		mapScreen.setOnMouseExited(EVENT->{
 			//cursor = null;
-			clearGround();
+			_clearGround();
 			getScene().setCursor(Cursor.DEFAULT);
 		});		
-	}
-	
-	//private Die cursor = null;
-	private void updateCursor(int mx,int my){
-		/*if(lstDie.isEmpty()==true){
-			cursor = null;
-			return;
-		}
-		if(cursor!=null){
-			//check whether cursor is in the previous zone~~
-			if(cursor.isHold(mx,my)==true){
-				return;
-			}
-			//clearCursor(cursor);
-			
-		}*/
-		clearGround();
-		//find where cursor is,or which die hold this cursor~~~
-		for(Die die:lstDie){
-			if(die.isHold(mx,my)==true){
-				//cursor = die;				
-				drawCursor(die);
-				//Misc.logv("die.key=%d",die.key);
-				return;
-			}
-		}
 	}
 
 	private Canvas mapScreen;//let parent create this object!!!	
