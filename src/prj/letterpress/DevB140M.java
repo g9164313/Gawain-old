@@ -170,7 +170,7 @@ public class DevB140M extends DevMotion {
 				cmd = cmd + ", ";
 			}
 		}
-		cmd = cmd.substring(0, cmd.length()-2);
+		//cmd = cmd.substring(0, cmd.length()-2);
 		cmd = cmd + ";BG;MC;\r";	
 		exec(cmd);
 	}

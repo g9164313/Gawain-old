@@ -9,7 +9,7 @@ import java.util.Arrays;
  * @author qq
  *
  */
-public class SNDir extends File {
+public class DirSN extends File {
 
 	private static final long serialVersionUID = -2654865502562489786L;
 
@@ -18,7 +18,7 @@ public class SNDir extends File {
 	 * @param pathname - the directory path, if non-existing, it will be made
 	 * @param pattern - exchange the percentage(%) character with serial-number
 	 */
-	public SNDir(String pathname,String pattern) {
+	public DirSN(String pathname,String pattern) {
 		super(pathname);
 		if(exists()==false){ 
 			mkdirs();

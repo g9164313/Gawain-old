@@ -11,6 +11,7 @@ import com.jfoenix.controls.JFXButton;
 
 import javafx.beans.property.ReadOnlyDoubleProperty;
 import javafx.collections.ObservableList;
+import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
@@ -271,13 +272,13 @@ public abstract class PanListAction extends VBox {
 	};
 	
 	private EventHandler<ActionEvent> eventSaveLoad = new EventHandler<ActionEvent>(){
-		class TskSave extends DlgTask{
+		class TskSave extends TskDialog{
 			public File target = null;
 			public TskSave(){
-				super("儲存工作清單");
+				title="儲存工作清單";
 			}
 			@Override
-			public boolean execute(DlgTask dlg) {
+			public int looper(Task<Integer> tsk) {				
 				try {
 					FileWriter fs = new FileWriter(target);
 					ObservableList<PropBundle> lst = lstAction.getItems();
@@ -285,25 +286,25 @@ public abstract class PanListAction extends VBox {
 					for(int i=0; i<cnt; i++){
 						PropBundle itm = lst.get(i);
 						fs.write(itm.name.get()+";"+itm.desc1.get()+";"+itm.value.get()+"\n");
-						updateMessage("寫入："+itm.name.get());
-						updateProgress(i,cnt);
+						log("寫入："+itm.name.get());
+						setProgress(i,cnt);
 					}
 					fs.close();
 				} catch (IOException e) {					
-					updateMessage(e.getMessage());
-					cancel();
-					return false;
-				}				
-				return true;
+					log(e.getMessage());
+					tsk.cancel();
+					return -1;
+				}							
+				return 1;
 			}
 		};
-		class TskLoad extends DlgTask{
+		class TskLoad extends TskDialog{
 			public File target = null;
 			public TskLoad(){
-				super("讀取工作清單");
+				title = "讀取工作清單";
 			}
 			@Override
-			public boolean execute(DlgTask dlg) {
+			public int looper(Task<Integer> tsk) {
 				ObservableList<PropBundle> lst = lstAction.getItems();
 				lst.clear();
 				try {
@@ -319,16 +320,16 @@ public abstract class PanListAction extends VBox {
 						PropBundle itm = new PropBundle(parm[0],parm[1],parm[2]);
 						lst.add(itm);
 						itm.desc2.set(String.format("%d",lst.size()));
-						updateMessage("讀取："+parm[0]);
+						log("讀取："+parm[0]);
 					}
 					bf.close();
 					fs.close();
 				} catch (IOException e) {					
-					updateMessage(e.getMessage());
-					cancel();
-					return false;
+					log(e.getMessage());
+					tsk.cancel();
+					return -1;
 				}
-				return true;
+				return 1;
 			}
 		};
 		private FileChooser fch = new FileChooser();
@@ -345,7 +346,7 @@ public abstract class PanListAction extends VBox {
 				if(tskSave.target==null){
 					return;
 				}
-				tskSave.popup(ww);
+				tskSave.appear();
 				break;
 			case MENU_LOAD:
 				TskLoad tskLoad = new TskLoad();
@@ -354,7 +355,7 @@ public abstract class PanListAction extends VBox {
 				if(tskLoad.target==null){
 					return;
 				}
-				tskLoad.popup(ww);
+				tskLoad.appear();
 				break;
 			}
 		}

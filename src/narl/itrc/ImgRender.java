@@ -236,7 +236,7 @@ public class ImgRender {
 		}
 	};
 
-	private SNDir dirSnap = new SNDir(Misc.pathTemp,"snap%.png");
+	private DirSN dirSnap = new DirSN(Misc.pathTemp,"snap%.png");
 	
 	private void doAction(ImgPreview pp){
 		switch(pp.action.get()){

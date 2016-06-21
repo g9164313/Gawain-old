@@ -10,27 +10,35 @@ import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.LinkedList;
 
-import narl.itrc.DlgTask;
+import javafx.concurrent.Task;
 import narl.itrc.Gawain;
 import narl.itrc.Misc;
+import narl.itrc.TskDialog;
 
-public class Loader extends DlgTask {
+public class Loader extends TskDialog {
 
 	public Loader(){
-		super("Loader");
+		title = "Tsk-Loader";
 	}
 	
 	@Override
-	public boolean execute(DlgTask dlg) {
-		String[] node = Gawain.prop.getProperty("LIB","").replace(' ', ';').replace(',', ';').split(";");
+	public int looper(Task<Integer> tsk) {
+		String txtConf = Gawain.prop.getProperty("LIB","");
+		if(txtConf.length()==0){
+			return -1;
+		}
+		String[] node = txtConf
+			.replace(' ', ';')
+			.replace(',', ';')
+			.split(";");
 		if(node[0].length()==0){
-			updateMessage("沒有設定LIB變數!!");
-			return false;
+			log("沒有設定LIB變數!!");
+			return -2;
 		}
 		addLibraryPath(Misc.pathRoot);//default search path~~~
 		addLibraryPath(Misc.pathTemp);
 		
-		updateMessage("複製函式庫...");
+		log("複製函式庫...");
 		for(int i=0; i<node.length; i++){
 			int pos = node[i].indexOf('@');
 			if(pos>=0){
@@ -41,24 +49,24 @@ public class Loader extends DlgTask {
 			}else{
 				prepare_lib(node[i]);				
 			}
-			updateMessage("複製 "+node[i]);
-			updateProgress(1+i,node.length);//stepping~~~
-			if(isCancelled()==true){
-				updateMessage("中止!!");
-				return false;
+			log("複製 "+node[i]);
+			setProgress(1+i,node.length);//stepping~~~
+			if(tsk.isCancelled()==true){
+				log("中止!!");
+				return -3;
 			}
 		}
 						
-		updateMessage("載入函式庫...");
+		log("載入函式庫...");
 		for(int i=0; i<node.length; i++){
 			reload_lib(node[i]);
-			updateProgress(1+i,node.length);//stepping~~~
-			if(isCancelled()==true){
-				updateMessage("中止!!");
-				return false;
+			setProgress(1+i,node.length);//stepping~~~
+			if(tsk.isCancelled()==true){
+				log("中止!!");
+				return -3;
 			}
-		}
-		return true;
+		}		
+		return 1;//we success!!!
 	}
 
 	private void reload_lib(String node){
@@ -109,10 +117,10 @@ public class Loader extends DlgTask {
 				}else{
 					deps = deps+ ","+name;
 				}
-				updateMessage("載入 "+name);
+				log("載入 "+name);
 			} catch (UnsatisfiedLinkError e1) {
 				Misc.logv(e1.getMessage());
-				updateMessage("相依問題："+name);
+				log("相依問題："+name);
 				failCount++;
 				if(failCount>failMaxium){
 					//show how many libraries we can't load~~
@@ -125,7 +133,7 @@ public class Loader extends DlgTask {
 				}				
 				lst.addLast(name);				
 			} catch (Exception e2){
-				updateMessage("問題("+name+")："+e2.getMessage());
+				log("問題("+name+")："+e2.getMessage());
 			}
 		}
 		//Misc.logv("load modules:\n%s",deps);

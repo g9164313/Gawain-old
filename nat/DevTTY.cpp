@@ -175,7 +175,6 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implOpen(
 	}else{
 		fcntl(fd,F_SETFL,FNDELAY);//Asynchronized mode
 	}
-
 	tcsetattr(fd,TCSANOW,&options);
 #endif//_MSC_VER
 }

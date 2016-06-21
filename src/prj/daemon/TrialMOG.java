@@ -6,7 +6,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javafx.beans.property.SimpleStringProperty;
 import narl.itrc.DevGrabber;
 import narl.itrc.Misc;
-import narl.itrc.SNDir;
+import narl.itrc.DirSN;
 
 public class TrialMOG extends DevGrabber {
 	
@@ -14,9 +14,9 @@ public class TrialMOG extends DevGrabber {
 	//private final String DIR_BACK=DIR_BASE+File.separator+"back"+File.separator;
 	//private final String DIR_FORE=DIR_BASE+File.separator+"fore"+File.separator;
 	//private final String DIR_MEAS=DIR_BASE+File.separator+"meas"+File.separator;
-	private final SNDir dirBack = new SNDir(DIR_BASE+File.separator+"back","img%.png");
-	private final SNDir dirFore = new SNDir(DIR_BASE+File.separator+"fore","img%.png");
-	private final SNDir dirMeas = new SNDir(DIR_BASE+File.separator+"meas","img%.png");
+	private final DirSN dirBack = new DirSN(DIR_BASE+File.separator+"back","img%.png");
+	private final DirSN dirFore = new DirSN(DIR_BASE+File.separator+"fore","img%.png");
+	private final DirSN dirMeas = new DirSN(DIR_BASE+File.separator+"meas","img%.png");
 	
 	private SimpleStringProperty msgCount = new SimpleStringProperty("???/???");
 	private SimpleStringProperty msgStatus= new SimpleStringProperty("--------");	

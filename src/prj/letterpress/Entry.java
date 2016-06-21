@@ -22,6 +22,7 @@ import narl.itrc.Misc;
 import narl.itrc.PanBase;
 import narl.itrc.PanJoystick;
 import narl.itrc.TskAction;
+import narl.itrc.TskDialog;
 
 public class Entry extends PanBase {
 
@@ -102,7 +103,14 @@ public class Entry extends PanBase {
 		btnAction.getStyleClass().add("btn-raised");
 		btnAction.setGraphic(Misc.getIcon("run.png"));
 		btnAction.setMaxWidth(Double.MAX_VALUE);
-		//btnAction.setOnAction();
+		btnAction.setOnAction(new TskDialog(Entry.this){
+			@Override
+			public int looper(Task<Integer> tsk) {
+				logv("working...");
+				Misc.delay(100);
+				return 0;
+			}
+		});
 		
 		JFXButton btnScan = new JFXButton("掃描程序");
 		btnScan.getStyleClass().add("btn-raised");

@@ -54,11 +54,15 @@ public abstract class PanBase {
 		title = txt;
 	}
 	
+	public Node getParent(){ 
+		return root;
+	}
+	
 	public Scene getScene(){ 
 		return scene;
 	}
 	
-	public Stage getOwner(){ 
+	public Stage getStage(){ 
 		return stage;
 	}
 	

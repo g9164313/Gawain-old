@@ -256,13 +256,12 @@ public class Gawain extends Application {
 	
 	@Override
 	public void start(Stage primaryStage) throws Exception {
-		new Loader().popup();		
 		if(optUnpack==true){
 			Misc.logv("unpack done...");
 			System.exit(0);
 			return;
 		}
-		
+		new Loader().stabdby();
 		String name = prop.getProperty("LAUNCH","");	
 		try {
 			Object obj = Class.forName(name).newInstance();

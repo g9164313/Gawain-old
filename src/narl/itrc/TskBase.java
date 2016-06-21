@@ -18,7 +18,7 @@ abstract class TskBase {
 	public AtomicInteger arg1 = new AtomicInteger(0);
 	
 	protected int result = 0;
-	
+
 	public TskBase(){		
 	}
 	
@@ -54,8 +54,9 @@ abstract class TskBase {
 	 * It is invoked by GUI thread.
 	 */
 	protected void eventStop(){
+		eventFinish();//we should call this event again.
 	}
-	
+
 	public void stop(){
 		if(task!=null){
 			if(task.isDone()==false){
@@ -104,7 +105,7 @@ abstract class TskBase {
 			}
 		};
 		
-		task.setOnCancelled(EVENT->eventStop());
+		task.setOnCancelled(event->eventStop());
 		
 		new Thread(task,name).start();
 		

@@ -9,13 +9,13 @@ public abstract class TskAction extends TskBase
 {
 	protected String title = "TskAction";
 	
-	private PanBase pan = null;
+	protected PanBase parent = null;
 	
 	public TskAction(){		
 	}
 	
 	public TskAction(PanBase root){
-		pan = root;		
+		parent = root;		
 	}
 	
 	public TskAction(Control ctrl){
@@ -23,13 +23,13 @@ public abstract class TskAction extends TskBase
 		if(obj==null){
 			return;
 		}else if(obj instanceof PanBase){
-			pan = (PanBase)obj;			
+			parent = (PanBase)obj;			
 		}		
 	}
 		
 	protected void spinning(boolean flag){
-		if(pan!=null){
-			pan.spinning(flag);
+		if(parent!=null){
+			parent.spinning(flag);
 		}
 	} 
 	
@@ -43,8 +43,8 @@ public abstract class TskAction extends TskBase
 		if(eventBegin()==false){
 			return;
 		}
-		if(pan!=null){
-			pan.spinning(true,this);
+		if(parent!=null){
+			parent.spinning(true,this);
 		}
 		start(title);
 	}
