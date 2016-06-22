@@ -19,6 +19,7 @@ public class Loader extends TskDialog {
 
 	public Loader(){
 		title = "Tsk-Loader";
+		useSplash = "logo.jpg";
 	}
 	
 	@Override

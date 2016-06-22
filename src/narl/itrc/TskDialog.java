@@ -10,6 +10,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextArea;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
@@ -30,13 +31,13 @@ public abstract class TskDialog extends TskBase
 	 */
 	protected boolean afterwards = false; 
 	
+	protected String useSplash = null;
+	
 	public TskDialog(){
-		initScene();
 	}
 	
 	public TskDialog(PanBase root){
 		parent = root;
-		initScene();
 	}
 
 	private Stage workStage = null;
@@ -45,13 +46,18 @@ public abstract class TskDialog extends TskBase
 	private TextArea workLog;
 
 	private void initScene(){
-		workScene = new Scene(layoutBody());
-		workScene.getStylesheets().add(Gawain.class.getResource("res/styles.css").toExternalForm());
+		workScene = new Scene(
+			(useSplash==null)?
+			(layoutIndicator()):
+			(layoutSplashImg())			
+		);
+		workScene.getStylesheets()
+		.add(Gawain.class.getResource("res/styles.css").toExternalForm());
 	}
 	
-	private Parent layoutBody(){
+	private Parent layoutIndicator(){
 		VBox lay0 = new VBox();
-		lay0.getStyleClass().add("vbox-small");
+		lay0.getStyleClass().add("vbox-small");		
 		HBox lay1 = new HBox();
 		lay1.getStyleClass().add("hbox-small");
 		lay1.setAlignment(Pos.CENTER);
@@ -72,6 +78,17 @@ public abstract class TskDialog extends TskBase
 		return lay0;
 	}
 	
+	private Parent layoutSplashImg(){
+		VBox lay0 = new VBox();
+		lay0.getStyleClass().add("splash-board");
+		ImageView img = new ImageView(Misc.getImage("logo.jpg"));
+		workLog = new TextArea();//this is dummy~~~		
+		workBar = new ProgressBar();
+		workBar.prefWidthProperty().bind(workStage.widthProperty().subtract(3));
+		lay0.getChildren().addAll(img,workBar);
+		return lay0;
+	}
+	
 	private void initStage(){
 		workStage = new Stage(StageStyle.UNIFIED);		
 		workStage.initModality(Modality.WINDOW_MODAL);
@@ -82,20 +99,27 @@ public abstract class TskDialog extends TskBase
 		workStage.setOnHidden(event->stop());
 		workStage.setOnShown(event->eventShown());
 		workStage.setResizable(false);		
-		workStage.setScene(workScene);
+		if(useSplash!=null){
+			workStage.initStyle(StageStyle.TRANSPARENT);
+		}
 		workStage.centerOnScreen();
 		workStage.setTitle(title);
 	}
 	
-	public void appear(){		
+	private void init_dialog(){		
 		initStage();
+		initScene();
+		workStage.setScene(workScene);
 		start(title);
+	}
+	
+	public void appear(){
+		init_dialog();
 		workStage.show();	
 	}
 	
-	public void stabdby(){		
-		initStage();
-		start(title);
+	public void stabdby(){
+		init_dialog();
 		workStage.showAndWait();		
 	}
 	
@@ -138,7 +162,7 @@ public abstract class TskDialog extends TskBase
 		setMessage(String.format("[ERRO]%04d：%s",logCnt,checkTail(txt)));
 		logCnt++;
 	}
-	public void log(String txt){
+	public void log(String txt){		
 		setMessage(checkTail(txt));
 	}
 	public void setMessage(final String txt){
@@ -160,8 +184,9 @@ public abstract class TskDialog extends TskBase
 	}
 	
 	protected void eventShown(){
-		//Here, we reset variables 
+		//Here, we reset variables
 		logCnt = 1;
+		workLog.setText("");
 		workBar.setProgress(-1.);
 	}
 	
@@ -186,6 +211,5 @@ public abstract class TskDialog extends TskBase
 			parent.getParent().setDisable(true);
 		}
 		appear();
-		start(title);
 	}	
 }

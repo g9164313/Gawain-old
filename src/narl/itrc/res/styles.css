@@ -131,5 +131,16 @@
     -fx-background-color: #5AC8FA;
 }
 
+.splash-board{
+	-fx-padding: 7;
+	-fx-background-color: #fafafa;
+	-fx-border-width: 2;
+	-fx-border-color: 
+		linear-gradient(
+			to bottom,
+			chocolate,
+			derive(chocolate, 50%)
+		);
+}
 
 
