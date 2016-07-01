@@ -71,13 +71,13 @@ public abstract class DevMotion {
 		tknBase = base;
 	}
 
-	private void convert(double[] val,String unit){
+	private void convert(Double[] val,String unit){
 		for(int i=0; i<val.length; i++){
 			val[i] = Misc.phyConvert(val[i],unit,DEF_UNIT);			
 		}
 	}
 	
-	private void routine(double[] val,boolean flagAbs){
+	private void routine(Double[] val){
 		
 		if(table.isEmpty()==true || node==null){
 			return;
@@ -92,6 +92,9 @@ public abstract class DevMotion {
 			if(j==null){
 				continue;
 			}
+			if(val[i]==null){
+				continue;
+			} 
 			node[j] = val[i];
 		}
 		
@@ -103,21 +106,20 @@ public abstract class DevMotion {
 				}
 				node[i] = node[i] * factor[i];
 			}
-		}
-		
-		mapping(flagAbs,node);
+		}		
 	}
 	
-	public abstract void mapping(boolean abs,Double[] value);
+	public abstract void makeMotion(boolean abs,Double[] value);
 
 	/**
 	 * Stage must go to this absolute location.<p>
 	 * @param location - x,y,z,a...
 	 * @param unit - length unit, default is millimeter
 	 */
-	public void archTo(double[] location,String unit){
+	public void archTo(String unit,Double... location){
 		convert(location,unit);
-		routine(location,true);
+		routine(location);
+		makeMotion(true,node);
 	}
 	
 	/**
@@ -125,8 +127,8 @@ public abstract class DevMotion {
 	 * Default unit is millimeter.<p>
 	 * @param location - [X,Y,Z,A] value
 	 */
-	public void archTo(double[] location){
-		archTo(location,"mm");
+	public void archTo(Double... location){
+		archTo("mm",location);
 	}
 	
 	/**
@@ -134,16 +136,30 @@ public abstract class DevMotion {
 	 * @param offset - relative [X,Y,Z,A] value/step
 	 * @param unit - length unit, default is millimeter
 	 */
-	public void moveTo(double[] offset,String unit){
+	public void moveTo(String unit,Double... offset){
 		convert(offset,unit);
-		routine(offset,false);
+		routine(offset);
+		makeMotion(false,node);
 	}
 	
 	/**
 	 * Stage will make a relative move.<p> 
 	 * @param offset - relative [X,Y,Z,A] value/step
 	 */
-	public void moveTo(double[] offset){
-		moveTo(offset,"mm");
+	public void moveTo(Double... offset){
+		moveTo("mm",offset);
+	}
+	
+	public abstract void setValue(Double[] value);
+	
+	/**
+	 * User can reset 'step' or 'count'.<p>
+	 * For motion card/controller, these values present the encoder position.
+	 * @param step
+	 */
+	public void setStep(Integer[] step){
+		Double[] val = Misc.Int2Double(step);
+		routine(val);
+		setValue(val);
 	}
 }

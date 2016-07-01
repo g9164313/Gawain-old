@@ -195,7 +195,7 @@ public abstract class PanMapBase extends PanDecorate {
 	 * @param unit - length unit, default unit is 'mm'.
 	 * @return location value (x,y).<p> null - the end of sequence path.<p>
 	 */
-	public double[] getSequencePath(String unit){
+	public Double[] getSequencePath(String unit){
 		if(curSeq<=0){
 			curSeq = 1;
 		}		
@@ -205,15 +205,16 @@ public abstract class PanMapBase extends PanDecorate {
 			clearGround();
 			return null;
 		}		
-		double[] val = dd.getPosition().clone();
-		val[0] = Misc.phyConvert(val[0], "mm", unit);
-		val[1] = Misc.phyConvert(val[1], "mm", unit);
+		double[] val = dd.getPosition();
+		Double[] res = new Double[2];
+		res[0] = Misc.phyConvert(val[0], "mm", unit);
+		res[1] = Misc.phyConvert(val[1], "mm", unit);
 		drawSeqDie();
 		curSeq++;//for the next location~~
-		return val;
+		return res;
 	}
 	
-	public double[] getSequencePath(){
+	public Double[] getSequencePath(){
 		return getSequencePath("mm");
 	}	
 	

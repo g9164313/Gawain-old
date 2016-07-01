@@ -24,10 +24,28 @@ import javafx.scene.shape.ArcType;
 
 public class PanJoystick extends FlowPane {
 
+	private DevMotion dev;
+	
 	public PanJoystick(Orientation ori,int size){
 		this.ori = ori;
 		initLayout(size);
 	}
+	
+	public PanJoystick(DevMotion dev,Orientation ori,int size){
+		this.ori = ori;
+		this.dev = dev;
+		initLayout(size);
+	}
+
+	private EventHandler<ActionEvent> eventResetStep = new EventHandler<ActionEvent>(){
+		@Override
+		public void handle(ActionEvent event) {
+			//TODO: map this event to 'real' device
+			Button btn = (Button)event.getSource();
+			char tkn = (char)(btn.getUserData());
+			Misc.logv("reset axis-%c value to zero",tkn);
+		}
+	};
 	
 	private EventHandler<MouseEvent> eventSticK = new EventHandler<MouseEvent>(){
 		private double cos45 = Math.cos(45.*Math.PI/180.);
@@ -66,6 +84,30 @@ public class PanJoystick extends FlowPane {
 			}
 			return 8;//direction-down
 		}
+				
+		private void makeMotion(){
+			if(dev==null){
+				return;
+			}
+			boolean posABS = false;
+			switch(addr){
+			case ADDR_RELATIVE:
+				posABS = false;
+				break;
+			case ADDR_ABSOLUTE:
+				posABS = true;				
+				break;
+			}
+			switch(axis[0]){
+			case 'x':
+				break;
+			case 'y':
+				dev.moveTo("",null,100.);
+				break;
+			}
+			
+		}
+		
 		private int prevQuad = 0;
 		@Override
 		public void handle(MouseEvent event) {
@@ -79,25 +121,16 @@ public class PanJoystick extends FlowPane {
 					prevQuad = getBoxKey(event);
 				}				
 				drawStick(prevQuad,1);
-				tskTrigger.arg1.set(1);
-				tskTrigger.start();
+
+				//tskTrigger.arg1.set(1);//it mean we start jogging
+				//tskTrigger.start();
 			}else if(typ==MouseEvent.MOUSE_RELEASED){
-				tskTrigger.arg1.set(0);//it mean we stop jogging
+				//tskTrigger.arg1.set(0);//it mean we stop jogging
 				drawStick(prevQuad,0);//this will change axis attribute, so do it finally~~
 			}
 		}
 	};
 
-	private EventHandler<ActionEvent> eventSetStep = new EventHandler<ActionEvent>(){
-		@Override
-		public void handle(ActionEvent event) {
-			//TODO: map this event to 'real' device
-			Button btn = (Button)event.getSource();
-			char tkn = (char)(btn.getUserData());
-			Misc.logv("reset axis-%c value to zero",tkn);
-		}
-	};
-	
 	private final int ADDR_JOGGING = 0;	
 	private final int ADDR_RELATIVE = 1;
 	private final int ADDR_ABSOLUTE = 2;
@@ -112,7 +145,7 @@ public class PanJoystick extends FlowPane {
 	private final char AXS_NEG = '-';
 	private char[] axis = {AXS_NONE,AXS_NONE};
 	
-	private TskBase tskTrigger = new TskBase(){
+	/*private TskBase tskTrigger = new TskBase(){
 		private int valStep = 0;
 		protected boolean eventBegin(){
 			valStep = Integer.valueOf(boxStep.getText());
@@ -149,7 +182,7 @@ public class PanJoystick extends FlowPane {
 			Application.invokeAndWait(updateInfo);//finally, update the step value
 			return 0;
 		}
-	};
+	};*/
 	//-------------------//
 	
 	private Canvas canWheel = new Canvas();//stick(4-direction & clockwise)
@@ -185,22 +218,22 @@ public class PanJoystick extends FlowPane {
 				Button btn;				
 				btn = new Button(title);
 				btn.setUserData(AXS_X);
-				btn.setOnAction(eventSetStep);				
+				btn.setOnAction(eventResetStep);				
 				lay0.addRow(0,new Label("X："),txtAxis[0],btn);
 				
 				btn = new Button(title);
 				btn.setUserData(AXS_Y);
-				btn.setOnAction(eventSetStep);
+				btn.setOnAction(eventResetStep);
 				lay0.addRow(1,new Label("Y："),txtAxis[1],btn);
 				
 				btn = new Button(title);
 				btn.setUserData(AXS_Z);
-				btn.setOnAction(eventSetStep);
+				btn.setOnAction(eventResetStep);
 				lay0.addRow(2,new Label("Z："),txtAxis[2],btn);
 				
 				btn = new Button(title);
 				btn.setUserData(AXS_A);
-				btn.setOnAction(eventSetStep);
+				btn.setOnAction(eventResetStep);
 				lay0.addRow(3,new Label("A："),txtAxis[3],btn);
 				return lay0;
 			}

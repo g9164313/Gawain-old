@@ -156,7 +156,7 @@ public class DevB140M extends DevMotion {
 	}
 
 	@Override
-	public void mapping(boolean abs,Double[] value) {
+	public void makeMotion(boolean abs,Double[] value) {
 		String cmd;
 		if(abs==true){
 			cmd = "PA ";
@@ -170,9 +170,20 @@ public class DevB140M extends DevMotion {
 				cmd = cmd + ", ";
 			}
 		}
-		//cmd = cmd.substring(0, cmd.length()-2);
-		cmd = cmd + ";BG;MC;\r";	
-		exec(cmd);
+		exec(cmd+";BG;MC;\r");
+	}
+
+	@Override
+	public void setValue(Double[] value) {
+		String cmd = "DP ";
+		for(int i=0; i<value.length; i++){
+			if(value[i]==null){
+				cmd = cmd + ",";				
+			}else{
+				cmd = cmd + value[i].intValue() + ",";
+			}
+		}
+		exec(cmd+";\r");
 	}
 	//----------------------------------//
 	

@@ -42,7 +42,7 @@ public class TskScanning extends TskAction {
 		float tsec;
 		
 		map.resetSequence();//Do we need to ask user??		
-		double[] pos;
+		Double[] pos;
 		while((pos = map.getSequencePath())!=null){
 			stg.archTo(pos);
 			//start to exposure

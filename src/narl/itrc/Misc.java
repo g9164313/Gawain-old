@@ -743,6 +743,38 @@ public class Misc {
 	public static int hypotInt(int[] pa,int[] pb){
 		return Math.round((float)Math.hypot(pa[0]-pb[0], pa[1]-pb[1]));
 	}
+	
+	public static float[] int2float(int[] src){
+		float[] dst = new float[src.length];
+		for(int i=0; i<src.length; i++){
+			dst[i] = Math.round(src[i]);
+		}
+		return dst;
+	}
+	
+	public static Double[] Int2Double(Integer[] src){
+		Double[] dst = new Double[src.length];
+		for(int i=0; i<src.length; i++){
+			dst[i] = src[i].doubleValue();
+		}
+		return dst;
+	}
+		
+	public static int[] double2int(double[] src){
+		int[] dst = new int[src.length];
+		for(int i=0; i<src.length; i++){
+			dst[i] = (int)(Math.round(src[i]));
+		}
+		return dst;
+	}
+
+	public static long[] double2long(double[] src){
+		long[] dst = new long[src.length];
+		for(int i=0; i<src.length; i++){
+			dst[i] = Math.round(src[i]);
+		}
+		return dst;
+	}
 }
 
 

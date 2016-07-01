@@ -63,13 +63,13 @@ public class Entry extends PanBase {
 		btnAction.setGraphic(Misc.getIcon("run.png"));
 		//btnAction.setOnAction();
 		
-		JFXButton btnAligment = new JFXButton("標靶定位");
+		JFXButton btnAligment = new JFXButton("定位標靶");
 		btnAligment.getStyleClass().add("btn-raised");
 		btnAligment.setMaxWidth(Double.MAX_VALUE);
 		btnAligment.setGraphic(Misc.getIcon("selection.png"));
 		btnAligment.setOnAction(tsk0);
 		
-		PanJoystick joyStick = new PanJoystick(Orientation.VERTICAL,SIZE);
+		PanJoystick joyStick = new PanJoystick(stg0,Orientation.VERTICAL,SIZE);
 
 		JFXButton btnClose = new JFXButton("關閉程式");
 		btnClose.getStyleClass().add("btn-raised2");
@@ -172,8 +172,8 @@ public class Entry extends PanBase {
 		pg1.setContent(stg0.layoutConsole());
 		
 		root.getTabs().addAll(stp1,stp2,pg1);
-		//root.getSelectionModel().select(0);
-		root.getSelectionModel().select(1);
+		root.getSelectionModel().select(0);
+		//root.getSelectionModel().select(1);
 		//root.getSelectionModel().select(2);
 		return root;
 	}
