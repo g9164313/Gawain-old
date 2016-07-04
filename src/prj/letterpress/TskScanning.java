@@ -25,7 +25,7 @@ public class TskScanning extends TskAction {
 		title = "Task-Scanning";
 		map = mapper;
 		stg = stage;
-		stg.setFactor(1000.,1000.,1000.,1000);
+		//stg.setFactor(1000.,1000.,1000.,1000);
 		stg.setTokenBase('A');
 		//'X'->'B',
 		//'Y'->'A', 

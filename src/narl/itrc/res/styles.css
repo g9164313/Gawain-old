@@ -47,8 +47,8 @@
 
 .grid-small{
     -fx-padding: 7px  7px 7px 7px;
-    -fx-hgap: 13px;
-    -fx-vgap: 13px;    
+    -fx-hgap: 3px;
+    -fx-vgap: 3px;
 }
 
 .anchor-small {
@@ -70,11 +70,10 @@
   -fx-translate-y: -26;
 }
 .group-content {
-	-fx-padding: 7px 7px 7px 7px;
+  -fx-padding: 1px 1px 1px 1px;
 }
 .group-border {
   -fx-content-display: top;
-  -fx-padding: 7px 7px 7px 7px;
   -fx-border-insets: 27 8 8 8;
   -fx-border-color: black;
   -fx-border-width: 1;

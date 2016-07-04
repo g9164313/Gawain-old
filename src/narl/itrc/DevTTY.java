@@ -127,6 +127,19 @@ public class DevTTY implements Gawain.EventHook {
 			ctrlName.setValue(txt);//we success!!!
 		}
 	}
+
+	public byte[] readBuf(){
+		return implRead();
+	}
+	
+	public byte[] readBuf(boolean sync){
+		sync0 = sync;
+		return readBuf();
+	}
+		
+	public void writeBuf(byte[] buf){
+		implWrite(buf);
+	}
 	
 	/**
 	 * Read text from terminal.<p>
@@ -150,16 +163,7 @@ public class DevTTY implements Gawain.EventHook {
 		sync0 = sync;
 		return readTxt();
 	}
-	
-	public byte[] readBuf(){
-		return implRead();
-	}
-	
-	public byte[] readBuf(boolean sync){
-		sync0 = sync;
-		return readBuf();
-	}
-	
+
 	public void writeTxt(String txt){
 		if(txt.length()==0){
 			return;
@@ -167,49 +171,33 @@ public class DevTTY implements Gawain.EventHook {
 		byte[] buf = txt.getBytes(Charset.forName("UTF-8"));
 		implWrite(buf);
 	}
+	//-----------------------//
 	
-	public void writeTxt(byte[] buf){
-		implWrite(buf);
-	}
-	
-	public String fetch(String cmd,char tail){
-		//panel shouldn't use this
-		writeTxt(cmd);
+	public String fetch(String tail){
+		
 		String txt = "";
-		int max=5;
-		for(;max>0;){
+		
+		final int FAIL_MAX = 10;
+		int failCnt = FAIL_MAX;
+
+		for(;failCnt>0;){
 			String tmp = readTxt();
 			if(tmp==null){
-				max--;
+				failCnt--;				
 				continue;
 			}
 			txt = txt + tmp;
-			int  len = txt.length();
-			char end = txt.charAt(len-1);
-			if(end==tail){
-				return txt;
-			}
+			failCnt = FAIL_MAX;//reset this number~~~
+			if(txt.endsWith(tail)==true){
+				break;
+			}			
 		}
 		return txt;
 	}
 	
 	public String fetch(String cmd,String tail){
-		//panel shouldn't use this
-		writeTxt(cmd);
-		String txt = "";
-		char[] _tail = tail.toCharArray();		
-		int max=5;
-		for(;max>0;){
-			txt = txt + readTxt();
-			int  len = txt.length();
-			char end = txt.charAt(len-1);
-			for(int i=0; i<_tail.length; i++){
-				if(end==_tail[i]){
-					return txt;
-				}
-			}
-		}
-		return txt;
+		writeTxt(cmd);		
+		return fetch(tail);
 	}
 	
 	/**

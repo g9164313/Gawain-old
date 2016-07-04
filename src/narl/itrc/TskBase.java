@@ -141,4 +141,19 @@ abstract class TskBase {
 		}
 		DelayFinish(preTick);
 	}
+	
+	public static Thread macro(
+		String title,
+		Thread core,
+		Task<Void> task
+	){
+		if(core!=null){
+			if(core.isAlive()==true){				
+				return core;
+			}
+		}
+		core = new Thread(task,title);
+		core.start();
+		return core;
+	}	
 }

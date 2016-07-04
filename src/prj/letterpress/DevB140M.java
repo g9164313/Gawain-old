@@ -19,10 +19,13 @@ import narl.itrc.PanBase;
  * It is a very old device and use DMC(Digital Motion Controller) code to program.<p>
  * It has a high-level, interpreted language parser like GCode.<p>
  * This version only supports serial port to address communication.<p>
+ * Attention!!. colon sign ';' will not echo message to terminal screen
  * @author qq
  *
  */
 public class DevB140M extends DevMotion {
+	
+	private final String TAIL="\r\n:";
 	
 	private DevTTY tty = new DevTTY(); 
 	
@@ -37,36 +40,16 @@ public class DevB140M extends DevMotion {
 		//The DP command is useful to redefine the absolute position.
 	}
 	
-	/**
-	 * Send command to device and wait for response. 
-	 * @param cmd - command 
-	 * @return
-	 */
-	public String exec(String cmd){
-		//Misc.logv("exec -> "+cmd);
-		String txt = tty.fetch(cmd,':');
-		int pos = txt.indexOf('\n');
-		if(pos<0){
-			return txt;
-		}
-		txt = txt.substring(pos+1);//strip "echo" message, but why???
-		pos = txt.indexOf('\n');
-		if(pos<0){
-			return txt;
-		}
-		return txt.substring(0,pos-1);
-	}
-		
 	private void watch(){
 		if(tty.isLive()==false){
 			return;
 		}
 		//String txt = exec("MG TIME\r");
 		//The command "CW?\r" will send the message "...Galil Motion Control..."
-		setBox(exec("SP ?,?,?,?\r"),boxSSpd);
-		setBox(exec("AC ?,?,?,?\r"),boxASpd);
-		setBox(exec("DC ?,?,?,?\r"),boxDSpd);
-		setTxt(exec("TP\r"),txtCount);
+		setBox(tty.fetch("SP ?,?,?,?\r",TAIL),boxSSpd);
+		setBox(tty.fetch("AC ?,?,?,?\r",TAIL),boxASpd);
+		setBox(tty.fetch("DC ?,?,?,?\r",TAIL),boxDSpd);
+		setTxt(tty.fetch("TP\r",TAIL),txtCount);
 	}
 	
 	private void setBox(String msg,BoxIntValue[] box){
@@ -83,18 +66,23 @@ public class DevB140M extends DevMotion {
 		}
 	}
 	
-	public int[] getCounter(){
-		int[] pos = {0,0,0,0};
-		String txt = exec("TP\r");
-		String[] val = txt.split(",");
+	public void parse_TP(String txt){
+		int pos = txt.indexOf("TP");
+		if(pos<0){
+			return;
+		}
+		txt = txt.substring(pos+2,txt.length()-3).replace("\r\n","").trim();		
+		int[] val = {0,0,0,0};
+		//Misc.logv("got counter="+txt);
+		String[] arg = txt.split(",");
 		try{
-			pos[0] = Integer.valueOf(val[0]);
-			pos[1] = Integer.valueOf(val[1]);
-			pos[2] = Integer.valueOf(val[2]);
-			pos[3] = Integer.valueOf(val[3]);
+			val[0] = Integer.valueOf(arg[0]);
+			val[1] = Integer.valueOf(arg[1]);
+			val[2] = Integer.valueOf(arg[2]);
+			val[3] = Integer.valueOf(arg[3]);
 		}catch(NumberFormatException e){			
 		}
-		return pos;
+		makePosition(val);
 	}
 	
 	/**
@@ -104,7 +92,7 @@ public class DevB140M extends DevMotion {
 	 */
 	public void out(int id,boolean open){
 		int op = (open==true)?(0):(1);
-		exec(String.format("OB %d,%d\r",id,op));
+		tty.fetch(String.format("OB %d,%d\r",id,op),TAIL);
 	}
 	public void out1(boolean open){ out(1,open); }
 	public void out2(boolean open){ out(2,open); }
@@ -141,7 +129,7 @@ public class DevB140M extends DevMotion {
 		case 3: tmp=String.format("%s,,,%d\r",cmd,val); break;
 		default: return;
 		}		
-		exec(tmp);//set value
+		tty.fetch(tmp,TAIL);//set value
 		
 		switch(idx){
 		case 0: tmp=cmd+"?\r"; break;
@@ -150,13 +138,13 @@ public class DevB140M extends DevMotion {
 		case 3: tmp=cmd+",,,?\r"; break;
 		default: return;
 		}
-		tmp = exec(tmp);//reload
+		tmp = tty.fetch(tmp,TAIL);//reload
 		box[idx].setValue(tmp);
 		//Misc.logv("reload:"+tmp);
 	}
 
 	@Override
-	public void makeMotion(boolean abs,Double[] value) {
+	protected void makeMotion(boolean abs,Double[] value) {
 		String cmd;
 		if(abs==true){
 			cmd = "PA ";
@@ -170,7 +158,9 @@ public class DevB140M extends DevMotion {
 				cmd = cmd + ", ";
 			}
 		}
-		exec(cmd+";BG;MC;\r");
+		String txt = tty.fetch(cmd+";BG;MC;TP\r",TAIL);
+		parse_TP(txt);
+		//System.out.println("@@@"+txt);
 	}
 
 	@Override
@@ -183,7 +173,7 @@ public class DevB140M extends DevMotion {
 				cmd = cmd + value[i].intValue() + ",";
 			}
 		}
-		exec(cmd+";\r");
+		tty.fetch(cmd+";\r",TAIL);
 	}
 	//----------------------------------//
 	

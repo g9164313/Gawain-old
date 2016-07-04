@@ -105,7 +105,6 @@ public class PanJoystick extends FlowPane {
 				dev.moveTo("",null,100.);
 				break;
 			}
-			
 		}
 		
 		private int prevQuad = 0;

@@ -20,6 +20,7 @@ import narl.itrc.ImgPreview;
 import narl.itrc.ImgRender;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
+import narl.itrc.Pan4AxisPad;
 import narl.itrc.PanJoystick;
 import narl.itrc.TskAction;
 import narl.itrc.TskDialog;
@@ -46,17 +47,18 @@ public class Entry extends PanBase {
 	
 	@Override
 	protected void eventShown(WindowEvent e){
+		//stg0.setFactor(1000.,1000.,1000.,1000.);//Put it in TskScanning process??
 		//rndr.launch();
 	}
 	
 	private Node layAligment(){
-		final int SIZE=200;
-		
+
 		HBox lay0 = PanBase.decorateHBox(
 			"預覽1",prv0,
 			"預覽2",prv1
 		);
-
+		
+		final int BOARD_SIZE=130;
 		JFXButton btnAction = new JFXButton("快速執行");
 		btnAction.getStyleClass().add("btn-raised");
 		btnAction.setMaxWidth(Double.MAX_VALUE);
@@ -69,8 +71,9 @@ public class Entry extends PanBase {
 		btnAligment.setGraphic(Misc.getIcon("selection.png"));
 		btnAligment.setOnAction(tsk0);
 		
-		PanJoystick joyStick = new PanJoystick(stg0,Orientation.VERTICAL,SIZE);
-
+		//PanJoystick joyStick = new PanJoystick(stg0,Orientation.VERTICAL,SIZE);
+		Pan4AxisPad joyStick = new Pan4AxisPad(stg0,200);
+		
 		JFXButton btnClose = new JFXButton("關閉程式");
 		btnClose.getStyleClass().add("btn-raised2");
 		btnClose.setMaxWidth(Double.MAX_VALUE);
@@ -79,10 +82,11 @@ public class Entry extends PanBase {
 		
 		VBox lay1 = new VBox();
 		lay1.getStyleClass().add("vbox-small");
+		lay1.setPrefWidth(BOARD_SIZE);
 		lay1.getChildren().addAll(
 			btnAction,
 			btnAligment,
-			joyStick,
+			PanBase.decorate("Joystick",joyStick),
 			btnClose
 		);
 
@@ -168,10 +172,10 @@ public class Entry extends PanBase {
 		Tab stp2 = new Tab("曝光");
 		stp2.setContent(layScanning());
 		
-		Tab pg1 = new Tab("B140M");
-		pg1.setContent(stg0.layoutConsole());
+		Tab pag1 = new Tab("B140M");
+		pag1.setContent(stg0.layoutConsole());
 		
-		root.getTabs().addAll(stp1,stp2,pg1);
+		root.getTabs().addAll(stp1,stp2,pag1);
 		root.getSelectionModel().select(0);
 		//root.getSelectionModel().select(1);
 		//root.getSelectionModel().select(2);
