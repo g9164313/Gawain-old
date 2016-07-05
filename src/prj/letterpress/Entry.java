@@ -47,7 +47,12 @@ public class Entry extends PanBase {
 	
 	@Override
 	protected void eventShown(WindowEvent e){
-		//stg0.setFactor(1000.,1000.,1000.,1000.);//Put it in TskScanning process??
+		//stg.setFactor(1000.,1000.,1000.,1000);
+		stg0.setTokenBase('A');
+		//'X'->'B',
+		//'Y'->'A', 
+		stg0.setRoutine('A','B');
+		stg0.watch();
 		//rndr.launch();
 	}
 	
@@ -176,9 +181,9 @@ public class Entry extends PanBase {
 		pag1.setContent(stg0.layoutConsole());
 		
 		root.getTabs().addAll(stp1,stp2,pag1);
-		root.getSelectionModel().select(0);
+		//root.getSelectionModel().select(0);
 		//root.getSelectionModel().select(1);
-		//root.getSelectionModel().select(2);
+		root.getSelectionModel().select(2);
 		return root;
 	}
 }

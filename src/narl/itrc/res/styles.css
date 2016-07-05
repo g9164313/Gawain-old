@@ -46,7 +46,7 @@
 }
 
 .grid-small{
-    -fx-padding: 7px  7px 7px 7px;
+    -fx-padding: 3px  3px 3px 3px;
     -fx-hgap: 3px;
     -fx-vgap: 3px;
 }
@@ -70,7 +70,7 @@
   -fx-translate-y: -26;
 }
 .group-content {
-  -fx-padding: 1px 1px 1px 1px;
+  -fx-padding: 7px 7px 7px 7px;
 }
 .group-border {
   -fx-content-display: top;

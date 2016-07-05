@@ -189,6 +189,7 @@ public class DevTTY implements Gawain.EventHook {
 			txt = txt + tmp;
 			failCnt = FAIL_MAX;//reset this number~~~
 			if(txt.endsWith(tail)==true){
+				txt = txt.substring(0,txt.length()-tail.length());
 				break;
 			}			
 		}

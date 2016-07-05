@@ -32,30 +32,35 @@ public class BoxIntValue extends JFXTextField implements
 	}
 	
 	private void init(String title,int value,int mode){
+		textProperty().bind(propValue.asString());		
 		setOnAction(this);
 		setPrefWidth(100);
 		setPromptText(title);
 		setTooltip(new Tooltip(title));		
-		setValue(value);
+		propValue.set(value);
 		setMode(0);
 		getValidators().add(vald);
+		setOnMouseClicked(event->{
+			textProperty().unbind();
+		});
 	}
 	
-
 	@Override
-	public void handle(ActionEvent event) {
+	public void handle(ActionEvent event) {		
 		if(validate()==false){
-			setText(String.valueOf(value.get()));//restore old data!!!
+			setText(String.valueOf(propValue.get()));//restore old data!!!
 			return;
 		}
 		if(eventHand!=null){
 			eventHand.handle(event);
 		}else{
-			eventEnter(getValue());
+			eventEnter(propValue.get());
 		}
+		textProperty().bind(propValue.asString());
 	}
 
 	private EventHandler<ActionEvent> eventHand = null;
+	
 	public BoxIntValue setEventEnter(EventHandler<ActionEvent> event){
 		eventHand = event;
 		return this;
@@ -75,7 +80,7 @@ public class BoxIntValue extends JFXTextField implements
 	 * +1 : only positive value is valid.<p>
 	 */
 	private int mode=0;//-1:only negative value, 
-	public SimpleIntegerProperty value = new SimpleIntegerProperty();//case by case
+	public SimpleIntegerProperty propValue = new SimpleIntegerProperty();//case by case
 		
 	public BoxIntValue setMode(int mode){
 		this.mode = mode;
@@ -89,23 +94,14 @@ public class BoxIntValue extends JFXTextField implements
 		return this;
 	} 
 	
-	public int getValue(){
-		return value.get();
-	}
-	
-	public void setValue(String txt){
+	public void setInteger(String txt){
 		try{
 			txt = txt.trim();
-			value.set(Integer.valueOf(txt));
-			setText(txt);
+			propValue.set(Integer.valueOf(txt));
 		}catch(NumberFormatException e){
+			Misc.loge("Wrong format->%s",txt);
 			return;
 		}
-	}
-	
-	public void setValue(int val){
-		value.set(val);
-		setText(String.valueOf(val));
 	}
 
 	private ValidatorBase vald = new ValidatorBase(){
@@ -113,8 +109,8 @@ public class BoxIntValue extends JFXTextField implements
 		protected void eval() {
 			String txt = BoxIntValue.this.getText();
 			try{
-				value.set(Integer.valueOf(txt));
-				int vv = value.get();
+				propValue.set(Integer.valueOf(txt));
+				int vv = propValue.get();
 				vv =vv * mode;
 				if(vv<=0){
 					hasErrors.set(false);					

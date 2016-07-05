@@ -2,6 +2,9 @@ package narl.itrc;
 
 import java.util.HashMap;
 
+import eu.hansolo.enzo.lcd.Lcd;
+import eu.hansolo.enzo.lcd.Lcd.LcdDesign;
+import eu.hansolo.enzo.lcd.LcdBuilder;
 import javafx.event.EventHandler;
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
@@ -60,7 +63,7 @@ public class Pan4AxisPad extends FlowPane {
 		}
 	};
 	
-	private Button createPad(int tkn){
+	private Button createPadArrow(int tkn){
 		Button btn = new Button("",lstPadRelex.get(tkn));		
 		btn.setUserData(tkn);
 		btn.addEventFilter(MouseEvent.MOUSE_PRESSED,eventCtrl);
@@ -72,6 +75,63 @@ public class Pan4AxisPad extends FlowPane {
 		return btn;
 	}
 	
+	private Button createPadRest(final int tkn){
+		String txt="";
+		switch(tkn){
+		case TKN_X_P:
+		case TKN_X_N: txt="X"; break;
+		case TKN_Y_P:
+		case TKN_Y_N: txt="Y"; break;
+		case TKN_Z_P: 
+		case TKN_Z_N: txt="Z"; break;
+		case TKN_A_P: 
+		case TKN_A_N: txt="A"; break;
+		}
+		Button btn = new Button(txt);
+		btn.setOnAction(event->{			
+			switch(tkn){
+			case TKN_X_P:
+			case TKN_X_N: dev.setPulse(0); break;
+			case TKN_Y_P:
+			case TKN_Y_N: dev.setPulse(null,0); break;
+			case TKN_Z_P: 
+			case TKN_Z_N: dev.setPulse(null,null,0); break;
+			case TKN_A_P: 
+			case TKN_A_N: dev.setPulse(null,null,null,0); break;
+			}
+		});
+		GridPane.setHgrow(btn,Priority.ALWAYS);
+		GridPane.setFillWidth(btn, true);
+		GridPane.setVgrow(btn,Priority.ALWAYS);
+		GridPane.setFillHeight(btn, true);
+		return btn;
+	}
+	
+	private Lcd createLCD(int tkn,int width){
+		Lcd node = LcdBuilder.create()
+			.prefWidth(width)
+			.keepAspect(true)
+			.lcdDesign(LcdDesign.STANDARD)
+			.foregroundShadowVisible(true)
+			.crystalOverlayVisible(false)
+			.valueFont(Lcd.LcdFont.ELEKTRA)
+			.animated(true)
+			.build();
+		int idx = 0;
+		switch(tkn){
+		case TKN_X_P:
+		case TKN_X_N: idx=0; break;
+		case TKN_Y_P:
+		case TKN_Y_N: idx=1; break;
+		case TKN_Z_P: 
+		case TKN_Z_N: idx=2; break;
+		case TKN_A_P: 
+		case TKN_A_N: idx=3; break;
+		}
+		node.valueProperty().bind(dev.pulse[idx]);
+		return node;
+	}
+	
 	void initLayout(int boardSize){
 		//int cellSize = boardSize/3;
 		//control-block
@@ -79,21 +139,29 @@ public class Pan4AxisPad extends FlowPane {
 		pan0.getStyleClass().add("grid-small");
 		pan0.setPrefSize(boardSize, boardSize);
 		
-		pan0.add(createPad(TKN_Z_N), 0, 0, 1, 1);		
-		pan0.add(createPad(TKN_Y_P), 1, 0, 1, 1);		
-		pan0.add(createPad(TKN_Z_P), 2, 0, 1, 1);
+		pan0.add(createPadArrow(TKN_Z_N), 0, 0, 1, 1);		
+		pan0.add(createPadArrow(TKN_Y_P), 1, 0, 1, 1);		
+		pan0.add(createPadArrow(TKN_Z_P), 2, 0, 1, 1);
 		
-		pan0.add(createPad(TKN_X_N), 0, 1, 1, 1);
-		pan0.add(createPad(TKN_INF), 1, 1, 1, 1);		
-		pan0.add(createPad(TKN_X_P), 2, 1, 1, 1);
+		pan0.add(createPadArrow(TKN_X_N), 0, 1, 1, 1);
+		pan0.add(createPadArrow(TKN_INF), 1, 1, 1, 1);		
+		pan0.add(createPadArrow(TKN_X_P), 2, 1, 1, 1);
 		
-		pan0.add(createPad(TKN_A_N), 0, 2, 1, 1);
-		pan0.add(createPad(TKN_Y_N), 1, 2, 1, 1);
-		pan0.add(createPad(TKN_A_P), 2, 2, 1, 1);
+		pan0.add(createPadArrow(TKN_A_N), 0, 2, 1, 1);
+		pan0.add(createPadArrow(TKN_Y_N), 1, 2, 1, 1);
+		pan0.add(createPadArrow(TKN_A_P), 2, 2, 1, 1);
 		
 		//information-block
 		GridPane pan1 = new GridPane();
-
+		pan1.getStyleClass().add("grid-small");
+		pan1.add(createPadRest(TKN_X_P), 0, 0);
+		pan1.add(createPadRest(TKN_Y_P), 0, 1);
+		pan1.add(createPadRest(TKN_Z_P), 0, 2);
+		pan1.add(createPadRest(TKN_A_P), 0, 3);
+		pan1.add(createLCD(TKN_X_P,boardSize), 1, 0);
+		pan1.add(createLCD(TKN_Y_P,boardSize), 1, 1);
+		pan1.add(createLCD(TKN_Z_P,boardSize), 1, 2);
+		pan1.add(createLCD(TKN_A_P,boardSize), 1, 3);
 		//pan1.getChildren().add();
 		
 		//put together

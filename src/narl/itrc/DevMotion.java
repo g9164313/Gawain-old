@@ -42,17 +42,25 @@ public abstract class DevMotion {
 	
 	/**
 	 * This array keep pulse/counter value.<p>
-	 * Some motion devices support this array.<p>
+	 * They present (X,Y,Z,A...)
 	 * Remember, device must use 'makePosition' to reflect this variable.<p>
 	 */
-	public SimpleIntegerProperty[] pulse;
+	public SimpleIntegerProperty[] pulse = {
+		new SimpleIntegerProperty(),
+		new SimpleIntegerProperty(),
+		new SimpleIntegerProperty(),
+		new SimpleIntegerProperty()
+	};
 	
 	protected void makePosition(int... val){		
 		final Runnable event = new Runnable(){
 			@Override
 			public void run() {
-				for(int i=0; i<table.size(); i++){
-					int idx = table.get(i);
+				for(int i=0; i<pulse.length; i++){
+					Integer idx = table.get(i);
+					if(idx==null){
+						continue;
+					}
 					if(idx>=val.length){
 						continue;
 					}
@@ -90,10 +98,7 @@ public abstract class DevMotion {
 		}
 		
 		node = new Double[tkn.length];
-		pulse = new SimpleIntegerProperty[tkn.length];
-
 		for(int i=0; i<tkn.length; i++){
-			pulse[i] = new SimpleIntegerProperty();
 			if(tkn[i]=='-' || tkn[i]==' '){
 				continue;
 			}
@@ -114,6 +119,9 @@ public abstract class DevMotion {
 
 	private void convert(Double[] val,String unit){
 		for(int i=0; i<val.length; i++){
+			if(val[i]==null){
+				continue;
+			}
 			val[i] = Misc.phyConvert(val[i],unit,DEF_UNIT);			
 		}
 	}
@@ -209,7 +217,7 @@ public abstract class DevMotion {
 	 * @param offset - relative [X,Y,Z,A] value/step
 	 * @param unit - length unit, default is millimeter
 	 */
-	public void moveTo(String unit,Double... offset){
+	public void moveTo(String unit,Double... offset){		
 		convert(offset,unit);
 		routine(offset);
 		makeMotion(false,node);
@@ -219,20 +227,20 @@ public abstract class DevMotion {
 	 * Stage will make a relative move.<p> 
 	 * @param offset - relative [X,Y,Z,A] value/step
 	 */
-	public void moveTo(Double... offset){
+	public void moveTo(Double... offset){		
 		moveTo("mm",offset);
 	}
 	
-	public abstract void setValue(Double[] value);
+	protected abstract void takePosition(Double[] value);
 	
 	/**
 	 * User can reset 'step' or 'count'.<p>
 	 * For motion card/controller, these values present the encoder position.
 	 * @param step
 	 */
-	public void setStep(Integer[] step){
+	public void setPulse(Integer... step){
 		Double[] val = Misc.Int2Double(step);
 		routine(val);
-		setValue(val);
+		takePosition(val);
 	}
 }
