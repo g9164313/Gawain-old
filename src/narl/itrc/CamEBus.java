@@ -7,22 +7,21 @@ public class CamEBus extends CamBundle {
 	public CamEBus(){
 	}
 	
-	private native void implSetup(CamBundle cam,int id,String configName);
-	private native long implFetch(CamBundle cam,int id);
+	private native void implSetup(CamBundle cam,String txtConfig);
+	private native long implFetch(CamBundle cam);
 	private native void implClose(CamBundle cam);
 	
 	@Override
-	public void setup(int idx, String configName) {
+	public void setup(String txtConfig) {
 		implSetup(
 			CamEBus.this,
-			idx,
-			configName
+			txtConfig
 		);
 	}
 
 	@Override
 	public void fetch() {
-		implFetch(this,0);
+		implFetch(this);
 	}
 
 	@Override
@@ -31,8 +30,7 @@ public class CamEBus extends CamBundle {
 	}
 
 	@Override
-	public Node getPanSetting() {
-		// TODO Auto-generated method stub
+	public Node genPanelSetting() {
 		return null;
 	}
 }

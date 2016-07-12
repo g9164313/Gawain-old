@@ -13,22 +13,21 @@ public class CamPylon extends CamBundle {
 	private native long getGain(CamBundle cam,long[] inf);//current,minimum,maximum,increment
 	private native void setGain(CamBundle cam,long val);
 		
-	private native void implSetup(CamBundle cam,int id,String configName);
-	private native long implFetch(CamBundle cam,int id);
+	private native void implSetup(CamBundle cam,String configName);
+	private native long implFetch(CamBundle cam);
 	private native void implClose(CamBundle cam);
 	
 	@Override
-	public void setup(int idx, String configName) {
+	public void setup(String txtConfig) {
 		implSetup(
 			CamPylon.this,
-			idx,
-			configName
+			txtConfig
 		);
 	}
 
 	@Override
 	public void fetch() {
-		implFetch(this,0);
+		implFetch(this);
 	}
 
 	@Override
@@ -77,7 +76,7 @@ public class CamPylon extends CamBundle {
 		}
 	};*/
 	@Override
-	public Node getPanSetting() {
+	public Node genPanelSetting() {
 		return null;
 	}
 }

@@ -17,8 +17,8 @@ public class CamVidcap extends CamBundle {
 		checkV4L2();
 	}
 	
-	public CamVidcap(int index,String config){
-		super(index,config);
+	public CamVidcap(String config){
+		super(config);
 		checkV4L2();
 	}
 	
@@ -27,8 +27,15 @@ public class CamVidcap extends CamBundle {
 	private native void implClose(CamBundle cam);
 	
 	@Override
-	public void setup(int idx,String configName) {
-		implSetup(this,idx);
+	public void setup(String txtConfig) {
+		int id = 0;
+		try{
+			//OpenCV Vidcap use integer to identify camera(V4L2 ??)
+			id = Integer.valueOf(txtConfig);
+		}catch(NumberFormatException e){
+			Misc.loge("Wrong identification - "+txtConfig);
+		}
+		implSetup(this,id);
 	}
 	
 	@Override
@@ -227,7 +234,7 @@ public class CamVidcap extends CamBundle {
 	};
 	
 	@Override
-	public Node getPanSetting() {
+	public Node genPanelSetting() {
 		return null;
 	}
 }

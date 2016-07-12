@@ -20,6 +20,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
@@ -369,6 +370,18 @@ public abstract class PanBase {
 			//why do we need this to stretch widget??
 			ctl.setMaxWidth(Double.MAX_VALUE);
 			HBox.setHgrow(ctl,Priority.ALWAYS);
+			lay.getChildren().add(ctl);
+		}
+		return lay;
+	}
+	
+	public static VBox fillVBox(Object... args){
+		VBox lay = new VBox();
+		lay.getStyleClass().add("vbox-small");		
+		for(int i=0; i<args.length; i++){
+			Control ctl = (Control)(args[i]);
+			ctl.setMaxWidth(Double.MAX_VALUE);
+			//VBox.setVgrow(ctl,Priority.ALWAYS);
 			lay.getChildren().add(ctl);
 		}
 		return lay;

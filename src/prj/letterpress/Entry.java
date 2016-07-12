@@ -4,7 +4,6 @@ import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXTabPane;
 
 import javafx.concurrent.Task;
-import javafx.geometry.Orientation;
 import javafx.geometry.Side;
 import javafx.scene.Node;
 import javafx.scene.Parent;
@@ -16,12 +15,10 @@ import javafx.scene.layout.VBox;
 import javafx.stage.WindowEvent;
 import narl.itrc.CamBundle;
 import narl.itrc.CamVidcap;
-import narl.itrc.ImgPreview;
 import narl.itrc.ImgRender;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
 import narl.itrc.Pan4AxisPad;
-import narl.itrc.PanJoystick;
 import narl.itrc.TskAction;
 import narl.itrc.TskDialog;
 
@@ -33,12 +30,10 @@ public class Entry extends PanBase {
 	
 	private PanMapWafer wmap = new PanMapWafer();
 	
-	private CamBundle cam0 = new CamVidcap(0,"");
-	private CamBundle cam1 = new CamVidcap(1,"");
+	private CamBundle cam0 = new CamVidcap("0");
+	private CamBundle cam1 = new CamVidcap("1");
 	
-	private ImgPreview prv0 = new ImgPreview(cam0);
-	private ImgPreview prv1 = new ImgPreview(cam1);
-	private ImgRender rndr = new ImgRender(prv0,prv1);
+	private ImgRender rndr = new ImgRender(640,480);
 	
 	private DevB140M stg0 = new DevB140M();
 	
@@ -49,18 +44,17 @@ public class Entry extends PanBase {
 	protected void eventShown(WindowEvent e){
 		//stg.setFactor(1000.,1000.,1000.,1000);
 		stg0.setTokenBase('A');
-		//'X'->'B',
-		//'Y'->'A', 
-		stg0.setRoutine('A','B');
-		stg0.watch();
+		stg0.setRoutine('A','B','C','D');
+		//stg0.watch();
+		
 		//rndr.launch();
 	}
 	
 	private Node layAligment(){
 
 		HBox lay0 = PanBase.decorateHBox(
-			"預覽1",prv0,
-			"預覽2",prv1
+			rndr.genPreview("預覽1"),
+			rndr.genPreview("預覽2")
 		);
 		
 		final int BOARD_SIZE=130;
@@ -177,13 +171,13 @@ public class Entry extends PanBase {
 		Tab stp2 = new Tab("曝光");
 		stp2.setContent(layScanning());
 		
-		Tab pag1 = new Tab("B140M");
-		pag1.setContent(stg0.layoutConsole());
+		Tab pge1 = new Tab("B140M");
+		pge1.setContent(stg0.layoutConsole());
 		
-		root.getTabs().addAll(stp1,stp2,pag1);
-		//root.getSelectionModel().select(0);
+		root.getTabs().addAll(stp1,stp2,pge1);
+		root.getSelectionModel().select(0);
 		//root.getSelectionModel().select(1);
-		root.getSelectionModel().select(2);
+		//root.getSelectionModel().select(2);
 		return root;
 	}
 }

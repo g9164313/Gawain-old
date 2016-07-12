@@ -86,8 +86,7 @@ OBJECTS = $(SOURCES:.cpp=.o)
 
 EXEC_ING := $(word 2,$(shell pgrep -f "narl.itrc.Gawain"))
 
-#$(TARGET_SO):  utils_jni.cpp dev_modbus.cpp dev_dio3232.cpp 
-$(TARGET_SO):  DevTTY.cpp utils_jni.cpp utils_cv.cpp  CamBundle.cpp CamVidcap.cpp  CamPylon.cpp  CamEbus.cpp SlantEdge.cpp
+$(TARGET_SO):  utils_jni.cpp utils_cv.cpp DevTTY.cpp  CamBundle.cpp CamVidcap.cpp  
 	$(CC) $(CC_FLAG)  -fPIC -shared -o $@ $^ $(LD_LIBS)
 	cp -rf $@ ../bin/narl/itrc/nat
 	cp -rf $@ ../src/narl/itrc/nat
@@ -109,7 +108,7 @@ $(TARGET_EXE):  ./wrap-unix/main1.cpp
 #	javah  -o ./src/$@ -cp $(DIR_CLASS) $(NAT_CLASS)
 
 all: $(TARGET_SO)
-all: $(TARGET_EXE)
+#all: $(TARGET_EXE)
 #all: $(TARGET_SO) $(TARGET_EXE)
 #all: clean $(TARGET_SO) $(TARGET_EXE)
 

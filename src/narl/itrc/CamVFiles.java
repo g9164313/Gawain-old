@@ -25,8 +25,8 @@ public class CamVFiles extends CamBundle {
 	private static AtomicBoolean isGray = new AtomicBoolean(true);
 	
 	@Override
-	public void setup(int idx, String txtConfig) {
-		try {
+	public void setup(String txtConfig) {
+		/*try {
 			if(txtConfig.length()==0){
 				lstName.put("####");
 				setMatx(0,Misc.imCreate(640,480,CvType.CV_8UC3));
@@ -47,7 +47,7 @@ public class CamVFiles extends CamBundle {
 			e.printStackTrace();
 			updateOptEnbl(false);//WTF
 			updateMsgLast("fail to manage queue");
-		}
+		}*/
 	}
 
 	@Override
@@ -64,7 +64,7 @@ public class CamVFiles extends CamBundle {
 					break;
 				case MODE_REST:
 					//do nothing, just rewrite overlay~~~
-					mapOverlay(this);
+					//mapOverlay(this);
 					return;
 				case MODE_NEXT:
 					txt = lstName.pollFirst();
@@ -77,18 +77,18 @@ public class CamVFiles extends CamBundle {
 					modePlayer.set(MODE_REST);
 					break;
 				}
-				refreshInf(this);
+				//refreshInf(this);
 				int flag = 1;//IMREAD_COLOR
 				if(isGray.get()==true){
 					flag = 0;//IMREAD_GRAYSCALE
 				}
-				setMatx(0,Misc.imRead(txt,flag));
+				//setMatx(0,Misc.imRead(txt,flag));
 				//Misc.logv("read picture:"+txt);				
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
 		}
-		mapOverlay(this);
+		//mapOverlay(this);
 		//auto adjust delay time~~~
 		cnt = 1000/cnt;
 		if(cnt>=10){
@@ -98,9 +98,7 @@ public class CamVFiles extends CamBundle {
 
 	@Override
 	public void close() {
-		releasePtr(this);
-		updateOptEnbl(false);//it always success!!!
-		updateMsgLast("close virtual file");
+		//releasePtr(this);
 	}
 	//---------------------------//
 	
@@ -120,7 +118,7 @@ public class CamVFiles extends CamBundle {
 	private LinkedBlockingDeque<String> lstName = new LinkedBlockingDeque<String>();
 
 	@Override
-	public Node getPanSetting() {
+	public Node genPanelSetting() {
 		
 		final Label txtPath = new Label();
 		if(lstName.isEmpty()==false){
@@ -144,7 +142,7 @@ public class CamVFiles extends CamBundle {
 					if(isGray.get()==true){
 						flag = 0;//IMREAD_GRAYSCALE
 					}
-					setMatx(0,Misc.imRead(name,flag));					
+					//setMatx(0,Misc.imRead(name,flag));					
 				}else{
 					name = Misc.trimFileName(name);
 				}

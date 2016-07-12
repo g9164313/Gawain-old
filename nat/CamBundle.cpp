@@ -13,8 +13,7 @@
 void setContext(JNIEnv* env,jobject bnd,void* ptr){
 	jfieldID fid = env->GetFieldID(
 		env->GetObjectClass(bnd),
-		"ptrCntx",
-		"J"
+		"ptrCntx","J"
 	);
 	env->SetLongField(bnd,fid,(jlong)ptr);
 }
@@ -22,8 +21,7 @@ void setContext(JNIEnv* env,jobject bnd,void* ptr){
 void* getContext2(JNIEnv* env,jobject bnd){
 	jfieldID fid = env->GetFieldID(
 		env->GetObjectClass(bnd),
-		"ptrCntx",
-		"J"
+		"ptrCntx","J"
 	);
 	jlong ptr = env->GetLongField(bnd,fid);
 	return (void*)ptr;
@@ -33,8 +31,7 @@ void updateEnbl(JNIEnv* env,jobject bnd,bool flag){
 	jclass clzz = env->GetObjectClass(bnd);
 	jmethodID mid = env->GetMethodID(
 		clzz,
-		"updateOptEnbl",
-		"(Z)V"
+		"updateOptEnbl","(Z)V"
 	);
 	env->CallVoidMethod(bnd,mid,(flag)?(JNI_TRUE):(JNI_FALSE));
 }
@@ -43,8 +40,7 @@ void updateMesg(JNIEnv* env,jobject bnd,const char* txt){
 	jclass clzz = env->GetObjectClass(bnd);
 	jmethodID mid = env->GetMethodID(
 		clzz,
-		"updateMsgLast",
-		"(Ljava/lang/String;)V"
+		"updateMsgLast","(Ljava/lang/String;)V"
 	);
 	env->CallVoidMethod(bnd,mid,env->NewStringUTF(txt));
 }
@@ -59,14 +55,12 @@ void updateEnblMesg(
 	jmethodID mid;
 	mid = env->GetMethodID(
 		clzz,
-		"updateOptEnbl",
-		"(Z)V"
+		"updateOptEnbl","(Z)V"
 	);
 	env->CallVoidMethod(bnd,mid,(flag)?(JNI_TRUE):(JNI_FALSE));
 	mid = env->GetMethodID(
 		clzz,
-		"updateMsgLast",
-		"(Ljava/lang/String;)V"
+		"updateMsgLast","(Ljava/lang/String;)V"
 	);
 	env->CallVoidMethod(bnd,mid,env->NewStringUTF(txt));
 }
@@ -140,53 +134,20 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamBundle_mapOverlay(
 	env->ReleaseLongArrayElements(jlongAttr,matx,0);
 }
 
-extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamBundle_releasePtr(
-	JNIEnv * env,
-	jobject thiz,
-	jobject bundle
-){
-	//reset pointers~~~
-	jclass clzz = env->GetObjectClass(bundle);
-	jlongArray jlongAttr;
-	jintArray jintArr;
-	jsize cnt;
-	jlong* ptr;
-	ptr = longArray2Ptr(env,clzz,bundle,"ptrMatx",jlongAttr);
-	cnt = env->GetArrayLength(jlongAttr);
-	for(jsize i=0; i<cnt; i++){
-		Mat* mm = (Mat*)(ptr[i]);
-		if(mm!=NULL){
-			mm->release();
-			delete mm;
-		}
-		ptr[i] = 0;
-	}
-	env->ReleaseLongArrayElements(jlongAttr,ptr,0);
 
-	//reset PIN and ROI position~~~
-	jint* pos;
-	pos = intArray2Ptr(env,clzz,thiz,"roiPos",jintArr);
-	cnt = env->GetArrayLength(jintArr)/ROI_COLS;
-	for(jsize i=0; i<cnt; i++){
-		pos[i*ROI_COLS+0] = 0;//set ROI as none~~~
-	}
-	env->ReleaseIntArrayElements(jintArr,pos,0);
-}
 
 extern "C" JNIEXPORT jbyteArray JNICALL Java_narl_itrc_CamBundle_getData(
 	JNIEnv* env,
-	jobject thiz /*this object is already 'CamBundle'*/,
-	jlong ptrMat
+	jobject bundle /*this object is already 'CamBundle'*/
 ){
-	if(ptrMat==0L){
-		return NULL;
-	}
-	Mat& img =  *((Mat*)ptrMat);
-	if(img.empty()==true){
+	jclass clzz=env->GetObjectClass(bundle);
+	jfieldID idMatx = env->GetFieldID(clzz,"ptrMatx","J");
+	Mat* matx = (Mat*)(env->GetLongField(bundle,idMatx));
+	if(matx==NULL){
 		return NULL;
 	}
 	vector<uchar> buf;
-	imencode(".png",img,buf);
+	imencode(".png",(*matx),buf);
 	jbyteArray arrBuf = env->NewByteArray(buf.size());
 	env->SetByteArrayRegion(arrBuf,0,buf.size(),(jbyte*)&buf[0]);
 	return arrBuf;
@@ -264,9 +225,8 @@ static void markRoiBoundary(
 	int idx,
 	int* roiPos,float* roiVal
 ){
-	Scalar& clr = markWheel[(idx*ROI_SIZE)%19];
+	/*Scalar clr;
 
-	int off = (idx*ROI_COLS);
 	int zoneType = roiPos[off+0];
 	if(zoneType==0){
 		return;
@@ -304,7 +264,7 @@ static void markRoiBoundary(
 		circle(ova,zone_cc,radius,clr);
 		drawMarkCross(ova,zone_cc,clr,10);
 		}break;
-	}
+	}*/
 
 	/*Scalar avg,dev;
 	meanStdDev(roi,avg,dev,msk);
@@ -337,9 +297,9 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamBundle_markData(
 	jfloatArray jfloatArr0;
 	jint*   roiPos = intArray2Ptr(env,clzz,thiz,"roiPos",jintArr0);
 	jfloat* roiVal = floatArray2Ptr(env,clzz,thiz,"roiVal",jfloatArr0);
-	for(int i=0; i<ROI_SIZE; i++){
+	/*for(int i=0; i<ROI_SIZE; i++){
 		markRoiBoundary(src,ova,i,roiPos,roiVal);
-	}
+	}*/
 	env->ReleaseIntArrayElements(jintArr0,roiPos,0);
 	env->ReleaseFloatArrayElements(jfloatArr0,roiVal,0);
 

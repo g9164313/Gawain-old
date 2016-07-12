@@ -8,16 +8,16 @@ import narl.itrc.TskAction;
 
 public class TskAligment extends TskAction {
 	
-	private ImgRender render;
+	private ImgRender rndr;
 	
-	public TskAligment(ImgRender rend,PanBase pan){		
-		super(pan);
-		render = rend;
+	public TskAligment(ImgRender render,PanBase root){		
+		super(root);
+		rndr = render;
 	}
 	
 	@Override
 	protected boolean eventBegin(){
-		render.sleep();
+		rndr.stop();
 		return true;
 	}
 
@@ -27,7 +27,7 @@ public class TskAligment extends TskAction {
 		Misc.logv("aligment-%d",++cnt);
 		Misc.delay(50);
 		if(cnt>=100){
-			render.invoke();
+			
 			return -1;
 		}
 		return 0;
