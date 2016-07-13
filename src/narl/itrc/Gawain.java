@@ -297,6 +297,7 @@ public class Gawain extends Application {
 				optUnpack = true;
 			}
 		}
+		
 		//liceBind();//check dark license~~~
 		
 		launch(argv);

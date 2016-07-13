@@ -1,28 +1,23 @@
 package narl.itrc;
 
+import java.io.File;
 import java.util.ArrayList;
-import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 import com.sun.glass.ui.Application;
 
 import javafx.concurrent.Task;
-import javafx.geometry.Pos;
-import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.Pane;
-import javafx.scene.layout.StackPane;
 
 public class ImgRender {
 	
 	private int[] size = {800,600};//dimension
 	
 	private CamBundle[] lstBundle = null;
-	private Image[] buf = null;
-	
+
 	public ImgRender(int width,int height){
 		size[0] = width;
 		size[1] = height;
@@ -36,50 +31,42 @@ public class ImgRender {
 	
 	public ImgRender setBundle(CamBundle... list){
 		lstBundle = list;
-		buf = new Image[list.length];
+		lstImage = new Image[list.length]; 
 		return this;
 	}
 	//----------------------//
 	
 	private Task<Integer> looper;
+	
+	private LinkedBlockingQueue<Filter> lstFilter = new LinkedBlockingQueue<Filter>();
 
+	private Filter curFilter = null;
+	
 	private void loopInit(){
 		for(CamBundle bnd:lstBundle){
+			if(bnd==null){
+				continue;
+			}
 			if(bnd.isReady()==true){
 				continue;
 			}
 			bnd.setup();
 		}
 	}
-	
-	private int showIdx = 0;
-	
-	private Image showImg = null;
-	
-	private final Runnable eventShow = new Runnable(){
-		@Override
-		public void run() {
-			try{
-				lstScreen.get(showIdx).setImage(showImg);
-			}catch(IndexOutOfBoundsException e){
-				return;
-			}
-		}
-	};
-	
+
 	private void loopBody(){
-		for(showIdx=0; showIdx<lstBundle.length; showIdx++){
-			CamBundle bnd = lstBundle[showIdx];
+		curFilter = lstFilter.peek();
+		for(int i=0; i<lstBundle.length; i++){
+			CamBundle bnd = lstBundle[i];
 			if(bnd==null){
 				continue;//user can give a null bundle, it is valid.
 			}
 			bnd.fetch();
-			showImg = bnd.getImage();
-			if(showImg==null){
-				continue;
-			}			
-			Application.invokeAndWait(eventShow);
+			lstImage[i] = bnd.getImage();			
 		}
+		filterCookData();
+		Application.invokeAndWait(eventShow);
+		filterCheckDone();
 	}
 	
 	/**
@@ -91,15 +78,23 @@ public class ImgRender {
 			if(looper.isDone()==false){
 				return this;//looper is running,keep from reentry
 			}
-		}
+		}		
 		looper = new Task<Integer>(){
 			@Override
 			protected Integer call() throws Exception {
 				loopInit();
-				while(looper.isCancelled()==false){
+				while(
+					looper.isCancelled()==false &&
+					Application.GetApplication()!=null
+				){	
+					//long diff = System.currentTimeMillis();
 					loopBody();
+					if(Application.GetApplication()==null){
+						break;//check application is valid
+					}
+					//diff = System.currentTimeMillis() - diff;
+					//Misc.logv("tick=%d",diff);
 				}
-				Misc.logv("stop...");
 				return 0;
 			}
 		};
@@ -118,7 +113,8 @@ public class ImgRender {
 			}
 		}		
 		looper.cancel();
-		while(looper.isDone()==false){
+		//wait for working thread~~~
+		while(looper.isRunning()==true){
 			try {
 				Thread.sleep(10);
 			} catch (InterruptedException e) {
@@ -143,10 +139,134 @@ public class ImgRender {
 		}
 		return play();
 	}
+	
+	public boolean isPlaying(){
+		if(looper!=null){
+			if(looper.isDone()==false){
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	public ImgRender snap(String name){
+		int pos = name.lastIndexOf(File.separatorChar);
+		if(pos<0){
+			//set default path~~~
+			snapName[0] = "."+File.separatorChar;			
+		}else{
+			//trim path~~~
+			snapName[0] = name.substring(0,pos);
+			name = name.substring(pos+1);
+		}
+		pos = name.lastIndexOf('.');
+		if(pos<0){
+			return this;
+		}		
+		snapName[1] = name.substring(0,pos);
+		snapName[2] = name.substring(pos);		
+		lstFilter.add(fltrSnap);		
+		return this;
+	}
+	//----------------------//
+
+	public interface Filter{
+		/**
+		 * this invoked by working-thread.<p>
+		 * user can process or cook data here.<p>
+		 * @param bnd - camera bundle
+		 * @return true - we done, take off.<p> false- keep this in queue.<p>
+		 */
+		abstract void cookData(CamBundle[] bnd);//this invoked by render-thread
+		
+		/**
+		 * this invoked by GUI-thread.<p>
+		 * user can show charts or change the state of widget here.<p>
+		 * @param bnd - camera bundle
+		 * @return true - we done, take off.<p> false- keep this in queue.<p>
+		 */
+		abstract void showData(CamBundle[] bnd);//this invoked by GUI thread
+		
+		abstract boolean isDone();
+	};
+	
+	private void filterCookData(){
+		if(curFilter!=null){
+			curFilter.cookData(lstBundle);
+		}
+	}
+	
+	private void filterShowData(){
+		if(curFilter!=null){
+			curFilter.showData(lstBundle);
+		}
+	}
+	
+	private void filterCheckDone(){
+		if(curFilter!=null){
+			if(curFilter.isDone()==true){
+				lstFilter.remove(curFilter);
+			}
+		}
+	}
+	
+	/**
+	 * This is file name for filter 'snap'.<p> 
+	 * It means "path", "prefix" and "postfix"(.jpg, .png, .gif, etc).<p>
+	 */
+	private static String[] snapName = {"","",""};
+	private static int snapIndx = 0;
+	
+	private static Filter fltrSnap = new Filter(){
+		@Override
+		public void cookData(CamBundle[] list) {
+			snapIndx++;
+			for(int i=0; i<list.length; i++){
+				list[i].saveImage(String.format(
+					"%s%s%d-%03d%s",
+					snapName[0],snapName[1],
+					(i+1),snapIndx,
+					snapName[2]
+				));
+			}		
+		}
+		@Override
+		public void showData(CamBundle[] list) {
+			/*PanBase.msgBox.notifyInfo("Render",String.format(
+				"儲存影像(%d) %s",
+				snapIndx,
+				snapName[1]
+			));*/
+			Misc.logv("showData");
+		}
+		@Override
+		public boolean isDone() {
+			return true;
+		}
+	};
+	//----------------------//
+		
+	private Image[] lstImage = null;
+	
+	private final Runnable eventShow = new Runnable(){
+		@Override
+		public void run() {
+			for(int i=0; i<lstScreen.size(); i++){
+				if(i>=lstImage.length){
+					return;
+				}
+				if(lstImage[i]==null){
+					continue;
+				}
+				lstScreen.get(i).setImage(lstImage[i]);
+			}
+			filterShowData();
+		}
+	};
 	//----------------------//
 	
 	private ArrayList<ImageView> lstScreen = new ArrayList<ImageView>();
-	
+
 	public Pane genPreview(String title){
 		ImageView screen = new ImageView();
 		screen.setFitWidth(size[0]);

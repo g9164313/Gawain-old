@@ -10,6 +10,36 @@
 #include <global.hpp>
 #include <CamBundle.hpp>
 
+extern "C" JNIEXPORT jbyteArray JNICALL Java_narl_itrc_CamBundle_getData(
+	JNIEnv* env,
+	jobject bundle /*this object is already 'CamBundle'*/
+){
+	MACRO_BUNDLE_MATX_NULL
+	Mat& img = *((Mat*)matx);
+	if(img.empty()==true){
+		return NULL;
+	}
+	vector<uchar> buf;
+	imencode(".jpg",img,buf);
+	jbyteArray arrBuf = env->NewByteArray(buf.size());
+	env->SetByteArrayRegion(arrBuf,0,buf.size(),(jbyte*)&buf[0]);
+	return arrBuf;
+}
+
+extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamBundle_saveImage(
+	JNIEnv * env,
+	jobject bundle,
+	jstring jname
+){
+	MACRO_BUNDLE_MATX_VOID
+	Mat& img = *((Mat*)matx);
+	char name[500];
+	jstrcpy(env,jname,name);
+	imwrite(name,img);
+}
+//-------------------------------------//
+//------below code is deprecated-------//
+
 void setContext(JNIEnv* env,jobject bnd,void* ptr){
 	jfieldID fid = env->GetFieldID(
 		env->GetObjectClass(bnd),
@@ -132,25 +162,6 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamBundle_mapOverlay(
 	}
 	matx[1] = (jlong)_ova;//override it again!!!
 	env->ReleaseLongArrayElements(jlongAttr,matx,0);
-}
-
-
-
-extern "C" JNIEXPORT jbyteArray JNICALL Java_narl_itrc_CamBundle_getData(
-	JNIEnv* env,
-	jobject bundle /*this object is already 'CamBundle'*/
-){
-	jclass clzz=env->GetObjectClass(bundle);
-	jfieldID idMatx = env->GetFieldID(clzz,"ptrMatx","J");
-	Mat* matx = (Mat*)(env->GetLongField(bundle,idMatx));
-	if(matx==NULL){
-		return NULL;
-	}
-	vector<uchar> buf;
-	imencode(".png",(*matx),buf);
-	jbyteArray arrBuf = env->NewByteArray(buf.size());
-	env->SetByteArrayRegion(arrBuf,0,buf.size(),(jbyte*)&buf[0]);
-	return arrBuf;
 }
 //-------------------------------------//
 

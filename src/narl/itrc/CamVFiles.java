@@ -144,7 +144,7 @@ public class CamVFiles extends CamBundle {
 					}
 					//setMatx(0,Misc.imRead(name,flag));					
 				}else{
-					name = Misc.trimFileName(name);
+					name = Misc.trimName(name);
 				}
 				txtPath.setText("路徑："+name);
 				lstName.clear();				

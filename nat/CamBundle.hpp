@@ -56,4 +56,17 @@ using namespace std;
 
 //--------------------------------------------//
 
+#define MACRO_CHECK_MATX \
+	jclass clzz=env->GetObjectClass(bundle); \
+	jfieldID idMatx = env->GetFieldID(clzz,"ptrMatx","J"); \
+	Mat* matx = (Mat*)(env->GetLongField(bundle,idMatx));
+
+#define MACRO_BUNDLE_MATX_VOID \
+	MACRO_CHECK_MATX \
+	if(matx==NULL){ return; }
+
+#define MACRO_BUNDLE_MATX_NULL \
+	MACRO_CHECK_MATX \
+	if(matx==NULL){ return NULL; }
+
 #endif

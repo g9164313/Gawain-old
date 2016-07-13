@@ -43,12 +43,10 @@ public abstract class PanBase {
 	public abstract Parent layout();
 	
 	public PanBase(){
-		init_msgbox();
 	}
 	
 	public PanBase(String txt){
 		setTitle(txt);
-		init_msgbox();
 	}
 	
 	public void setTitle(String txt){
@@ -133,10 +131,10 @@ public abstract class PanBase {
 		stage.setHeight(bnd.getHeight());
 	}*/
 	
-	public void dismiss(){
+	public void dismiss(){		
 		if(stage==null){
 			return;
-		}
+		}		
 		stage.close();
 		stage = null;
 	}
@@ -145,14 +143,16 @@ public abstract class PanBase {
 		init_scene();
 		//check whether we need to hook event~~~
 		if(stg.getOnShowing()==null){
-			stg.setOnShowing(eventWinHandle);
+			stg.setOnShowing(eventWindow);
 		}
 		if(stg.getOnShown()==null){
-			stg.setOnShown(eventWinHandle);
+			stg.setOnShown(eventWindow);
+		}		
+		if(stg.getOnHiding()==null){
+			//stg.setOnCloseRequest(eventWindow);
+			stg.setOnHiding(eventWindow);
 		}
-		if(stg.getOnCloseRequest()==null){
-			stg.setOnCloseRequest(eventWinHandle);
-		}
+		
 		//set title and some properties~~~
 		stg.setTitle(title);
 		stg.setScene(scene);
@@ -214,18 +214,11 @@ public abstract class PanBase {
 		scene.setUserData(PanBase.this);
 	}
 
-	public static Notification.Notifier msgBox = null;
-	
-	private void init_msgbox(){
-		if(msgBox!=null){
-			//we already had message box~~~
-			return;
-		}
-		msgBox = NotifierBuilder.create()
-			.popupLocation(Pos.CENTER)
-			.popupLifeTime(Duration.millis(1500))
-			.build();
-	}
+	public static final Notification.Notifier msgBox = 
+		NotifierBuilder.create()
+		.popupLocation(Pos.CENTER)
+		.popupLifeTime(Duration.millis(1500))
+		.build();
 	//------------------------//
 	
 	protected void eventShowing(WindowEvent e){
@@ -235,10 +228,9 @@ public abstract class PanBase {
 	protected void eventWatch(int cnt){
 	}
 	protected void eventClose(WindowEvent e){
-		msgBox.stop();//user must close this message box
 	}
 	
-	private EventHandler<WindowEvent> eventWinHandle = new EventHandler<WindowEvent>(){
+	private EventHandler<WindowEvent> eventWindow = new EventHandler<WindowEvent>(){
 		@Override
 		public void handle(WindowEvent event) {
 			//if stage have no handle, direct event to here!!!
@@ -246,7 +238,7 @@ public abstract class PanBase {
 				eventShowing(event);
 			}else if(WindowEvent.WINDOW_SHOWN==event.getEventType()){
 				eventShown(event);
-			}else if(WindowEvent.WINDOW_CLOSE_REQUEST==event.getEventType()){
+			}else if(WindowEvent.WINDOW_HIDING==event.getEventType()){
 				watchStop();
 				eventClose(event);
 			}

@@ -652,7 +652,7 @@ public class Misc {
 		return txt.substring(pos+1);
 	}
 	
-	public static String trimFileName(String txt){
+	public static String trimName(String txt){
 		int pos = txt.lastIndexOf(File.separatorChar);
 		if(pos<0){
 			return txt;
@@ -697,13 +697,14 @@ public class Misc {
 	}
 	//--------------------------//
 
+	//Do we need this ???
 	public static native void namedWindow(String name);
 	
 	public static native void renderWindow(String name,long ptr);
 	
 	public static native void destroyWindow(String name);
 	
-	public static native void imWrite(String name,long ptr);
+	public static native void imWrite(String name,long ptr);//Should we move this to 'CamBundle' ???
 	
 	public static native void imWriteRoi(String name,long ptr,int[] roi);
 	

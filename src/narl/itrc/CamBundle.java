@@ -101,6 +101,8 @@ public abstract class CamBundle implements Gawain.EventHook {
 		return new Image(new ByteArrayInputStream(dat));
 	}
 	private native byte[] getData();
+	
+	public native void saveImage(String name);
 }
 
 
