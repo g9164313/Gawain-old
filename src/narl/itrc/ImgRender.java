@@ -111,7 +111,7 @@ public class ImgRender {
 			if(looper.isDone()==true){
 				return this;//looper is dead!!!
 			}
-		}		
+		}
 		looper.cancel();
 		//wait for working thread~~~
 		while(looper.isRunning()==true){
@@ -232,12 +232,11 @@ public class ImgRender {
 		}
 		@Override
 		public void showData(CamBundle[] list) {
-			/*PanBase.msgBox.notifyInfo("Render",String.format(
+			PanBase.msgBox.notifyInfo("Render",String.format(
 				"儲存影像(%d) %s",
 				snapIndx,
 				snapName[1]
-			));*/
-			Misc.logv("showData");
+			));
 		}
 		@Override
 		public boolean isDone() {

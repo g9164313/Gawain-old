@@ -283,7 +283,6 @@ public class Gawain extends Application {
 	
 	@Override
 	public void stop() throws Exception {
-		PanBase.msgBox.stop();
 	}
 	 
 	private static boolean optUnpack = false;

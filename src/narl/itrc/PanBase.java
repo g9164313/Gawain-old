@@ -241,6 +241,7 @@ public abstract class PanBase {
 			}else if(WindowEvent.WINDOW_HIDING==event.getEventType()){
 				watchStop();
 				eventClose(event);
+				PanBase.msgBox.stop();//Don't put this in '@Override' function
 			}
 		}
 	};
