@@ -147,7 +147,7 @@ public abstract class PanListOption extends PanBase {
 	
 	public abstract void boxinteger2value(String name,int newValue);
 	
-	protected ItemOption addSlide(String txt,int min,int max,int stp,int val){
+	protected ItemOption addSlider(String txt,int min,int max,int stp,int val){
 		if(isValid(txt)==false){ return null; }
 		ItemOption itm = new ItemOption(txt,min,max,stp,val);
 		lstOpt.add(itm);

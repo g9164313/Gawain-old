@@ -2,7 +2,8 @@ package narl.itrc;
 
 import java.io.ByteArrayInputStream;
 
-import javafx.scene.Node;
+import javafx.scene.Parent;
+import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 
 public abstract class CamBundle implements Gawain.EventHook {
@@ -63,9 +64,22 @@ public abstract class CamBundle implements Gawain.EventHook {
 	
 	/**
 	 * generate a panel to control camera options
-	 * @return a panel, it will be one part of TabPane
+	 * @return a panel, it will be the part of control layout
 	 */
-	public abstract Node genPanelSetting();
+	public abstract Parent genPanelSetting();
+	
+	public void showPanel(){		
+		new PanBase("相機設定"){
+			@Override
+			public Parent layout() {
+				Parent root = genPanelSetting();
+				if(root==null){
+					return new Label("不支援");
+				}
+				return root;
+			}
+		}.appear();
+	}
 	
 	public void syncSetup(){
 		setup(txtConfig);

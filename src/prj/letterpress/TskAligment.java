@@ -1,16 +1,16 @@
 package prj.letterpress;
 
 import javafx.concurrent.Task;
-import narl.itrc.ImgRender;
+import narl.itrc.CamRender;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
 import narl.itrc.TskAction;
 
 public class TskAligment extends TskAction {
 	
-	private ImgRender rndr;
+	private CamRender rndr;
 	
-	public TskAligment(ImgRender render,PanBase root){		
+	public TskAligment(CamRender render,PanBase root){		
 		super(root);
 		rndr = render;
 	}

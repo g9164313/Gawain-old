@@ -34,7 +34,7 @@ public class BoxIntValue extends JFXTextField implements
 	private void init(String title,int value,int mode){
 		textProperty().bind(propValue.asString());		
 		setOnAction(this);
-		setPrefWidth(100);
+		setPrefWidth(130);
 		setPromptText(title);
 		setTooltip(new Tooltip(title));		
 		propValue.set(value);
@@ -61,7 +61,7 @@ public class BoxIntValue extends JFXTextField implements
 
 	private EventHandler<ActionEvent> eventHand = null;
 	
-	public BoxIntValue setEventEnter(EventHandler<ActionEvent> event){
+	public BoxIntValue setEvent(EventHandler<ActionEvent> event){
 		eventHand = event;
 		return this;
 	}
@@ -104,6 +104,10 @@ public class BoxIntValue extends JFXTextField implements
 		}
 	}
 
+	public void setInteger(int val){
+		propValue.set(val);
+	}
+	
 	private ValidatorBase vald = new ValidatorBase(){
 		@Override
 		protected void eval() {

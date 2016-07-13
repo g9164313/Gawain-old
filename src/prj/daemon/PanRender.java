@@ -7,7 +7,7 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.stage.WindowEvent;
 import narl.itrc.CamVidcap;
-import narl.itrc.ImgRender;
+import narl.itrc.CamRender;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
 
@@ -21,9 +21,9 @@ public class PanRender extends PanBase {
 	public PanRender(){		
 	}
 	
-	private CamVidcap vid0 = new CamVidcap("0");
+	private CamVidcap vid0 = new CamVidcap("V4L:0");
 	
-	private ImgRender rndr = new ImgRender(640,480,vid0);
+	private CamRender rndr = new CamRender(640,480,vid0);
 	
 	protected void eventShown(WindowEvent e){		
 		rndr.play();
@@ -34,15 +34,19 @@ public class PanRender extends PanBase {
 		rndr.stop();//let application release resource~~
 	}
 	
-	private JFXButton btnPlay,btnSnap;
+	private JFXButton btnPlaying,btnSnapImg,btnSetting;
 	
 	private void checkPlaying(){
 		if(rndr.isPlaying()==true){
-			btnPlay.setText("暫停");
-			btnPlay.setGraphic(Misc.getIcon("pause.png"));
+			btnPlaying.setText("暫停");
+			btnPlaying.setGraphic(Misc.getIcon("pause.png"));
+			btnSnapImg.setDisable(false);
+			btnSetting.setDisable(false);
 		}else{
-			btnPlay.setText("播放");
-			btnPlay.setGraphic(Misc.getIcon("play.png"));
+			btnPlaying.setText("播放");
+			btnPlaying.setGraphic(Misc.getIcon("play.png"));
+			btnSnapImg.setDisable(true);
+			btnSetting.setDisable(true);
 		}
 	}
 	
@@ -55,19 +59,24 @@ public class PanRender extends PanBase {
 			/*,rndr.genPreview("預覽2")*/
 		);
 		
-		btnPlay = new JFXButton();
-		btnPlay.getStyleClass().add("btn-raised");
-		btnPlay.setOnAction(event->{
+		btnPlaying = new JFXButton();
+		btnPlaying.getStyleClass().add("btn-raised");
+		btnPlaying.setOnAction(event->{
 			rndr.pause();
 			checkPlaying();
 		});
 		
-		btnSnap = new JFXButton("擷取");
-		btnSnap.getStyleClass().add("btn-raised");
-		btnSnap.setGraphic(Misc.getIcon("camera.png"));
-		btnSnap.setOnAction(event->{
+		btnSnapImg = new JFXButton("擷取");
+		btnSnapImg.getStyleClass().add("btn-raised");
+		btnSnapImg.setGraphic(Misc.getIcon("camera.png"));
+		btnSnapImg.setOnAction(event->{
 			rndr.snap("snap.png");
 		});
+		
+		btnSetting = new JFXButton("設定");
+		btnSetting.getStyleClass().add("btn-raised");
+		btnSetting.setGraphic(Misc.getIcon("wrench.png"));
+		btnSetting.setOnAction(event->rndr.getBundle(0).showPanel());
 		
 		final JFXButton btnClose = new JFXButton("關閉");		
 		btnClose.getStyleClass().add("btn-raised");
@@ -78,7 +87,9 @@ public class PanRender extends PanBase {
 		
 		root.setCenter(lay0);
 		root.setRight(PanBase.fillVBox(
-			btnPlay, btnSnap,
+			btnPlaying, 
+			btnSnapImg, 
+			btnSetting,
 			btnClose
 		));
 		return root;

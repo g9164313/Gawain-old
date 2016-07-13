@@ -12,27 +12,31 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.Pane;
 
-public class ImgRender {
+public class CamRender {
 	
 	private int[] size = {800,600};//dimension
 	
 	private CamBundle[] lstBundle = null;
 
-	public ImgRender(int width,int height){
+	public CamRender(int width,int height){
 		size[0] = width;
 		size[1] = height;
 	}
 
-	public ImgRender(int width,int height,CamBundle... list){
+	public CamRender(int width,int height,CamBundle... list){
 		size[0] = width;
 		size[1] = height;
 		setBundle(list);
 	}
 	
-	public ImgRender setBundle(CamBundle... list){
+	public CamRender setBundle(CamBundle... list){
 		lstBundle = list;
 		lstImage = new Image[list.length]; 
 		return this;
+	}
+	
+	public CamBundle getBundle(int idx){
+		return lstBundle[idx];
 	}
 	//----------------------//
 	
@@ -73,7 +77,7 @@ public class ImgRender {
 	 * start to play video stream 
 	 * @return self
 	 */
-	public ImgRender play(){
+	public CamRender play(){
 		if(looper!=null){
 			if(looper.isDone()==false){
 				return this;//looper is running,keep from reentry
@@ -106,7 +110,7 @@ public class ImgRender {
 	 * Stop looper.This is a blocking method.<p>
 	 * @return self
 	 */
-	public ImgRender stop(){	
+	public CamRender stop(){	
 		if(looper!=null){
 			if(looper.isDone()==true){
 				return this;//looper is dead!!!
@@ -131,7 +135,7 @@ public class ImgRender {
 	 * This method is blocking~~~
 	 * @return self
 	 */
-	public ImgRender pause(){	
+	public CamRender pause(){	
 		if(looper!=null){
 			if(looper.isDone()==false){
 				return stop();
@@ -149,7 +153,7 @@ public class ImgRender {
 		return false;
 	}
 	
-	public ImgRender snap(String name){
+	public CamRender snap(String name){
 		int pos = name.lastIndexOf(File.separatorChar);
 		if(pos<0){
 			//set default path~~~

@@ -194,15 +194,15 @@ public class DevB140M extends DevMotion {
 			GridPane.setHgrow(chkOut,Priority.ALWAYS);
 						
 			boxSSpeed = new BoxIntValue("Slew Speed-"+tkn)
-				.setEventEnter(event->updateSPD("SP",boxSSpeed));
+				.setEvent(event->updateSPD("SP",boxSSpeed));
 			
 			boxASpeed = new BoxIntValue("Acceleration-"+tkn)
-				.setEventEnter(event->updateSPD("AC",boxASpeed));
+				.setEvent(event->updateSPD("AC",boxASpeed));
 			
 			boxDSpeed = new BoxIntValue("Deceleration-"+tkn)
-				.setEventEnter(event->updateSPD("DC",boxDSpeed));
+				.setEvent(event->updateSPD("DC",boxDSpeed));
 			
-			boxCounter = new BoxIntValue("Counter-"+tkn).setEventEnter(event->{
+			boxCounter = new BoxIntValue("Counter-"+tkn).setEvent(event->{
 				Double[] val = {null,null,null,null};
 				val[tkn2idx()] = new Double(boxCounter.propValue.get());
 				takePosition(val);

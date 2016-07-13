@@ -32,9 +32,9 @@ using namespace std;
 #define MACRO_FETCH_BEG \
 	jclass clzz=env->GetObjectClass(bundle); \
 	jfieldID idCntx = env->GetFieldID(clzz,"ptrCntx","J"); \
-	jfieldID idMatx = env->GetFieldID(clzz,"ptrMatx","J"); \
 	void* cntx = (void*)(env->GetLongField(bundle,idCntx)); \
 	if(cntx==NULL){ return;	} \
+	jfieldID idMatx = env->GetFieldID(clzz,"ptrMatx","J"); \
 	Mat* matx = (Mat*)(env->GetLongField(bundle,idMatx));\
 	if(matx==NULL){ return; } \
 	Mat& buff = *matx;
@@ -55,6 +55,11 @@ using namespace std;
 	env->SetLongField(bundle,idMatx,0);
 
 //--------------------------------------------//
+
+#define MACRO_CHECK_CNTX \
+	jclass clzz=env->GetObjectClass(bundle); \
+	jfieldID idCntx = env->GetFieldID(clzz,"ptrCntx","J"); \
+	void* cntx = (void*)(env->GetLongField(bundle,idCntx));
 
 #define MACRO_CHECK_MATX \
 	jclass clzz=env->GetObjectClass(bundle); \

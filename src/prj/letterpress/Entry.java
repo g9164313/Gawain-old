@@ -15,7 +15,7 @@ import javafx.scene.layout.VBox;
 import javafx.stage.WindowEvent;
 import narl.itrc.CamBundle;
 import narl.itrc.CamVidcap;
-import narl.itrc.ImgRender;
+import narl.itrc.CamRender;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
 import narl.itrc.Pan4AxisPad;
@@ -33,7 +33,7 @@ public class Entry extends PanBase {
 	private CamBundle cam0 = new CamVidcap("0");
 	private CamBundle cam1 = new CamVidcap("1");
 	
-	private ImgRender rndr = new ImgRender(640,480);
+	private CamRender rndr = new CamRender(640,480);
 	
 	private DevB140M stg0 = new DevB140M();
 	

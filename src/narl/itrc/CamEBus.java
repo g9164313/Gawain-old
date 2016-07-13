@@ -1,6 +1,7 @@
 package narl.itrc;
 
 import javafx.scene.Node;
+import javafx.scene.Parent;
 
 public class CamEBus extends CamBundle {
 
@@ -30,7 +31,7 @@ public class CamEBus extends CamBundle {
 	}
 
 	@Override
-	public Node genPanelSetting() {
+	public Parent genPanelSetting() {
 		return null;
 	}
 }

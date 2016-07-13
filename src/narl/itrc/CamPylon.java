@@ -1,6 +1,7 @@
 package narl.itrc;
 
 import javafx.scene.Node;
+import javafx.scene.Parent;
 
 public class CamPylon extends CamBundle {
 
@@ -76,7 +77,7 @@ public class CamPylon extends CamBundle {
 		}
 	};*/
 	@Override
-	public Node genPanelSetting() {
+	public Parent genPanelSetting() {
 		return null;
 	}
 }
