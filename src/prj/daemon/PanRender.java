@@ -5,6 +5,7 @@ import com.jfoenix.controls.JFXButton;
 import javafx.scene.Parent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Pane;
 import javafx.stage.WindowEvent;
 import narl.itrc.CamVidcap;
 import narl.itrc.CamRender;
@@ -24,10 +25,15 @@ public class PanRender extends PanBase {
 	private CamVidcap vid0 = new CamVidcap("V4L:0");
 	
 	private CamRender rndr = new CamRender(640,480,vid0);
-	
+		
 	protected void eventShown(WindowEvent e){		
 		rndr.play();
 		checkPlaying();
+		//Here, we add control item to test function~~~
+		FilterNMText fltr1 = new FilterNMText();
+		panControl.getChildren().add(fltr1.getControl(rndr));
+				
+		
 	}
 	
 	protected void eventClose(WindowEvent e){
@@ -50,12 +56,14 @@ public class PanRender extends PanBase {
 		}
 	}
 	
+	protected Pane panControl = null;
+	
 	@Override
 	public Parent layout() {
 		HBox lay0 = new HBox();
 		lay0.getStyleClass().add("vbox-small");
 		lay0.getChildren().addAll(
-			rndr.genPreview("預覽1")
+			rndr.getPreview("預覽1", 0)
 			/*,rndr.genPreview("預覽2")*/
 		);
 		
@@ -70,7 +78,7 @@ public class PanRender extends PanBase {
 		btnSnapImg.getStyleClass().add("btn-raised");
 		btnSnapImg.setGraphic(Misc.getIcon("camera.png"));
 		btnSnapImg.setOnAction(event->{
-			rndr.snap("snap.png");
+			rndr.snap("img.png");
 		});
 		
 		btnSetting = new JFXButton("設定");
@@ -85,13 +93,15 @@ public class PanRender extends PanBase {
 		
 		BorderPane root = new BorderPane();
 		
-		root.setCenter(lay0);
-		root.setRight(PanBase.fillVBox(
+		panControl = PanBase.fillVBox(
 			btnPlaying, 
 			btnSnapImg, 
 			btnSetting,
 			btnClose
-		));
+		);
+		
+		root.setCenter(lay0);
+		root.setRight(panControl);
 		return root;
 	}
 }

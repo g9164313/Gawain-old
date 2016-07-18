@@ -53,8 +53,8 @@ public class Entry extends PanBase {
 	private Node layAligment(){
 
 		HBox lay0 = PanBase.decorateHBox(
-			rndr.genPreview("預覽1"),
-			rndr.genPreview("預覽2")
+			rndr.getPreview("預覽1", 0),
+			rndr.getPreview("預覽2", 1)
 		);
 		
 		final int BOARD_SIZE=130;

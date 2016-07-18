@@ -104,6 +104,10 @@ public abstract class CamBundle implements Gawain.EventHook {
 		return (ptrCntx==0)?(false):(true);
 	}
 
+	public long getMatx(){
+		return ptrMatx;
+	}
+	
 	public Image getImage(){
 		if(ptrMatx==0){
 			return null;

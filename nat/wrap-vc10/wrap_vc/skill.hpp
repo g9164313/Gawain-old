@@ -51,7 +51,7 @@ extern jobjectArray mat2array(JNIEnv *env,Mat& src);
 extern void mapPoint(JNIEnv *env, jobject obj, cv::Point& dst);
 extern void mapRect(JNIEnv *env, jobject obj, cv::Rect& dst);
 extern void mapRect(JNIEnv *env, Rect& src, jobject dst);
-extern jsize jstrcpy(JNIEnv* env, jstring src, char* dst);
+extern jsize jstrcpy(JNIEnv* env, jstring src, const char* dst);
 extern jsize jstrcpy(JNIEnv* env, jstring src, string& dst);
 extern bool isSaturation(const Mat& src,bool dark);
 

@@ -2,22 +2,26 @@ package narl.itrc;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.sun.glass.ui.Application;
 
 import javafx.concurrent.Task;
+import javafx.scene.canvas.Canvas;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.StackPane;
 
 public class CamRender {
 	
 	private int[] size = {800,600};//dimension
 	
-	private CamBundle[] lstBundle = null;
-
+	public CamRender(){
+	}
+	
 	public CamRender(int width,int height){
 		size[0] = width;
 		size[1] = height;
@@ -28,51 +32,55 @@ public class CamRender {
 		size[1] = height;
 		setBundle(list);
 	}
-	
-	public CamRender setBundle(CamBundle... list){
-		lstBundle = list;
-		lstImage = new Image[list.length]; 
-		return this;
-	}
-	
-	public CamBundle getBundle(int idx){
-		return lstBundle[idx];
-	}
 	//----------------------//
-	
+
 	private Task<Integer> looper;
-	
-	private LinkedBlockingQueue<Filter> lstFilter = new LinkedBlockingQueue<Filter>();
 
-	private Filter curFilter = null;
-	
 	private void loopInit(){
-		for(CamBundle bnd:lstBundle){
-			if(bnd==null){
+		for(ImgPreview prv:lstPreview){
+			if(prv.bundle==null){
 				continue;
 			}
-			if(bnd.isReady()==true){
+			if(prv.bundle.isReady()==true){
 				continue;
 			}
-			bnd.setup();
+			prv.bundle.setup();
 		}
 	}
 
-	private void loopBody(){
-		curFilter = lstFilter.peek();
-		for(int i=0; i<lstBundle.length; i++){
-			CamBundle bnd = lstBundle[i];
-			if(bnd==null){
-				continue;//user can give a null bundle, it is valid.
-			}
-			bnd.fetch();
-			lstImage[i] = bnd.getImage();			
+	private void loopBody(){		
+		for(ImgPreview prv:lstPreview){
+			prv.fetch();
 		}
-		filterCookData();
+		for(ImgFilter flt:lstFilter){			
+			flt.cookData(lstPreview);
+			flt.state.set(ImgFilter.STA_COOK);
+		}
 		Application.invokeAndWait(eventShow);
-		filterCheckDone();
 	}
 	
+	private final Runnable eventShow = new Runnable(){
+		@Override
+		public void run() {
+			for(ImgPreview prv:lstPreview){
+				prv.refresh();
+			}
+			for(ImgFilter flt:lstFilter){
+				if(flt.isCooked()==false){
+					continue;//it is still RAW!!!!
+				}
+				//First, always set this because 
+				//blocking queue not remove object immediately								
+				if(flt.showData(lstPreview)==true){
+					flt.state.set(ImgFilter.STA_SHOW);
+					lstFilter.remove(flt);					
+				}else{
+					flt.state.set(ImgFilter.STA_IDLE);
+				}
+			}
+		}
+	};
+
 	/**
 	 * start to play video stream 
 	 * @return self
@@ -154,127 +162,109 @@ public class CamRender {
 	}
 	
 	public CamRender snap(String name){
+		if(lstFilter.contains(fltrSnap)==true){
+			PanBase.msgBox.notifyInfo("Render","忙碌中");
+			return this;
+		}
 		int pos = name.lastIndexOf(File.separatorChar);
 		if(pos<0){
 			//set default path~~~
-			snapName[0] = "."+File.separatorChar;			
+			fltrSnap.snapName[0] = "."+File.separatorChar;			
 		}else{
 			//trim path~~~
-			snapName[0] = name.substring(0,pos);
+			fltrSnap.snapName[0] = name.substring(0,pos);
 			name = name.substring(pos+1);
 		}
 		pos = name.lastIndexOf('.');
 		if(pos<0){
 			return this;
 		}		
-		snapName[1] = name.substring(0,pos);
-		snapName[2] = name.substring(pos);		
-		lstFilter.add(fltrSnap);		
+		fltrSnap.snapName[1] = name.substring(0,pos);
+		fltrSnap.snapName[2] = name.substring(pos);		
+		lstFilter.add(fltrSnap);
+		return this;
+	}
+	
+	public CamRender addFilter(ImgFilter fltr){
+		if(lstFilter.contains(fltr)==true){
+			Misc.logw("已經有Filter");
+			return this;
+		}
+		lstFilter.add(fltr);
+		return this;
+	}
+	
+	public CamRender addFilter(ImgFilter... list){
+		for(int i=0; i<list.length; i++){
+			addFilter(list[i]);
+		}
 		return this;
 	}
 	//----------------------//
+	
+	private ArrayList<ImgPreview> lstPreview = new ArrayList<ImgPreview>();
 
-	public interface Filter{
-		/**
-		 * this invoked by working-thread.<p>
-		 * user can process or cook data here.<p>
-		 * @param bnd - camera bundle
-		 * @return true - we done, take off.<p> false- keep this in queue.<p>
-		 */
-		abstract void cookData(CamBundle[] bnd);//this invoked by render-thread
-		
-		/**
-		 * this invoked by GUI-thread.<p>
-		 * user can show charts or change the state of widget here.<p>
-		 * @param bnd - camera bundle
-		 * @return true - we done, take off.<p> false- keep this in queue.<p>
-		 */
-		abstract void showData(CamBundle[] bnd);//this invoked by GUI thread
-		
-		abstract boolean isDone();
-	};
-	
-	private void filterCookData(){
-		if(curFilter!=null){
-			curFilter.cookData(lstBundle);
+	public CamRender setBundle(CamBundle... list){
+		for(int i=0; i<list.length; i++){
+			lstPreview.add(new ImgPreview(list[i]));
 		}
+		return this;
 	}
 	
-	private void filterShowData(){
-		if(curFilter!=null){
-			curFilter.showData(lstBundle);
+	public CamBundle getBundle(int idx){
+		if(idx>=lstPreview.size()){
+			return null;
 		}
+		return lstPreview.get(idx).bundle;
 	}
 	
-	private void filterCheckDone(){
-		if(curFilter!=null){
-			if(curFilter.isDone()==true){
-				lstFilter.remove(curFilter);
+	public Pane getPreview(String title,int idx){
+		if(idx>=lstPreview.size()){
+			return null;
+		}
+		ImgPreview pv = lstPreview.get(idx);
+		if(pv.board==null){
+			pv.create_board(size);
+			if(title.length()!=0){
+				pv.board = PanBase.decorate(title,pv.board);
 			}
 		}
+		return pv.board;
 	}
+	//----------------------//
 	
-	/**
-	 * This is file name for filter 'snap'.<p> 
-	 * It means "path", "prefix" and "postfix"(.jpg, .png, .gif, etc).<p>
-	 */
-	private static String[] snapName = {"","",""};
-	private static int snapIndx = 0;
-	
-	private static Filter fltrSnap = new Filter(){
+	private ArrayBlockingQueue<ImgFilter> lstFilter = new ArrayBlockingQueue<ImgFilter>(100);
+
+	private class FilterSnap extends ImgFilter {
+		/**
+		 * This is file name for filter 'snap'.<p> 
+		 * It means "path", "prefix" and "postfix"(.jpg, .png, .gif, etc).<p>
+		 */
+		public String[] snapName = {"","",""};
+		public AtomicInteger snapIndx = new AtomicInteger(0);
 		@Override
-		public void cookData(CamBundle[] list) {
-			snapIndx++;
-			for(int i=0; i<list.length; i++){
-				list[i].saveImage(String.format(
-					"%s%s%d-%03d%s",
+		public void cookData(ArrayList<ImgPreview> list) {
+			int idx = snapIndx.incrementAndGet();
+			for(int i=0; i<list.size(); i++){
+				list.get(i).bundle.saveImage(String.format(
+					"%s%s%d_%03d%s",
 					snapName[0],snapName[1],
-					(i+1),snapIndx,
+					(i+1),idx,
 					snapName[2]
 				));
-			}		
+			}	
 		}
 		@Override
-		public void showData(CamBundle[] list) {
-			PanBase.msgBox.notifyInfo("Render",String.format(
+		public boolean showData(ArrayList<ImgPreview> list) {
+			PanBase.msgBox.notifyInfo("Render",
+			String.format(
 				"儲存影像(%d) %s",
-				snapIndx,
+				snapIndx.get(),
 				snapName[1]
 			));
-		}
-		@Override
-		public boolean isDone() {
 			return true;
 		}
-	};
-	//----------------------//
-		
-	private Image[] lstImage = null;
-	
-	private final Runnable eventShow = new Runnable(){
-		@Override
-		public void run() {
-			for(int i=0; i<lstScreen.size(); i++){
-				if(i>=lstImage.length){
-					return;
-				}
-				if(lstImage[i]==null){
-					continue;
-				}
-				lstScreen.get(i).setImage(lstImage[i]);
-			}
-			filterShowData();
-		}
-	};
-	//----------------------//
-	
-	private ArrayList<ImageView> lstScreen = new ArrayList<ImageView>();
-
-	public Pane genPreview(String title){
-		ImageView screen = new ImageView();
-		screen.setFitWidth(size[0]);
-		screen.setFitHeight(size[1]);
-		lstScreen.add(screen);
-		return PanBase.decorate(title,screen);
 	}
+	
+	private FilterSnap fltrSnap = new FilterSnap();
 }

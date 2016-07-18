@@ -1,6 +1,7 @@
 #ifndef VISION_H
 #define VISION_H
 
+#include <vector>
 #include <iostream>
 #include <fstream>
 #include <opencv/cv.h>
@@ -9,6 +10,7 @@
 using namespace cv;
 using namespace std;
 
+//Do we need the below procedure~~~
 extern cv::Mat* obj2mat(JNIEnv *env,jobject obj);
 extern jobjectArray mat2array(JNIEnv *env,Mat& src);
 extern void mapPoint(JNIEnv *env, jobject obj, cv::Point& dst);
@@ -335,6 +337,6 @@ inline int pry_down_size(int a){
 	return a;
 }
 
-
-
 #endif
+
+
