@@ -20,6 +20,8 @@ import narl.itrc.PanBase;
 public class PanRender extends PanBase {
 
 	public PanRender(){
+		//final String testFile = ":/home/qq/labor/aaa/img%02d.png";
+		//rndr = new CamRender(new CamVidcap("FILE:0"+testFile));
 		rndr = new CamRender(new CamVidcap("0"));
 	}
 	

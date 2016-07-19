@@ -62,7 +62,7 @@ extern char getJchar(JNIEnv *env,jobject thiz,const char* name);
 extern void setJbool(JNIEnv *env,jobject thiz,const char* name,bool val);
 extern bool getJbool(JNIEnv *env,jobject thiz,const char* name);
 
-extern jsize jstrcpy(JNIEnv* env, jstring src, const char* dst);
+extern jsize jstrcpy(JNIEnv* env,jstring src,const char* dst);
 
 extern jbyte*   byteArray2Ptr  (JNIEnv* env,jclass _clazz,jobject thiz,const char* name,jbyteArray  & arr);
 extern jchar*   charArray2Ptr  (JNIEnv* env,jclass _clazz,jobject thiz,const char* name,jcharArray  & arr);

@@ -10,7 +10,6 @@
 #include <iomanip>
 using namespace cv::text;
 
-extern jsize jstrcpy(JNIEnv* env, jstring src,const char* dst);
 
 static char fileNM1[200],fileNM2[200],fileGRP[200];//full-path file name
 

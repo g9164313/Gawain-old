@@ -43,9 +43,49 @@ public class CamVidcap extends CamBundle {
 		CAP_FFMPEG = 1900, // FFMPEG
 		CAP_IMAGES = 2000; // OpenCV Image Sequence (e.g. img_%02d.jpg)
 
+	private int name2value(String name){
+		int val = CAP_ANY;//default domain~~
+		if (
+			name.equalsIgnoreCase("IMAGE") == true ||
+			name.equalsIgnoreCase("FILE") == true
+		) {
+			val = CAP_IMAGES;//image sequence~~~~
+		}else if (
+			name.equalsIgnoreCase("VFW") == true || 
+			name.equalsIgnoreCase("V4L") == true || 
+			name.equalsIgnoreCase("V4L2") == true
+		) {			
+			val = CAP_VFW;			
+		} else if (
+			name.equalsIgnoreCase("FIREWARE") == true || 
+			name.equalsIgnoreCase("1394") == true
+		) {			
+			val = CAP_FIREWARE;			
+		} else if (name.equalsIgnoreCase("QT") == true) {			
+			val = CAP_QT;			
+		} else if (name.equalsIgnoreCase("UNICAP") == true) {			
+			val = CAP_UNICAP;			
+		} else if (name.equalsIgnoreCase("PVAPI") == true) {
+			val = CAP_PVAPI;
+		}else if ( name.equalsIgnoreCase("GIGE") == true ) {
+			val = CAP_GIGANETIX;
+		} else if (
+			name.equalsIgnoreCase("XIMEA") == true || 
+			name.equalsIgnoreCase("XAPI") == true
+		) {
+			val = CAP_XIAPI;		
+		}
+		return val;
+	}
+
 	private int capDomain = CAP_ANY;
 	private int capIndex = 0;
-
+	
+	/**
+	 * This variable is only for CAP_IMAGES, name must have leading zero!!!
+	 */
+	private String capConfig = Misc.pathRoot + "img1_%03d.png";
+		
 	private native void implSetup(CamBundle cam);
 
 	private native void implFetch(CamBundle cam);
@@ -55,45 +95,31 @@ public class CamVidcap extends CamBundle {
 	private native boolean setProp(CamBundle cam,int id, double val);
 
 	private native double getProp(CamBundle cam,int id);
-
+	
 	@Override
 	public void setup(String txtConfig) {
 		// e.g: "winrt:0", open the first camera via WinRT
 		String[] args = txtConfig.split(":");
 		try {
-			capDomain = CAP_ANY;
-			if (args.length == 1) {
+			capDomain= CAP_ANY;
+			capIndex = 0;
+			switch(args.length){
+			default:
+			case 3:				
+				capDomain= name2value(args[0].trim());
+				capIndex = Integer.valueOf(args[1].trim());
+				capConfig= args[2].trim();
+				break;
+			case 2:
+				capDomain= name2value(args[0].trim());
+				capIndex = Integer.valueOf(args[1].trim());
+				break;
+			case 1:
 				capIndex = Integer.valueOf(args[0].trim());
-			} else if (args.length == 2) {
-				args[0] = args[0].trim();
-				args[1] = args[1].trim();
-				if (args[0].equalsIgnoreCase("VFW") == true
-					|| args[0].equalsIgnoreCase("V4L") == true
-					|| args[0].equalsIgnoreCase("V4L2") == true
-				) {
-					capDomain = CAP_VFW;
-				} else if (args[0].equalsIgnoreCase("FIREWARE") == true
-					|| args[0].equalsIgnoreCase("1394") == true
-				) {
-					capDomain = CAP_FIREWARE;
-				} else if (args[0].equalsIgnoreCase("QT") == true
-				) {
-					capDomain = CAP_QT;
-				} else if (args[0].equalsIgnoreCase("UNICAP") == true) {
-					capDomain = CAP_UNICAP;
-				} else if (args[0].equalsIgnoreCase("PVAPI") == true) {
-					capDomain = CAP_PVAPI;
-				} else if (args[0].equalsIgnoreCase("XIMEA") == true
-						|| args[0].equalsIgnoreCase("XAPI") == true) {
-					capDomain = CAP_XIAPI;
-				}
-				capIndex = Integer.valueOf(args[1]);
-			} else {
-				capIndex = 0;
+				break;
 			}
 		} catch (NumberFormatException e) {
 			Misc.loge("Wrong configure - " + txtConfig);
-			return;
 		}
 		implSetup(this);
 	}

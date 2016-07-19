@@ -33,6 +33,9 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamBundle_saveImage(
 ){
 	MACRO_BUNDLE_MATX_VOID
 	Mat& img = *((Mat*)matx);
+	if(img.empty()==true){
+		return;//we have problem!!!
+	}
 	char name[500];
 	jstrcpy(env,jname,name);
 	imwrite(name,img);

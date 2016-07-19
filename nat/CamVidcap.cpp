@@ -7,15 +7,6 @@
 #include <global.hpp>
 #include <CamBundle.hpp>
 
-jint getCapID(JNIEnv* env,jobject camvidcap){
-	jclass clzz=env->GetObjectClass(camvidcap);
-	jfieldID idDom = env->GetFieldID(clzz,"capDomain","I");
-	jfieldID idIdx = env->GetFieldID(clzz,"capIndex","I");
-	jint dom = env->GetIntField(camvidcap,idDom);
-	jint idx = env->GetIntField(camvidcap,idIdx);
-	return dom+idx;
-}
-
 extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamVidcap_implSetup(
 	JNIEnv* env,
 	jobject thiz,
@@ -23,11 +14,29 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamVidcap_implSetup(
 ){
 	MACRO_SETUP_BEG
 
+	jclass _clzz=env->GetObjectClass(thiz);
+	jfieldID idDom = env->GetFieldID(_clzz,"capDomain","I");
+	jfieldID idIdx = env->GetFieldID(_clzz,"capIndex","I");
+	jint dom = env->GetIntField(thiz,idDom);
+	jint idx = env->GetIntField(thiz,idIdx);
+
 	VideoCapture* vid = new VideoCapture();
-	vid->open(getCapID(env,thiz));
+	if(dom==CAP_IMAGES){
+		jstring j_name = (jstring)env->GetObjectField(
+			thiz,
+			env->GetFieldID(_clzz,"capConfig","Ljava/lang/String;")
+		);
+		char txtName[500];
+		jstrcpy(env,j_name,txtName);
+		vid->open(txtName,dom);
+		cout<<"open with sequence:"<<txtName<<endl;
+	}else{
+		vid->open(dom+idx);
+	}
 	if(vid->isOpened()==false){
 		delete vid;
 		vid = NULL;//mark it again~~~
+		cout<<"fail to open vidcap"<<endl;
 	}
 
 	MACRO_SETUP_END(vid)
@@ -41,7 +50,10 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamVidcap_implFetch(
 	MACRO_FETCH_BEG
 
 	VideoCapture& vid = *((VideoCapture*)(cntx));
-	vid>>buff;
+	if(vid.grab()==false){
+		return;
+	}
+	vid.retrieve(buff);
 }
 
 extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamVidcap_implClose(

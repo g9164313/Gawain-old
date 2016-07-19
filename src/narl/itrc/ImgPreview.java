@@ -8,6 +8,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -56,12 +57,17 @@ public class ImgPreview {
 	
 	private void create_board(String title,int width,int height){
 		
+		txtName.setText(title);
 		screen = new ImageView();		
 		overlay1 = new Canvas();
 		overlay2 = new Canvas();
 		
 		StackPane grp = new StackPane();
-		grp.getChildren().addAll(screen,overlay1);
+		grp.getChildren().addAll(
+			screen,
+			overlay1,
+			overlay2
+		);
 		
 		ScrollPane pan = new ScrollPane();
 		pan.setMinSize(width+13,height+13);
@@ -70,15 +76,18 @@ public class ImgPreview {
 		pan.setFitToHeight(true);
 		//pan.setBorder(value);
 		
-		board = new VBox();//Do we need some control items??
-		if(title.length()==0){
-			board.getChildren().add(pan);
-		}else{
-			board.getChildren().addAll(new Label(title),pan);
-		}
+		HBox lay0 = new HBox();
+		lay0.getStyleClass().add("vbox-small");
+		lay0.getChildren().addAll(txtName,txtInf1,txtInf2);
+		
+		board = new VBox();		
+		board.getChildren().addAll(lay0,pan);		
 	}
 	
 	private Pane board = null;
+	private Label txtName = new Label();
+	private Label txtInf1 = new Label();
+	private Label txtInf2 = new Label();
 	
 	public Pane getBoard(String title,int width,int height){
 		if(board==null){
@@ -134,6 +143,17 @@ public class ImgPreview {
 				rect[i+0],rect[i+1],
 				rect[i+2],rect[i+3]
 			);
+		}
+	}
+	
+	public void drawContour(int[] pts){
+		if(pts==null){
+			return;
+		}
+		GraphicsContext gc = overlay1.getGraphicsContext2D();
+		gc.setStroke(Color.GREENYELLOW);
+		for(int i=0; i<pts.length; i+=2){
+			//gc.strokePolygon(xPoints, yPoints, nPoints);
 		}
 	}
 };
