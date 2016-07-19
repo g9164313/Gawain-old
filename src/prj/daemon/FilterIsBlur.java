@@ -7,7 +7,7 @@ import com.jfoenix.controls.JFXButton;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
-import narl.itrc.CamRender;
+import narl.itrc.ImgRender;
 import narl.itrc.ImgFilter;
 import narl.itrc.ImgPreview;
 
@@ -37,7 +37,7 @@ public class FilterIsBlur extends ImgFilter {
 		new Label()
 	};
 	
-	public Pane getPanel(final CamRender rndr){		
+	public Pane getPanel(final ImgRender rndr){		
 		GridPane lay0 = new GridPane();
 		lay0.getStyleClass().add("grid-small");
 		

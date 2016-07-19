@@ -10,12 +10,12 @@ import com.sun.glass.ui.Application;
 import javafx.concurrent.Task;
 import javafx.scene.layout.Pane;
 
-public class CamRender {
+public class ImgRender {
 	
-	public CamRender(){
+	public ImgRender(){
 	}
 	
-	public CamRender(CamBundle... list){
+	public ImgRender(CamBundle... list){
 		setBundle(list);
 	}
 
@@ -70,7 +70,7 @@ public class CamRender {
 	 * start to play video stream 
 	 * @return self
 	 */
-	public CamRender play(){
+	public ImgRender play(){
 		if(looper!=null){
 			if(looper.isDone()==false){
 				return this;//looper is running,keep from reentry
@@ -103,7 +103,7 @@ public class CamRender {
 	 * Stop looper.This is a blocking method.<p>
 	 * @return self
 	 */
-	public CamRender stop(){	
+	public ImgRender stop(){	
 		if(looper!=null){
 			if(looper.isDone()==true){
 				return this;//looper is dead!!!
@@ -128,7 +128,7 @@ public class CamRender {
 	 * This method is blocking~~~
 	 * @return self
 	 */
-	public CamRender pause(){	
+	public ImgRender pause(){	
 		if(looper!=null){
 			if(looper.isDone()==false){
 				return stop();
@@ -146,7 +146,7 @@ public class CamRender {
 		return false;
 	}
 	
-	public CamRender snap(String name){
+	public ImgRender snap(String name){
 		if(lstFilter.contains(fltrSnap)==true){
 			PanBase.msgBox.notifyInfo("Render","忙碌中");
 			return this;
@@ -170,7 +170,7 @@ public class CamRender {
 		return this;
 	}
 	
-	public CamRender addFilter(ImgFilter fltr){
+	public ImgRender addFilter(ImgFilter fltr){
 		if(lstFilter.contains(fltr)==true){
 			Misc.logw("已經有Filter");
 			return this;
@@ -179,7 +179,7 @@ public class CamRender {
 		return this;
 	}
 	
-	public CamRender addFilter(ImgFilter... list){
+	public ImgRender addFilter(ImgFilter... list){
 		for(int i=0; i<list.length; i++){
 			addFilter(list[i]);
 		}
@@ -189,7 +189,7 @@ public class CamRender {
 	
 	private ArrayList<ImgPreview> lstPreview = new ArrayList<ImgPreview>();
 
-	public CamRender setBundle(CamBundle... list){
+	public ImgRender setBundle(CamBundle... list){
 		for(int i=0; i<list.length; i++){
 			lstPreview.add(new ImgPreview(list[i]));
 		}
@@ -203,7 +203,21 @@ public class CamRender {
 		return lstPreview.get(idx).bundle;
 	}
 	
-	public Pane getPreview(String title,int... args){
+	public ImgPreview getPreview(int idx){
+		if(idx>=lstPreview.size()){
+			return null;
+		}
+		return lstPreview.get(idx);
+	}
+	
+	public Pane getBoard(int idx){
+		if(idx>=lstPreview.size()){
+			return null;
+		}
+		return lstPreview.get(idx).getBoard();
+	}
+	
+	public Pane genBoard(String title,int... args){
 		int index = 0;
 		int width = 640;//default size~~~
 		int height= 480;//default size~~~
@@ -224,7 +238,7 @@ public class CamRender {
 		if(index>=lstPreview.size()){
 			return null;
 		}
-		return lstPreview.get(index).getBoard(title,width,height);
+		return lstPreview.get(index).genBoard(title,width,height);
 	}
 	//----------------------//
 	
@@ -241,12 +255,29 @@ public class CamRender {
 		public void cookData(ArrayList<ImgPreview> list) {
 			int idx = snapIndx.incrementAndGet();
 			for(int i=0; i<list.size(); i++){
-				list.get(i).bundle.saveImage(String.format(
+				//first save the entire image
+				ImgPreview prv = list.get(i);
+				CamBundle bnd = prv.bundle;
+				bnd.saveImage(String.format(
 					"%s%s%d_%03d%s",
-					snapName[0],snapName[1],
-					(i+1),idx,
+					snapName[0],snapName[1],(i+1),
+					idx,
 					snapName[2]
 				));
+				//second save all ROI inside image
+				
+				for(int j=0; j<prv.mark.length; j++){
+					int[] roi = prv.mark[j].getROI();
+					if(roi==null){
+						continue;
+					}
+					bnd.saveImageROI(String.format(
+						"%sroi_%s%d_%03d%s",
+						snapName[0],snapName[1],(i+1),
+						idx,
+						snapName[2]
+					), roi);
+				}
 			}	
 		}
 		@Override

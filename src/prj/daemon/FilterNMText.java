@@ -6,7 +6,7 @@ import javafx.scene.control.Control;
 
 import com.jfoenix.controls.JFXButton;
 
-import narl.itrc.CamRender;
+import narl.itrc.ImgRender;
 import narl.itrc.ImgFilter;
 import narl.itrc.ImgPreview;
 import narl.itrc.Misc;
@@ -17,7 +17,7 @@ public class FilterNMText extends ImgFilter {
 	private String fileNM2 = Misc.pathTemp+"trained_classifierNM2.xml";
 	private String fileGRP = Misc.pathTemp+"trained_classifier_erGrouping.xml";
 	
-	private CamRender rndr;
+	private ImgRender rndr;
 	
 	public FilterNMText(){
 	}
@@ -37,7 +37,7 @@ public class FilterNMText extends ImgFilter {
 		return true;//we done~~~~
 	}
 
-	public Control getControl(final CamRender rndr){		
+	public Control getControl(final ImgRender rndr){		
 		JFXButton btn = new JFXButton("偵測字元");
 		btn.getStyleClass().add("btn-raised1");
 		btn.setMaxWidth(Double.MAX_VALUE);

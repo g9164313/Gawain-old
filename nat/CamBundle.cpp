@@ -40,6 +40,28 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamBundle_saveImage(
 	jstrcpy(env,jname,name);
 	imwrite(name,img);
 }
+
+extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamBundle_saveImageROI(
+	JNIEnv * env,
+	jobject bundle,
+	jstring jname,
+	jintArray jroi
+){
+	MACRO_BUNDLE_MATX_VOID
+	Mat& img = *((Mat*)matx);
+	if(img.empty()==true){
+		return;//we have problem!!!
+	}
+	jint* buf = env->GetIntArrayElements(jroi,NULL);
+	Mat roi = img(Rect(
+		buf[0],buf[1],
+		buf[2],buf[3]
+	));
+	char name[500];
+	jstrcpy(env,jname,name);
+	imwrite(name,roi);
+	env->ReleaseIntArrayElements(jroi,buf,0);
+}
 //-------------------------------------//
 //------below code is deprecated-------//
 

@@ -1,15 +1,6 @@
 package narl.itrc;
 
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-
-import javafx.geometry.Pos;
-import javafx.scene.Node;
 import javafx.scene.Parent;
-import javafx.scene.control.Label;
-import javafx.scene.layout.GridPane;
 
 public class CamVidcap extends CamBundle {
 
@@ -78,9 +69,14 @@ public class CamVidcap extends CamBundle {
 		return val;
 	}
 
+	/**
+	 * The type of camera source
+	 */
 	private int capDomain = CAP_ANY;
+	/**
+	 * Camera index
+	 */
 	private int capIndex = 0;
-	
 	/**
 	 * This variable is only for CAP_IMAGES, name must have leading zero!!!
 	 */

@@ -15,7 +15,7 @@ import javafx.scene.layout.VBox;
 import javafx.stage.WindowEvent;
 import narl.itrc.CamBundle;
 import narl.itrc.CamVidcap;
-import narl.itrc.CamRender;
+import narl.itrc.ImgRender;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
 import narl.itrc.Pan4AxisPad;
@@ -33,7 +33,7 @@ public class Entry extends PanBase {
 	private CamBundle cam0 = new CamVidcap("0");
 	private CamBundle cam1 = new CamVidcap("1");
 	
-	private CamRender rndr = new CamRender(cam0,cam1);
+	private ImgRender rndr = new ImgRender(cam0,cam1);
 	
 	private DevB140M stg0 = new DevB140M();
 	
@@ -54,8 +54,8 @@ public class Entry extends PanBase {
 
 		HBox lay0 = new HBox();
 		lay0.getChildren().addAll(
-			rndr.getPreview("預覽1", 0),
-			rndr.getPreview("預覽2", 1)
+			rndr.genBoard("預覽1", 0),
+			rndr.genBoard("預覽2", 1)
 		);
 		
 		final int BOARD_SIZE=130;

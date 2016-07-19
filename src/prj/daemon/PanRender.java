@@ -8,7 +8,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.stage.WindowEvent;
 import narl.itrc.CamVidcap;
-import narl.itrc.CamRender;
+import narl.itrc.ImgRender;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
 
@@ -20,12 +20,12 @@ import narl.itrc.PanBase;
 public class PanRender extends PanBase {
 
 	public PanRender(){
-		//final String testFile = ":/home/qq/labor/aaa/img%02d.png";
-		//rndr = new CamRender(new CamVidcap("FILE:0"+testFile));
-		rndr = new CamRender(new CamVidcap("0"));
+		//final String testFile = ":/home/qq/labor/opencv-3.1/contrib/modules/text/samples/scenetext_segmented_word%02d.jpg";
+		//rndr = new ImgRender(new CamVidcap("FILE:0"+testFile));
+		rndr = new ImgRender(new CamVidcap("0"));
 	}
 	
-	protected CamRender rndr = null;
+	protected ImgRender rndr = null;
 	
 	@Override
 	protected void eventShown(WindowEvent e){
@@ -67,7 +67,7 @@ public class PanRender extends PanBase {
 		HBox lay0 = new HBox();
 		lay0.getStyleClass().add("vbox-small");
 		lay0.getChildren().addAll(
-			rndr.getPreview("預覽1", 0)
+			rndr.genBoard("預覽1", 0)
 			/*,rndr.genPreview("預覽2")*/
 		);
 		
