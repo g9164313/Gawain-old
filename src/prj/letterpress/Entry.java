@@ -33,7 +33,7 @@ public class Entry extends PanBase {
 	private CamBundle cam0 = new CamVidcap("0");
 	private CamBundle cam1 = new CamVidcap("1");
 	
-	private CamRender rndr = new CamRender(640,480);
+	private CamRender rndr = new CamRender(cam0,cam1);
 	
 	private DevB140M stg0 = new DevB140M();
 	
@@ -52,7 +52,8 @@ public class Entry extends PanBase {
 	
 	private Node layAligment(){
 
-		HBox lay0 = PanBase.decorateHBox(
+		HBox lay0 = new HBox();
+		lay0.getChildren().addAll(
 			rndr.getPreview("預覽1", 0),
 			rndr.getPreview("預覽2", 1)
 		);
@@ -74,7 +75,7 @@ public class Entry extends PanBase {
 		Pan4AxisPad joyStick = new Pan4AxisPad(stg0,200);
 		
 		JFXButton btnClose = new JFXButton("關閉程式");
-		btnClose.getStyleClass().add("btn-raised2");
+		btnClose.getStyleClass().add("btn-raised1");
 		btnClose.setMaxWidth(Double.MAX_VALUE);
 		btnClose.setGraphic(Misc.getIcon("close.png"));
 		btnClose.setOnAction(EVENT->Entry.this.dismiss());

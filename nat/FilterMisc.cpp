@@ -10,6 +10,8 @@
 #include <iomanip>
 using namespace cv::text;
 
+extern jsize jstrcpy(JNIEnv* env, jstring src,const char* dst);
+
 static char fileNM1[200],fileNM2[200],fileGRP[200];//full-path file name
 
 void filterNMText(Mat& src,vector<Rect>& boxes){
@@ -65,8 +67,7 @@ void filterNMText(Mat& src,vector<Rect>& boxes){
 	);
 }
 
-extern jsize jstrcpy(JNIEnv* env, jstring src,const char* dst);
-extern "C" JNIEXPORT void JNICALL Java_prj_daemon_FilterNMText_implCookData(
+extern "C" JNIEXPORT jintArray JNICALL Java_prj_daemon_FilterNMText_implCookData(
 	JNIEnv* env,
 	jobject thiz,
 	jlong ptrMatx
@@ -95,14 +96,22 @@ extern "C" JNIEXPORT void JNICALL Java_prj_daemon_FilterNMText_implCookData(
 	Mat& img = *((Mat*)ptrMatx);
 	vector<Rect> box;
 	filterNMText(img,box);
-	for(int i=0; i<box.size(); i++){
-		Rect& rr = box[i];
-		env->CallVoidMethod(
-			thiz,
-			env->GetMethodID(_clazz,"updateBox","(IIII)V"),
-			rr.x,rr.y,rr.width,rr.height
-		);
+	jint cnt = box.size();
+	if(cnt==0){
+		return NULL;
 	}
+	jintArray result =  env->NewIntArray(cnt*4);
+	jint buff[cnt*4];
+	for(int i=0; i<cnt; i++){
+		buff[i*4+0] = box[i].x;
+		buff[i*4+1] = box[i].y;
+		buff[i*4+2] = box[i].width;
+		buff[i*4+3] = box[i].height;
+	}
+	env->SetIntArrayRegion(result,0,cnt*4,buff);
+	return result;
 }
+//--------------------------------------//
+
 
 

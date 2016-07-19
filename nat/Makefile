@@ -86,7 +86,9 @@ OBJECTS = $(SOURCES:.cpp=.o)
 
 EXEC_ING := $(word 2,$(shell pgrep -f "narl.itrc.Gawain"))
 
-$(TARGET_SO):  utils_jni.cpp utils_cv.cpp DevTTY.cpp  CamBundle.cpp CamVidcap.cpp  CamFilter.cpp
+IMG_FILTER = FilterMisc.cpp FilterIsBlur.cpp
+
+$(TARGET_SO):  utils_jni.cpp utils_cv.cpp $(IMG_FILTER) DevTTY.cpp  CamBundle.cpp CamVidcap.cpp  
 	$(CC) $(CC_FLAG)  -fPIC -shared -o $@ $^ $(LD_LIBS)
 	cp -rf $@ ../bin/narl/itrc/nat
 	cp -rf $@ ../src/narl/itrc/nat
@@ -98,7 +100,7 @@ else
 endif
 	
 
-$(TARGET_EXE):  ./wrap-unix/main4.cpp utils_jni.cpp CamFilter.cpp
+$(TARGET_EXE):  ./wrap-unix/main4.cpp utils_jni.cpp $(IMG_FILTER)
 	$(CC) $(CC_FLAG) -o $@ $^ $(LD_LIBS)
 
 #$(TARGET_EXE):  /home/qq/labor/opencv-3.1/contrib/modules/text/samples/character_recognition.cpp

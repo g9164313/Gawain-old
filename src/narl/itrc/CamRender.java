@@ -3,36 +3,21 @@ package narl.itrc;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.sun.glass.ui.Application;
 
 import javafx.concurrent.Task;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 import javafx.scene.layout.Pane;
-import javafx.scene.layout.StackPane;
 
 public class CamRender {
-	
-	private int[] size = {800,600};//dimension
 	
 	public CamRender(){
 	}
 	
-	public CamRender(int width,int height){
-		size[0] = width;
-		size[1] = height;
-	}
-
-	public CamRender(int width,int height,CamBundle... list){
-		size[0] = width;
-		size[1] = height;
+	public CamRender(CamBundle... list){
 		setBundle(list);
 	}
-	//----------------------//
 
 	private Task<Integer> looper;
 
@@ -218,18 +203,28 @@ public class CamRender {
 		return lstPreview.get(idx).bundle;
 	}
 	
-	public Pane getPreview(String title,int idx){
-		if(idx>=lstPreview.size()){
+	public Pane getPreview(String title,int... args){
+		int index = 0;
+		int width = 640;//default size~~~
+		int height= 480;//default size~~~
+		switch(args.length){
+		case 0:
+			index = 0;
+			break;
+		case 1:
+			index = args[0];
+			break;
+		default:
+		case 3:
+			index = args[0];
+			width = args[1];
+			height= args[2];
+			break;		
+		}
+		if(index>=lstPreview.size()){
 			return null;
 		}
-		ImgPreview pv = lstPreview.get(idx);
-		if(pv.board==null){
-			pv.create_board(size);
-			if(title.length()!=0){
-				pv.board = PanBase.decorate(title,pv.board);
-			}
-		}
-		return pv.board;
+		return lstPreview.get(index).getBoard(title,width,height);
 	}
 	//----------------------//
 	

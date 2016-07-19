@@ -5,7 +5,6 @@
  *      Author: qq
  */
 #include <global.hpp>
-#include <grabber.hpp>
 #include <CamBundle.hpp>
 
 jint getCapID(JNIEnv* env,jobject camvidcap){

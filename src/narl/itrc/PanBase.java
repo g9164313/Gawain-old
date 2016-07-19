@@ -333,9 +333,6 @@ public abstract class PanBase {
 		cntxt.getStyleClass().add("group-content");
 		StackPane.setAlignment(title,Pos.TOP_LEFT);
 		StackPane.setAlignment(cntxt,Pos.BOTTOM_LEFT);
-				
-		//StackPane body = new StackPane();
-		//body.getChildren().add(cntxt);
 		
 		StackPane grp = new StackPane();
 		grp.getStyleClass().add("group-border");

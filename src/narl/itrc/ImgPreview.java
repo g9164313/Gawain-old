@@ -4,20 +4,28 @@ import java.util.ArrayList;
 
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 
 public class ImgPreview {
+		
 	public CamBundle bundle = null;
-	public Image     imdata = null;
-	public ImageView screen = null;
-	public Canvas    canvas = null;		
+	public Image imdata = null;
+	
+	private ImageView screen = null;
+	private Canvas overlay1 = null;//show information	
+	private Canvas overlay2 = null;//show ROI
+	
 	public ImgPreview(CamBundle bnd){
 		bundle = bnd;
 	}
+	
 	public void fetch(){
 		imdata = null;
 		if(bundle!=null){
@@ -25,29 +33,62 @@ public class ImgPreview {
 			imdata = bundle.getImage();
 		}
 	}
+	
 	public void refresh(){
-		if(screen!=null && imdata!=null){
-			screen.setImage(imdata);
-		}			
+		//called by GUI-thread
+		if(screen==null || imdata==null){
+			return;
+		}
+		screen.setImage(imdata);
+		
+		//always check dimension~~~
+		int sw = (int)imdata.getWidth();
+		int sh = (int)imdata.getHeight();
+		int dw = (int)overlay1.getWidth();
+		int dh = (int)overlay1.getHeight();
+		if(sw!=dw||sh!=dh){			
+			overlay1.setWidth(sw); 
+			overlay1.setHeight(sh);
+			overlay2.setWidth(sw); 
+			overlay2.setHeight(sh);
+		}
 	}
 	
-	public Pane board = null;	
-	public void create_board(int[] size){
-		screen = new ImageView();
-		screen.setFitWidth(size[0]);
-		screen.setFitHeight(size[1]);
+	private void create_board(String title,int width,int height){
 		
-		canvas = new Canvas();
-		canvas.widthProperty().bind(screen.fitWidthProperty());
-		canvas.heightProperty().bind(screen.fitHeightProperty());
+		screen = new ImageView();		
+		overlay1 = new Canvas();
+		overlay2 = new Canvas();
 		
-		board = new StackPane();
-		board.getChildren().addAll(screen,canvas);
-		/*new ScrollPane();
-		setMinSize(320,240);
-		setContent(screen);
-		setFitToWidth(true);
-		setFitToHeight(true);*/
+		StackPane grp = new StackPane();
+		grp.getChildren().addAll(screen,overlay1);
+		
+		ScrollPane pan = new ScrollPane();
+		pan.setMinSize(width+13,height+13);
+		pan.setContent(grp);
+		pan.setFitToWidth(true);
+		pan.setFitToHeight(true);
+		//pan.setBorder(value);
+		
+		board = new VBox();//Do we need some control items??
+		if(title.length()==0){
+			board.getChildren().add(pan);
+		}else{
+			board.getChildren().addAll(new Label(title),pan);
+		}
+	}
+	
+	private Pane board = null;
+	
+	public Pane getBoard(String title,int width,int height){
+		if(board==null){
+			create_board(title,width,height);
+		}
+		return board;		
+	}
+	
+	public long getMatx(){
+		return bundle.getMatx();
 	}
 	
 	/**
@@ -55,7 +96,7 @@ public class ImgPreview {
 	 * @author qq
 	 *
 	 */
-	public static class Rect {
+	/*public static class Rect {
 		int x, y, width, height;
 		public Rect(){			
 		}
@@ -65,23 +106,33 @@ public class ImgPreview {
 			this.width = width;
 			this.height= height;
 		}
-	}
+	}*/
+	
+	//protected static final Color clrGround = Color.web("#b0bec5");
 	
 	public void clearAll(){
-		canvas.getGraphicsContext2D().clearRect(
+		overlay1.getGraphicsContext2D().clearRect(
 			0, 0, 
-			canvas.getWidth(), canvas.getHeight()
+			overlay1.getWidth(), overlay1.getHeight()
 		);
 	}
 	
-	public void drawRect(ArrayList<Rect> list){		
-		GraphicsContext gc = canvas.getGraphicsContext2D();
-		gc.setStroke(Color.YELLOW);
+	/**
+	 * Draw rectangle, the array size must be 4 times.<p>
+	 * Each elements present 'x', 'y', 'width', and 'height'
+	 * @param rect - [x,y,width,height], [x,y,width,height]...
+	 */
+	public void drawRect(int[] rect){
+		if(rect==null){
+			return;
+		}
+		GraphicsContext gc = overlay1.getGraphicsContext2D();
+		gc.setStroke(Color.GREENYELLOW);
 		gc.setLineWidth(2);
-		for(Rect rr:list){
+		for(int i=0; i<rect.length; i+=4){
 			gc.strokeRect(
-				rr.x,rr.y,
-				rr.width,rr.height
+				rect[i+0],rect[i+1],
+				rect[i+2],rect[i+3]
 			);
 		}
 	}

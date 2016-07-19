@@ -327,8 +327,8 @@ NAT_EXPORT int IsBlurred(
 	const uint8_t* const luminance,
 	const int width,
 	const int height, 
-	float* const blur, 
-	float* const extent
+	float* blur,
+	float* extent
 ) {
 
   int desired_width = min(kMaximumWidth, width);
@@ -371,41 +371,46 @@ NAT_EXPORT int IsBlurred(
 }
 //-----------------------------------------------------//
 
-extern "C" JNIEXPORT int JNICALL Java_narl_itrc_StgFocus_IsBlurred(
+extern "C" JNIEXPORT jboolean JNICALL Java_prj_daemon_FilterIsBlur_implCookData(
 	JNIEnv* env, 
 	jobject thiz,
-	jlong ptrMat,
-	jfloatArray j_parms
+	jlong ptrMatx
 ){
-	jfloat* parms = env->GetFloatArrayElements(j_parms,0);
-	parms[1] = 0.;//reset it!!!
-	parms[2] = 0.;
-	Mat* img = (Mat*)ptrMat;
-	int tmp = img->channels();
-	if(tmp==1){
-		IsBlurred(
-			img->ptr(),
-			img->cols,
-			img->rows,
-			parms+0,
-			parms+1
+	Mat& img = *(Mat*)ptrMatx;
+
+	int flag = 0;
+	float parm[2]={0,0};
+
+	if(img.type()==CV_8UC1){
+		flag = IsBlurred(
+			img.ptr(),
+			img.cols,
+			img.rows,
+			parm+0,
+			parm+1
 		);
-	}else if(tmp==3){
-		Mat node(img->size(),CV_8UC1);
-		cvtColor(*img,node,COLOR_BGR2GRAY);
-		IsBlurred(
+	}else if(img.type()==CV_8UC3){
+		Mat node(img.size(),CV_8UC1);
+		cvtColor(img,node,COLOR_BGR2GRAY);
+		flag = IsBlurred(
 			node.ptr(),
 			node.cols,
 			node.rows,
-			parms+0,
-			parms+1
+			parm+0,
+			parm+1
 		);
 	}
-	if(parms[0]<parms[2]){		
-		tmp=1;
-	}else{
-		tmp=0;
-	}
-	env->ReleaseFloatArrayElements(j_parms,parms,0);
-	return tmp;
+
+	jclass _clazz = env->GetObjectClass(thiz);
+	env->SetFloatField(
+		thiz,
+		env->GetFieldID(_clazz,"parmBlur","F"),
+		parm[0]
+	);
+	env->SetFloatField(
+		thiz,
+		env->GetFieldID(_clazz,"parmExtend","F"),
+		parm[1]
+	);
+	return (flag==0)?(JNI_FALSE):(JNI_TRUE);
 }

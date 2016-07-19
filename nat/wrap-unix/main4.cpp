@@ -1,13 +1,4 @@
 #include <global.hpp>
-#include <grabber.hpp>
-
-extern void registration(
-	Mat& _ref,
-	Mat& _src,
-	double* angle=NULL,
-	double* response=NULL
-);
-extern void imposition(const char* name,Mat& ref,Mat& src);
 
 extern void filterNMText(Mat& src,vector<Rect>& boxes);
 

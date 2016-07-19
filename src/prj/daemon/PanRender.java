@@ -19,23 +19,25 @@ import narl.itrc.PanBase;
  */
 public class PanRender extends PanBase {
 
-	public PanRender(){		
+	public PanRender(){
+		rndr = new CamRender(new CamVidcap("0"));
 	}
 	
-	private CamVidcap vid0 = new CamVidcap("V4L:0");
+	protected CamRender rndr = null;
 	
-	private CamRender rndr = new CamRender(640,480,vid0);
-		
-	protected void eventShown(WindowEvent e){		
+	@Override
+	protected void eventShown(WindowEvent e){
+		if(rndr==null){
+			return;
+		}
 		rndr.play();
 		checkPlaying();
 		//Here, we add control item to test function~~~
-		FilterNMText fltr1 = new FilterNMText();
-		panControl.getChildren().add(fltr1.getControl(rndr));
-				
-		
+		panControl.getChildren().add(new FilterNMText().getControl(rndr));
+		panControl.getChildren().add(new FilterIsBlur().getPanel(rndr));
 	}
 	
+	@Override
 	protected void eventClose(WindowEvent e){
 		rndr.stop();//let application release resource~~
 	}

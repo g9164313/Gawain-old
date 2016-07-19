@@ -9,7 +9,6 @@ import com.jfoenix.controls.JFXButton;
 import narl.itrc.CamRender;
 import narl.itrc.ImgFilter;
 import narl.itrc.ImgPreview;
-import narl.itrc.ImgPreview.Rect;
 import narl.itrc.Misc;
 
 public class FilterNMText extends ImgFilter {
@@ -23,26 +22,23 @@ public class FilterNMText extends ImgFilter {
 	public FilterNMText(){
 	}
 
-	private ArrayList<ImgPreview.Rect> lstBox = new ArrayList<ImgPreview.Rect>();
+	private native int[] implCookData(long ptrMatx);//this implements in 'FilterMisc.cpp'
+	private int[] rect = null;
 	@Override
 	public void cookData(ArrayList<ImgPreview> list) {
-		lstBox.clear();
-		implCookData(list.get(0).bundle.getMatx());
+		rect = implCookData(list.get(0).bundle.getMatx());
 	}
-	private void updateBox(int x, int y, int width, int height){
-		lstBox.add(new Rect(x,y,width,height));
-	}
-	
+		
 	@Override
 	public boolean showData(ArrayList<ImgPreview> list) {
 		ImgPreview prv = list.get(0);
 		prv.clearAll();
-		prv.drawRect(lstBox);
+		prv.drawRect(rect);
 		return true;//we done~~~~
 	}
 
 	public Control getControl(final CamRender rndr){		
-		JFXButton btn = new JFXButton("辨識字元");
+		JFXButton btn = new JFXButton("偵測字元");
 		btn.getStyleClass().add("btn-raised1");
 		btn.setMaxWidth(Double.MAX_VALUE);
 		btn.setOnAction(event->{
@@ -50,6 +46,4 @@ public class FilterNMText extends ImgFilter {
 		});
 		return btn;
 	}
-	
-	private native void implCookData(long ptrMatx);
 }

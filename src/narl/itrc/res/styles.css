@@ -14,14 +14,14 @@
 	-fx-background-color:  #00796b;
 	-fx-text-fill: WHITE;
 }
-.btn-raised3 {
+.btn-raised2 {
 	-fx-padding: 0.7em 0.57em;
 	-fx-font-size: 14px;
 	-fx-button-type: RAISED;
 	-fx-background-color: #fbc02d;
 	-fx-text-fill: WHITE;
 }
-.btn-raised4 {
+.btn-raised3 {
 	-fx-padding: 0.7em 0.57em;
 	-fx-font-size: 14px;
 	-fx-button-type: RAISED;
@@ -94,6 +94,13 @@
   -fx-border-color: black;
   -fx-border-width: 1;
 }
+.group-border1 {
+  -fx-content-display: top;
+  -fx-border-insets: 3 3 3 3;
+  -fx-border-color: black;
+  -fx-border-width: 1;
+}
+
 
 .swt-raise {
 	-switch-color         : rgb(77, 102, 204);
