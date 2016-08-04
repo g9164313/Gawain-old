@@ -1,6 +1,7 @@
 #ifndef VISION_H
 #define VISION_H
 
+#include <jni.h>
 #include <vector>
 #include <iostream>
 #include <fstream>
