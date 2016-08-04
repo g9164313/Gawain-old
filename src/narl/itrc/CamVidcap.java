@@ -1,5 +1,7 @@
 package narl.itrc;
 
+import narl.itrc.camsetting.PanAny;
+import narl.itrc.camsetting.PanVFW;
 import javafx.scene.Parent;
 
 public class CamVidcap extends CamBundle {
@@ -88,9 +90,11 @@ public class CamVidcap extends CamBundle {
 
 	private native void implClose(CamBundle cam);
 
-	private native boolean setProp(CamBundle cam,int id, double val);
+	public native boolean setProp(CamBundle cam,int id, double val);
 
-	private native double getProp(CamBundle cam,int id);
+	public native double getProp(CamBundle cam,int id);
+
+	public int getIndex(){ return capIndex; }
 	
 	@Override
 	public void setup(String txtConfig) {
@@ -171,9 +175,11 @@ public class CamVidcap extends CamBundle {
 	}*/
 
 	@Override
-	public Parent genPanelSetting() {
+	public Parent genPanelSetting(PanBase pan) {
 		switch (capDomain) {
+		default:
+		case CAP_ANY: return new PanAny(pan,this);
+		case CAP_VFW: return new PanVFW(pan,this);			
 		}
-		return null;
 	}
 }

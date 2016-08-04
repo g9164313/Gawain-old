@@ -11,7 +11,6 @@ import com.jfoenix.controls.JFXCheckBox;
 
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
-import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
@@ -119,7 +118,7 @@ public class CamVFiles extends CamBundle {
 	private LinkedBlockingDeque<String> lstName = new LinkedBlockingDeque<String>();
 
 	@Override
-	public Parent genPanelSetting() {
+	public Parent genPanelSetting(PanBase pan) {
 		
 		final Label txtPath = new Label();
 		if(lstName.isEmpty()==false){
@@ -215,16 +214,16 @@ public class CamVFiles extends CamBundle {
 		});
 		chkGray.setSelected(isGray.get());//this is default~~~
 		
-		GridPane pan = new GridPane();
-		pan.getStyleClass().add("grid-small");
-		pan.add(chkGray,0,1,2,1);
-		pan.add(chkAuto,0,2,2,1);
-		pan.add(btnFile,0,3,2,1);		
-		pan.addRow(4,btnPrev,btnNext);
+		GridPane root = new GridPane();
+		root.getStyleClass().add("grid-small");
+		root.add(chkGray,0,1,2,1);
+		root.add(chkAuto,0,2,2,1);
+		root.add(btnFile,0,3,2,1);		
+		root.addRow(4,btnPrev,btnNext);
 		
 		VBox lay0 = new VBox();
 		lay0.getStyleClass().add("vbox-small");
-		lay0.getChildren().addAll(txtPath,pan);
+		lay0.getChildren().addAll(txtPath,root);
 		return lay0;
 	}
 }

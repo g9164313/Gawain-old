@@ -1,5 +1,4 @@
 #include <global.hpp>
-#include <grabber.hpp>
 #include <CamBundle.hpp>
 #include <pylon/PylonIncludes.h>
 
@@ -164,12 +163,8 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamPylon_implFetch(
 		uint32_t width =res->GetWidth();
 		uint32_t height=res->GetHeight();
 		uint8_t* buffer=(uint8_t*)res->GetBuffer();
-		cam->updateSource(
-			height,width,
-			bnd.imgType,
-			buffer
-		);
 	}catch(GenICam::GenericException& e){
+		//camera has removed!!!!!
 		cout<<"[ERROR]:"<<e.GetDescription()<<endl;
 	}
 }

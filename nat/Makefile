@@ -84,15 +84,17 @@ OBJECTS = $(SOURCES:.cpp=.o)
 
 #################
 
-EXEC_ING := $(word 2,$(shell pgrep -f "narl.itrc.Gawain"))
+CHECK_EXEC := $(word 2,$(shell pgrep -f "narl.itrc.Gawain"))
 
+SFR_MITRE =  ./SFR/sfr_iso.c ./SFR/find_area.c
 IMG_FILTER = FilterMisc.cpp FilterIsBlur.cpp
+DEV_CAMERA = CamBundle.cpp CamVidcap.cpp  
 
-$(TARGET_SO):  utils_jni.cpp utils_cv.cpp $(IMG_FILTER) DevTTY.cpp  CamBundle.cpp CamVidcap.cpp  
+$(TARGET_SO):  utils_jni.cpp utils_cv.cpp $(IMG_FILTER) $(DEV_CAMERA) DevTTY.cpp 
 	$(CC) $(CC_FLAG)  -fPIC -shared -o $@ $^ $(LD_LIBS)
 	cp -rf $@ ../bin/narl/itrc/nat
 	cp -rf $@ ../src/narl/itrc/nat
-ifeq ($(EXEC_ING),)
+ifeq ($(CHECK_EXEC),)
 	@echo "no process, so we ovewrite it~~"
 	cp -rf $@ ../gawain
 else
@@ -100,18 +102,15 @@ else
 endif
 	
 
-$(TARGET_EXE):  ./wrap-unix/main4.cpp utils_jni.cpp $(IMG_FILTER)
+$(TARGET_EXE):  ./wrap-unix/main4.cpp
 	$(CC) $(CC_FLAG) -o $@ $^ $(LD_LIBS)
 
 #$(TARGET_EXE):  /home/qq/labor/opencv-3.1/contrib/modules/text/samples/character_recognition.cpp
 #	$(CC) $(CC_FLAG) -o $@ $^ $(LD_LIBS)
 
-#$(TARGET_JNI):
-#	javah  -o ./src/$@ -cp $(DIR_CLASS) $(NAT_CLASS)
-
-#all: $(TARGET_SO)
-#all: $(TARGET_EXE)
-all: $(TARGET_EXE) $(TARGET_SO) 
+all: $(TARGET_SO)
+all: $(TARGET_EXE)
+#all: $(TARGET_EXE) $(TARGET_SO) 
 #all: clean $(TARGET_SO) $(TARGET_EXE)
 
 clean:

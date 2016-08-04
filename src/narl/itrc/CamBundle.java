@@ -66,13 +66,13 @@ public abstract class CamBundle implements Gawain.EventHook {
 	 * generate a panel to control camera options
 	 * @return a panel, it will be the part of control layout
 	 */
-	public abstract Parent genPanelSetting();
+	public abstract Parent genPanelSetting(PanBase pan);
 	
 	public void showPanel(){		
 		new PanBase("相機設定"){
 			@Override
 			public Parent layout() {
-				Parent root = genPanelSetting();
+				Parent root = genPanelSetting(this);
 				if(root==null){
 					return new Label("不支援");
 				}

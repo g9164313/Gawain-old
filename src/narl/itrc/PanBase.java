@@ -221,27 +221,39 @@ public abstract class PanBase {
 		.build();
 	//------------------------//
 	
+	public interface EventHook{
+		void eventShowing(WindowEvent e);
+		void eventShown(WindowEvent e);
+		void eventWatch(int cnt);
+		void eventClose(WindowEvent e);
+	};
+	
+	public EventHook hook = null;
+	
 	protected void eventShowing(WindowEvent e){
+		if(hook!=null){ hook.eventShowing(e); }
 	}
 	protected void eventShown(WindowEvent e){
+		if(hook!=null){ hook.eventShown(e); }
 	}
 	protected void eventWatch(int cnt){
+		if(hook!=null){ hook.eventWatch(cnt); }		
 	}
 	protected void eventClose(WindowEvent e){
+		if(hook!=null){ hook.eventClose(e); }
 	}
 	
 	private EventHandler<WindowEvent> eventWindow = new EventHandler<WindowEvent>(){
 		@Override
 		public void handle(WindowEvent event) {
 			//if stage have no handle, direct event to here!!!
-			if(WindowEvent.WINDOW_SHOWING==event.getEventType()){
+			if(WindowEvent.WINDOW_SHOWING==event.getEventType()){				
 				eventShowing(event);
 			}else if(WindowEvent.WINDOW_SHOWN==event.getEventType()){
 				eventShown(event);
 			}else if(WindowEvent.WINDOW_HIDING==event.getEventType()){
 				watchStop();
-				eventClose(event);
-				PanBase.msgBox.stop();//Don't put this in '@Override' function
+				eventClose(event);				
 			}
 		}
 	};

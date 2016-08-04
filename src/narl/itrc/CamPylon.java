@@ -77,7 +77,7 @@ public class CamPylon extends CamBundle {
 		}
 	};*/
 	@Override
-	public Parent genPanelSetting() {
+	public Parent genPanelSetting(PanBase pan) {
 		return null;
 	}
 }
