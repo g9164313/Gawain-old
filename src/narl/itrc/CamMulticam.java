@@ -20,17 +20,14 @@ public class CamMulticam extends CamBundle {
 	public CamMulticam(String nameConfig){
 		super(nameConfig);		
 		indxMcBoard = 0;//how to pack this in configure name
-		File fs = null;
+		String path = "";
 		if(Misc.isPOSIX()==true){
 			final String dir = "/.euresys/multicamstudio/MultiCamStudio.settings";
-			fs = new File("/home/qq"+dir);			
+			path = "/home/qq"+dir;//how to get home directory???		
 		}else{
 			//where is configuration file??
 		}
-		if(fs.exists()==false){
-			return;
-		}
-		parse_source(fs);
+		parseSetting(this,path,nameConfig);
 	}
 
 	
@@ -40,19 +37,32 @@ public class CamMulticam extends CamBundle {
 	
 	private boolean staOK = false;//update by native code
 	
-	private native void implSetup(CamBundle cam,int[] id,String[] txt);
+	private native void implSetup(
+		CamBundle cam,
+		String topology,
+		String connect,
+		String camFile,
+		int[] parmId,
+		String[] parmTxt
+	);
 	private native long implFetch(CamBundle cam);
 	private native void implClose(CamBundle cam);
 		
 	@Override
 	public void setup() {
 		staOK = false;//it will update by native code~~~
-		int[] id = flatParamId();
-		String[] txt = flatParamText();
-		if(id==null||txt==null){
+		if(confCamFile.length()==0){
+			//fail to parse setting file, it is an important file.
 			return;
 		}
-		implSetup(this,id,txt);
+		implSetup(
+			this,
+			confTopology,
+			confConnect,
+			confCamFile,
+			flatParamId(),
+			flatParamText()
+		);
 	}
 
 	@Override
@@ -74,49 +84,75 @@ public class CamMulticam extends CamBundle {
 	}	
 	//----------------------------------------//
 	
-	class Param{
+	private String confTopology= "";
+	private String confConnect = "";
+	private String confCamFile = "";
+	
+	static class Parm{
 		public String name,text;
 		public int id;
-		Param(String _name,String _id,String _text){
+		Parm(String _name,String _id,String _text){
 			name = _name;
 			text = _text;
 			id = Integer.valueOf(_id);
 		}
 	}
 	
-	private ArrayList<Param> lstParam = new ArrayList<Param>();
+	private ArrayList<Parm> lstParm = new ArrayList<Parm>();
 	
 	private int[] flatParamId(){
-		if(lstParam.isEmpty()==true){
+		if(lstParm.isEmpty()==true){
 			return null;
 		}
-		int cnt = lstParam.size();
+		int cnt = lstParm.size();
 		int[] res = new int[cnt];
 		for(int i=0; i<cnt; i++){
-			res[i] = lstParam.get(i).id;
+			res[i] = lstParm.get(i).id;
 		}
 		return res;
 	}
 	
 	private String[] flatParamText(){
-		if(lstParam.isEmpty()==true){
+		if(lstParm.isEmpty()==true){
 			return null;
 		}
-		int cnt = lstParam.size();
+		int cnt = lstParm.size();
 		String[] res = new String[cnt];
 		for(int i=0; i<cnt; i++){
-			res[i] = lstParam.get(i).text;
+			res[i] = lstParm.get(i).text;
 		}
 		return res;
 	}
 	
-	private void parse_source(File fs) {
+	/**
+	 * Just override parseSetting().<p>
+	 * @param cam - instance
+	 * @param fs - XML file location
+	 * @param name - source name
+	 */
+	public static void parseSetting(CamMulticam cam,String fs,String name) {
+		parseSetting(cam, new File(fs), name);
+	}
+	
+	/**
+	 * This will parse MultiCamStudio setting file.It is XML style document.<p>
+	 * This file is usually located in home directory. 
+	 * @param cam - instance
+	 * @param fs - XML file
+	 * @param name - source name
+	 */
+	public static void parseSetting(CamMulticam cam,File fs,String name) {
+				
+		cam.confTopology= "";
+		cam.confConnect = "";
+		cam.confCamFile = "";
+		cam.lstParm.clear();
 		
-		lstParam.clear();
+		if(fs.exists()==false){
+			return;
+		}
 		
-		String srcName = txtConfig;
-		
-		 try {
+		try {
 			Document doc = DocumentBuilderFactory
 				.newInstance()
 				.newDocumentBuilder()
@@ -136,11 +172,11 @@ public class CamMulticam extends CamBundle {
 					
 					String txt = ee.getAttribute("name");
 					
-					if(txt.equalsIgnoreCase(srcName)==true){
+					if(txt.equalsIgnoreCase(name)==true){
 						
-						parse_param(ee.getElementsByTagName("config").item(0));
+						parse_conf(cam,ee.getElementsByTagName("config").item(0));
 						
-						parse_param(ee.getElementsByTagName("parameters").item(0));
+						parse_parm(cam,ee.getElementsByTagName("parameters").item(0));
 						
 						return;
 					}
@@ -155,7 +191,40 @@ public class CamMulticam extends CamBundle {
 		}
 	}
 	
-	private void parse_param(Node root){
+	private static void parse_conf(CamMulticam cam,Node root){
+
+		NodeList lst = ((Element)root).getElementsByTagName("param");
+		
+		for(int i=0; i<lst.getLength(); i++){
+			
+			Node nd = lst.item(i);
+						
+			if(nd.getNodeType()==Node.ELEMENT_NODE){
+				
+				Element ee = (Element) nd;
+				
+				String name = ee.getAttribute("name");
+
+				if(name.equalsIgnoreCase("CamFile")==true){
+					
+					cam.confCamFile = ee.getTextContent();
+					
+				}else if(name.equalsIgnoreCase("Connector")==true){
+				
+					cam.confConnect = ee.getTextContent();
+					
+				}else if(name.equalsIgnoreCase("BoardTopology")==true){
+					
+					cam.confTopology= ee.getTextContent();
+					
+				}else{
+					Misc.logw("no support tag: ", name);
+				}
+			}
+		}
+	}
+	
+	private static void parse_parm(CamMulticam cam,Node root){
 
 		NodeList lst = ((Element)root).getElementsByTagName("param");
 		
@@ -174,7 +243,7 @@ public class CamMulticam extends CamBundle {
 					continue;
 				}
 				
-				lstParam.add(new Param(
+				cam.lstParm.add(new Parm(
 					name,
 					ee.getAttribute("paramid"),
 					ee.getTextContent()

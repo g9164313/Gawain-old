@@ -31,6 +31,33 @@ using namespace std;
 	env->SetLongField(bundle,idCntx,(jlong)(cntx)); \
 	env->SetLongField(bundle,idMatx,(jlong)(matx));
 
+#define MACRO_SETUP_CNTX(cntx) env->SetLongField(bundle,idCntx,(jlong)(cntx));
+#define MACRO_SETUP_MATX(matx) env->SetLongField(bundle,idMatx,(jlong)(matx));
+
+//--------------------------------------------//
+
+#define MACRO_CHECK_CNTX \
+	jclass clzz=env->GetObjectClass(bundle); \
+	jfieldID idCntx = env->GetFieldID(clzz,"ptrCntx","J"); \
+	void* cntx = (void*)(env->GetLongField(bundle,idCntx));
+
+#define MACRO_BUNDLE_CHECK_CNTX_VOID \
+	MACRO_CHECK_CNTX \
+	if(matx==NULL){ return; }
+
+#define MACRO_CHECK_MATX \
+	jclass clzz=env->GetObjectClass(bundle); \
+	jfieldID idMatx = env->GetFieldID(clzz,"ptrMatx","J"); \
+	Mat* matx = (Mat*)(env->GetLongField(bundle,idMatx));
+
+#define MACRO_BUNDLE_CHECK_MATX_VOID \
+	MACRO_CHECK_MATX \
+	if(matx==NULL){ return; }
+
+#define MACRO_BUNDLE_CHECK_MATX_NULL \
+	MACRO_CHECK_MATX \
+	if(matx==NULL){ return NULL; }
+
 //--------------------------------------------//
 
 #define MACRO_FETCH_BEG \
@@ -39,7 +66,7 @@ using namespace std;
 	void* cntx = (void*)(env->GetLongField(bundle,idCntx)); \
 	if(cntx==NULL){ return;	} \
 	jfieldID idMatx = env->GetFieldID(clzz,"ptrMatx","J"); \
-	Mat* matx = (Mat*)(env->GetLongField(bundle,idMatx));\
+	Mat* matx = (Mat*)(env->GetLongField(bundle,idMatx)); \
 	if(matx==NULL){ return; } \
 	Mat& buff = *matx;
 
@@ -67,25 +94,5 @@ using namespace std;
 	if(matx!=NULL){ matx->release(); delete matx; }\
 	env->SetLongField(bundle,idCntx,0); \
 	env->SetLongField(bundle,idMatx,0);
-
-//--------------------------------------------//
-
-#define MACRO_CHECK_CNTX \
-	jclass clzz=env->GetObjectClass(bundle); \
-	jfieldID idCntx = env->GetFieldID(clzz,"ptrCntx","J"); \
-	void* cntx = (void*)(env->GetLongField(bundle,idCntx));
-
-#define MACRO_CHECK_MATX \
-	jclass clzz=env->GetObjectClass(bundle); \
-	jfieldID idMatx = env->GetFieldID(clzz,"ptrMatx","J"); \
-	Mat* matx = (Mat*)(env->GetLongField(bundle,idMatx));
-
-#define MACRO_BUNDLE_MATX_VOID \
-	MACRO_CHECK_MATX \
-	if(matx==NULL){ return; }
-
-#define MACRO_BUNDLE_MATX_NULL \
-	MACRO_CHECK_MATX \
-	if(matx==NULL){ return NULL; }
 
 #endif

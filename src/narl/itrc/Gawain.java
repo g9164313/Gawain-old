@@ -283,6 +283,7 @@ public class Gawain extends Application {
 	
 	@Override
 	public void stop() throws Exception {
+		//Do we need to close render looper???
 		PanBase.msgBox.stop();
 	}
 	 

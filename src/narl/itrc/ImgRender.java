@@ -113,7 +113,7 @@ public class ImgRender {
 		//wait for working thread~~~
 		while(looper.isRunning()==true){
 			try {
-				Thread.sleep(10);
+				Thread.sleep(50);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}

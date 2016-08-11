@@ -21,18 +21,21 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamMulticam_implSetup(
 	JNIEnv* env,
 	jobject thiz,
 	jobject bundle,
+	jstring jstrTopology,
+	jstring jstrConnect,
+	jstring jstrCamfile,
 	jintArray jarrId,
 	jobjectArray jarrTxt
 ){
 	MACRO_SETUP_BEG
 
-	char name[500];
+	char txtBuff[500];
 	McToken* token = new McToken();
 	MCSTATUS status;
 
 	jint indxMcBoard =getJint(env,thiz,"indxMcBoard");
 
-	env->SetLongField(bundle,idCntx,(jlong)(token));//update bundle information
+	MACRO_SETUP_CNTX(token);//update bundle information
 
 	status = McOpenDriver(NULL);
 	if(status!=MC_OK){
@@ -45,13 +48,14 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamMulticam_implSetup(
 		cout<<"fail to create channel"<<endl;
 		return;
 	}
-	cout<<"create channel#"<<(token->channel)<<endl;
+
+	jstrcpy(env,jstrTopology,txtBuff);
 
 	status = McSetParamInt(
 		MC_BOARD + indxMcBoard,
 		MC_BoardTopology,
 		MC_BoardTopology_MONO_DECA
-	);//use "MC_BOARD" to set topology
+	);//use "MC_BOARD" to set topology,it must be called after creating channel
 	if(status!=MC_OK){
 		cout<<"fail to set topology"<<endl;
 		return;
@@ -67,27 +71,29 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamMulticam_implSetup(
 		return;
 	}
 
+	jstrcpy(env,jstrConnect,txtBuff);
 	status = McSetParamStr(
 		token->channel,
 		MC_Connector,
-		"M"
+		txtBuff
 	);//set configuration.2
 	if(status!=MC_OK){
 		cout<<"fail to set connector"<<endl;
 		return;
 	}
 
+	jstrcpy(env,jstrConnect,txtBuff);
 	status = McSetParamStr(
 		token->channel,
 		MC_CamFile,
-		"/opt/euresys/multicam/cameras/BASLER/raL12288-66km/raL12288-66km_L12288SP.cam"
+		txtBuff
 	);//set configuration.3
 	if(status!=MC_OK){
 		cout<<"fail to set camfile"<<endl;
 		return;
 	}
 
-
+	//set all parameters!!!
 	/*jsize len = env->GetArrayLength(jarrId);
 	jint* arrId = env->GetIntArrayElements(jarrId,NULL);
 	for(jsize i=0; i<len; i++){
@@ -141,7 +147,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamMulticam_implSetup(
 
 	token->matx = new Mat(480,640,CV_8UC1);
 
-	env->SetLongField(bundle,idMatx,(jlong)(token->matx));//update bundle information
+	MACRO_SETUP_MATX((token->matx))//update bundle information
 
 	setJbool(env,thiz,"staOK",true);//finally
 }
@@ -157,7 +163,8 @@ void McCallback(PMCCALLBACKINFO info){
 			(PVOID*)&buff
 		);
 		//update buffer
-		printf("update buff=0x%p\n",(void*)buff);
+		printf("buff=0x%p\n",(void*)buff);
+		cout<<endl;
 		break;
 	case MC_SIG_ACQUISITION_FAILURE:
 		break;
@@ -171,7 +178,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamMulticam_implFetch(
 	jobject bundle
 ){
 	MACRO_FETCH_BEG_V
-
+	int i = MC_SurfaceCount;
 	MCSTATUS status = 0;
 
 	McToken* token = ((McToken*)cntx);
@@ -183,7 +190,9 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamMulticam_implFetch(
 		MC_ChannelState_ACTIVE
 	);
 	if(status==MC_OK){
-		while((token->signal==false));
+		while((token->signal==false)){
+			//wait amd dump old data???
+		}
 		status= McSetParamInt(
 			token->channel,
 			MC_ChannelState,
@@ -206,7 +215,6 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamMulticam_implClose(
 
 	McToken* token = ((McToken*)cntx);
 
-	cout<<"delete channel#"<<(token->channel)<<endl;
 	McDelete(token->channel);
 
 	McCloseDriver();

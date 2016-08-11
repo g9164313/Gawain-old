@@ -14,7 +14,7 @@ extern "C" JNIEXPORT jbyteArray JNICALL Java_narl_itrc_CamBundle_getData(
 	JNIEnv* env,
 	jobject bundle /*this object is already 'CamBundle'*/
 ){
-	MACRO_BUNDLE_MATX_NULL
+	MACRO_BUNDLE_CHECK_MATX_NULL
 	Mat& img = *((Mat*)matx);
 	if(img.empty()==true){
 		return NULL;
@@ -31,7 +31,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamBundle_saveImage(
 	jobject bundle,
 	jstring jname
 ){
-	MACRO_BUNDLE_MATX_VOID
+	MACRO_BUNDLE_CHECK_MATX_VOID
 	Mat& img = *((Mat*)matx);
 	if(img.empty()==true){
 		return;//we have problem!!!
@@ -47,7 +47,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamBundle_saveImageROI(
 	jstring jname,
 	jintArray jroi
 ){
-	MACRO_BUNDLE_MATX_VOID
+	MACRO_BUNDLE_CHECK_MATX_VOID
 	Mat& img = *((Mat*)matx);
 	if(img.empty()==true){
 		return;//we have problem!!!
