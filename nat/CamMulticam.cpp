@@ -30,6 +30,8 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamMulticam_implSetup(
 	McToken* token = new McToken();
 	MCSTATUS status;
 
+	jint indxMcBoard =getJint(env,thiz,"indxMcBoard");
+
 	env->SetLongField(bundle,idCntx,(jlong)(token));//update bundle information
 
 	status = McOpenDriver(NULL);
@@ -46,10 +48,20 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamMulticam_implSetup(
 	cout<<"create channel#"<<(token->channel)<<endl;
 
 	status = McSetParamInt(
+		MC_BOARD + indxMcBoard,
+		MC_BoardTopology,
+		MC_BoardTopology_MONO_DECA
+	);//use "MC_BOARD" to set topology
+	if(status!=MC_OK){
+		cout<<"fail to set topology"<<endl;
+		return;
+	}
+
+	status = McSetParamInt(
 		token->channel,
 		MC_DriverIndex,
-		getJint(env,thiz,"indxMcBoard")
-	);
+		indxMcBoard
+	);//set configuration.1
 	if(status!=MC_OK){
 		cout<<"fail to set board index"<<endl;
 		return;
@@ -59,39 +71,22 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamMulticam_implSetup(
 		token->channel,
 		MC_Connector,
 		"M"
-	);
+	);//set configuration.2
 	if(status!=MC_OK){
 		cout<<"fail to set connector"<<endl;
 		return;
 	}
 
-	/*status = McSetParamInt(
-		token->channel,
-		MC_BoardTopology,
-		MC_BoardTopology_1_1_1_1
-	);
-	if(status!=MC_OK){
-		cout<<"fail to set topology"<<endl;
-		return;
-	}*/
-
 	status = McSetParamStr(
 		token->channel,
 		MC_CamFile,
 		"/opt/euresys/multicam/cameras/BASLER/raL12288-66km/raL12288-66km_L12288SP.cam"
-	);
+	);//set configuration.3
 	if(status!=MC_OK){
 		cout<<"fail to set camfile"<<endl;
 		return;
 	}
 
-	McSetParamInt(token->channel, MC_AcquisitionMode, MC_AcquisitionMode_WEB);
-
-	McSetParamInt(token->channel, MC_TrigMode, MC_TrigMode_IMMEDIATE);
-
-	McSetParamInt(token->channel, MC_NextTrigMode, MC_NextTrigMode_REPEAT);
-
-	McSetParamInt(token->channel, MC_SeqLength_Fr, MC_INDETERMINATE);
 
 	/*jsize len = env->GetArrayLength(jarrId);
 	jint* arrId = env->GetIntArrayElements(jarrId,NULL);
@@ -182,7 +177,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamMulticam_implFetch(
 	McToken* token = ((McToken*)cntx);
 	token->signal = false;//reset it~~~
 
-	/*status = McSetParamInt(
+	status = McSetParamInt(
 		token->channel,
 		MC_ChannelState,
 		MC_ChannelState_ACTIVE
@@ -198,7 +193,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamMulticam_implFetch(
 			return;//everything is fine!!!!
 		}
 	}
-	cout<<"fail to active channel#"<<(token->channel)<<endl;*/
+	cout<<"fail to active channel#"<<(token->channel)<<", error code ="<<status<<endl;
 	setJbool(env,thiz,"staOK",false);
 }
 
