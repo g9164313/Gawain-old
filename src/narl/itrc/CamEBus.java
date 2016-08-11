@@ -1,6 +1,5 @@
 package narl.itrc;
 
-import javafx.scene.Node;
 import javafx.scene.Parent;
 
 public class CamEBus extends CamBundle {
@@ -8,12 +7,16 @@ public class CamEBus extends CamBundle {
 	public CamEBus(){
 	}
 	
+	public CamEBus(String txtConfig){
+		super(txtConfig);
+	}
+	
 	private native void implSetup(CamBundle cam,String txtConfig);
 	private native long implFetch(CamBundle cam);
 	private native void implClose(CamBundle cam);
 	
 	@Override
-	public void setup(String txtConfig) {
+	public void setup() {
 		implSetup(
 			CamEBus.this,
 			txtConfig

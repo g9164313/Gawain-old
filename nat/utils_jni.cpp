@@ -87,6 +87,13 @@ bool getJbool(JNIEnv *env,jobject thiz,const char* name){
 	jfieldID id = env->GetFieldID(_clazz,name,"Z");
 	return env->GetBooleanField(thiz,id);
 }
+
+jsize getJString(JNIEnv *env,jobject thiz,const char* name,const char* dst){
+	jclass _clazz = env->GetObjectClass(thiz);
+	jfieldID _id = env->GetFieldID(_clazz,name,"Ljava/lang/String;");
+	jstring jsrc = (jstring)env->GetObjectField(thiz,_id);
+	return jstrcpy(env,jsrc,dst);
+}
 //--------------------------------//
 
 jsize jstrcpy(JNIEnv* env, jstring src, string& dst){

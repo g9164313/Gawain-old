@@ -97,7 +97,7 @@ public class CamVidcap extends CamBundle {
 	public int getIndex(){ return capIndex; }
 	
 	@Override
-	public void setup(String txtConfig) {
+	public void setup() {
 		// e.g: "winrt:0", open the first camera via WinRT
 		String[] args = txtConfig.split(":");
 		try {

@@ -35,20 +35,25 @@ public abstract class CamBundle implements Gawain.EventHook {
 	private long ptrMatx = 0;
 	
 	/**
-	 * configuration, the meaning of value is dependent on devices
+	 * configuration, the meaning of value is dependent on devices.<p>
+	 * Meaning of this variable is depend on device.<p> 
 	 */
 	public String txtConfig = "";
 
 	/**
-	 * prepare and initialize camera, the instance will be keep in 'ptrCntx'
-	 * @param txtConfig - pass configuration to camera. 
-	 *   The definition is dependent on camera type. 
-	 *   When no configuration, it must be "zero length string"....
+	 * prepare and initialize camera, the instance will be keep in 'ptrCntx'.<p>
 	 */
-	public abstract void setup(String txtConfig);
+	public abstract void setup();
 	
-	public void setup(){
-		setup(txtConfig);
+	/**
+	 * Overload function, it will override configuration again.<p>
+	 * @param txtConfig - pass configuration to camera. 
+	 */
+	public void setup(String txtConfig){
+		if(txtConfig!=null){
+			this.txtConfig = txtConfig;
+		}		
+		setup();
 	}
 	
 	/**

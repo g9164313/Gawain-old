@@ -25,7 +25,7 @@ public class CamVFiles extends CamBundle {
 	private static AtomicBoolean isGray = new AtomicBoolean(true);
 	
 	@Override
-	public void setup(String txtConfig) {
+	public void setup() {
 		/*try {
 			if(txtConfig.length()==0){
 				lstName.put("####");
