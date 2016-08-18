@@ -51,18 +51,14 @@ public class DevB140M extends DevMotion {
 	
 	public String exec(String cmd){
 		String txt = tty.fetch(cmd,TAIL);
-		//System.out.format("%s GOT %s",cmd,txt);
+		parse_TP(txt);//Trick,update counter
 		int pos = txt.indexOf("\r\n");
 		if(pos>=0){
 			//trip the first END~~
 			txt = txt.substring(pos).trim();
 		}
-		txt =txt.replace("\r\n","").replace(":","").trim();//check again~~~
+		txt = txt.replace("\r\n","").replace(":","").trim();//check again~~~		
 		return txt;
-	}
-	
-	public void exec_TP(){
-		parse_TP(tty.fetch("TP\r\n",TAIL));
 	}
 	
 	public boolean isForward(char tkn){
@@ -110,20 +106,32 @@ public class DevB140M extends DevMotion {
 		}
 		return false;
 	}
-	
-	public void parse_TP(){
-		parse_TP(tty.fetch("TP\r\n",TAIL));
+		
+	public int[] exec_TP(){
+		return parse_TP(tty.fetch("TP\r\n",TAIL));
 	}
 	
-	public void parse_TP(String txt){
-		int pos = txt.indexOf("TP");
-		if(pos>=0){
-			//not sure why 'TP' is disappear~~~
-			txt = txt.substring(pos+2);
+	public int exec_TP(char tkn){
+		String txt = tty.fetch("TP "+tkn+"\r\n",TAIL);
+		int[] val = parse_TP(txt);
+		int i = tkn - 'A';
+		return val[i];
+	}
+	
+	private int[] parse_TP(String txt){
+		final int[] val = {0,0,0,0};
+		int pos = txt.indexOf("TP\r\n");
+		if(pos<0){
+			return val; 
 		}
-		txt =txt.replace("\r\n","").replace(":","").trim();
-		int[] val = {0,0,0,0};		
-		String[] arg = txt.split(",");
+		String tmp = txt.substring(pos+4)
+			.replace("\r\n","")
+			.replace(":","")
+			.trim();				
+		String[] arg = tmp.split(",");
+		if(arg.length!=4){
+			return val;
+		}
 		try{
 			val[0] = Integer.valueOf(arg[0].trim());
 			val[1] = Integer.valueOf(arg[1].trim());
@@ -134,6 +142,7 @@ public class DevB140M extends DevMotion {
 		}
 		//Misc.logv("got counter="+txt);
 		updateCounter(val);
+		return val;
 	}
 
 	/**
@@ -151,47 +160,72 @@ public class DevB140M extends DevMotion {
 	public void out3(boolean open){ out(2,open); }
 	public void out4(boolean open){ out(3,open); }
 	
-	private final char[] axisName ={'A','B','C','D'};
+	private final char[] _axis_name ={'A','B','C','D'};
+	
+	private String axisName(Double[] val){
+		int cnt = val.length;
+		if(cnt>=_axis_name.length){
+			cnt = _axis_name.length;
+		}
+		String txt="";
+		for(int i=0; i<cnt; i++){
+			if(val[i]!=null){
+				txt = txt + _axis_name[i];
+			}
+		}
+		return txt;
+	}
+	
+	private String axisValue(Double[] val){
+		String txt="";
+		for(int i=0; i<val.length; i++){
+			if(val[i]!=null){
+				txt = txt + String.format("%d, ",val[i].intValue());
+			}else{
+				txt = txt + ", ";
+			}
+		}
+		return txt;
+	}
 	
 	@Override
-	protected void makeMotion(boolean abs,Double[] value) {
+	protected void makeMotion(boolean abs,Double[] val) {
 		String cmd;
 		if(abs==true){
 			cmd = "PA ";
 		}else{
 			cmd = "PR ";
-		}
-		for(int i=0; i<value.length; i++){
-			if(value[i]!=null){
-				cmd = cmd + String.format("%d, ",value[i].intValue());
-			}else{
-				cmd = cmd + ", ";
-			}
-		}
-		cmd = cmd + ";BG ";
-		//there are only 4-axis
-		for(int i=0; i<4; i++){
-			if(value[i]!=null){
-				cmd = cmd + axisName[i];
-			}
-		}
-			
-		cmd = cmd + ";MC;TP\r";
+		}		
+		cmd = cmd + axisValue(val);		
+		cmd = cmd + ";BG " + axisName(val);		
+		cmd = cmd + ";MC;TP\r\n";		
 		parse_TP(tty.fetch(cmd,TAIL));
 	}
 	
 	@Override
+	protected void Jogging(boolean go, Double... val) {
+		if(go==true){			
+			tty.fetch(
+				"JG "+axisValue(val)+
+				";BG "+axisName(val)+"\r\n",
+				TAIL
+			);
+		}else{			
+			parse_TP(tty.fetch("ST;TP\r\n",TAIL));
+		}		
+	}
+	
+	@Override
 	public void takePosition(Double[] value) {
-		String txt = "DE ";
+		String cmd = "DE ";
 		for(int i=0; i<value.length; i++){
 			if(value[i]==null){
-				txt = txt + ",";				
+				cmd = cmd + ",";				
 			}else{
-				txt = txt + value[i].intValue() + ",";
+				cmd = cmd + value[i].intValue() + ",";
 			}
 		}
-		txt = tty.fetch(txt+";TP\r",TAIL);
-		parse_TP(txt);
+		parse_TP(tty.fetch(cmd+";TP\r\n",TAIL));
 	}
 	//----------------------------------//
 	
@@ -212,9 +246,8 @@ public class DevB140M extends DevMotion {
 		arg = exec("DC ?,?,?,?\r").split(",");
 		for(int i=0; i<4; i++){
 			panAxis[i].boxDSpeed.setInteger(arg[i]);
-		}
-		
-		parse_TP(tty.fetch("TP\r",TAIL));
+		}		
+		exec_TP();
 	}
 	
 	class AxisInfo extends GridPane {

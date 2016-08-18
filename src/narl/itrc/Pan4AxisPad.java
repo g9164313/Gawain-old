@@ -34,8 +34,8 @@ public class Pan4AxisPad extends FlowPane {
 		initLayout(size);
 	}
 
-	private void motionStart(int tkn){
-		switch(tkn){
+	private void jogStart(int tkn){
+		/*switch(tkn){
 		case TKN_X_P: dev.asyncMoveTo(DevMotion.PULSE_UNIT, 1000.); break;
 		case TKN_X_N: dev.asyncMoveTo(DevMotion.PULSE_UNIT,-1000.); break;
 		case TKN_Y_P: dev.asyncMoveTo(DevMotion.PULSE_UNIT,null, 1000.); break;
@@ -44,12 +44,30 @@ public class Pan4AxisPad extends FlowPane {
 		case TKN_Z_N: dev.asyncMoveTo(DevMotion.PULSE_UNIT,null,null,-1000.); break;
 		case TKN_A_P: dev.asyncMoveTo(DevMotion.PULSE_UNIT,null,null,null, 1000.); break;
 		case TKN_A_N: dev.asyncMoveTo(DevMotion.PULSE_UNIT,null,null,null,-1000.); break;
+		}*/
+		_jogging(tkn,true,1000.);
+	}
+	
+	private void jogStop(int tkn){
+		_jogging(tkn,false,0.);
+	}
+	
+	private void _jogging(int tkn,final boolean go, final double val){
+		switch(tkn){
+		case TKN_X_P: dev.Jogging(go, val); break;
+		case TKN_X_N: dev.Jogging(go,-val); break;
+		
+		case TKN_Y_P: dev.Jogging(go,null, val); break;
+		case TKN_Y_N: dev.Jogging(go,null,-val); break;
+		
+		case TKN_Z_P: dev.Jogging(go,null,null, val); break;
+		case TKN_Z_N: dev.Jogging(go,null,null,-val); break;
+		
+		case TKN_A_P: dev.Jogging(go,null,null,null, val); break;
+		case TKN_A_N: dev.Jogging(go,null,null,null,-val); break;
 		}
 	}
 	
-	private void motionStop(int tkn){
-		
-	}
 	
 	private EventHandler<MouseEvent> eventCtrl = new EventHandler<MouseEvent>(){
 		@Override
@@ -57,10 +75,10 @@ public class Pan4AxisPad extends FlowPane {
 			Button btn = (Button)(event.getSource());
 			int tkn = (int)btn.getUserData();
 			if(event.getEventType()==MouseEvent.MOUSE_PRESSED){
-				motionStart(tkn);
+				jogStart(tkn);
 				btn.setGraphic(lstPadPress.get(tkn));
 			}else if(event.getEventType()==MouseEvent.MOUSE_RELEASED){
-				motionStop(tkn);
+				jogStop(tkn);
 				btn.setGraphic(lstPadRelex.get(tkn));
 			}
 		}

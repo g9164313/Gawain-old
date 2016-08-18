@@ -47,12 +47,13 @@ public class Entry extends PanBase {
 		stg0.setFactor(2000,2000,2000,2000);
 		stg0.setTokenBase('A');
 		stg0.setRoutine('A','B','C','D');
+		stg0.exec("RS\r\n");//this command must be executed independently.
 		stg0.exec(
 			"SP 4096,4096,4096,4096;"+
 		    "AC 4096,4096,4096,4096;"+
-			"DC 4096,4096,4096,4096;\r\n"
+			"DC 4096,4096,4096,4096;"+
+		    "TP\r\n"
 		);
-		stg0.exec_TP();
 		//rndr.play();
 	}
 	
@@ -88,7 +89,6 @@ public class Entry extends PanBase {
 		btnAligment.setGraphic(Misc.getIcon("selection.png"));
 		btnAligment.setOnAction(tsk0);
 		
-		//PanJoystick joyStick = new PanJoystick(stg0,Orientation.VERTICAL,SIZE);
 		Pan4AxisPad joyStick = new Pan4AxisPad(stg0,200);
 		
 		JFXButton btnClose = new JFXButton("關閉程式");

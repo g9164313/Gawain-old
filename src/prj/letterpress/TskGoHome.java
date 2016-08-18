@@ -28,21 +28,24 @@ public class TskGoHome extends TskAction {
 		
 		stg.exec("JG "+col+"-2000;BG "+tkn+"\r\n");
 		do{
-			stg.parse_TP();
+			stg.exec_TP();
 			Misc.delay(100);
 		}while(stg.isReverse(tkn)==true);
 		
-		stg.exec("DE "+col+"0\r\n");
-		stg.parse_TP();
-		
+		stg.exec("DE "+col+"0;TP\r\n");
+
 		stg.exec("JG "+col+"2000;BG "+tkn+"\r\n");
 		do{
-			stg.parse_TP();
+			stg.exec_TP();
 			Misc.delay(100);
 		}while(stg.isForward(tkn)==true);
 		
-		stg.exec("PR "+col+"-15000;"+"BG"+tkn+";MC;DE "+col+"0\r\n");
-		stg.parse_TP();
+		stg.exec(
+			"PR "+col+"-15000;"+
+		    "BG"+tkn+";MC;WT 1000;"+
+			"DE "+col+"0;"+
+			"TP\r\n"
+		);
 	}
 	
 	@Override

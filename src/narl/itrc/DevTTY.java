@@ -179,7 +179,7 @@ public class DevTTY implements Gawain.EventHook {
 		
 		final int FAIL_MAX = 10;
 		int failCnt = FAIL_MAX;
-
+		int t_len = tail.length();
 		for(;failCnt>0;){
 			String tmp = readTxt();
 			if(tmp==null){
@@ -189,7 +189,8 @@ public class DevTTY implements Gawain.EventHook {
 			txt = txt + tmp;
 			failCnt = FAIL_MAX;//reset this number~~~
 			if(txt.endsWith(tail)==true){
-				txt = txt.substring(0,txt.length()-tail.length());
+				int len = txt.length() - t_len;
+				txt = txt.substring(0,len);
 				break;
 			}			
 		}
