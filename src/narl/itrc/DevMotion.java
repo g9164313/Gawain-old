@@ -21,6 +21,11 @@ public abstract class DevMotion {
 	protected String DEF_UNIT="mm";
 	
 	/**
+	 * This is a special unit for motion device
+	 */
+	public static final String PULSE_UNIT="pls";
+	
+	/**
 	 * Use this coefficient convert millimeter to pulse or counter.<p>
 	 * The sequence is also same as stage axis-token.<p>
 	 */	
@@ -52,7 +57,7 @@ public abstract class DevMotion {
 		new SimpleIntegerProperty()
 	};
 	
-	protected void makePosition(int... val){		
+	protected void updateCounter(int... val){		
 		final Runnable event = new Runnable(){
 			@Override
 			public void run() {
@@ -65,7 +70,7 @@ public abstract class DevMotion {
 						continue;
 					}
 					pulse[i].set(val[idx]);
-					//Misc.logv("pulse[%d]=%d",i,puls[i].get());
+					//Misc.logv("pulse[%d]=%d",i,pulse[i].get());
 				}
 			}
 		};		
@@ -118,6 +123,9 @@ public abstract class DevMotion {
 	}
 
 	private void convert(Double[] val,String unit){
+		if(unit.equalsIgnoreCase(PULSE_UNIT)==true){
+			return;
+		}
 		for(int i=0; i<val.length; i++){
 			if(val[i]==null){
 				continue;
@@ -126,7 +134,7 @@ public abstract class DevMotion {
 		}
 	}
 	
-	private void routine(Double[] val){
+	private void routine(Double[] val,String unit){
 		
 		if(table.isEmpty()==true || node==null){
 			return;
@@ -145,6 +153,10 @@ public abstract class DevMotion {
 				continue;
 			} 
 			node[j] = val[i];
+		}
+		
+		if(unit.equalsIgnoreCase(PULSE_UNIT)==true){
+			return;
 		}
 		
 		if(factor!=null){
@@ -199,7 +211,7 @@ public abstract class DevMotion {
 	 */
 	public void archTo(String unit,Double... location){
 		convert(location,unit);
-		routine(location);
+		routine(location,unit);
 		makeMotion(true,node);
 	}
 	
@@ -219,7 +231,7 @@ public abstract class DevMotion {
 	 */
 	public void moveTo(String unit,Double... offset){		
 		convert(offset,unit);
-		routine(offset);
+		routine(offset,unit);
 		makeMotion(false,node);
 	}
 	
@@ -238,9 +250,9 @@ public abstract class DevMotion {
 	 * For motion card/controller, these values present the encoder position.
 	 * @param step
 	 */
-	public void setPulse(Integer... step){
+	public void setPosition(Integer... step){
 		Double[] val = Misc.Int2Double(step);
-		routine(val);
+		routine(val,PULSE_UNIT);
 		takePosition(val);
 	}
 }

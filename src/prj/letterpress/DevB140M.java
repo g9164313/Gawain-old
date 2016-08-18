@@ -32,6 +32,7 @@ public class DevB140M extends DevMotion {
 	
 	public DevB140M(){
 		this("/dev/ttyS0,115200,8n1");//this is hard code!!!
+		//initialize~~~		
 	}
 	
 	public DevB140M(String tty_name){
@@ -59,7 +60,61 @@ public class DevB140M extends DevMotion {
 		txt =txt.replace("\r\n","").replace(":","").trim();//check again~~~
 		return txt;
 	}
-
+	
+	public void exec_TP(){
+		parse_TP(tty.fetch("TP\r\n",TAIL));
+	}
+	
+	public boolean isForward(char tkn){
+		return checkBit(3,parse_TS(tkn));
+	}
+	
+	public boolean isReverse(char tkn){
+		return checkBit(2,parse_TS(tkn));
+	}
+	
+	public boolean isHome(char tkn){
+		return checkBit(1,parse_TS(tkn));
+	}
+	
+	private int parse_TS(char tkn){
+		int idx = tkn - 'A';
+		String txt = exec("TS\r\n");
+		int pos = txt.indexOf("TS");
+		if(pos>=0){
+			txt = txt.substring(pos+2);
+		}
+		String[] arg =txt
+			.replace("\r\n","")
+			.replace(":","")
+			.trim()
+			.split(",");
+		
+		int[] val = {0,0,0,0};		
+		try{
+			val[0] = Integer.valueOf(arg[0].trim());
+			val[1] = Integer.valueOf(arg[1].trim());
+			val[2] = Integer.valueOf(arg[2].trim());
+			val[3] = Integer.valueOf(arg[3].trim());
+		}catch(NumberFormatException e){
+			Misc.logw("fail to parse - %s", txt);
+		}
+		//Misc.logv("Status="+txt);
+		return val[idx];
+	}
+	
+	private boolean checkBit(int pos,int val){
+		int flag = val & (1<<pos);
+		if(flag!=0){
+			return true;
+		}
+		return false;
+	}
+	
+	public void parse_TP(){
+		parse_TP(tty.fetch("TP\r\n",TAIL));
+	}
+	
 	public void parse_TP(String txt){
 		int pos = txt.indexOf("TP");
 		if(pos>=0){
@@ -67,19 +122,20 @@ public class DevB140M extends DevMotion {
 			txt = txt.substring(pos+2);
 		}
 		txt =txt.replace("\r\n","").replace(":","").trim();
-		int[] val = {0,0,0,0};
-		Misc.logv("got counter="+txt);
+		int[] val = {0,0,0,0};		
 		String[] arg = txt.split(",");
 		try{
-			val[0] = Integer.valueOf(arg[0]);
-			val[1] = Integer.valueOf(arg[1]);
-			val[2] = Integer.valueOf(arg[2]);
-			val[3] = Integer.valueOf(arg[3]);
-		}catch(NumberFormatException e){			
+			val[0] = Integer.valueOf(arg[0].trim());
+			val[1] = Integer.valueOf(arg[1].trim());
+			val[2] = Integer.valueOf(arg[2].trim());
+			val[3] = Integer.valueOf(arg[3].trim());
+		}catch(NumberFormatException e){
+			Misc.logw("fail to parse - %s", txt);
 		}
-		makePosition(val);
+		//Misc.logv("got counter="+txt);
+		updateCounter(val);
 	}
-	
+
 	/**
 	 * set output-bit, open-loop means "connected". close-loop means "disconnected".<p>
 	 * @param id - 1~4
@@ -94,6 +150,8 @@ public class DevB140M extends DevMotion {
 	public void out2(boolean open){ out(1,open); }
 	public void out3(boolean open){ out(2,open); }
 	public void out4(boolean open){ out(3,open); }
+	
+	private final char[] axisName ={'A','B','C','D'};
 	
 	@Override
 	protected void makeMotion(boolean abs,Double[] value) {
@@ -110,9 +168,18 @@ public class DevB140M extends DevMotion {
 				cmd = cmd + ", ";
 			}
 		}
-		parse_TP(tty.fetch(cmd+";BG;MC;TP\r",TAIL));
+		cmd = cmd + ";BG ";
+		//there are only 4-axis
+		for(int i=0; i<4; i++){
+			if(value[i]!=null){
+				cmd = cmd + axisName[i];
+			}
+		}
+			
+		cmd = cmd + ";MC;TP\r";
+		parse_TP(tty.fetch(cmd,TAIL));
 	}
-
+	
 	@Override
 	public void takePosition(Double[] value) {
 		String txt = "DE ";
@@ -211,19 +278,19 @@ public class DevB140M extends DevMotion {
 			HBox pan1 = new HBox();
 			pan1.getStyleClass().add("hbox-small");
 			
-			BoxIntValue boxOffset = new BoxIntValue("步伐",5000);
+			BoxIntValue boxOffset = new BoxIntValue("步伐",1000);
 			
 			Button btnPos = new Button("＋");
 			btnPos.setOnAction(event->{
 				Double[] val = {null,null,null,null};
 				val[tkn2idx()] = (double)boxOffset.propValue.get();
-				moveTo(val);
+				moveTo(DevMotion.PULSE_UNIT,val);
 			});	
 			Button btnNeg = new Button("－");
 			btnNeg.setOnAction(event->{
 				Double[] val = {null,null,null,null};
 				val[tkn2idx()] = (double)(-1*boxOffset.propValue.get());
-				moveTo(val);
+				moveTo(DevMotion.PULSE_UNIT,val);
 			});	
 			
 			pan1.getChildren().addAll(btnNeg,boxOffset,btnPos);
@@ -237,7 +304,8 @@ public class DevB140M extends DevMotion {
 			addRow(4,new Label("計數器"),new Label("："),boxCounter);
 			add(pan1,0,5,3,1);
 			
-			pulse[tkn2idx()].bindBidirectional(boxCounter.propValue);
+			boxCounter.setEditable(false);
+			boxCounter.propValue.bind(pulse[tkn2idx()]);
 		}
 		
 		private int tkn2idx(){

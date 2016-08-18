@@ -756,6 +756,10 @@ public class Misc {
 	public static Double[] Int2Double(Integer[] src){
 		Double[] dst = new Double[src.length];
 		for(int i=0; i<src.length; i++){
+			if(src[i]==null){
+				dst[i] = null;
+				continue;
+			}
 			dst[i] = src[i].doubleValue();
 		}
 		return dst;

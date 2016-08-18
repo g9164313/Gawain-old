@@ -6,16 +6,13 @@ import eu.hansolo.enzo.lcd.Lcd;
 import eu.hansolo.enzo.lcd.Lcd.LcdDesign;
 import eu.hansolo.enzo.lcd.LcdBuilder;
 import javafx.event.EventHandler;
-import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
-import javafx.scene.control.Label;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
-import javafx.scene.layout.VBox;
+
 
 public class Pan4AxisPad extends FlowPane {
 	
@@ -39,8 +36,14 @@ public class Pan4AxisPad extends FlowPane {
 
 	private void motionStart(int tkn){
 		switch(tkn){
-		case TKN_X_P: dev.asyncMoveTo( 5000.); break;
-		case TKN_X_N: dev.asyncMoveTo(-5000.); break;
+		case TKN_X_P: dev.asyncMoveTo(DevMotion.PULSE_UNIT, 1000.); break;
+		case TKN_X_N: dev.asyncMoveTo(DevMotion.PULSE_UNIT,-1000.); break;
+		case TKN_Y_P: dev.asyncMoveTo(DevMotion.PULSE_UNIT,null, 1000.); break;
+		case TKN_Y_N: dev.asyncMoveTo(DevMotion.PULSE_UNIT,null,-1000.); break;
+		case TKN_Z_P: dev.asyncMoveTo(DevMotion.PULSE_UNIT,null,null, 1000.); break;
+		case TKN_Z_N: dev.asyncMoveTo(DevMotion.PULSE_UNIT,null,null,-1000.); break;
+		case TKN_A_P: dev.asyncMoveTo(DevMotion.PULSE_UNIT,null,null,null, 1000.); break;
+		case TKN_A_N: dev.asyncMoveTo(DevMotion.PULSE_UNIT,null,null,null,-1000.); break;
 		}
 	}
 	
@@ -91,13 +94,13 @@ public class Pan4AxisPad extends FlowPane {
 		btn.setOnAction(event->{			
 			switch(tkn){
 			case TKN_X_P:
-			case TKN_X_N: dev.setPulse(0); break;
+			case TKN_X_N: dev.setPosition(0); break;
 			case TKN_Y_P:
-			case TKN_Y_N: dev.setPulse(null,0); break;
+			case TKN_Y_N: dev.setPosition(null,0); break;
 			case TKN_Z_P: 
-			case TKN_Z_N: dev.setPulse(null,null,0); break;
+			case TKN_Z_N: dev.setPosition(null,null,0); break;
 			case TKN_A_P: 
-			case TKN_A_N: dev.setPulse(null,null,null,0); break;
+			case TKN_A_N: dev.setPosition(null,null,null,0); break;
 			}
 		});
 		GridPane.setHgrow(btn,Priority.ALWAYS);

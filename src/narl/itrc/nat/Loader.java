@@ -57,7 +57,9 @@ public class Loader extends TskDialog {
 				return -3;
 			}
 		}
-						
+		
+		Misc.delay(1000);//show Logo
+		
 		log("載入函式庫...");
 		for(int i=0; i<node.length; i++){
 			reload_lib(node[i]);
