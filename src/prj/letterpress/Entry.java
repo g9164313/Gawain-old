@@ -31,32 +31,44 @@ public class Entry extends PanBase {
 	private PanMapWafer wmap = new PanMapWafer();
 	
 	private CamBundle cam0 = new CamVidcap("0");
-	private CamBundle cam1 = new CamVidcap("1");
+	//private CamBundle cam1 = new CamVidcap("1");
 	
-	private ImgRender rndr = new ImgRender(cam0,cam1);
+	private ImgRender rndr = new ImgRender(cam0);
 	
 	private DevB140M stg0 = new DevB140M();
 	
 	private TskAction tsk0 = new TskAligment(rndr,Entry.this);
-	private TskAction tsk1 = new TskScanning(stg0,wmap,Entry.this);
-	
+	private TskGoHome tsk1= new TskGoHome(stg0,Entry.this);
+	private TskAction tsk2 = new TskScanning(stg0,wmap,Entry.this);
+
 	@Override
 	protected void eventShown(WindowEvent e){
-		//stg.setFactor(1000.,1000.,1000.,1000);
+		//10pps <==> 50um
+		stg0.setFactor(2000,2000,2000,2000);
 		stg0.setTokenBase('A');
 		stg0.setRoutine('A','B','C','D');
-		//stg0.watch();
-		
-		//rndr.launch();
+		stg0.exec("RS\r\n");//this command must be executed independently.
+		stg0.exec(
+			"SP 4096,4096,4096,4096;"+
+		    "AC 4096,4096,4096,4096;"+
+			"DC 4096,4096,4096,4096;"+
+		    "TP\r\n"
+		);
+		//rndr.play();
+	}
+	
+	@Override
+	protected void eventClose(WindowEvent e){
+		//rndr.stop();//let application release resource~~
 	}
 	
 	private Node layAligment(){
 
 		HBox lay0 = new HBox();
-		lay0.getChildren().addAll(
+		/*lay0.getChildren().addAll(
 			rndr.genBoard("預覽1", 0),
 			rndr.genBoard("預覽2", 1)
-		);
+		);*/
 		
 		final int BOARD_SIZE=130;
 		JFXButton btnAction = new JFXButton("快速執行");
@@ -65,13 +77,18 @@ public class Entry extends PanBase {
 		btnAction.setGraphic(Misc.getIcon("run.png"));
 		//btnAction.setOnAction();
 		
+		JFXButton btnGoHome = new JFXButton("Calibrate");
+		btnGoHome.getStyleClass().add("btn-raised");
+		btnGoHome.setGraphic(Misc.getIcon("run.png"));
+		btnGoHome.setMaxWidth(Double.MAX_VALUE);
+		btnGoHome.setOnAction(tsk1);
+		
 		JFXButton btnAligment = new JFXButton("定位標靶");
 		btnAligment.getStyleClass().add("btn-raised");
 		btnAligment.setMaxWidth(Double.MAX_VALUE);
 		btnAligment.setGraphic(Misc.getIcon("selection.png"));
 		btnAligment.setOnAction(tsk0);
 		
-		//PanJoystick joyStick = new PanJoystick(stg0,Orientation.VERTICAL,SIZE);
 		Pan4AxisPad joyStick = new Pan4AxisPad(stg0,200);
 		
 		JFXButton btnClose = new JFXButton("關閉程式");
@@ -85,6 +102,7 @@ public class Entry extends PanBase {
 		lay1.setPrefWidth(BOARD_SIZE);
 		lay1.getChildren().addAll(
 			btnAction,
+			btnGoHome,
 			btnAligment,
 			PanBase.decorate("Joystick",joyStick),
 			btnClose
@@ -120,7 +138,7 @@ public class Entry extends PanBase {
 		btnScan.getStyleClass().add("btn-raised");
 		btnScan.setGraphic(Misc.getIcon("play.png"));
 		btnScan.setMaxWidth(Double.MAX_VALUE);
-		btnScan.setOnAction(tsk1);
+		btnScan.setOnAction(tsk2);
 		
 		JFXButton btnLight = new JFXButton("光源照射");
 		btnLight.getStyleClass().add("btn-raised");

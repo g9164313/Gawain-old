@@ -6,16 +6,13 @@ import eu.hansolo.enzo.lcd.Lcd;
 import eu.hansolo.enzo.lcd.Lcd.LcdDesign;
 import eu.hansolo.enzo.lcd.LcdBuilder;
 import javafx.event.EventHandler;
-import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
-import javafx.scene.control.Label;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
-import javafx.scene.layout.VBox;
+
 
 public class Pan4AxisPad extends FlowPane {
 	
@@ -37,16 +34,40 @@ public class Pan4AxisPad extends FlowPane {
 		initLayout(size);
 	}
 
-	private void motionStart(int tkn){
+	private void jogStart(int tkn){
+		/*switch(tkn){
+		case TKN_X_P: dev.asyncMoveTo(DevMotion.PULSE_UNIT, 1000.); break;
+		case TKN_X_N: dev.asyncMoveTo(DevMotion.PULSE_UNIT,-1000.); break;
+		case TKN_Y_P: dev.asyncMoveTo(DevMotion.PULSE_UNIT,null, 1000.); break;
+		case TKN_Y_N: dev.asyncMoveTo(DevMotion.PULSE_UNIT,null,-1000.); break;
+		case TKN_Z_P: dev.asyncMoveTo(DevMotion.PULSE_UNIT,null,null, 1000.); break;
+		case TKN_Z_N: dev.asyncMoveTo(DevMotion.PULSE_UNIT,null,null,-1000.); break;
+		case TKN_A_P: dev.asyncMoveTo(DevMotion.PULSE_UNIT,null,null,null, 1000.); break;
+		case TKN_A_N: dev.asyncMoveTo(DevMotion.PULSE_UNIT,null,null,null,-1000.); break;
+		}*/
+		_jogging(tkn,true,1000.);
+	}
+	
+	private void jogStop(int tkn){
+		_jogging(tkn,false,0.);
+	}
+	
+	private void _jogging(int tkn,final boolean go, final double val){
 		switch(tkn){
-		case TKN_X_P: dev.asyncMoveTo( 5000.); break;
-		case TKN_X_N: dev.asyncMoveTo(-5000.); break;
+		case TKN_X_P: dev.Jogging(go, val); break;
+		case TKN_X_N: dev.Jogging(go,-val); break;
+		
+		case TKN_Y_P: dev.Jogging(go,null, val); break;
+		case TKN_Y_N: dev.Jogging(go,null,-val); break;
+		
+		case TKN_Z_P: dev.Jogging(go,null,null, val); break;
+		case TKN_Z_N: dev.Jogging(go,null,null,-val); break;
+		
+		case TKN_A_P: dev.Jogging(go,null,null,null, val); break;
+		case TKN_A_N: dev.Jogging(go,null,null,null,-val); break;
 		}
 	}
 	
-	private void motionStop(int tkn){
-		
-	}
 	
 	private EventHandler<MouseEvent> eventCtrl = new EventHandler<MouseEvent>(){
 		@Override
@@ -54,10 +75,10 @@ public class Pan4AxisPad extends FlowPane {
 			Button btn = (Button)(event.getSource());
 			int tkn = (int)btn.getUserData();
 			if(event.getEventType()==MouseEvent.MOUSE_PRESSED){
-				motionStart(tkn);
+				jogStart(tkn);
 				btn.setGraphic(lstPadPress.get(tkn));
 			}else if(event.getEventType()==MouseEvent.MOUSE_RELEASED){
-				motionStop(tkn);
+				jogStop(tkn);
 				btn.setGraphic(lstPadRelex.get(tkn));
 			}
 		}
@@ -91,13 +112,13 @@ public class Pan4AxisPad extends FlowPane {
 		btn.setOnAction(event->{			
 			switch(tkn){
 			case TKN_X_P:
-			case TKN_X_N: dev.setPulse(0); break;
+			case TKN_X_N: dev.setPosition(0); break;
 			case TKN_Y_P:
-			case TKN_Y_N: dev.setPulse(null,0); break;
+			case TKN_Y_N: dev.setPosition(null,0); break;
 			case TKN_Z_P: 
-			case TKN_Z_N: dev.setPulse(null,null,0); break;
+			case TKN_Z_N: dev.setPosition(null,null,0); break;
 			case TKN_A_P: 
-			case TKN_A_N: dev.setPulse(null,null,null,0); break;
+			case TKN_A_N: dev.setPosition(null,null,null,0); break;
 			}
 		});
 		GridPane.setHgrow(btn,Priority.ALWAYS);
