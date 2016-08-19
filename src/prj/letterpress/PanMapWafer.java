@@ -39,6 +39,9 @@ public class PanMapWafer extends PanMapBase {
 		generate();
 	}
 	
+	private final String DEF_DIE_WIDTH = "68mm";
+	private final String DEF_DIE_HEIGHT= "26mm";
+	
 	private void init_widget(){
 		chkWafD = new JFXComboBox<String>();
 		chkWafD.getItems().addAll(
@@ -53,8 +56,8 @@ public class PanMapWafer extends PanMapBase {
 			"12''晶圓"
 		);
 		chkWafD.getSelectionModel().select(diameter2index(8));//default is 8' wafer
-		boxDieW = new BoxPhyValue("顆粒寬").setType("mm").setValue("13mm");
-		boxDieH = new BoxPhyValue("顆粒高").setType("mm").setValue("13mm");
+		boxDieW = new BoxPhyValue("顆粒寬").setType("mm").setValue(DEF_DIE_WIDTH);
+		boxDieH = new BoxPhyValue("顆粒高").setType("mm").setValue(DEF_DIE_HEIGHT);
 		boxLane = new BoxPhyValue("走道寬").setType("mm").setValue("0mm");
 	}
 		

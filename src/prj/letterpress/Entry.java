@@ -13,6 +13,7 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.WindowEvent;
+import narl.itrc.BoxLogger;
 import narl.itrc.CamBundle;
 import narl.itrc.CamVidcap;
 import narl.itrc.ImgRender;
@@ -38,13 +39,13 @@ public class Entry extends PanBase {
 	private DevB140M stg0 = new DevB140M();
 	
 	private TskAction tsk0 = new TskAligment(rndr,Entry.this);
-	private TskGoHome tsk1= new TskGoHome(stg0,Entry.this);
+	private TskGoHome tsk1 = new TskGoHome(stg0,Entry.this);
 	private TskAction tsk2 = new TskScanning(stg0,wmap,Entry.this);
 
 	@Override
 	protected void eventShown(WindowEvent e){
 		//10pps <==> 50um
-		stg0.setFactor(2000,2000,2000,2000);
+		/*stg0.setFactor(2000,2000,2000,2000);
 		stg0.setTokenBase('A');
 		stg0.setRoutine('A','B','C','D');
 		stg0.exec("RS\r\n");//this command must be executed independently.
@@ -53,12 +54,12 @@ public class Entry extends PanBase {
 		    "AC 4096,4096,4096,4096;"+
 			"DC 4096,4096,4096,4096;"+
 		    "TP\r\n"
-		);
+		);*/
 		//rndr.play();
 	}
 	
 	@Override
-	protected void eventClose(WindowEvent e){
+	protected void eventClose(WindowEvent e){		
 		//rndr.stop();//let application release resource~~
 	}
 	
@@ -116,6 +117,10 @@ public class Entry extends PanBase {
 		BorderPane root = new BorderPane();		
 		root.setCenter(lay0);
 		root.setRight(lay1);
+		root.setBottom(PanBase.decorate(
+			"logger",
+			new BoxLogger()
+		));
 		return root;
 	}
 
@@ -176,6 +181,10 @@ public class Entry extends PanBase {
 		BorderPane root = new BorderPane();
 		root.setCenter(wmap);
 		root.setRight(lay1);
+		root.setBottom(PanBase.decorate(
+			"logger",
+			new BoxLogger()
+		));
 		return root;
 	}
 	
@@ -194,8 +203,8 @@ public class Entry extends PanBase {
 		pge1.setContent(stg0.layoutConsole());
 		
 		root.getTabs().addAll(stp1,stp2,pge1);
-		root.getSelectionModel().select(0);
-		//root.getSelectionModel().select(1);
+		//root.getSelectionModel().select(0);
+		root.getSelectionModel().select(1);
 		//root.getSelectionModel().select(2);
 		return root;
 	}

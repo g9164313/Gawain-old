@@ -36,24 +36,33 @@ public class TskScanning extends TskAction {
 		long tick = System.currentTimeMillis();
 		float tsec;
 		
-		map.resetSequence();//Do we need to ask user??		
+		map.resetSequence();//Do we need to ask user??
+		
+		Misc.logv("--------曝光程序--------");
+		
 		Double[] pos;
 		while((pos = map.getSequencePath())!=null){
+						
+			Misc.logv("移動至 (%3.1f,%3.1f)",pos[0],pos[1]);
 			stg.archTo(pos);
+			
 			//start to exposure
-			Misc.delay(50);
+			Misc.logv("開啟UV光源");
+			Misc.delay(1000);
+			Misc.logv("關閉UV光源");
+			
 			if(tsk.isCancelled()==true){
 				//user break-down this routine~~~~
 				tick = System.currentTimeMillis() - tick;
-				tsec = ((float)tick)/1000.f;
-				Misc.logv("consume: %.3fsec",tsec);
+				tsec = (((float)tick)/1000.f);
+				Misc.logv("經歷: %.3fsec",tsec);
 				return -1;
 			}
 		}
 		
 		tick = System.currentTimeMillis() - tick;
 		tsec = ((float)tick)/1000.f;
-		Misc.logv("consume: %.3fsec",tsec);		
+		Misc.logv("經歷: %.3fsec",tsec);		
 		return -1;
 	}
 }

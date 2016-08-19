@@ -231,16 +231,24 @@ public abstract class PanBase {
 	public EventHook hook = null;
 	
 	protected void eventShowing(WindowEvent e){
-		if(hook!=null){ hook.eventShowing(e); }
+		if(hook!=null){ 
+			hook.eventShowing(e);
+		}
 	}
 	protected void eventShown(WindowEvent e){
-		if(hook!=null){ hook.eventShown(e); }
+		if(hook!=null){ 
+			hook.eventShown(e);
+		}
 	}
 	protected void eventWatch(int cnt){
-		if(hook!=null){ hook.eventWatch(cnt); }		
+		if(hook!=null){
+			hook.eventWatch(cnt);
+		}		
 	}
-	protected void eventClose(WindowEvent e){
-		if(hook!=null){ hook.eventClose(e); }
+	protected void eventClose(WindowEvent e){		
+		if(hook!=null){ 
+			hook.eventClose(e);
+		}
 	}
 	
 	private EventHandler<WindowEvent> eventWindow = new EventHandler<WindowEvent>(){
@@ -252,8 +260,9 @@ public abstract class PanBase {
 			}else if(WindowEvent.WINDOW_SHOWN==event.getEventType()){
 				eventShown(event);
 			}else if(WindowEvent.WINDOW_HIDING==event.getEventType()){
-				watchStop();
-				eventClose(event);				
+				watchStop();				
+				eventClose(event);
+				BoxLogger.pruneList(root.getChildrenUnmodifiable());
 			}
 		}
 	};
