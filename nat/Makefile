@@ -57,6 +57,13 @@ INC_MULTICAM:=-I$(ROOT_MULTICAM)/include
 
 LIB_MULTICAM:= -L$(ROOT_MULTICAM) -lMultiCam 
 
+
+#### FlyCapture ####
+
+INC_FLYCAPTURE:=-I/usr/include/flycapture
+
+LIB_FLYCAPTURE:=-L/usr/lib  -lflycapture  -lflycapturegui
+
 #################
 
 CC=g++
@@ -68,6 +75,7 @@ CC_FLAG += $(shell pkg-config --cflags libmodbus)
 CC_FLAG += $(INC_EBUS)
 CC_FLAG += $(INC_PYLON)
 CC_FLAG += $(INC_MULTICAM)
+CC_FLAG += $(INC_FLYCAPTURE)
 
 LD_LIBS += -lgclibo -lgclib 
 LD_LIBS = $(shell pkg-config --libs opencv) 
@@ -76,6 +84,7 @@ LD_LIBS += $(shell pkg-config --libs libmodbus)
 LD_LIBS += $(LIB_EBUS)
 LD_LIBS += $(LIB_PYLON)
 LD_LIBS += $(LIB_MULTICAM)
+LD_LIBS += $(LIB_FLYCAPTURE)
 
 OBJECTS = $(SOURCES:.cpp=.o)
 
@@ -102,13 +111,13 @@ else
 endif
 	
 
-$(TARGET_EXE):  ./wrap-unix/main4.cpp
+$(TARGET_EXE):  ./wrap-unix/FlyCap2.cpp
 	$(CC) $(CC_FLAG) -o $@ $^ $(LD_LIBS)
 
 #$(TARGET_EXE):  /home/qq/labor/opencv-3.1/contrib/modules/text/samples/character_recognition.cpp
 #	$(CC) $(CC_FLAG) -o $@ $^ $(LD_LIBS)
 
-all: $(TARGET_SO)
+#all: $(TARGET_SO)
 all: $(TARGET_EXE)
 #all: $(TARGET_EXE) $(TARGET_SO) 
 #all: clean $(TARGET_SO) $(TARGET_EXE)

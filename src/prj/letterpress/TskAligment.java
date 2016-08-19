@@ -6,8 +6,14 @@ import narl.itrc.Misc;
 import narl.itrc.PanBase;
 import narl.itrc.TskAction;
 
+/**
+ * AXIS-A : 10pps <==> 50um
+ * AXIS-B : 10pps <==> 50um
+ * @author qq
+ *
+ */
 public class TskAligment extends TskAction {
-	
+		
 	private ImgRender rndr;
 	
 	public TskAligment(ImgRender render,PanBase root){		

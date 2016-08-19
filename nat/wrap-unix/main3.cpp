@@ -4,7 +4,6 @@
 #include <sys/types.h>
 #include <errno.h>
 #include <global.hpp>
-#include <grabber.hpp>
 #include <algorithm>
 
 #include <modbus.h>

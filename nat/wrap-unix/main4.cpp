@@ -1,8 +1,20 @@
 #include <global.hpp>
 
-extern void filterNMText(Mat& src,vector<Rect>& boxes);
+//for Test camera or function
+
+
+
+
 
 int main(int argc, char* argv[]) {
+
+	return 0;
+}
+//-----------------------------//
+
+extern void filterNMText(Mat& src,vector<Rect>& boxes);
+
+int main_func(int argc, char* argv[]) {
 
 	long width = (1<<15);
 	long height= (1<<15);
