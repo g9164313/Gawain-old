@@ -21,19 +21,45 @@ import javafx.scene.control.TextArea;
  * @author qq
  *
  */
-public class BoxLogger extends TextArea {
+public class BoxLogger extends PanDecorate {
 
+	private TextArea box;
+	
 	public BoxLogger(){
-		setEditable(false);
-		lstBox.add(this);
-		setPrefHeight(170);//TODO:use decorate part???
+		super("輸出紀錄");		
 		prepare();//how to prepare first!!!!
+	}
+	
+	private static SimpleDateFormat logTime = new SimpleDateFormat("[yyyy/MM/dd HH:mm:ss]");
+	
+	public void prepare() {
+		lstBox.add(this);
+		box.setEditable(false);
+		if(logFile!=null){
+			return;
+		}
+		try {
+			String name = Misc.pathTemp + "logger.txt";
+			FileWriter fw = new FileWriter(name, true);
+			BufferedWriter bw = new BufferedWriter(fw);
+			logFile = new PrintWriter(bw);
+			logFile.println("========"+logTime.format(new Date())+"========");
+		} catch (IOException e) {
+			logFile = null;
+			e.printStackTrace();
+		}		
+	}
+	
+	@Override
+	public Node layoutBody() {
+		box = new TextArea();
+		return box;
 	}
 	
 	public void printf(String fmt,Object... arg){
 		String txt = String.format(fmt, arg);
-		appendText(txt);
-		setScrollTop(Double.MAX_VALUE);
+		box.appendText(txt);
+		box.setScrollTop(Double.MAX_VALUE);
 		if(logFile!=null){
 			if(txt.endsWith("\n")==true){
 				logFile.print(txt);
@@ -78,23 +104,5 @@ public class BoxLogger extends TextArea {
 				return;
 			}
 		}
-	}
-	
-	private static SimpleDateFormat logTime = new SimpleDateFormat("[yyyy/MM/dd HH:mm:ss]");
-	
-	public void prepare() {
-		if(logFile!=null){
-			return;
-		}
-		try {
-			String name = Misc.pathTemp + "logger.txt";
-			FileWriter fw = new FileWriter(name, true);
-			BufferedWriter bw = new BufferedWriter(fw);
-			logFile = new PrintWriter(bw);
-			logFile.println("========"+logTime.format(new Date())+"========");
-		} catch (IOException e) {
-			logFile = null;
-			e.printStackTrace();
-		}		
 	}
 }

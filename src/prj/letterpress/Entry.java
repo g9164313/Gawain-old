@@ -1,12 +1,12 @@
 package prj.letterpress;
 
-import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXTabPane;
 
 import javafx.concurrent.Task;
 import javafx.geometry.Side;
 import javafx.scene.Node;
 import javafx.scene.Parent;
+import javafx.scene.control.Button;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane.TabClosingPolicy;
 import javafx.scene.layout.BorderPane;
@@ -32,111 +32,58 @@ public class Entry extends PanBase {
 	
 	private CamBundle cam0 = new CamVidcap("0");
 	private CamBundle cam1 = new CamVidcap("1");	
-	private ImgRender rndr = new ImgRender(cam0,cam1);
+	private ImgRender rndr = new ImgRender(cam0);
 	
 	private DevB140M stg0 = new DevB140M();
 	
 	private TskAction tsk0 = new TskAligment(rndr,Entry.this);
 	private TskGoHome tsk1 = new TskGoHome(stg0,Entry.this);
 	private TskAction tsk2 = new TskScanning(stg0,wmap,Entry.this);
-
-	private boolean flagDryRun = false;
 	
+	/**
+	 * this flag means that we don't enable camera (render stage)
+	 */
+	private boolean camDryRun = true;
+	
+	/**
+	 * this flag means that we don't enable motion stage
+	 */
+	private boolean stgDryRun = true;
+
 	@Override
 	protected void eventShown(WindowEvent e){
-		if(flagDryRun==true){
-			return;//don't enable any device
+		if(camDryRun==false){
+			rndr.play();
 		}
-		//10pps <==> 50um
-		stg0.setFactor(200,200,200,200);
-		stg0.setTokenBase('A');
-		stg0.setRoutine('A','B','C','D');
-		stg0.exec("RS\r\n");//this command must be executed independently.
-		stg0.exec(
-			"SP 10000,10000,10000,10000;"+
-		    "AC 10000,10000,10000,10000;"+
-			"DC 10000,10000,10000,10000;"+
-		    "TP\r\n"
-		);
-		rndr.play();
+		if(stgDryRun==false){
+			//10pps <==> 50um
+			stg0.setFactor(200,200,200,200);
+			stg0.setTokenBase('A');
+			stg0.setRoutine('A','B','C','D');
+			stg0.exec("RS\r\n");//this command must be executed independently.
+			stg0.exec(
+				"SP 10000,10000,10000,10000;"+
+			    "AC 10000,10000,10000,10000;"+
+				"DC 10000,10000,10000,10000;"+
+			    "TP\r\n"
+			);
+		}		
 	}
 	
 	@Override
 	protected void eventClose(WindowEvent e){
-		if(flagDryRun==true){
-			return;//don't enable any device
-		}
-		rndr.stop();//let application release resource~~
+		if(camDryRun==false){
+			rndr.stop();//let application release resource~~
+		}	
 	}
 	
-	private Node layAligment(){
-
-		HBox lay0 = new HBox();
-		/*lay0.getChildren().addAll(
-			rndr.genBoard("預覽1", 0),
-			rndr.genBoard("預覽2", 1)
-		);*/
+	private Node layoutAction(){
+		VBox lay = new VBox();
+		lay.getStyleClass().add("vbox-small");
 		
-		final int BOARD_SIZE=130;
-		JFXButton btnAction = new JFXButton("快速執行");
-		btnAction.getStyleClass().add("btn-raised");
-		btnAction.setMaxWidth(Double.MAX_VALUE);
-		btnAction.setGraphic(Misc.getIcon("run.png"));
-		//btnAction.setOnAction();
-		
-		JFXButton btnGoHome = new JFXButton("Go Home");
-		btnGoHome.getStyleClass().add("btn-raised");
-		btnGoHome.setGraphic(Misc.getIcon("run.png"));
-		btnGoHome.setMaxWidth(Double.MAX_VALUE);
-		btnGoHome.setOnAction(tsk1);
-		
-		JFXButton btnAligment = new JFXButton("定位標靶");
-		btnAligment.getStyleClass().add("btn-raised");
-		btnAligment.setMaxWidth(Double.MAX_VALUE);
-		btnAligment.setGraphic(Misc.getIcon("selection.png"));
-		btnAligment.setOnAction(tsk0);
-		
-		Pan4AxisPad joyStick = new Pan4AxisPad(stg0,200);
-		
-		JFXButton btnClose = new JFXButton("關閉程式");
-		btnClose.getStyleClass().add("btn-raised2");
-		btnClose.setMaxWidth(Double.MAX_VALUE);
-		btnClose.setGraphic(Misc.getIcon("close.png"));
-		btnClose.setOnAction(EVENT->Entry.this.dismiss());
-		
-		VBox lay1 = new VBox();
-		lay1.getStyleClass().add("vbox-small");
-		lay1.setPrefWidth(BOARD_SIZE);
-		lay1.getChildren().addAll(
-			btnAction,
-			btnGoHome,
-			btnAligment,
-			PanBase.decorate("Joystick",joyStick),
-			btnClose
-		);
-
-		/*AnchorPane lay2 = new AnchorPane();
-		AnchorPane.setTopAnchor(lay1, 17.);
-		AnchorPane.setBottomAnchor(btnClose, 17.);
-		lay2.getChildren().addAll(lay1,btnClose);*/
-		
-		BorderPane root = new BorderPane();		
-		root.setCenter(lay0);
-		root.setRight(lay1);
-		root.setBottom(PanBase.decorate(
-			"logger",
-			new BoxLogger()
-		));
-		return root;
-	}
-
-	private Node layScanning(){
-
-		JFXButton btnAction = new JFXButton("快速執行");
-		btnAction.getStyleClass().add("btn-raised");
-		btnAction.setGraphic(Misc.getIcon("run.png"));
-		btnAction.setMaxWidth(Double.MAX_VALUE);
-		btnAction.setOnAction(new TskDialog(Entry.this){
+		Button btn;
+		btn = genButton0("快速執行","run.png");
+		btn.setOnAction(new TskDialog(Entry.this){
 			@Override
 			public int looper(Task<Integer> tsk) {
 				logv("working...");
@@ -144,74 +91,85 @@ public class Entry extends PanBase {
 				return 0;
 			}
 		});
+		lay.getChildren().add(btn);
 		
-		JFXButton btnScan = new JFXButton("掃描程序");
-		btnScan.getStyleClass().add("btn-raised");
-		btnScan.setGraphic(Misc.getIcon("play.png"));
-		btnScan.setMaxWidth(Double.MAX_VALUE);
-		btnScan.setOnAction(tsk2);
+		btn = genButton0("回歸原點","arrow-compress-all.png");
+		btn.setOnAction(tsk1);
+		lay.getChildren().add(btn);
 		
-		JFXButton btnLight = new JFXButton("光源照射");
-		btnLight.getStyleClass().add("btn-raised");
-		btnLight.setGraphic(Misc.getIcon("blur.png"));
-		btnLight.setMaxWidth(Double.MAX_VALUE);
-		btnLight.setOnAction(new TskAction(Entry.this){
-			@Override
-			protected void DelayBegin(long tick){
-			}
-			@Override
-			protected void DelayFinish(long tick){
-			}			
+		btn = genButton0("定位標靶","selection.png");
+		btn.setOnAction(tsk0);
+		lay.getChildren().add(btn);
+		
+		btn = genButton0("掃描程序","play.png");
+		btn.setOnAction(tsk2);
+		lay.getChildren().add(btn);
+		
+		btn = genButton0("照射光源","blur.png");
+		btn.setOnAction(new TskAction(Entry.this){		
 			@Override
 			public int looper(Task<Integer> task) {
-				return DelayLooper(2000);
+				return DelayLooper(3000);				
 			}			
 		});
+		lay.getChildren().add(btn);
+		final Button btnPan1 = genButton1("平台設定","wrench.png");
+		btnPan1.setOnAction(event->{
+			btnPan1.setDisable(true);
+			new PanBase(btnPan1){
+				@Override
+				public Parent layout() {
+					return new Pan4AxisPad(stg0,200);
+				}	
+			}.appear();			
+		});
+		lay.getChildren().add(btnPan1);
 		
-		JFXButton btnClose = new JFXButton("關閉程式");
-		btnClose.getStyleClass().add("btn-raised2");
-		btnClose.setGraphic(Misc.getIcon("close.png"));
-		btnClose.setMaxWidth(Double.MAX_VALUE);		
-		btnClose.setOnAction(EVENT->Entry.this.dismiss());
+		final Button btnPan2 = genButton1("晶圓設定","wrench.png");
+		btnPan2.setOnAction(event->{
+			//TODO:we must re-design this panel!!!!
+			/*btnPan2.setDisable(false);
+			new PanBase(btnPan2){
+				@Override
+				public Parent layout() {
+					return wmap.getConsole();
+				}	
+			}.appear();*/
+		});
+		lay.getChildren().add(btnPan2);
 		
-		VBox lay1 = new VBox();
-		lay1.getStyleClass().add("vbox-small");
-		lay1.getChildren().addAll(
-			btnAction,
-			btnScan,
-			btnLight,
-			wmap.getConsole(),
-			btnClose
-		);
+		btn = genButton2("關閉程式","close.png");	
+		btn.setOnAction(EVENT->Entry.this.dismiss());
+		lay.getChildren().add(btn);
 		
-		BorderPane root = new BorderPane();
-		root.setCenter(wmap);
-		root.setRight(lay1);
-		root.setBottom(PanBase.decorate(
-			"logger",
-			new BoxLogger()
-		));
-		return root;
+		return lay;
+	}
+	
+	private Node layoutPerspective(){
+		JFXTabPane tabs = new JFXTabPane();
+		tabs.setSide(Side.LEFT);
+		tabs.setTabClosingPolicy(TabClosingPolicy.UNAVAILABLE);
+		//tabs.setPrefSize(800,800);
+		
+		Tab stp1 = new Tab("晶圓");
+		stp1.setContent(wmap);		
+		Tab stp2 = new Tab("影像");
+		//stp2.setContent();
+		
+		tabs.getTabs().addAll(stp1,stp2);
+		return tabs;
 	}
 	
 	@Override
 	public Parent layout() {
-		JFXTabPane root = new JFXTabPane();
-		root.setSide(Side.LEFT);
-		root.setTabClosingPolicy(TabClosingPolicy.UNAVAILABLE);
+		BorderPane lay0 = new BorderPane();
+		BorderPane lay1 = new BorderPane();
 		
-		Tab stp1 = new Tab("對位");
-		stp1.setContent(layAligment());
-		Tab stp2 = new Tab("曝光");
-		stp2.setContent(layScanning());
+		lay0.setCenter(lay1);
+		lay0.setRight(layoutAction());
 		
-		Tab pge1 = new Tab("B140M");
-		pge1.setContent(stg0.layoutConsole());
-		
-		root.getTabs().addAll(stp1,stp2,pge1);
-		//root.getSelectionModel().select(0);
-		root.getSelectionModel().select(1);
-		//root.getSelectionModel().select(2);
-		return root;
+		lay1.setCenter(layoutPerspective());
+		lay1.setBottom(new BoxLogger());
+		return lay0;
 	}
 }

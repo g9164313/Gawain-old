@@ -155,38 +155,38 @@ public class Pan4AxisPad extends FlowPane {
 	
 	void initLayout(int boardSize){
 		//int cellSize = boardSize/3;
-		//control-block
-		GridPane pan0 = new GridPane();
-		pan0.getStyleClass().add("grid-small");
-		pan0.setPrefSize(boardSize, boardSize);
-		
-		pan0.add(createPadArrow(TKN_Z_N), 0, 0, 1, 1);		
-		pan0.add(createPadArrow(TKN_Y_P), 1, 0, 1, 1);		
-		pan0.add(createPadArrow(TKN_Z_P), 2, 0, 1, 1);
-		
-		pan0.add(createPadArrow(TKN_X_N), 0, 1, 1, 1);
-		pan0.add(createPadArrow(TKN_ZRO), 1, 1, 1, 1);		
-		pan0.add(createPadArrow(TKN_X_P), 2, 1, 1, 1);
-		
-		pan0.add(createPadArrow(TKN_A_N), 0, 2, 1, 1);
-		pan0.add(createPadArrow(TKN_Y_N), 1, 2, 1, 1);
-		pan0.add(createPadArrow(TKN_A_P), 2, 2, 1, 1);
 		
 		//information-block
-		GridPane pan1 = new GridPane();
-		pan1.getStyleClass().add("grid-small");
-		pan1.add(createPadRest(TKN_X_P), 0, 0);
-		pan1.add(createPadRest(TKN_Y_P), 0, 1);
-		pan1.add(createPadRest(TKN_Z_P), 0, 2);
-		pan1.add(createPadRest(TKN_A_P), 0, 3);
-		pan1.add(createLCD(TKN_X_P,boardSize), 1, 0);
-		pan1.add(createLCD(TKN_Y_P,boardSize), 1, 1);
-		pan1.add(createLCD(TKN_Z_P,boardSize), 1, 2);
-		pan1.add(createLCD(TKN_A_P,boardSize), 1, 3);
-		//pan1.getChildren().add();
+		GridPane panInfo = new GridPane();
+		panInfo.getStyleClass().add("grid-small");
+		panInfo.add(createPadRest(TKN_X_P), 0, 0);
+		panInfo.add(createPadRest(TKN_Y_P), 0, 1);
+		panInfo.add(createPadRest(TKN_Z_P), 0, 2);
+		panInfo.add(createPadRest(TKN_A_P), 0, 3);
+		panInfo.add(createLCD(TKN_X_P,boardSize), 1, 0);
+		panInfo.add(createLCD(TKN_Y_P,boardSize), 1, 1);
+		panInfo.add(createLCD(TKN_Z_P,boardSize), 1, 2);
+		panInfo.add(createLCD(TKN_A_P,boardSize), 1, 3);
+		
+		//control-block
+		GridPane panCtrl = new GridPane();
+		panCtrl.getStyleClass().add("grid-small");
+		panCtrl.setPrefSize(boardSize, boardSize);
+		
+		panCtrl.add(createPadArrow(TKN_Z_N), 0, 0, 1, 1);		
+		panCtrl.add(createPadArrow(TKN_Y_P), 1, 0, 1, 1);		
+		panCtrl.add(createPadArrow(TKN_Z_P), 2, 0, 1, 1);
+		
+		panCtrl.add(createPadArrow(TKN_X_N), 0, 1, 1, 1);
+		panCtrl.add(createPadArrow(TKN_ZRO), 1, 1, 1, 1);		
+		panCtrl.add(createPadArrow(TKN_X_P), 2, 1, 1, 1);
+		
+		panCtrl.add(createPadArrow(TKN_A_N), 0, 2, 1, 1);
+		panCtrl.add(createPadArrow(TKN_Y_N), 1, 2, 1, 1);
+		panCtrl.add(createPadArrow(TKN_A_P), 2, 2, 1, 1);
 		
 		//put together
-		getChildren().addAll(pan0,pan1);
+		getChildren().addAll(panInfo,panCtrl);
 	}
 		
 	private HashMap<Integer,Node> lstPadPress = new HashMap<Integer,Node>();

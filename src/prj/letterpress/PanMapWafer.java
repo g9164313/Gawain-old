@@ -30,7 +30,7 @@ public class PanMapWafer extends PanMapBase {
 	private BoxPhyValue boxLane;
 
 	public PanMapWafer(){
-		super("配置圖");		
+		super("顆粒配置圖");		
 		init_widget();
 		setMapSize(getDiameter());
 		setDieSize(
@@ -112,7 +112,6 @@ public class PanMapWafer extends PanMapBase {
 		boxDieW.setOnAction(eventRedraw);
 		boxDieH.setOnAction(eventRedraw);
 		boxLane.setOnAction(EVENT->{
-			//???
 		});
 		
 		Button btnInc = new Button("+");

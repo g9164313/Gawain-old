@@ -1,5 +1,6 @@
 package narl.itrc;
 
+import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXSpinner;
 import com.sun.glass.ui.Application;
 
@@ -13,6 +14,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
 import javafx.scene.control.Control;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
@@ -32,6 +34,14 @@ public abstract class PanBase {
 
 	protected String title = "::panel::";
 	
+	/**
+	 * User may use some control widget to pop a panel.<p>
+	 * When this happened,this control widget should be disabled.<p>
+	 * Because the panel should not be created twice.<p>
+	 * After closing this panel, the widget will be enabled again~~~.<p>
+	 */
+	private Control trigger = null;
+	
 	protected static final int FIRST_NONE = 0;
 	protected static final int FIRST_FULLSCREEN = 1;
 	protected static final int FIRST_MAXIMIZED = 2;
@@ -43,14 +53,20 @@ public abstract class PanBase {
 	public abstract Parent layout();
 	
 	public PanBase(){
+		this("",null);
 	}
 	
-	public PanBase(String txt){
-		setTitle(txt);
+	public PanBase(String title){
+		this(title,null);
 	}
 	
-	public void setTitle(String txt){
-		title = txt;
+	public PanBase(Control trigger){
+		this("",trigger);
+	}
+	
+	public PanBase(String title,Control trigger){
+		this.title = title;
+		this.trigger = trigger;
 	}
 	
 	public Node getParent(){ 
@@ -260,6 +276,9 @@ public abstract class PanBase {
 			}else if(WindowEvent.WINDOW_SHOWN==event.getEventType()){
 				eventShown(event);
 			}else if(WindowEvent.WINDOW_HIDING==event.getEventType()){
+				if(trigger!=null){
+					trigger.setDisable(false);
+				}
 				watchStop();				
 				eventClose(event);
 				BoxLogger.pruneList(root.getChildrenUnmodifiable());
@@ -396,6 +415,50 @@ public abstract class PanBase {
 			lay.getChildren().add(ctl);
 		}
 		return lay;
+	}
+	
+	protected Button genButton0(
+		final String title,
+		final String iconName
+	){
+		return genButton(title,iconName,"btn-raised");
+	}
+	
+	protected Button genButton1(
+		final String title,
+		final String iconName
+	){
+		return genButton(title,iconName,"btn-raised1");
+	}
+	
+	protected Button genButton2(
+		final String title,
+		final String iconName
+	){
+		return genButton(title,iconName,"btn-raised2");
+	}
+	
+	protected Button genButton3(
+		final String title,
+		final String iconName
+	){
+		return genButton(title,iconName,"btn-raised3");
+	}
+	
+	protected Button genButton(
+		final String title,
+		final String iconName,
+		final String styleName
+	){
+		JFXButton btn = new JFXButton(title);
+		btn.getStyleClass().add(styleName);
+		if(iconName!=null){
+			if(iconName.length()!=0){
+				btn.setGraphic(Misc.getIcon(iconName));
+			}
+		}		
+		btn.setMaxWidth(Double.MAX_VALUE);
+		return btn;
 	}
 	
 	/**

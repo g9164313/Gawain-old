@@ -11,7 +11,7 @@
 	-fx-padding: 0.7em 0.57em;
 	-fx-font-size: 14px;
 	-fx-button-type: RAISED;
-	-fx-background-color:  #00796b;
+	-fx-background-color: #00796b;
 	-fx-text-fill: WHITE;
 }
 .btn-raised2 {
@@ -25,10 +25,9 @@
 	-fx-padding: 0.7em 0.57em;
 	-fx-font-size: 14px;
 	-fx-button-type: RAISED;
-	-fx-background-color:  #303f9f;
+	-fx-background-color: #303f9f;
 	-fx-text-fill: WHITE;
 }
-
 
 
 .btn-flat-tick {
