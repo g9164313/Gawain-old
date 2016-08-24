@@ -1,6 +1,6 @@
 
-DIR_JNI=/home/lib/jdk/include
-#DIR_JNI=/home/qq/.local/jdk8/include
+#DIR_JNI=/home/lib/jdk/include
+DIR_JNI=/home/qq/.local/jdk8/include
 
 TARGET_EXE=gawain
 
@@ -73,7 +73,7 @@ CC_FLAG += -DVISION $(shell pkg-config --cflags opencv)
 #CC_FLAG += $(shell pkg-config --cflags qt5) 
 #CC_FLAG += $(INC_EBUS)
 #CC_FLAG += $(INC_PYLON)
-CC_FLAG += $(INC_MULTICAM)
+#CC_FLAG += $(INC_MULTICAM)
 #CC_FLAG += $(INC_FLYCAPTURE)
 
 LD_LIBS = $(shell pkg-config --libs opencv) 
@@ -81,7 +81,7 @@ LD_LIBS = $(shell pkg-config --libs opencv)
 #LD_LIBS += $(shell pkg-config --libs Qt5Core Qt5Gui Qt5Widgets Qt5Test)
 #LD_LIBS += $(LIB_EBUS)
 #LD_LIBS += $(LIB_PYLON)
-LD_LIBS += $(LIB_MULTICAM)
+#LD_LIBS += $(LIB_MULTICAM)
 #LD_LIBS += $(LIB_FLYCAPTURE)
 
 
@@ -96,8 +96,8 @@ CHECK_EXEC := $(word 2,$(shell pgrep -f "narl.itrc.Gawain"))
 
 #SFR_MITRE =  ./SFR/sfr_iso.c ./SFR/find_area.c
 #IMG_FILTER = FilterMisc.cpp FilterIsBlur.cpp
-#DEV_CAMERA = CamBundle.cpp CamVidcap.cpp 
-DEV_CAMERA = CamBundle.cpp CamVidcap.cpp CamMulticam.cpp 
+DEV_CAMERA = CamBundle.cpp CamVidcap.cpp 
+#DEV_CAMERA = CamBundle.cpp CamVidcap.cpp CamMulticam.cpp 
 
 $(TARGET_SO):  utils_jni.cpp DevTTY.cpp  $(IMG_FILTER) $(DEV_CAMERA) 
 	$(CC) $(CC_FLAG)  -fPIC -shared -o $@ $^ $(LD_LIBS)

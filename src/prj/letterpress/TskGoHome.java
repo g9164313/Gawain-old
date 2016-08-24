@@ -25,27 +25,31 @@ public class TskGoHome extends TskAction {
 		default:
 			return;
 		}
+		int idx = tkn - 'A';
+		int pre,cur;
 		
-		stg.exec("JG "+col+"-2000;BG "+tkn+"\r\n");
+		Misc.logv("Panzer Vor !!!");
+		stg.exec("JG "+col+"-4000;BG "+tkn+"\r\n");
 		do{
+			pre = stg.pulse[idx].get();
+			Misc.delay(500);
 			stg.exec_TP();
-			Misc.delay(100);
+			cur = stg.pulse[idx].get();			
+			Misc.logv("Count-[%c] %d --> %d",tkn,pre,cur);
 		}while(stg.isReverse(tkn)==true);
 		
-		stg.exec("DE "+col+"0;TP\r\n");
-
-		stg.exec("JG "+col+"2000;BG "+tkn+"\r\n");
-		do{
-			stg.exec_TP();
-			Misc.delay(100);
-		}while(stg.isForward(tkn)==true);
+		Misc.logv("Panzer Vor !!!");
+		stg.exec("PR "+col+"16000;BG "+tkn+"\r\n");
 		
-		stg.exec(
-			"PR "+col+"-15000;"+
-		    "BG"+tkn+";MC;WT 1000;"+
-			"DE "+col+"0;"+
-			"TP\r\n"
-		);
+		do{			
+			pre = stg.pulse[idx].get();
+			Misc.delay(500);
+			stg.exec_TP();			
+			cur = stg.pulse[idx].get();			
+			Misc.logv("Count-[%c] %d --> %d",tkn,pre,cur);
+		}while(Math.abs(cur-pre)>5);
+		
+		stg.exec("WT 500;DE "+col+"0;DP "+col+"0;TP\r\n");
 	}
 	
 	@Override

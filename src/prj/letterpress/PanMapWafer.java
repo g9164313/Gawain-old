@@ -12,6 +12,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
+import javafx.scene.paint.Color;
 import javafx.scene.shape.ArcType;
 import narl.itrc.BoxPhyValue;
 import narl.itrc.PanBase;
@@ -137,15 +138,34 @@ public class PanMapWafer extends PanMapBase {
 	@Override
 	public void drawShape(GraphicsContext gc) {
 		gc.save();
+		gc.setStroke(Color.BLACK);
 		gc.strokeArc(
 			-mapGrid[0]/2, -mapGrid[1]/2, 
 			mapGrid[0],mapGrid[1],
 			0, 360, 
 			ArcType.CHORD
 		);
+		gc.setFill(clrWafBack);
+		gc.fillArc(
+			-mapGrid[0]/2, -mapGrid[1]/2, 
+			mapGrid[0],mapGrid[1],
+			0, 360, 
+			ArcType.CHORD
+		);
+		double len = flat_height();
+		gc.clearRect(
+			-mapGrid[0]/2,0+len, 
+			mapGrid[0],mapGrid[0]-len
+		);
 		gc.restore();
 	}
 
+	private double flat_height(){
+		double rad = Math.min(mapGrid[0]/2, mapGrid[1]/2);
+		double len = rad*Math.cos((20./180.)*Math.PI);
+		return len;
+	}
+	
 	@Override
 	public void layoutDie(ArrayList<Die> lst) {
 		double rad = getDiameter()/2.;

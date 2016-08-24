@@ -1,4 +1,4 @@
-package narl.itrc;
+package prj.letterpress;
 
 import java.util.HashMap;
 
@@ -12,6 +12,8 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
+import narl.itrc.DevMotion;
+import narl.itrc.Misc;
 
 
 public class Pan4AxisPad extends FlowPane {
@@ -26,7 +28,7 @@ public class Pan4AxisPad extends FlowPane {
 	private final int TKN_Z_N = 0x32;
 	private final int TKN_A_P = 0x41;
 	private final int TKN_A_N = 0x42;
-	private final int TKN_INF = 0x00;
+	private final int TKN_ZRO = 0x00;
 	
 	public Pan4AxisPad(DevMotion dev,int size){
 		this.dev = dev;
@@ -34,21 +36,19 @@ public class Pan4AxisPad extends FlowPane {
 		initLayout(size);
 	}
 
-	private void jogStart(int tkn){
-		/*switch(tkn){
-		case TKN_X_P: dev.asyncMoveTo(DevMotion.PULSE_UNIT, 1000.); break;
-		case TKN_X_N: dev.asyncMoveTo(DevMotion.PULSE_UNIT,-1000.); break;
-		case TKN_Y_P: dev.asyncMoveTo(DevMotion.PULSE_UNIT,null, 1000.); break;
-		case TKN_Y_N: dev.asyncMoveTo(DevMotion.PULSE_UNIT,null,-1000.); break;
-		case TKN_Z_P: dev.asyncMoveTo(DevMotion.PULSE_UNIT,null,null, 1000.); break;
-		case TKN_Z_N: dev.asyncMoveTo(DevMotion.PULSE_UNIT,null,null,-1000.); break;
-		case TKN_A_P: dev.asyncMoveTo(DevMotion.PULSE_UNIT,null,null,null, 1000.); break;
-		case TKN_A_N: dev.asyncMoveTo(DevMotion.PULSE_UNIT,null,null,null,-1000.); break;
-		}*/
-		_jogging(tkn,true,1000.);
+	private void makeMotion(int tkn){
+		if(tkn==TKN_ZRO){
+			//this is a special case
+			dev.archTo(0.,0.,0.);
+			return;
+		}
+		_jogging(tkn,true,10000.);
 	}
 	
-	private void jogStop(int tkn){
+	private void stopMotion(int tkn){
+		if(tkn==TKN_ZRO){
+			return;
+		}
 		_jogging(tkn,false,0.);
 	}
 	
@@ -75,10 +75,10 @@ public class Pan4AxisPad extends FlowPane {
 			Button btn = (Button)(event.getSource());
 			int tkn = (int)btn.getUserData();
 			if(event.getEventType()==MouseEvent.MOUSE_PRESSED){
-				jogStart(tkn);
+				makeMotion(tkn);
 				btn.setGraphic(lstPadPress.get(tkn));
 			}else if(event.getEventType()==MouseEvent.MOUSE_RELEASED){
-				jogStop(tkn);
+				stopMotion(tkn);
 				btn.setGraphic(lstPadRelex.get(tkn));
 			}
 		}
@@ -165,7 +165,7 @@ public class Pan4AxisPad extends FlowPane {
 		pan0.add(createPadArrow(TKN_Z_P), 2, 0, 1, 1);
 		
 		pan0.add(createPadArrow(TKN_X_N), 0, 1, 1, 1);
-		pan0.add(createPadArrow(TKN_INF), 1, 1, 1, 1);		
+		pan0.add(createPadArrow(TKN_ZRO), 1, 1, 1, 1);		
 		pan0.add(createPadArrow(TKN_X_P), 2, 1, 1, 1);
 		
 		pan0.add(createPadArrow(TKN_A_N), 0, 2, 1, 1);
@@ -202,7 +202,7 @@ public class Pan4AxisPad extends FlowPane {
 		lstPadRelex.put(TKN_Z_N,Misc.getIcon("arrow-down.png"));
 		lstPadRelex.put(TKN_A_P,Misc.getIcon("replay-flop.png"));
 		lstPadRelex.put(TKN_A_N,Misc.getIcon("replay.png"));
-		lstPadRelex.put(TKN_INF,Misc.getIcon("image-filter-center-focus-weak.png"));
+		lstPadRelex.put(TKN_ZRO,Misc.getIcon("image-filter-center-focus-weak.png"));
 		
 		lstPadPress.put(TKN_X_P,Misc.getIcon("chevron-double-right.png"));
 		lstPadPress.put(TKN_X_N,Misc.getIcon("chevron-double-left.png"));
@@ -212,6 +212,6 @@ public class Pan4AxisPad extends FlowPane {
 		lstPadPress.put(TKN_Z_N,Misc.getIcon("format-vertical-align-bottom.png"));
 		lstPadPress.put(TKN_A_P,Misc.getIcon("rotate-right.png"));
 		lstPadPress.put(TKN_A_N,Misc.getIcon("rotate-left.png"));
-		lstPadPress.put(TKN_INF,lstPadRelex.get(TKN_INF));
+		lstPadPress.put(TKN_ZRO,lstPadRelex.get(TKN_ZRO));
 	}		
 }

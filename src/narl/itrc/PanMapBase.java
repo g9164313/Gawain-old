@@ -27,6 +27,7 @@ public abstract class PanMapBase extends PanDecorate {
 	
 	private final ContextMenu menu = new ContextMenu();
 	
+	protected static final Color clrWafBack= Color.web("#ddc16e");
 	protected static final Color clrGround = Color.web("#b0bec5");
 	protected static final Color clrSelect = Color.web("#ffeb3b");
 	protected static final Color clrWalking= Color.web("#64b5f6");
@@ -356,8 +357,8 @@ public abstract class PanMapBase extends PanDecorate {
 		gc.setStroke(Color.BLACK);
 		gc.setLineWidth(1.);
 		
-		drawAllDie(gc);
-		drawShape(gc);		
+		drawShape(gc);
+		drawAllDie(gc);				
 		drawCross(gc);
 	
 		mapGround = mapScreen.snapshot(parm,null);		
@@ -571,21 +572,11 @@ public abstract class PanMapBase extends PanDecorate {
 	private Canvas mapScreen;//let parent create this object!!!	
 	@Override
 	public Node layoutBody() {
-		mapScreen = new Canvas();//this is dummy~~~		
-
+		mapScreen = new Canvas();//this is dummy~~~
 		ScrollPane root = new ScrollPane();
 		root.setContent(mapScreen);
-		/*root.setContextMenu(menu);
-		root.setOnMouseClicked(EVENT->{
-			Window win = PanMapBase.this.getScene().getWindow();
-			MouseButton mb = EVENT.getButton();
-			int mx = (int)EVENT.getX();
-			int my = (int)EVENT.getY();
-			if(mb==MouseButton.SECONDARY){
-				menu.show(mapScreen,Side.RIGHT, 0, 0);
-				Misc.logv("right-click, (%03d,%03d)",mx,my);
-			}
-		});*/
+		root.setMinWidth(600);
+		root.setMinHeight(600);
 		return root;
 	}
 }

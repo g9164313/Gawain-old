@@ -47,10 +47,9 @@ public class TskScanning extends TskAction {
 			stg.archTo(pos);
 			
 			//start to exposure
-			Misc.logv("開啟UV光源");
+			Misc.logv("expose...");
 			Misc.delay(1000);
-			Misc.logv("關閉UV光源");
-			
+
 			if(tsk.isCancelled()==true){
 				//user break-down this routine~~~~
 				tick = System.currentTimeMillis() - tick;
@@ -62,7 +61,10 @@ public class TskScanning extends TskAction {
 		
 		tick = System.currentTimeMillis() - tick;
 		tsec = ((float)tick)/1000.f;
-		Misc.logv("經歷: %.3fsec",tsec);		
+		Misc.logv("經歷: %.3fsec",tsec);	
+		
+		stg.archTo(0.,0.);
+		Misc.logv("go home...");
 		return -1;
 	}
 }

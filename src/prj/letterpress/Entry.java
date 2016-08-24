@@ -19,7 +19,6 @@ import narl.itrc.CamVidcap;
 import narl.itrc.ImgRender;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
-import narl.itrc.Pan4AxisPad;
 import narl.itrc.TskAction;
 import narl.itrc.TskDialog;
 
@@ -32,9 +31,8 @@ public class Entry extends PanBase {
 	private PanMapWafer wmap = new PanMapWafer();
 	
 	private CamBundle cam0 = new CamVidcap("0");
-	//private CamBundle cam1 = new CamVidcap("1");
-	
-	private ImgRender rndr = new ImgRender(cam0);
+	private CamBundle cam1 = new CamVidcap("1");	
+	private ImgRender rndr = new ImgRender(cam0,cam1);
 	
 	private DevB140M stg0 = new DevB140M();
 	
@@ -42,25 +40,33 @@ public class Entry extends PanBase {
 	private TskGoHome tsk1 = new TskGoHome(stg0,Entry.this);
 	private TskAction tsk2 = new TskScanning(stg0,wmap,Entry.this);
 
+	private boolean flagDryRun = false;
+	
 	@Override
 	protected void eventShown(WindowEvent e){
+		if(flagDryRun==true){
+			return;//don't enable any device
+		}
 		//10pps <==> 50um
-		/*stg0.setFactor(2000,2000,2000,2000);
+		stg0.setFactor(200,200,200,200);
 		stg0.setTokenBase('A');
 		stg0.setRoutine('A','B','C','D');
 		stg0.exec("RS\r\n");//this command must be executed independently.
 		stg0.exec(
-			"SP 4096,4096,4096,4096;"+
-		    "AC 4096,4096,4096,4096;"+
-			"DC 4096,4096,4096,4096;"+
+			"SP 10000,10000,10000,10000;"+
+		    "AC 10000,10000,10000,10000;"+
+			"DC 10000,10000,10000,10000;"+
 		    "TP\r\n"
-		);*/
-		//rndr.play();
+		);
+		rndr.play();
 	}
 	
 	@Override
-	protected void eventClose(WindowEvent e){		
-		//rndr.stop();//let application release resource~~
+	protected void eventClose(WindowEvent e){
+		if(flagDryRun==true){
+			return;//don't enable any device
+		}
+		rndr.stop();//let application release resource~~
 	}
 	
 	private Node layAligment(){
@@ -78,7 +84,7 @@ public class Entry extends PanBase {
 		btnAction.setGraphic(Misc.getIcon("run.png"));
 		//btnAction.setOnAction();
 		
-		JFXButton btnGoHome = new JFXButton("Calibrate");
+		JFXButton btnGoHome = new JFXButton("Go Home");
 		btnGoHome.getStyleClass().add("btn-raised");
 		btnGoHome.setGraphic(Misc.getIcon("run.png"));
 		btnGoHome.setMaxWidth(Double.MAX_VALUE);
@@ -93,7 +99,7 @@ public class Entry extends PanBase {
 		Pan4AxisPad joyStick = new Pan4AxisPad(stg0,200);
 		
 		JFXButton btnClose = new JFXButton("關閉程式");
-		btnClose.getStyleClass().add("btn-raised1");
+		btnClose.getStyleClass().add("btn-raised2");
 		btnClose.setMaxWidth(Double.MAX_VALUE);
 		btnClose.setGraphic(Misc.getIcon("close.png"));
 		btnClose.setOnAction(EVENT->Entry.this.dismiss());

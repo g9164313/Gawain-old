@@ -26,6 +26,7 @@ public class BoxLogger extends TextArea {
 	public BoxLogger(){
 		setEditable(false);
 		lstBox.add(this);
+		setPrefHeight(170);//TODO:use decorate part???
 		prepare();//how to prepare first!!!!
 	}
 	

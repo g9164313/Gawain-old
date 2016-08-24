@@ -246,7 +246,7 @@ public abstract class DevMotion {
 	/**
 	 * This is a special motion, motor is just running and stop at any time.<p> 
 	 */
-	protected abstract void Jogging(boolean go,Double... val);
+	public abstract void Jogging(boolean go,Double... val);
 	
 	
 	protected abstract void takePosition(Double[] value);

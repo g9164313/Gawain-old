@@ -198,12 +198,12 @@ public class DevB140M extends DevMotion {
 		}		
 		cmd = cmd + axisValue(val);		
 		cmd = cmd + ";BG " + axisName(val);		
-		cmd = cmd + ";MC;TP\r\n";		
+		cmd = cmd + ";MC;WT 200;TP\r\n";		
 		parse_TP(tty.fetch(cmd,TAIL));
 	}
 	
 	@Override
-	protected void Jogging(boolean go, Double... val) {
+	public void Jogging(boolean go, Double... val) {
 		if(go==true){			
 			tty.fetch(
 				"JG "+axisValue(val)+
