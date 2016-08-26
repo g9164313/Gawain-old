@@ -3,7 +3,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <global.hpp>
-#include <grabber.hpp>
 #include <utils_ipc.hpp>
 #include <algorithm>
 

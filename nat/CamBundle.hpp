@@ -16,7 +16,12 @@ using namespace std;
 #define MACRO_SETUP_BEG \
 	jclass clzz=env->GetObjectClass(bundle); \
 	jfieldID idCntx = env->GetFieldID(clzz,"ptrCntx","J"); \
-	jfieldID idMatx = env->GetFieldID(clzz,"ptrMatx","J");
+	jfieldID idBuff = env->GetFieldID(clzz,"ptrBuff","J"); \
+	jfieldID idType = env->GetFieldID(clzz,"bufType","I"); \
+
+#define MACRO_SETUP_CNTX(cntx) env->SetLongField(bundle,idCntx,(jlong)(cntx));
+#define MACRO_SETUP_MATX(buff) env->SetLongField(bundle,idBuff,(jlong)(buff));
+#define MACRO_SETUP_TYPE(type) env->SetIntField (bundle,idType,(jint )(type));
 
 #define MACRO_SETUP_END(cntx) \
 	if(cntx==NULL){ \
@@ -30,9 +35,6 @@ using namespace std;
 #define MACRO_SETUP_END_V(cntx,matx) \
 	env->SetLongField(bundle,idCntx,(jlong)(cntx)); \
 	env->SetLongField(bundle,idMatx,(jlong)(matx));
-
-#define MACRO_SETUP_CNTX(cntx) env->SetLongField(bundle,idCntx,(jlong)(cntx));
-#define MACRO_SETUP_MATX(matx) env->SetLongField(bundle,idMatx,(jlong)(matx));
 
 //--------------------------------------------//
 

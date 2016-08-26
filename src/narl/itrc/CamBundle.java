@@ -24,15 +24,21 @@ public abstract class CamBundle implements Gawain.EventHook {
 	//-------------------------//
 	
 	/**
-	 * the pointer to a context for whatever devices.<p>
+	 * The pointer to a context for whatever devices.<p>
 	 * this pointer show whether device is ready.<p>
 	 */
 	private long ptrCntx = 0;
 	
 	/**
-	 * the pointer to OpenCV Mat
+	 * The pointer to memory buffer created by malloc().<p>
+	 * This pointer can be zero, it is dependent on device.<p>
 	 */
-	private long ptrMatx = 0;
+	private long ptrBuff = 0;
+	
+	/**
+	 * How to interpret buffer size and geometry.
+	 */
+	private int bufType = 0;
 	
 	/**
 	 * configuration, the meaning of value is dependent on devices.<p>
@@ -109,12 +115,8 @@ public abstract class CamBundle implements Gawain.EventHook {
 		return (ptrCntx==0)?(false):(true);
 	}
 
-	public long getMatx(){
-		return ptrMatx;
-	}
-	
 	public Image getImage(){
-		if(ptrMatx==0){
+		if(ptrBuff==0){
 			return null;
 		}
 		byte[] dat = getData();

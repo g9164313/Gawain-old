@@ -26,7 +26,7 @@ public class FilterNMText extends ImgFilter {
 	private int[] rect = null;
 	@Override
 	public void cookData(ArrayList<ImgPreview> list) {
-		rect = implCookData(list.get(0).bundle.getMatx());
+		//TODO:rect = implCookData(list.get(0).bundle.getMatx());
 	}
 		
 	@Override

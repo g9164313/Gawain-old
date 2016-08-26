@@ -19,6 +19,7 @@ extern "C" JNIEXPORT jbyteArray JNICALL Java_narl_itrc_CamBundle_getData(
 	if(img.empty()==true){
 		return NULL;
 	}
+
 	vector<uchar> buf;
 	imencode(".jpg",img,buf);
 	jbyteArray arrBuf = env->NewByteArray(buf.size());

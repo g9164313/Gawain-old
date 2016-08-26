@@ -303,11 +303,6 @@ public class ImgPreview {
 	public Pane getBoard(){
 		return board;
 	}
-	
-	public long getMatx(){
-		return bundle.getMatx();
-	}
-	
 	/**
 	 * This is same as OpenCV structure - 'Rect'.<p>
 	 * @author qq

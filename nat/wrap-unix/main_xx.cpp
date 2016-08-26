@@ -3,11 +3,10 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <global.hpp>
-#include <grabber.hpp>
 #include <utils_ipc.hpp>
 #include <algorithm>
 
-void list_dir(string path,vector<string>& lst,string prex);
+/*void list_dir(string path,vector<string>& lst,string prex);
 
 extern Mat cutOutBounding(Mat& img,Mat& msk,int width,int height);
 extern void removeNoise(Mat& msk,int* board);
@@ -63,7 +62,7 @@ int main5(int argc, char* argv[]) {
 	tkn.exec("TRAN");
 	cout<<"CMD=tran @ RESP="<<tkn.getMsg()<<endl;*/
 
-	for(size_t i=0; i<lstMeas.size(); i++){
+	/*for(size_t i=0; i<lstMeas.size(); i++){
 		string name = pathMeas+"/"+lstMeas[i];
 		Mat img = imread(name,IMREAD_GRAYSCALE);
 		Mat nod(img.rows,img.cols,CV_8UC1,buff);
@@ -76,20 +75,31 @@ int main5(int argc, char* argv[]) {
 	//tkn.pipeRecv(NULL);
 	//cout<<"RESP>>"<<tkn.getMsg()<<endl;
 	return 0;
-}
+}*/
 
-bool IsBlurred(Mat& img,float* res);
-int main4(int argc, char* argv[]) {
-	string path="./cam0/fore";
-	vector<string> lst;
-	list_dir(path,lst,"obj");
-	for(size_t i=0; i<lst.size(); i++){
-		string name = path+"/"+lst[i];
-		Mat img = imread(name);
-		float res[2];
-		bool flag = false;//IsBlurred(img,res);
-		cout<<name<<":"<<flag<<" @ blur="<<res[0]<<" @ "<<res[1]<<endl;
-	}
+extern "C" int IsBlurred(
+	const uint8_t* const luminance,
+	const int width,
+	const int height,
+	float* blur,
+	float* extent
+);
+int main(int argc, char* argv[]) {
+
+	//Mat img = imread("aaa.pgm",IMREAD_GRAYSCALE);
+	Mat img = imread("test1.jpg",IMREAD_GRAYSCALE);
+	//Mat img = imread("test2.png",IMREAD_GRAYSCALE);
+	//Mat img = imread("qq1.png",IMREAD_GRAYSCALE);
+
+	float parm[2];
+	IsBlurred(
+		img.ptr(),
+		img.cols,
+		img.rows,
+		parm+0,
+		parm+1
+	);
+	cout<<"@ blur="<<parm[0]<<" @ "<<parm[1]<<endl;
 	return 1;
 }
 
@@ -188,7 +198,7 @@ extern void gridMeas(FILE* fdDst,const char* ymlMap,FILE* fdSrc);
 
 int main1(int argc, char* argv[]) {
 
-	RawHead hd;
+	/*RawHead hd;
 	const char* name1 = "grab.6.raw";
 	const char* name2 = "pano.6.raw";
 	const char* name21= "pano.6.jpg";

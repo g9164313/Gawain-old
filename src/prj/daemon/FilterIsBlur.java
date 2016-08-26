@@ -22,7 +22,7 @@ public class FilterIsBlur extends ImgFilter {
 	
 	@Override
 	public void cookData(ArrayList<ImgPreview> list) {
-		implCookData(list.get(0).getMatx());
+		//TODO:implCookData(list.get(0).getMatx());
 	}
 
 	@Override
