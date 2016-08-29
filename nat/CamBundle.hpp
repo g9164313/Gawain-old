@@ -36,6 +36,8 @@
 
 #define MACRO_SETUP_END1(cntx) MACRO_SETUP_END(cntx,0,0,0,0)
 
+#define MACRO_SETUP_END2(cntx,type) MACRO_SETUP_END(cntx,0,0,0,type)
+
 //--------------------------------------------//
 
 #define MACRO_FETCH_BEG MACRO_PREPARE

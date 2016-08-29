@@ -71,11 +71,11 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamVidcap_implClose(
 	jobject bundle
 ){
 	MACRO_CLOSE_BEG
-
-	VideoCapture* vid = (VideoCapture*)cntx;
-	vid->release();
-	delete vid;
-
+	if(cntx!=NULL){
+		VideoCapture* vid = (VideoCapture*)cntx;
+		vid->release();
+		delete vid;
+	}
 	MACRO_CLOSE_END
 }
 

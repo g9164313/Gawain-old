@@ -87,13 +87,10 @@ public class CamVidcap extends CamBundle {
 	private String capConfig = Misc.pathRoot + "img1_%03d.png";
 		
 	private native void implSetup(CamBundle cam);
-
 	private native void implFetch(CamBundle cam);
-
 	private native void implClose(CamBundle cam);
 
 	public native boolean setProp(CamBundle cam,int id, double val);
-
 	public native double getProp(CamBundle cam,int id);
 
 	public int getIndex(){ return capIndex; }

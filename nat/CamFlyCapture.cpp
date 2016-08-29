@@ -16,25 +16,23 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamFlyCapture_implSetup(
 	jobject bundle
 ){
 	MACRO_SETUP_BEG
-
+	int type;
 	Camera* cam = new Camera();
 	FlyCapture2::Error err = cam->Connect(0);//GUID ???
 	if(err==PGRERROR_OK){
 		CameraInfo inf;
 		cam->GetCameraInfo(&inf);
 		if(err==PGRERROR_OK){
-
+			if(inf.isColorCamera==true){
+				type = CV_8UC3;
+			}else{
+				type = CV_8UC1;
+			}
 		}else{
-			cout<<"fail to get information"<<endl;
-		}
-		err = cam->StartCapture();
-		if(err==PGRERROR_OK){
-
-		}else{
-			cout<<"fail to start capture"<<endl;
+			loge(env,"fail to get information");
 		}
 	}else{
-		cout<<"fail to connect"<<endl;
+		loge(env,"fail to connect");
 	}
 
 	if(err!=PGRERROR_OK){
@@ -42,7 +40,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamFlyCapture_implSetup(
 		cam = NULL;
 	}
 
-	MACRO_SETUP_END1(cam)
+	MACRO_SETUP_END2(cam,type)
 }
 
 extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamFlyCapture_implFetch(
@@ -51,8 +49,26 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamFlyCapture_implFetch(
 	jobject bundle
 ){
 	MACRO_FETCH_BEG
-
-
+	if(cntx==NULL){
+		return;
+	}
+	Camera* cam = (Camera*)cntx;
+	cam->StartCapture();
+	Image img;
+	FlyCapture2::Error err = cam->RetrieveBuffer(&img);
+	if(err!=PGRERROR_OK){
+		loge(env,"fail to fetch image");
+		return;
+	}
+	Mat tmp(
+		img.GetRows(),
+		img.GetCols(),
+		type,
+		img.GetData(),
+		(double)img.GetReceivedDataSize()/(double)img.GetRows()
+	);
+	cam->StopCapture();
+	MACRO_FETCH_COPY(tmp)
 }
 
 extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamFlyCapture_implClose(
@@ -60,7 +76,13 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamFlyCapture_implClose(
 	jobject thiz,
 	jobject bundle
 ){
-
+	MACRO_CLOSE_BEG
+	if(cntx!=NULL){
+		Camera* cam = (Camera*)cntx;
+		cam->Disconnect();
+		delete cam;
+	}
+	MACRO_CLOSE_END
 }
 
 
