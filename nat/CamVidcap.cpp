@@ -15,10 +15,14 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamVidcap_implSetup(
 	MACRO_SETUP_BEG
 
 	jclass _clzz=env->GetObjectClass(thiz);
-	jfieldID idDom = env->GetFieldID(_clzz,"capDomain","I");
-	jfieldID idIdx = env->GetFieldID(_clzz,"capIndex","I");
-	jint dom = env->GetIntField(thiz,idDom);
-	jint idx = env->GetIntField(thiz,idIdx);
+	jint dom = env->GetIntField(
+		thiz,
+		env->GetFieldID(_clzz,"capDomain","I")
+	);
+	jint idx = env->GetIntField(
+		thiz,
+		env->GetFieldID(_clzz,"capIndex","I")
+	);
 
 	VideoCapture* vid = new VideoCapture();
 	if(dom==CAP_IMAGES){
@@ -29,17 +33,19 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamVidcap_implSetup(
 		char txtName[500];
 		jstrcpy(env,j_name,txtName);
 		vid->open(txtName,dom);
-		cout<<"open with sequence:"<<txtName<<endl;
+		logv(env,"[VID] image sequence:%s",txtName);
 	}else{
 		vid->open(dom+idx);
+		logv(env,"[VID] identify=%d+%d",dom,idx);
 	}
+
 	if(vid->isOpened()==false){
 		delete vid;
 		vid = NULL;//mark it again~~~
-		cout<<"fail to open vidcap"<<endl;
+		logv(env,"[VID] fail to open device");
 	}
 
-	MACRO_SETUP_END(vid)
+	MACRO_SETUP_END(vid,0,0,0,0)
 }
 
 extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamVidcap_implFetch(
@@ -53,7 +59,10 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamVidcap_implFetch(
 	if(vid.grab()==false){
 		return;
 	}
-	vid.retrieve(buff);
+	Mat tmp;
+	vid.retrieve(tmp);
+
+	MACRO_FETCH_COPY(tmp)
 }
 
 extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamVidcap_implClose(
@@ -77,7 +86,7 @@ extern "C" JNIEXPORT jboolean JNICALL Java_narl_itrc_CamVidcap_setProp(
 	jint id,
 	jdouble val
 ){
-	MACRO_CHECK_CNTX
+	MACRO_PREPARE
 	VideoCapture* vid = (VideoCapture*)cntx;
 	if(vid==NULL){
 		return JNI_FALSE;
@@ -92,7 +101,7 @@ extern "C" JNIEXPORT jdouble JNICALL Java_narl_itrc_CamVidcap_getProp(
 	jobject bundle,
 	jint id
 ){
-	MACRO_CHECK_CNTX
+	MACRO_PREPARE
 	VideoCapture* vid = (VideoCapture*)cntx;
 	if(vid==NULL){
 		return 0.;

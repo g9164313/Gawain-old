@@ -12,13 +12,13 @@
 
 extern "C" JNIEXPORT jbyteArray JNICALL Java_narl_itrc_CamBundle_getData(
 	JNIEnv* env,
-	jobject bundle /*this object is already 'CamBundle'*/
+	jobject bundle /*this object must be class 'CamBundle'*/
 ){
-	MACRO_BUNDLE_CHECK_MATX_NULL
-	Mat& img = *((Mat*)matx);
-	if(img.empty()==true){
+	MACRO_PREPARE
+	if(buff==NULL){
 		return NULL;
 	}
+	Mat img(height,width,type,buff);
 
 	vector<uchar> buf;
 	imencode(".jpg",img,buf);
@@ -32,11 +32,12 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamBundle_saveImage(
 	jobject bundle,
 	jstring jname
 ){
-	MACRO_BUNDLE_CHECK_MATX_VOID
-	Mat& img = *((Mat*)matx);
-	if(img.empty()==true){
-		return;//we have problem!!!
+	MACRO_PREPARE
+	if(buff==NULL){
+		return;
 	}
+	Mat img(height,width,type,buff);
+
 	char name[500];
 	jstrcpy(env,jname,name);
 	imwrite(name,img);
@@ -48,19 +49,20 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamBundle_saveImageROI(
 	jstring jname,
 	jintArray jroi
 ){
-	MACRO_BUNDLE_CHECK_MATX_VOID
-	Mat& img = *((Mat*)matx);
-	if(img.empty()==true){
-		return;//we have problem!!!
+	MACRO_PREPARE
+	if(buff==NULL){
+		return;
 	}
-	jint* buf = env->GetIntArrayElements(jroi,NULL);
-	Mat roi = img(Rect(
-		buf[0],buf[1],
-		buf[2],buf[3]
+	Mat img(height,width,type,buff);
+
+	jint* roi = env->GetIntArrayElements(jroi,NULL);
+	Mat _img = img(Rect(
+		roi[0],roi[1],
+		roi[2],roi[3]
 	));
 	char name[500];
 	jstrcpy(env,jname,name);
-	imwrite(name,roi);
-	env->ReleaseIntArrayElements(jroi,buf,0);
+	imwrite(name,_img);
+	env->ReleaseIntArrayElements(jroi,roi,0);
 }
 

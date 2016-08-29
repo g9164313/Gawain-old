@@ -147,7 +147,7 @@ int main(int argc, char* argv[]) {
 
 	cout<<"--List OS_Net--"<<endl;
 	map<string,string>::iterator it;
-	for(it=hash.begin(); it!=hash.end(); ++it){
+	for(it=hash.begin(),++it; it!=hash.end(); ++it){
 		cout << (it->first) << " => " << (it->second) << '\n';
 	}
 

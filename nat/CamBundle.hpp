@@ -1,44 +1,74 @@
 #ifndef CAMBUNDLE_HPP
 #define CAMBUNDLE_HPP
 
-#include <jni.h>
-#include <string>
-#include <iostream>
+#include <global.hpp>
+//--------------------------------------------//
 
-extern jint* intArray2Ptr(JNIEnv* env,jclass _clazz,jobject thiz,const char* name,jintArray& arr);
-extern jlong* longArray2Ptr(JNIEnv* env,jclass _clazz,jobject thiz,const char* name,jlongArray& arr);
-extern jfloat* floatArray2Ptr(JNIEnv* env,jclass _clazz,jobject thiz,const char* name,jfloatArray& arr);
+#define MACRO_READY \
+	jclass b_clzz=env->GetObjectClass(bundle); \
+	jfieldID idCntx = env->GetFieldID(b_clzz,"ptrCntx" ,"J"); \
+	jfieldID idBuff = env->GetFieldID(b_clzz,"ptrBuff" ,"J"); \
+	jfieldID idType = env->GetFieldID(b_clzz,"bufType" ,"I"); \
+	jfieldID idSizeW= env->GetFieldID(b_clzz,"bufSizeW","I"); \
+	jfieldID idSizeH= env->GetFieldID(b_clzz,"bufSizeH","I");
 
-using namespace std;
+#define MACRO_PREPARE \
+	MACRO_READY \
+	void* cntx = (void*)(env->GetLongField(bundle,idCntx)); \
+	void* buff = (void*)(env->GetLongField(bundle,idBuff)); \
+	int type  = env->GetIntField (bundle,idType); \
+	int width = env->GetIntField (bundle,idSizeW); \
+	int height= env->GetIntField (bundle,idSizeH);
+
+#define MACRO_SET_BUFF(buff,width,height,type) \
+	env->SetLongField(bundle,idBuff ,(jlong)(buff)); \
+	env->SetIntField (bundle,idSizeH,(jint )(height)); \
+	env->SetIntField (bundle,idSizeW,(jint )(width)); \
+	env->SetIntField (bundle,idType ,(jint )(type));
 
 //--------------------------------------------//
 
-#define MACRO_SETUP_BEG \
-	jclass clzz=env->GetObjectClass(bundle); \
-	jfieldID idCntx = env->GetFieldID(clzz,"ptrCntx","J"); \
-	jfieldID idBuff = env->GetFieldID(clzz,"ptrBuff","J"); \
-	jfieldID idType = env->GetFieldID(clzz,"bufType","I"); \
+#define MACRO_SETUP_BEG MACRO_READY
 
-#define MACRO_SETUP_CNTX(cntx) env->SetLongField(bundle,idCntx,(jlong)(cntx));
-#define MACRO_SETUP_MATX(buff) env->SetLongField(bundle,idBuff,(jlong)(buff));
-#define MACRO_SETUP_TYPE(type) env->SetIntField (bundle,idType,(jint )(type));
+#define MACRO_SETUP_END(cntx,buff,width,height,type) \
+	env->SetLongField(bundle,idCntx ,(jlong)(cntx)); \
+	MACRO_SET_BUFF(buff,width,height,type)
 
-#define MACRO_SETUP_END(cntx) \
-	if(cntx==NULL){ \
-		env->SetLongField(bundle,idCntx,0); \
-		env->SetLongField(bundle,idMatx,0); \
-		return; \
-	}\
-	MACRO_SETUP_END_V(cntx, new Mat());
-
-//remeber to allocate matx buffer~~~
-#define MACRO_SETUP_END_V(cntx,matx) \
-	env->SetLongField(bundle,idCntx,(jlong)(cntx)); \
-	env->SetLongField(bundle,idMatx,(jlong)(matx));
+#define MACRO_SETUP_END1(cntx) MACRO_SETUP_END(cntx,0,0,0,0)
 
 //--------------------------------------------//
 
-#define MACRO_CHECK_CNTX \
+#define MACRO_FETCH_BEG MACRO_PREPARE
+
+#define MACRO_FETCH_REMAP(_src) \
+	buff  = realloc(buff,(size_t)(_src.total()*_src.elemSize())); \
+	type  =_src.type(); \
+	width =_src.cols; \
+	height=_src.rows; \
+	Mat _dst(height,width,type,buff); \
+	_src.copyTo(_dst);
+
+#define MACRO_FETCH_COPY(_src) \
+	if(buff==NULL || width!=tmp.cols || height!=tmp.rows){ \
+		MACRO_FETCH_REMAP(_src) \
+		MACRO_SET_BUFF(buff,width,height,type) \
+	}else{ \
+		Mat _dst(height,width,type,buff); \
+		_src.copyTo(_dst); \
+	}
+
+//--------------------------------------------//
+
+#define MACRO_CLOSE_BEG MACRO_PREPARE
+
+#define MACRO_CLOSE_END \
+	free(buff);\
+	MACRO_SETUP_END(0,0,0,0,0)
+
+//--------------------------------------------//
+
+
+/*#define MACRO_CHECK_CNTX \
 	jclass clzz=env->GetObjectClass(bundle); \
 	jfieldID idCntx = env->GetFieldID(clzz,"ptrCntx","J"); \
 	void* cntx = (void*)(env->GetLongField(bundle,idCntx));
@@ -59,42 +89,7 @@ using namespace std;
 #define MACRO_BUNDLE_CHECK_MATX_NULL \
 	MACRO_CHECK_MATX \
 	if(matx==NULL){ return NULL; }
+*/
 
-//--------------------------------------------//
-
-#define MACRO_FETCH_BEG \
-	jclass clzz=env->GetObjectClass(bundle); \
-	jfieldID idCntx = env->GetFieldID(clzz,"ptrCntx","J"); \
-	void* cntx = (void*)(env->GetLongField(bundle,idCntx)); \
-	if(cntx==NULL){ return;	} \
-	jfieldID idMatx = env->GetFieldID(clzz,"ptrMatx","J"); \
-	Mat* matx = (Mat*)(env->GetLongField(bundle,idMatx)); \
-	if(matx==NULL){ return; } \
-	Mat& buff = *matx;
-
-#define MACRO_FETCH_BEG_V \
-	jclass clzz=env->GetObjectClass(bundle); \
-	jfieldID idCntx = env->GetFieldID(clzz,"ptrCntx","J"); \
-	jlong cntx = env->GetLongField(bundle,idCntx); \
-	if(cntx==0L){ return;	} \
-	jfieldID idMatx = env->GetFieldID(clzz,"ptrMatx","J"); \
-	Mat* matx = (Mat*)(env->GetLongField(bundle,idMatx));\
-	if(matx==NULL){ return; } \
-	Mat& buff = *matx;
-
-//--------------------------------------------//
-
-#define MACRO_CLOSE_BEG \
-	jclass clzz=env->GetObjectClass(bundle); \
-	jfieldID idCntx = env->GetFieldID(clzz,"ptrCntx","J"); \
-	void* cntx = (void*)(env->GetLongField(bundle,idCntx)); \
-	if(cntx==NULL){	return; }
-
-#define MACRO_CLOSE_END \
-	jfieldID idMatx = env->GetFieldID(clzz,"ptrMatx","J"); \
-	Mat* matx = (Mat*)(env->GetLongField(bundle,idMatx));\
-	if(matx!=NULL){ matx->release(); delete matx; }\
-	env->SetLongField(bundle,idCntx,0); \
-	env->SetLongField(bundle,idMatx,0);
 
 #endif

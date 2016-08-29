@@ -1,5 +1,4 @@
 
-#DIR_JNI=/home/lib/jdk/include
 DIR_JNI=/home/qq/.local/jdk8/include
 
 TARGET_EXE=gawain
@@ -30,6 +29,12 @@ LIB_EBUS := -L$(ROOT_EBUS)/lib \
 	-lPvTransmitterRaw \
 	-lPvVirtualDevice
 
+#### FlyCapture ####
+
+INC_FLYCAPTURE:=-I/usr/include/flycapture
+
+LIB_FLYCAPTURE:=-L/usr/lib -lflycapture -lflycapturegui
+
 #### Basler Pylon ####
 
 ROOT_PYLON :=  /home/lib/pylon
@@ -57,13 +62,10 @@ INC_MULTICAM:=-I$(ROOT_MULTICAM)/include
 
 LIB_MULTICAM:= -L$(ROOT_MULTICAM) -lMultiCam 
 
-#### FlyCapture ####
 
-INC_FLYCAPTURE:=-I/usr/include/flycapture
-
-LIB_FLYCAPTURE:=-L/usr/lib  -lflycapture  -lflycapturegui
-
-### decide which configuration ####
+#############################
+### decide configuration ####
+#############################
 
 CC=g++
 
@@ -72,32 +74,29 @@ CC_FLAG += -DVISION $(shell pkg-config --cflags opencv)
 #CC_FLAG += $(shell pkg-config --cflags libmodbus) 
 #CC_FLAG += $(shell pkg-config --cflags qt5) 
 #CC_FLAG += $(INC_EBUS)
-#CC_FLAG += $(INC_PYLON)
+CC_FLAG += $(INC_FLYCAPTURE)
 #CC_FLAG += $(INC_MULTICAM)
-#CC_FLAG += $(INC_FLYCAPTURE)
+#CC_FLAG += $(INC_PYLON)
 
 LD_LIBS = $(shell pkg-config --libs opencv) 
 #LD_LIBS += $(shell pkg-config --libs libmodbus) 
 #LD_LIBS += $(shell pkg-config --libs Qt5Core Qt5Gui Qt5Widgets Qt5Test)
 #LD_LIBS += $(LIB_EBUS)
-#LD_LIBS += $(LIB_PYLON)
+LD_LIBS += $(LIB_FLYCAPTURE)
 #LD_LIBS += $(LIB_MULTICAM)
-#LD_LIBS += $(LIB_FLYCAPTURE)
-
-
-OBJECTS = $(SOURCES:.cpp=.o)
-
-#%.o:%.cpp
-#	$(CC) -c  $^ $(CC_FLAG) -o $@
-
-#################
-
-CHECK_EXEC := $(word 2,$(shell pgrep -f "narl.itrc.Gawain"))
+#LD_LIBS += $(LIB_PYLON)
 
 #SFR_MITRE =  ./SFR/sfr_iso.c ./SFR/find_area.c
 #IMG_FILTER = FilterMisc.cpp FilterIsBlur.cpp
-DEV_CAMERA = CamBundle.cpp CamVidcap.cpp 
+#DEV_CAMERA = CamBundle.cpp CamVidcap.cpp 
 #DEV_CAMERA = CamBundle.cpp CamVidcap.cpp CamMulticam.cpp 
+DEV_CAMERA = CamBundle.cpp CamVidcap.cpp CamFlyCapture.cpp 
+
+#################
+
+OBJECTS = $(SOURCES:.cpp=.o)
+
+CHECK_EXEC := $(word 2,$(shell pgrep -f "narl.itrc.Gawain"))
 
 $(TARGET_SO):  utils_jni.cpp DevTTY.cpp  $(IMG_FILTER) $(DEV_CAMERA) 
 	$(CC) $(CC_FLAG)  -fPIC -shared -o $@ $^ $(LD_LIBS)
@@ -117,8 +116,8 @@ $(TARGET_EXE):  ./wrap-unix/main_xx.cpp FilterIsBlur.cpp
 #$(TARGET_EXE):  /home/qq/labor/opencv-3.1/contrib/modules/text/samples/character_recognition.cpp
 #	$(CC) $(CC_FLAG) -o $@ $^ $(LD_LIBS)
 
-#all: $(TARGET_SO)
-all: $(TARGET_EXE)
+all: $(TARGET_SO)
+#all: $(TARGET_EXE)
 #all: $(TARGET_EXE) $(TARGET_SO) 
 
 clean:

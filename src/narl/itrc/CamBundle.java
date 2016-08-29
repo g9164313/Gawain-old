@@ -36,9 +36,22 @@ public abstract class CamBundle implements Gawain.EventHook {
 	private long ptrBuff = 0;
 	
 	/**
-	 * How to interpret buffer size and geometry.
+	 * How to interpret buffer geometry.<p>
+	 * It can be changed when each fetch routine.<p>
 	 */
 	private int bufType = 0;
+	
+	/**
+	 * How to interpret buffer size - width.<p>
+	 * It can be changed when each fetch routine.<p>
+	 */
+	private int bufSizeW = 0;
+	
+	/**
+	 * How to interpret buffer size - height.<p>
+	 * It can be changed when each fetch routine.<p>
+	 */
+	private int bufSizeH = 0;
 	
 	/**
 	 * configuration, the meaning of value is dependent on devices.<p>
@@ -78,7 +91,7 @@ public abstract class CamBundle implements Gawain.EventHook {
 	 * @return a panel, it will be the part of control layout
 	 */
 	public abstract Parent genPanelSetting(PanBase pan);
-	
+
 	public void showPanel(){		
 		new PanBase("相機設定"){
 			@Override

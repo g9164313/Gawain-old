@@ -75,5 +75,10 @@ extern jdouble* doubleArray2Ptr(JNIEnv* env,jclass _clazz,jobject thiz,const cha
 
 extern void callThreadJoin(JNIEnv* env,jobject thiz,const char* name);
 
+extern void logv(JNIEnv* env,const char* fmt,...);
+extern void logw(JNIEnv* env,const char* fmt,...);
+extern void loge(JNIEnv* env,const char* fmt,...);
+
+
 #endif /* GLOBAL_H_ */
 

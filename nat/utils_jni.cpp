@@ -188,6 +188,45 @@ void callThreadJoin(JNIEnv* env,jobject thiz,const char* name){
 }
 //--------------------------------//
 
+#define MACRO_LOG_BEG \
+	char txt[2048]; \
+	va_list args; \
+	va_start(args, fmt); \
+	sprintf(txt,fmt,args); \
+	va_end(args);
+
+void log_msg(JNIEnv* env,const char* name,const char* txt){
+	jclass clzz = env->FindClass("narl/itrc/Misc");
+	jmethodID mid = env->GetStaticMethodID(
+		clzz,
+		name,
+		"(Ljava/lang/String;[Ljava/lang/Object;)V"
+	);
+	env->CallStaticVoidMethod(
+		clzz,
+		mid,
+		env->NewStringUTF(txt),
+		NULL
+	);
+}
+
+void logv(JNIEnv* env,const char* fmt,...){
+	MACRO_LOG_BEG
+	log_msg(env,"logv",txt);
+}
+
+void logw(JNIEnv* env,const char* fmt,...){
+	MACRO_LOG_BEG
+	log_msg(env,"logw",txt);
+}
+
+void loge(JNIEnv* env,const char* fmt,...){
+	MACRO_LOG_BEG
+	log_msg(env,"loge",txt);
+}
+//--------------------------------//
+
+
 NAT_EXPORT void dummy(){
 	//stupid Virtual C++ need this to generate a library!!!!
 }

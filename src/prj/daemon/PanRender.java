@@ -23,10 +23,9 @@ public class PanRender extends PanBase {
 	public PanRender(){
 		//final String testFile = ":/home/qq/labor/opencv-3.1/contrib/modules/text/samples/scenetext_segmented_word%02d.jpg";
 		//rndr = new ImgRender(new CamVidcap("FILE:0"+testFile));
-		//rndr = new ImgRender(new CamVidcap("0"));
-		//rndr = new ImgRender(new CamVidcap("VFW:0"));
-		
-		rndr = new ImgRender(new CamMulticam("ral12288-FULL"));
+		rndr = new ImgRender(new CamVidcap("0"));
+		//rndr = new ImgRender(new CamVidcap("VFW:0"));		
+		//rndr = new ImgRender(new CamMulticam("ral12288-FULL"));
 	}
 	
 	protected ImgRender rndr = null;

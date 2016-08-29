@@ -75,10 +75,12 @@ public class CamVidcap extends CamBundle {
 	 * The type of camera source
 	 */
 	private int capDomain = CAP_ANY;
+	
 	/**
 	 * Camera index
 	 */
 	private int capIndex = 0;
+	
 	/**
 	 * This variable is only for CAP_IMAGES, name must have leading zero!!!
 	 */
