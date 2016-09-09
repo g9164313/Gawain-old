@@ -271,7 +271,8 @@ public class Gawain extends Application {
 			//Constructor con = cl.getConstructor(Param1Type.class);
 			//obj = con.newInstance(param1,param2);
 			PanBase pan = (PanBase)obj;			
-			pan.appear(primaryStage);			
+			pan.appear(primaryStage);
+			Misc.logv("========啟動========");//show the first message for box-logger
 		} catch (
 			InstantiationException | 
 			IllegalAccessException | 

@@ -86,12 +86,15 @@ extern "C" int IsBlurred(
 );
 int main(int argc, char* argv[]) {
 
-	//Mat img = imread("aaa.pgm",IMREAD_GRAYSCALE);
-	Mat img = imread("test1.jpg",IMREAD_GRAYSCALE);
-	//Mat img = imread("test2.png",IMREAD_GRAYSCALE);
-	//Mat img = imread("qq1.png",IMREAD_GRAYSCALE);
+	//cout<<"load "<<argv[1]<<endl;
 
-	float parm[2];
+	//Mat img = imread(argv[1],IMREAD_GRAYSCALE);
+	//Mat img = imread("aaa.pgm",IMREAD_GRAYSCALE);
+	//Mat img = imread("test1.jpg",IMREAD_GRAYSCALE);
+	//Mat img = imread("test2.png",IMREAD_GRAYSCALE);
+	Mat img = imread("test5.png",IMREAD_GRAYSCALE);
+
+	float parm[2]={0.f,0.f};
 	IsBlurred(
 		img.ptr(),
 		img.cols,

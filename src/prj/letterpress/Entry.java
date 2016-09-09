@@ -16,6 +16,7 @@ import javafx.stage.WindowEvent;
 import narl.itrc.BoxLogger;
 import narl.itrc.CamBundle;
 import narl.itrc.CamVidcap;
+import narl.itrc.DevTTY;
 import narl.itrc.ImgRender;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
@@ -30,11 +31,12 @@ public class Entry extends PanBase {
 	
 	private PanMapWafer wmap = new PanMapWafer();
 	
-	private CamBundle cam0 = new CamVidcap("0");
-	private CamBundle cam1 = new CamVidcap("1");	
-	private ImgRender rndr = new ImgRender(cam0);
+	public static CamBundle cam0 = new CamVidcap("0");
+	public static CamBundle cam1 = new CamVidcap("1");	
+	public static ImgRender rndr = new ImgRender(cam0);
 	
-	private DevB140M stg0 = new DevB140M();
+	public static DevB140M stg0 = new DevB140M();
+	public static DevTTY   stg1 = new DevTTY("/dev/ttyACM0,9600,8n1");//this connect to ATmega controller  
 	
 	private TskAction tsk0 = new TskAligment(rndr,Entry.this);
 	private TskGoHome tsk1 = new TskGoHome(stg0,Entry.this);
@@ -105,26 +107,6 @@ public class Entry extends PanBase {
 		btn.setOnAction(tsk2);
 		lay.getChildren().add(btn);
 		
-		btn = genButton0("照射光源","blur.png");
-		btn.setOnAction(new TskAction(Entry.this){		
-			@Override
-			public int looper(Task<Integer> task) {
-				return DelayLooper(3000);				
-			}			
-		});
-		lay.getChildren().add(btn);
-		final Button btnPan1 = genButton1("平台設定","wrench.png");
-		btnPan1.setOnAction(event->{
-			btnPan1.setDisable(true);
-			new PanBase(btnPan1){
-				@Override
-				public Parent layout() {
-					return new Pan4AxisPad(stg0,200);
-				}	
-			}.appear();			
-		});
-		lay.getChildren().add(btnPan1);
-		
 		final Button btnPan2 = genButton1("晶圓設定","wrench.png");
 		btnPan2.setOnAction(event->{
 			//TODO:we must re-design this panel!!!!
@@ -162,14 +144,17 @@ public class Entry extends PanBase {
 	
 	@Override
 	public Parent layout() {
+
+		HBox layConvenient = new HBox();		
+		layConvenient.getChildren().addAll(
+			new BoxLogger(100),
+			new PanHelpful()		
+		);
+		
 		BorderPane lay0 = new BorderPane();
-		BorderPane lay1 = new BorderPane();
-		
-		lay0.setCenter(lay1);
+		lay0.setCenter(layoutPerspective());
 		lay0.setRight(layoutAction());
-		
-		lay1.setCenter(layoutPerspective());
-		lay1.setBottom(new BoxLogger());
+		lay0.setBottom(layConvenient);
 		return lay0;
 	}
 }

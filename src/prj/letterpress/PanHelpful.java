@@ -1,0 +1,292 @@
+package prj.letterpress;
+
+import eu.hansolo.enzo.lcd.Lcd;
+import eu.hansolo.enzo.lcd.LcdBuilder;
+import eu.hansolo.enzo.lcd.Lcd.LcdDesign;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
+import javafx.event.EventHandler;
+import javafx.event.EventType;
+import javafx.geometry.Orientation;
+import javafx.scene.Node;
+import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
+import javafx.scene.control.Label;
+import javafx.scene.control.Separator;
+import javafx.scene.control.TextField;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
+import javafx.util.Duration;
+import narl.itrc.Misc;
+import narl.itrc.PanDecorate;
+
+public class PanHelpful extends PanDecorate {
+
+	public PanHelpful(){
+		super("操作選項");
+	}
+	
+	private Node layoutOption1(){
+		GridPane lay = new GridPane();
+		lay.getStyleClass().add("grid-small");
+		
+		Lcd[] lcd ={null,null,null};
+		for(int i=0; i<lcd.length; i++){
+			lcd[i] = LcdBuilder.create()
+				.prefWidth(100)
+				.prefHeight(32)
+				.keepAspect(true)
+				.lcdDesign(LcdDesign.STANDARD)
+				.foregroundShadowVisible(true)
+				.crystalOverlayVisible(false)
+				.valueFont(Lcd.LcdFont.ELEKTRA)
+				.animated(true)
+				.build();
+			
+			lcd[i].valueProperty().bind(Entry.stg0.pulse[i]);
+		}
+
+		final TextField[] box = {
+			new TextField("0"),
+			new TextField("0"),
+			new TextField("0")
+		};
+		final Button[] btn = {
+			new Button(DIR_NEG1),new Button(DIR_POS1),
+			new Button(DIR_NEG1),new Button(DIR_POS1),
+			new Button(DIR_NEG1),new Button(DIR_POS1),
+		};
+
+		for(int i=0; i<btn.length; i++){
+			int id = i/2;
+			char tkn = '?';
+			switch(id){
+			case 0: tkn = 'x';
+			case 1: tkn = 'y';
+			case 2: tkn = '@';
+			}
+			char dir = (i%2==0)?('-'):('+');
+			EventKick event = new EventKick(tkn,dir,box[id],btn[i]);
+			btn[i].addEventFilter(MouseEvent.MOUSE_PRESSED,event);
+			btn[i].addEventFilter(MouseEvent.MOUSE_RELEASED,event);
+			box[id].setPrefWidth(75);
+		}
+		
+		lay.addRow(0, new Label("X軸"),lcd[0],btn[0],box[0],btn[1]);
+		lay.addRow(1, new Label("Y軸"),lcd[1],btn[2],box[1],btn[3]);
+		lay.addRow(2, new Label("θ軸"),lcd[2],btn[4],box[2],btn[5]);
+		return lay;
+	}
+		
+	private Node layoutOption2(){
+		final CheckBox chk = new CheckBox("幫浦開關");
+		chk.setIndeterminate(false);
+		chk.setOnAction(event->{
+			//get state from device
+			Misc.logv("select="+chk.isSelected());
+		});
+		return chk;
+	}
+	
+	private final String TXT_START = "照射";
+	private final String TXT_STOP  = "停止";
+	private Timeline actExpose;
+	private TextField boxExpose;
+	private Button btnExpose;
+	
+	private void begExpose(){
+		//TODO: implement action~~~~
+		btnExpose.setText(TXT_STOP);
+		btnExpose.setUserData(true);
+		boxExpose.setDisable(true);		
+	}
+	
+	private void endExpose(){		
+		//TODO: implement action~~~~
+		btnExpose.setText(TXT_START);
+		btnExpose.setUserData(false);
+		boxExpose.setDisable(false);		
+	}
+	
+	private Node layoutOption3(){
+		FlowPane lay = new FlowPane();
+		lay.getStyleClass().add("flow-small");
+		
+		boxExpose = new TextField("1sec");
+		boxExpose.setPrefWidth(110);
+		
+		btnExpose = new Button(TXT_START);
+		btnExpose.setUserData(false);
+		btnExpose.setOnAction(event->{
+			double val = 0.;
+			try{
+				val = Misc.phyConvert(boxExpose.getText().trim(),"sec");
+				val = val*1000.;
+			}catch(NumberFormatException e){
+				boxExpose.setText("1sec");
+				return;
+			}
+			boolean flag = (boolean)(btnExpose.getUserData());
+			if(flag==false){
+				begExpose();
+				actExpose = new Timeline(new KeyFrame(
+					Duration.millis(val),
+					event1->endExpose()
+				));
+				actExpose.play();
+			}else{
+				actExpose.stop();
+				endExpose();
+			}
+		});
+		
+		lay.getChildren().addAll(
+			new Label("曝光時間"),
+			boxExpose,
+			btnExpose
+		);	
+		return lay;
+	}
+	
+	private Node layoutOption4(){
+		FlowPane lay = new FlowPane();
+		lay.getStyleClass().add("flow-small");
+		
+		final Button btn1 = new Button("正轉");
+		btn1.setOnMousePressed(event->{
+			btn1.setText("停止");
+			Entry.stg1.writeTxt('C');
+		});
+		btn1.setOnMouseReleased(event->{
+			btn1.setText("正轉");
+			Entry.stg1.writeTxt('H');
+		});
+
+		final Button btn2 = new Button("反轉");
+		btn2.setOnMousePressed(event->{
+			btn2.setText("停止");
+			Entry.stg1.writeTxt('K');
+		});
+		btn2.setOnMouseReleased(event->{
+			btn2.setText("反轉");
+			Entry.stg1.writeTxt('H');
+		});
+		
+		lay.getChildren().addAll(new Label("光機旋轉軸"),btn1,btn2);
+		return lay;
+	}
+
+	@Override
+	public Node layoutBody() {
+		
+		VBox lay0 = new VBox();
+		lay0.getStyleClass().add("vbox-small");
+		lay0.getChildren().addAll(
+			layoutOption2(),
+			layoutOption3(),
+			layoutOption4()
+		);
+		
+		HBox lay1 = new HBox();
+		lay0.getStyleClass().add("hbox-small");
+		lay1.getChildren().addAll(
+			layoutOption1(),
+			new Separator(Orientation.VERTICAL),
+			lay0,
+			new Separator(Orientation.VERTICAL)
+		);
+		return lay1;
+	}
+	
+	private static final String DIR_POS1="  >";
+	private static final String DIR_POS2=">>";
+	
+	private static final String DIR_NEG1="<  ";
+	private static final String DIR_NEG2="<<";
+	
+	class EventKick implements EventHandler<MouseEvent>{
+		private char dir = '+';
+		private char tkn = '?';		
+		private TextField box;
+		private Button btn;
+		
+		public EventKick(char tkn,char dir,TextField box,Button btn){
+			this.tkn = tkn;
+			this.dir = dir;
+			this.box = box;
+			this.btn = btn;
+		}
+		
+		@Override
+		public void handle(MouseEvent event) {
+			int val = 0;
+			String txt = box.getText().trim();
+			try{
+				val = Integer.valueOf(txt);
+			}catch(NumberFormatException e){
+				Misc.loge("必須是整數 --> "+txt);
+				return;
+			}
+			if(dir=='-'){
+				val = val * -1;
+			}
+			EventType<?> typ = event.getEventType();
+			if(typ==MouseEvent.MOUSE_PRESSED){
+				btn.setText((dir=='+')?(DIR_POS2):(DIR_NEG2));
+				if(val==0){
+					jogging(true,val);
+				}else{
+					moving(val);
+				}
+			}else if(typ==MouseEvent.MOUSE_RELEASED){
+				btn.setText((dir=='+')?(DIR_POS1):(DIR_NEG1));
+				if(val==0){
+					jogging(false,val);
+				}else{
+					moving(val);
+				}
+			}
+		}
+
+		private void jogging(boolean go,int val){
+			/*if(go){
+				Misc.logv("jogging start %c%c (%d)",dir,tkn,val);
+			}else{
+				Misc.logv("jogging stop %c%c (%d)",dir,tkn,val);
+			}*/
+			switch(tkn){
+			case 'x':
+			case 'X':
+				//Entry.stg0.Jogging(go, (double)val);
+				break;
+			case 'y':
+			case 'Y':
+				//Entry.stg0.Jogging(go, null, (double)val);
+				break;
+			case '@':
+				//Entry.stg0.Jogging(go, null, null, (double)val);
+				break;				
+			}
+		}
+				
+		private void moving(int val){
+			//Misc.logv("move %c%c (%d)",dir,tkn,val);
+			switch(tkn){
+			case 'x':
+			case 'X':
+				//Entry.stg0.asyncArchTo(DevMotion.PULSE_UNIT,(double)val);
+				break;
+			case 'y':
+			case 'Y':
+				//Entry.stg0.asyncArchTo(DevMotion.PULSE_UNIT,null,(double)val);
+				break;
+			case '@':
+				//Entry.stg0.asyncArchTo(DevMotion.PULSE_UNIT,null,null,(double)val);
+				break;				
+			}
+		}		
+	};	
+}

@@ -131,21 +131,28 @@ public class Misc {
 		"mil","cm","inch","m"
 	};
 	private static final double[][] ratioLength = {
-		//destination ||  source-->mil, cm, inch, m
+		//destination ||  source --> mil, cm, inch, m
 		{  1.0000 , l4_254, 1000.0, l6_254 },
 		{  0.00254, 1.0000, 2.5400, 100.00 },
 		{  0.00100, l1_254, 1.0000, l3_254 },
 		{  D5_254 , 0.0100, 0.0254, 1.0000 },
 	};
 	
+	
+	private static final double BASE_60_1 = 60.;
+	private static final double BASE_1_60 = 1./60.;
+	private static final double BASE_36_1 = 3600.;
+	private static final double BASE_1_36 = 1./3600.;
+	
 	public static final String[] unitTime ={
-		"sec","min","hr"
+		"s","sec","min","hr"
 	};	
 	private static final double[][] ratioTime = {
-		//destination ||  source-->second,minute,hour
-		{1.      ,60.   ,3600.},
-		{1./60.  ,1.    ,60.  },
-		{1./3600.,1./60 ,1.   },
+		//destination ||  source --> second,minute,hour
+		{1.       ,1.       ,BASE_60_1,BASE_36_1},
+		{1.       ,1.       ,BASE_60_1,BASE_36_1},
+		{BASE_60_1,BASE_1_60,1        ,BASE_60_1},
+		{BASE_1_36,BASE_1_36,BASE_60_1,1.       },
 	};
 	
 	public static final String[][] unitAll = {
@@ -219,7 +226,7 @@ public class Misc {
 		double srcVal,
 		String srcUnit,
 		String dstUnit
-	){
+	) throws NumberFormatException {
 		srcUnit = srcUnit.trim();//for safety~~~
 		dstUnit = dstUnit.trim();
 		if(srcUnit.equals(dstUnit)==true){
@@ -241,54 +248,34 @@ public class Misc {
 	public static double phyConvert(
 		String srcValUnit,
 		String dstUnit
-	){
+	) throws NumberFormatException {
+		
 		double srcVal=1.;
-		try{
-			String[] srcTxt = phySplit(srcValUnit);
-			srcVal = Double.valueOf(srcTxt[0]);
-			srcVal = phyConvert(srcVal,srcTxt[1],dstUnit);	
-		}catch(NumberFormatException e){
-			return 1.;
-		}
-		return srcVal;
+		
+		String[] srcTxt = phySplit(srcValUnit);
+		srcVal = Double.valueOf(srcTxt[0]);
+		
+		return phyConvert(srcVal,srcTxt[1],dstUnit);
 	}
 	
 	public static double phyConvertRatio(
 		String srcValUnit,
 		String dstValUnit
-	){
+	) throws NumberFormatException {
+		
 		double srcVal=1.,dstVal=1.;
-		try{
-			String[] srcTxt = phySplit(srcValUnit);
-			srcVal = Double.valueOf(srcTxt[0]); 
+		
+		String[] srcTxt = phySplit(srcValUnit);
+		srcVal = Double.valueOf(srcTxt[0]); 
 
-			String[] dstTxt = phySplit(dstValUnit);
-			dstVal = Double.valueOf(dstTxt[0]);
+		String[] dstTxt = phySplit(dstValUnit);
+		dstVal = Double.valueOf(dstTxt[0]);
 			
-			srcVal = phyConvert(srcVal,srcTxt[1],dstTxt[1]);
-			
-		}catch(NumberFormatException e){
-			return 1.;
-		}
+		srcVal = phyConvert(srcVal,srcTxt[1],dstTxt[1]);
+		
 		return srcVal/dstVal;
 	}
 	
-	/*public static double matchDenom(String src,String dst){		
-		String[] itm = src.split("/");
-		if(itm.length!=2){
-			Misc.logw("invalid unit=%s",src);
-			return 1.;
-		}
-		src = itm[1].trim();		
-		itm = dst.split("/");
-		if(itm.length!=2){
-			Misc.logw("invalid unit=%s",dst);
-			return 1.;
-		}
-		dst = itm[1].trim();
-		return findRatio(src,dst);
-	}*/
-
 	public static String num2scale(double num){
 		String txt = String.format("%G",num);
 		int pos = txt.indexOf('E');

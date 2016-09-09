@@ -16,6 +16,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamFlyCapture_implSetup(
 	jobject bundle
 ){
 	MACRO_SETUP_BEG
+
 	int type;
 	Camera* cam = new Camera();
 	FlyCapture2::Error err = cam->Connect(0);//GUID ???
@@ -31,6 +32,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamFlyCapture_implSetup(
 		}else{
 			loge(env,"fail to get information");
 		}
+		cam->StartCapture();
 	}else{
 		loge(env,"fail to connect");
 	}
@@ -52,8 +54,8 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamFlyCapture_implFetch(
 	if(cntx==NULL){
 		return;
 	}
+
 	Camera* cam = (Camera*)cntx;
-	cam->StartCapture();
 	Image img;
 	FlyCapture2::Error err = cam->RetrieveBuffer(&img);
 	if(err!=PGRERROR_OK){
@@ -67,7 +69,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamFlyCapture_implFetch(
 		img.GetData(),
 		(double)img.GetReceivedDataSize()/(double)img.GetRows()
 	);
-	cam->StopCapture();
+
 	MACRO_FETCH_COPY(tmp)
 }
 
@@ -79,6 +81,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamFlyCapture_implClose(
 	MACRO_CLOSE_BEG
 	if(cntx!=NULL){
 		Camera* cam = (Camera*)cntx;
+		cam->StopCapture();
 		cam->Disconnect();
 		delete cam;
 	}

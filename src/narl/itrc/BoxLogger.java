@@ -27,7 +27,12 @@ public class BoxLogger extends PanDecorate {
 	
 	public BoxLogger(){
 		super("輸出紀錄");		
-		prepare();//how to prepare first!!!!
+		prepare();
+	}
+	
+	public BoxLogger(int height){
+		this();
+		box.setPrefHeight(height);
 	}
 	
 	private static SimpleDateFormat logTime = new SimpleDateFormat("[yyyy/MM/dd HH:mm:ss]");
@@ -72,13 +77,23 @@ public class BoxLogger extends PanDecorate {
 	private static PrintWriter logFile = null;
 	
 	private static ArrayList<BoxLogger> lstBox = new ArrayList<BoxLogger>();
+
+	private static String oldMessage = "";
 	
 	public static void printAll(final String fmt,final Object... arg){
 		final Runnable task = new Runnable(){
 			@Override
 			public void run() {
 				for(BoxLogger box:lstBox){
-					box.printf(fmt, arg);
+					if(oldMessage.length()!=0){
+						box.printf(oldMessage);
+					}
+					box.printf(fmt,arg);
+				}
+				if(lstBox.isEmpty()==true){
+					oldMessage = oldMessage + String.format(fmt,arg);
+				}else{
+					oldMessage = "";//reset 
 				}
 			}
 		};

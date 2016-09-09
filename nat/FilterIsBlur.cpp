@@ -36,11 +36,12 @@
 //#include "utils.h"
 
 static const int kDecomposition = 3;
-static const int kThreshold = 35;
+//static const int kThreshold = 35;
+static const int kThreshold = 5;//human vision intensity is not exceed 30
 static const float kMinZero = 0.05;
 
-static const int kMaximumWidth = 256;
-static const int kMaximumHeight = 256;
+static const int kMaximumWidth = 512;
+static const int kMaximumHeight = 512;
 
 static int32_t _smatrix[kMaximumWidth * kMaximumHeight];
 static int32_t _arow[kMaximumWidth > kMaximumHeight ? kMaximumWidth : kMaximumHeight];
@@ -50,8 +51,12 @@ static int32_t _arow[kMaximumWidth > kMaximumHeight ? kMaximumWidth : kMaximumHe
 // in a linear array. Parameter offset_row indicates transformation is
 // performed on which row. offset_column and num_columns indicate column
 // range of the given row.
-inline void Haar1DX(int* matrix, int matrix_height, int matrix_width,
-    int offset_row, int offset_column, int num_columns) {
+inline void Haar1DX(
+  int* matrix,
+  int matrix_height, int matrix_width,
+  int offset_row,
+  int offset_column, int num_columns
+) {
   int32_t* ptr_a = _arow;
   int32_t* ptr_matrix = matrix + offset_row * matrix_width + offset_column;
   int half_num_columns = num_columns / 2;
@@ -75,8 +80,12 @@ inline void Haar1DX(int* matrix, int matrix_height, int matrix_width,
 }
 
 // Does Haar Wavelet Transformation in place on a given column of a matrix.
-inline void Haar1DY(int* matrix, int matrix_height, int matrix_width,
-    int offset_column, int offset_row, int num_rows) {
+inline void Haar1DY(
+  int* matrix,
+  int matrix_height, int matrix_width,
+  int offset_column,
+  int offset_row, int num_rows
+) {
   int32_t* ptr_a = _arow;
   int32_t* ptr_matrix = matrix + offset_row * matrix_width + offset_column;
   int half_num_rows = num_rows / 2;
@@ -107,8 +116,12 @@ inline void Haar1DY(int* matrix, int matrix_height, int matrix_width,
 // a matrix. The matrix size is specified by matrix_width and matrix_height.
 // The area on which the transformation is performed is specified by
 // offset_column, num_columns, offset_row and num_rows.
-void Haar2D(int* matrix, int matrix_height, int matrix_width,
-    int offset_column, int num_columns, int offset_row, int num_rows) {
+void Haar2D(
+  int* matrix,
+  int matrix_height, int matrix_width,
+  int offset_column, int num_columns,
+  int offset_row, int num_rows
+) {
   for (int i = offset_row; i < offset_row + num_rows; ++i) {
     Haar1DX(matrix, matrix_height, matrix_width, i, offset_column, num_columns);
   }
@@ -125,9 +138,13 @@ void Haar2D(int* matrix, int matrix_height, int matrix_width,
 // by offset_column, num_columns, offset_row, num_rows. After
 // transformation, the output matrix has num_columns columns and
 // num_rows rows.
-void HwtFirstRound(const uint8_t* const data, int height, int width,
+void HwtFirstRound(
+	const uint8_t* const data,
+	int height, int width,
     int offset_column, int num_columns,
-    int offset_row, int num_rows, int32_t* matrix) {
+    int offset_row, int num_rows,
+	int32_t* matrix
+) {
   int32_t* ptr_a = _arow;
   const uint8_t* ptr_data = data + offset_row * width + offset_column;
   int half_num_columns = num_columns / 2;
@@ -168,8 +185,11 @@ void HwtFirstRound(const uint8_t* const data, int height, int width,
 // respectively. Parameter scale tells in which scale the weight is
 // computed, must be 1, 2 or 3 which stands respectively for 1/2, 1/4
 // and 1/8 of original size.
-int ComputeEdgePointWeight(int* matrix, int width, int height,
-    int k, int l, int scale) {
+int ComputeEdgePointWeight(
+  int* matrix,
+  int width, int height,
+  int k, int l, int scale
+) {
   int r = k >> scale;
   int c = l >> scale;
   int window_row = height >> scale;
@@ -191,9 +211,14 @@ int ComputeEdgePointWeight(int* matrix, int width, int height,
 // window_size. Output value k and l store row (y coordinate) and
 // column (x coordinate) respectively of the point with maximum weight.
 // The maximum weight is returned.
-int ComputeLocalMaximum(int* matrix, int width, int height,
+int ComputeLocalMaximum(
+	int* matrix,
+	int width, int height,
     int scaled_width, int scaled_height,
-    int top, int left, int window_size, int* k, int* l) {
+    int top, int left,
+	int window_size,
+	int* k, int* l
+) {
   int max = -1;
   *k = top;
   *l = left;
@@ -203,10 +228,9 @@ int ComputeLocalMaximum(int* matrix, int width, int height,
       int r = top + i;
       int c = left + j;
 
-      int v_top_right = abs(matrix[r * width + c + scaled_width]);
+      int v_top_right= abs(matrix[r * width + c + scaled_width]);
       int v_bot_left = abs(matrix[(r + scaled_height) * width + c]);
-      int v_bot_right =
-          abs(matrix[(r + scaled_height) * width + c + scaled_width]);
+      int v_bot_right= abs(matrix[(r + scaled_height) * width + c + scaled_width]);
       int v = v_top_right + v_bot_left + v_bot_right;
 
       if (v > max) {
@@ -229,8 +253,13 @@ int ComputeLocalMaximum(int* matrix, int width, int height,
 // Detects blurriness of a transformed matrix.
 // Blur confidence and extent will be returned through blur_conf
 // and blur_extent. 1 is returned while input matrix is blurred.
-int DetectBlur(int* matrix, int width, int height,
-    float* blur_conf, float* blur_extent) {
+int DetectBlur(
+  int* matrix,
+  int width,
+  int height,
+  float* blur_conf,
+  float* blur_extent
+) {
   int nedge = 0;
   int nda = 0;
   int nrg = 0;
@@ -245,8 +274,13 @@ int DetectBlur(int* matrix, int width, int height,
     for (int r = 0; r + window_size < scaled_height; r += window_size) {
       for (int c = 0; c + window_size < scaled_width; c += window_size) {
         int k, l;
-        int emax = ComputeLocalMaximum(matrix, width, height,
-            scaled_width, scaled_height, r, c, window_size, &k, &l);
+        int emax = ComputeLocalMaximum(
+        	matrix, width, height,
+            scaled_width, scaled_height,
+			r, c,
+			window_size,
+			&k, &l
+		);
         if (emax > kThreshold) {
           int emax1, emax2, emax3;
           switch (current_scale) {
@@ -295,30 +329,50 @@ int DetectBlur(int* matrix, int width, int height,
   }
 
   // TODO(xiaotao): No edge point at all, blurred or not?
-  float per = nedge == 0 ? 0 : (float)nda / nedge;
+  // my answer is blur, it is too dark...........
+  float per = (nedge == 0)?(0):((float)nda / nedge);
 
   *blur_conf = per;
-  *blur_extent = (float)nbrg / nrg;
+  *blur_extent = (nrg==0)?(0):((float)nbrg / nrg);
 
   return per < kMinZero;
 }
 
 // Detects blurriness of a given portion of a luminance matrix.
-int IsBlurredInner(const uint8_t* const luminance,
+int IsBlurredInner(
+	const uint8_t* const luminance,
     const int width, const int height,
     const int left, const int top,
-    const int width_wanted, const int height_wanted,
-    float* const blur, float* const extent) {
+    const int width_wanted,
+	const int height_wanted,
+    float* const blur,
+	float* const extent
+) {
   int32_t* matrix = _smatrix;
 
-  HwtFirstRound(luminance, height, width,
-                left, width_wanted, top, height_wanted, matrix);
-  Haar2D(matrix, height_wanted, width_wanted,
-         0, width_wanted >> 1, 0, height_wanted >> 1);
-  Haar2D(matrix, height_wanted, width_wanted,
-         0, width_wanted >> 2, 0, height_wanted >> 2);
+  HwtFirstRound(
+    luminance, height, width,
+	left, width_wanted,
+	top, height_wanted,
+	matrix
+  );
 
-  int blurred = DetectBlur(matrix, width_wanted, height_wanted, blur, extent);
+  Haar2D(
+    matrix,
+	height_wanted, width_wanted, 0,
+	width_wanted>>1, 0, height_wanted>>1
+  );
+  Haar2D(
+    matrix,
+	height_wanted, width_wanted, 0,
+	width_wanted >> 2, 0, height_wanted >> 2
+  );
+
+  int blurred = DetectBlur(
+    matrix,
+	width_wanted, height_wanted,
+	blur, extent
+  );
 
   return blurred;
 }
@@ -336,28 +390,28 @@ NAT_EXPORT int IsBlurred(
   int left = (width - desired_width) >> 1;
   int top = (height - desired_height) >> 1;
 
-  float conf1, extent1;
+  float conf1=0.f, extent1=0.f;
   int blur1 = IsBlurredInner(
 	  luminance, width, height,
       left, top, 
 	  desired_width >> 1, desired_height >> 1, 
 	  &conf1, &extent1
   );
-  float conf2, extent2;
+  float conf2=0.f, extent2=0.f;
   int blur2 = IsBlurredInner(
 	  luminance, width, height,
       left + (desired_width >> 1), top, 
 	  desired_width >> 1, desired_height >> 1,
       &conf2, &extent2
   );
-  float conf3, extent3;
+  float conf3=0.f, extent3=0.f;
   int blur3 = IsBlurredInner(
 	  luminance, width, height,
       left, top + (desired_height >> 1), 
 	  desired_width >> 1, desired_height >> 1, 
 	  &conf3, &extent3
   );
-  float conf4, extent4;
+  float conf4=0.f, extent4=0.f;
   int blur4 = IsBlurredInner(
 	  luminance, width, height,
       left + (desired_width >> 1), top + (desired_height >> 1),
@@ -367,7 +421,7 @@ NAT_EXPORT int IsBlurred(
 
   *blur = (conf1 + conf2 + conf3 + conf4) / 4;
   *extent = (extent1 + extent2 + extent3 + extent4) / 4;
-  return *blur < kMinZero;
+  return *blur > kMinZero;
 }
 //-----------------------------------------------------//
 

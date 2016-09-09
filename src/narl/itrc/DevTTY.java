@@ -94,12 +94,14 @@ public class DevTTY implements Gawain.EventHook {
 		String[] arg = txt.trim().split(",");
 		//check we have 3 arguments at least
 		if(arg.length<3){
+			Misc.logw("fail to connect "+txt);
 			return;
 		}
 		//check the fist argument is device name
 		infoName = arg[0];
 		if(Misc.isPOSIX()==true){
 			if(new File(infoName).exists()==false){
+				Misc.logw("No device --> "+txt);
 				return;
 			}
 		}else{
@@ -109,6 +111,7 @@ public class DevTTY implements Gawain.EventHook {
 		try{
 			infoBaud = Integer.valueOf(arg[1]);
 		}catch(NumberFormatException e){
+			Misc.loge("error baud : "+arg[1]);
 			return;
 		}
 		char[] ctrl = arg[2].toCharArray();
@@ -125,6 +128,7 @@ public class DevTTY implements Gawain.EventHook {
 		);		
 		if(handle!=0){ 
 			ctrlName.setValue(txt);//we success!!!
+			Misc.logv("connect to "+txt);
 		}
 	}
 
@@ -169,6 +173,11 @@ public class DevTTY implements Gawain.EventHook {
 			return;
 		}
 		byte[] buf = txt.getBytes(Charset.forName("UTF-8"));
+		implWrite(buf);
+	}
+	
+	public void writeTxt(char txt){
+		byte[] buf = { (byte)txt };
 		implWrite(buf);
 	}
 	//-----------------------//

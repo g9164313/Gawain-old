@@ -82,7 +82,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implOpen(
 	}
 	setJlong(env,thiz,NAME_HANDLE,fd);
 
-	cout<<"open file:"<<name<<" fid="<<fd<<endl;
+	//cout<<"open file:"<<name<<" fid="<<fd<<endl;
 
 	struct termios options;
 	tcgetattr(fd,&options);
