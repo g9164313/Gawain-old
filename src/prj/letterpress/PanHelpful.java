@@ -20,6 +20,7 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
+import narl.itrc.DevMotion;
 import narl.itrc.Misc;
 import narl.itrc.PanDecorate;
 
@@ -64,9 +65,9 @@ public class PanHelpful extends PanDecorate {
 			int id = i/2;
 			char tkn = '?';
 			switch(id){
-			case 0: tkn = 'x';
-			case 1: tkn = 'y';
-			case 2: tkn = '@';
+			case 0: tkn = 'x'; break;
+			case 1: tkn = 'y'; break;
+			case 2: tkn = '@'; break;
 			}
 			char dir = (i%2==0)?('-'):('+');
 			EventKick event = new EventKick(tkn,dir,box[id],btn[i]);
@@ -237,54 +238,51 @@ public class PanHelpful extends PanDecorate {
 			if(typ==MouseEvent.MOUSE_PRESSED){
 				btn.setText((dir=='+')?(DIR_POS2):(DIR_NEG2));
 				if(val==0){
-					jogging(true,val);
+					jogging(true,dir);
 				}else{
 					moving(val);
 				}
 			}else if(typ==MouseEvent.MOUSE_RELEASED){
 				btn.setText((dir=='+')?(DIR_POS1):(DIR_NEG1));
 				if(val==0){
-					jogging(false,val);
+					jogging(false,dir);
 				}else{
 					moving(val);
 				}
 			}
 		}
 
-		private void jogging(boolean go,int val){
-			/*if(go){
-				Misc.logv("jogging start %c%c (%d)",dir,tkn,val);
-			}else{
-				Misc.logv("jogging stop %c%c (%d)",dir,tkn,val);
-			}*/
+		private void jogging(boolean go,char dir){
+			double val = (dir=='+')?(2000):(-2000);
 			switch(tkn){
 			case 'x':
 			case 'X':
-				//Entry.stg0.Jogging(go, (double)val);
+				Entry.stg0.jogTo(go,DevMotion.PULSE_UNIT, val);
 				break;
 			case 'y':
 			case 'Y':
-				//Entry.stg0.Jogging(go, null, (double)val);
+				Entry.stg0.jogTo(go,DevMotion.PULSE_UNIT, null, val);
 				break;
 			case '@':
-				//Entry.stg0.Jogging(go, null, null, (double)val);
+				val = val * 10.;//special~~~
+				Entry.stg0.jogTo(go,DevMotion.PULSE_UNIT, null, null, val);
 				break;				
 			}
 		}
 				
 		private void moving(int val){
-			//Misc.logv("move %c%c (%d)",dir,tkn,val);
+			Misc.logv("move %c%c (%d)",dir,tkn,val);
 			switch(tkn){
 			case 'x':
 			case 'X':
-				//Entry.stg0.asyncArchTo(DevMotion.PULSE_UNIT,(double)val);
+				Entry.stg0.asyncMoveTo(DevMotion.PULSE_UNIT,(double)val);
 				break;
 			case 'y':
 			case 'Y':
-				//Entry.stg0.asyncArchTo(DevMotion.PULSE_UNIT,null,(double)val);
+				Entry.stg0.asyncMoveTo(DevMotion.PULSE_UNIT,null,(double)val);
 				break;
 			case '@':
-				//Entry.stg0.asyncArchTo(DevMotion.PULSE_UNIT,null,null,(double)val);
+				Entry.stg0.asyncMoveTo(DevMotion.PULSE_UNIT,null,null,(double)val);
 				break;				
 			}
 		}		

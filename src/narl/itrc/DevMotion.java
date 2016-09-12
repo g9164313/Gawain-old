@@ -174,12 +174,12 @@ public abstract class DevMotion {
 
 	private Thread async = null;
 
-	public void asyncArchTo(String unit,Double... location){
+	public void asyncArchTo(final String unit,Double... location){
 		async = TskBase.macro("asyncArchTo", async,
 			new Task<Void>(){
 			@Override
 			protected Void call() throws Exception {
-				archTo(DEF_UNIT,location);
+				archTo(unit,location);
 				return null;
 			}
 		});
@@ -189,8 +189,8 @@ public abstract class DevMotion {
 		asyncArchTo(DEF_UNIT,location);
 	}
 	
-	public void asyncMoveTo(String unit,Double... offset){
-		async = TskBase.macro("asyncArchTo", async,
+	public void asyncMoveTo(final String unit,Double... offset){
+		async = TskBase.macro("asyncMoveTo", async,
 			new Task<Void>(){
 			@Override
 			protected Void call() throws Exception {
@@ -247,6 +247,13 @@ public abstract class DevMotion {
 	 * This is a special motion, motor is just running and stop at any time.<p> 
 	 */
 	public abstract void Jogging(boolean go,Double... val);
+	
+	
+	public void jogTo(boolean go,String unit,Double... offset){
+		convert(offset,unit);
+		routine(offset,unit);
+		Jogging(go,node);
+	}
 	
 	
 	protected abstract void takePosition(Double[] value);

@@ -50,7 +50,7 @@ public class Entry extends PanBase {
 	/**
 	 * this flag means that we don't enable motion stage
 	 */
-	private boolean stgDryRun = true;
+	private boolean stgDryRun = false;
 
 	@Override
 	protected void eventShown(WindowEvent e){
@@ -61,12 +61,12 @@ public class Entry extends PanBase {
 			//10pps <==> 50um
 			stg0.setFactor(200,200,200,200);
 			stg0.setTokenBase('A');
-			stg0.setRoutine('A','B','C','D');
+			stg0.setRoutine('B','A','C','D');
 			stg0.exec("RS\r\n");//this command must be executed independently.
 			stg0.exec(
-				"SP 10000,10000,10000,10000;"+
-			    "AC 10000,10000,10000,10000;"+
-				"DC 10000,10000,10000,10000;"+
+				"SP 10000,10000,50000,10000;"+
+			    "AC 10000,10000,50000,10000;"+
+				"DC 10000,10000,50000,10000;"+
 			    "TP\r\n"
 			);
 		}		
