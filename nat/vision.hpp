@@ -19,10 +19,14 @@ extern void mapRect(JNIEnv *env, jobject obj, cv::Rect& dst);
 extern void mapRect(JNIEnv *env, Rect& src, jobject dst);
 
 #define TICK_BEG \
-	{double __tick=(double)getTickCount();
+	{int64 __tick=getTickCount();
 #define TICK_END(tag) \
-	__tick = ((double)getTickCount() - __tick)/getTickFrequency();\
-	std::cout<<"["tag"] Times passed in seconds: " << __tick << endl;}
+	double __tick_sec = (double)((getTickCount() - __tick))/getTickFrequency();\
+	std::cout<<"["tag"] " << __tick_sec <<"sec"<< endl; }
+#define TICK_END2(tag,accum) \
+	double __tick_sec = (double)((getTickCount() - __tick))/getTickFrequency();\
+	accum = accum + __tick_sec;\
+	std::cout<<"["tag"] " << __tick_sec <<"sec"<< endl; }
 
 inline void maskPixel(Mat& img,InputArray msk){
 	Mat tmp;
