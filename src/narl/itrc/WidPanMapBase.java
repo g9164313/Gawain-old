@@ -6,6 +6,7 @@ import java.util.HashMap;
 
 import com.sun.glass.ui.Application;
 
+import javafx.geometry.Orientation;
 import javafx.geometry.Side;
 import javafx.scene.Cursor;
 import javafx.scene.Node;
@@ -15,13 +16,16 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.Separator;
 import javafx.scene.image.WritableImage;
 import javafx.scene.input.MouseButton;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.paint.Color;
 import javafx.scene.transform.Affine;
 import javafx.stage.FileChooser;
 
-public abstract class PanMapBase extends PanDecorate {
+public abstract class WidPanMapBase extends PanDecorate {
 
 	private static final SnapshotParameters parm = new SnapshotParameters();
 	
@@ -32,29 +36,27 @@ public abstract class PanMapBase extends PanDecorate {
 	protected static final Color clrSelect = Color.web("#ffeb3b");
 	protected static final Color clrWalking= Color.web("#64b5f6");
 	
-	public PanMapBase(){
-		init();
+	public WidPanMapBase(){
+		this(null);
 	}
 	
-	public PanMapBase(String title){
-		super(title);
-		init();
+	public WidPanMapBase(String title,DevMotion stage){
+		this(title);
 	}
 	
-	public PanMapBase(String title, DevMotion stage){
+	public WidPanMapBase(String title){
 		super(title);
 		init();
 	}
 
 	private void init(){
 		parm.setFill(Color.TRANSPARENT);
-
 		MenuItem m1 = new MenuItem("匯出layout");
 		m1.setOnAction(EVENT->{
 			FileChooser dia = new FileChooser();
 			dia.setInitialFileName("layout.txt");
 			dia.setTitle("匯出layout");
-			File fs = dia.showSaveDialog(PanMapBase.this.getScene().getWindow());
+			File fs = dia.showSaveDialog(WidPanMapBase.this.getScene().getWindow());
 			if(fs==null){
 				return;
 			}
@@ -151,10 +153,32 @@ public abstract class PanMapBase extends PanDecorate {
 			return pos;
 		}
 		public int[] getOrig(){ return vtx[0].clone(); }//It is just the center~~~
+		
 		public int[] getLfTp(){ return vtx[1].clone(); }
+		public int[] getLfTp(int offW,int offH){ 
+			return offset_pos(vtx[1].clone(),offW,offH);
+		}
+		
 		public int[] getRhTp(){ return vtx[2].clone(); }
+		public int[] getRhTp(int offW,int offH){ 
+			return offset_pos(vtx[2].clone(),offW,offH);
+		}
+		
 		public int[] getLfBm(){ return vtx[3].clone(); }
+		public int[] getLfBm(int offW,int offH){ 
+			return offset_pos(vtx[3].clone(),offW,offH);
+		}
+		
 		public int[] getRhBm(){ return vtx[4].clone(); }
+		public int[] getRhBm(int offW,int offH){ 
+			return offset_pos(vtx[4].clone(),offW,offH);
+		}
+		
+		private int[] offset_pos(int[] pos,int offW,int offH){
+			pos[0] = pos[0] + offW;
+			pos[1] = pos[1] + offH;
+			return pos;
+		}
 		
 		public boolean isHold(int xx,int yy){			
 			if(vtx[1][0]<=xx && xx<=vtx[2][0]){
@@ -182,13 +206,14 @@ public abstract class PanMapBase extends PanDecorate {
 	 * Remember, path must be made by child class.<p>
 	 * 'key' value presents the path sequence.<p>
 	 */
-	protected HashMap<Integer,Die> lstPath = new HashMap<Integer,Die>();
+	protected HashMap<Integer,Die> lstSeq = new HashMap<Integer,Die>();
 	
 	/**
 	 * Keep the index of sequence path.<p>
 	 * When this variable is less than 0, it means none of sequence.<p>
 	 */
 	private int curSeq = 0;
+	
 	/**
 	 * Get absolute location along the sequence path.<p>
 	 * Just keep calling this function.<p>
@@ -200,7 +225,7 @@ public abstract class PanMapBase extends PanDecorate {
 		if(curSeq<=0){
 			curSeq = 1;
 		}		
-		Die dd = lstPath.get(curSeq);
+		Die dd = lstSeq.get(curSeq);
 		if(dd==null){
 			curSeq = 0;
 			clearGround();
@@ -349,9 +374,10 @@ public abstract class PanMapBase extends PanDecorate {
 		//);//bug!!, this is not 'set', this function just 'accumulate' value
 		gc.setTransform(aff);
 		
-		lstPath.clear();
+		//decide each die's location and sequence path 
+		lstSeq.clear();
 		lstDie.clear();
-		layoutDie(lstDie);
+		layoutDie();
 		
 		//drawing!!!
 		gc.setStroke(Color.BLACK);
@@ -365,7 +391,10 @@ public abstract class PanMapBase extends PanDecorate {
 		setHandler();
 	}
 	
-	public abstract void layoutDie(ArrayList<Die> lst);
+	/**
+	 * Decide the location and sequence path for each die 
+	 */
+	public abstract void layoutDie();
 	
 	public abstract void drawShape(GraphicsContext gc);
 	
@@ -387,11 +416,11 @@ public abstract class PanMapBase extends PanDecorate {
 		if(key==0){
 			return;
 		}
-		if(key==lstPath.size()){
+		if(key==lstSeq.size()){
 			return;//we don't need draw the last die~~~
 		}
 		int[] vaa = die.getOrig();
-		int[] vbb = lstPath.get(key+1).getOrig();//key value is one-base!!!
+		int[] vbb = lstSeq.get(key+1).getOrig();//key value is one-base!!!
 		int len = Misc.hypotInt(vbb, vaa);
 		float[] dir = {
 			((float)(vbb[0] - vaa[0]))/len,
@@ -432,7 +461,7 @@ public abstract class PanMapBase extends PanDecorate {
 		for(Die die:lstDie){
 			drawDie(gc,die,die.clrState);
 			if(
-				lstPath.isEmpty()==true||
+				lstSeq.isEmpty()==true||
 				arrowSize<=0
 			){
 				continue;
@@ -465,17 +494,60 @@ public abstract class PanMapBase extends PanDecorate {
 		);*/
 	}
 
-	private void _drawCursor(Die die){
-		int[] pos = die.getLfBm();
-		pos[0] = pos[0] + 7;
-		pos[1] = pos[1] + dieGrid[1]/4;
+	private void drawCursor(Die die){
 		GraphicsContext gc = mapScreen.getGraphicsContext2D();
 		gc.save();
-		drawDie(gc,die,clrSelect);
+		final int off = 7;
+		int cur_w = dieGrid[0]/6;
+		int cur_h = dieGrid[1]/4;
+		
+		gc.setStroke(clrSelect);
+		gc.setLineWidth(7);
+		int[] pos = die.getRhBm(-off,off);
+		gc.strokeLine(
+			pos[0], pos[1], 
+			pos[0]-cur_w, pos[1]
+		);
+		gc.strokeLine(
+			pos[0], pos[1], 
+			pos[0], pos[1]+cur_h
+		);
+		
+		pos = die.getRhTp(-off,-off);
+		gc.strokeLine(
+			pos[0], pos[1], 
+			pos[0], pos[1]-cur_h
+		);
+		gc.strokeLine(
+			pos[0], pos[1], 
+			pos[0]-cur_w, pos[1]
+		);
+		
+		pos = die.getLfTp(off,-off);
+		gc.strokeLine(
+			pos[0], pos[1], 
+			pos[0]+cur_w, pos[1]
+		);
+		gc.strokeLine(
+			pos[0], pos[1], 
+			pos[0], pos[1]-cur_h
+		);
+		
+		pos = die.getLfBm(off,off);		
+		gc.strokeLine(
+			pos[0], pos[1], 
+			pos[0]+cur_w, pos[1]
+		);
+		gc.strokeLine(
+			pos[0], pos[1], 
+			pos[0], pos[1]+cur_h
+		);
+		//mark the sequence number
 		gc.setFill(Color.BLACK);	
 		gc.fillText(
 			String.format("%d",die.key),
-			pos[0],pos[1]
+			pos[0]+off,
+			pos[1]+dieGrid[1]/4
 		);
 		gc.restore();
 	}
@@ -483,7 +555,7 @@ public abstract class PanMapBase extends PanDecorate {
 	private void _drawSeqDie(){		
 		GraphicsContext gc = mapScreen.getGraphicsContext2D();
 		gc.save();
-		Die die = lstPath.get(curSeq);
+		Die die = lstSeq.get(curSeq);
 		if(die!=null){
 			drawDie(gc,die,clrWalking);
 		}		
@@ -529,7 +601,7 @@ public abstract class PanMapBase extends PanDecorate {
 		//find where cursor is,or which die hold this cursor~~~
 		for(Die die:lstDie){
 			if(die.isHold(mx,my)==true){			
-				_drawCursor(die);
+				drawCursor(die);
 				break;
 			}
 		}
@@ -570,13 +642,33 @@ public abstract class PanMapBase extends PanDecorate {
 	}
 
 	private Canvas mapScreen;//let parent create this object!!!	
+	
+	public abstract Node layoutSetting();
+	
+	public static Side dir = Side.LEFT;//Should we let user modify this ???
+	
 	@Override
 	public Node layoutBody() {
+				
+		ScrollPane lay2 = new ScrollPane();		
 		mapScreen = new Canvas();//this is dummy~~~
-		ScrollPane root = new ScrollPane();
-		root.setContent(mapScreen);
-		root.setMinWidth(600);
-		root.setMinHeight(600);
-		return root;
+		lay2.setContent(mapScreen);
+		HBox.setHgrow(lay2,Priority.ALWAYS);
+		
+		HBox lay1 = new HBox();
+		if(dir==Side.LEFT){		
+			lay1.getChildren().addAll(
+				lay2,
+				new Separator(Orientation.VERTICAL),
+				layoutSetting()
+			);
+		}else{
+			lay1.getChildren().addAll(
+				layoutSetting(),
+				new Separator(Orientation.VERTICAL),
+				lay2
+			);
+		}
+		return lay1;
 	}
 }

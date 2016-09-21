@@ -60,16 +60,17 @@ public class ImgPreview {
 			overlay2.setHeight(sh);
 		}
 	}
+	//--------------------------//
 	
 	private Pane board = null;
 	private Label txtName = new Label();
 	private Label txtInf1 = new Label();
 	private Label txtInf2 = new Label();
 	
-	public Pane genBoard(String title,int width,int height){
-		
+	public Pane genBoard(String title,int width,int height){		
 		if(board!=null){
-			return board;//if we have already create board, just pass it~~~
+			//if we have already create board, just pass it~~~
+			return board;
 		}
 		
 		txtName.setText(title);

@@ -192,7 +192,7 @@ void callThreadJoin(JNIEnv* env,jobject thiz,const char* name){
 	char txt[2048]; \
 	va_list args; \
 	va_start(args, fmt); \
-	sprintf(txt,fmt,args); \
+	vsprintf(txt,fmt,args); \
 	va_end(args);
 
 void log_msg(JNIEnv* env,const char* name,const char* txt){

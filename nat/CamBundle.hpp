@@ -40,7 +40,8 @@
 
 //--------------------------------------------//
 
-#define MACRO_FETCH_BEG MACRO_PREPARE
+#define MACRO_FETCH_BEG MACRO_PREPARE \
+	if(cntx==NULL){ return; }
 
 #define MACRO_FETCH_REMAP(_src) \
 	buff  = realloc(buff,(size_t)(_src.total()*_src.elemSize())); \

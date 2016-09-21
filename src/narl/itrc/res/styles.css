@@ -1,5 +1,5 @@
 
-.btn-raised {
+.btn-raised1{
 	-fx-padding: 0.7em 0.57em;
 	-fx-font-size: 14px;
 	-fx-button-type: RAISED;
@@ -7,21 +7,21 @@
 	-fx-text-fill: WHITE;
 }
 
-.btn-raised1{
+.btn-raised2{
 	-fx-padding: 0.7em 0.57em;
 	-fx-font-size: 14px;
 	-fx-button-type: RAISED;
 	-fx-background-color: #00796b;
 	-fx-text-fill: WHITE;
 }
-.btn-raised2 {
+.btn-raised3{
 	-fx-padding: 0.7em 0.57em;
 	-fx-font-size: 14px;
 	-fx-button-type: RAISED;
 	-fx-background-color: #fbc02d;
 	-fx-text-fill: WHITE;
 }
-.btn-raised3 {
+.btn-raised4{
 	-fx-padding: 0.7em 0.57em;
 	-fx-font-size: 14px;
 	-fx-button-type: RAISED;
@@ -42,6 +42,11 @@
     -fx-spacing: 13.0;
 }
 
+.hbox-one-line{
+	-fx-alignment: center-left;
+    -fx-spacing: 7.0;
+}
+
 .flow-small {
     -fx-alignment: center-left;
     -fx-hgap: 13.0px;
@@ -52,12 +57,6 @@
 	-fx-background-color: #335588;
     -fx-padding: 7.0;
     -fx-spacing: 13.0;
-}
-
-.flow-small {
-    -fx-hgap: 7.0;
-    -fx-vgap: 7.0;
-    -fx-alignment: center-left;
 }
 
 .board-center {

@@ -15,9 +15,9 @@ import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
 import javafx.scene.control.TextField;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 import narl.itrc.DevMotion;
@@ -27,7 +27,7 @@ import narl.itrc.PanDecorate;
 public class PanHelpful extends PanDecorate {
 
 	public PanHelpful(){
-		super("操作選項");
+		super("快速操作");		
 	}
 	
 	private Node layoutOption1(){
@@ -81,7 +81,7 @@ public class PanHelpful extends PanDecorate {
 		lay.addRow(2, new Label("θ軸"),lcd[2],btn[4],box[2],btn[5]);
 		return lay;
 	}
-		
+
 	private Node layoutOption2(){
 		final CheckBox chk = new CheckBox("幫浦開關");
 		chk.setIndeterminate(false);
@@ -91,9 +91,9 @@ public class PanHelpful extends PanDecorate {
 		});
 		return chk;
 	}
-	
-	private final String TXT_START = "照射";
-	private final String TXT_STOP  = "停止";
+
+	private final String TXT_START = "UV照射";
+	private final String TXT_STOP  = "停止UV";
 	private Timeline actExpose;
 	private TextField boxExpose;
 	private Button btnExpose;
@@ -111,13 +111,13 @@ public class PanHelpful extends PanDecorate {
 		btnExpose.setUserData(false);
 		boxExpose.setDisable(false);		
 	}
-	
+
 	private Node layoutOption3(){
-		FlowPane lay = new FlowPane();
-		lay.getStyleClass().add("flow-small");
+		HBox lay = new HBox();
+		lay.getStyleClass().add("hbox-one-line");
 		
 		boxExpose = new TextField("1sec");
-		boxExpose.setPrefWidth(110);
+		boxExpose.setPrefWidth(100);
 		
 		btnExpose = new Button(TXT_START);
 		btnExpose.setUserData(false);
@@ -144,19 +144,18 @@ public class PanHelpful extends PanDecorate {
 			}
 		});
 		
-		lay.getChildren().addAll(
-			new Label("曝光時間"),
-			boxExpose,
-			btnExpose
-		);	
+		lay.getChildren().addAll(boxExpose,btnExpose);	
 		return lay;
 	}
 	
-	private Node layoutOption4(){
-		FlowPane lay = new FlowPane();
-		lay.getStyleClass().add("flow-small");
+	private Node layoutOption4(){		
+		HBox lay = new HBox();
+		lay.getStyleClass().add("hbox-one-line");
+		
+		final int btn_width = 59;
 		
 		final Button btn1 = new Button("正轉");
+		btn1.setPrefWidth(btn_width);
 		btn1.setOnMousePressed(event->{
 			btn1.setText("停止");
 			Entry.stg1.writeTxt('C');
@@ -167,6 +166,7 @@ public class PanHelpful extends PanDecorate {
 		});
 
 		final Button btn2 = new Button("反轉");
+		btn2.setPrefWidth(btn_width);
 		btn2.setOnMousePressed(event->{
 			btn2.setText("停止");
 			Entry.stg1.writeTxt('K');
@@ -176,27 +176,27 @@ public class PanHelpful extends PanDecorate {
 			Entry.stg1.writeTxt('H');
 		});
 		
-		lay.getChildren().addAll(new Label("光機旋轉軸"),btn1,btn2);
+		lay.getChildren().addAll(new Label("反射鏡"),btn1,btn2);
 		return lay;
 	}
 
 	@Override
 	public Node layoutBody() {
 		
-		VBox lay0 = new VBox();
-		lay0.getStyleClass().add("vbox-small");
-		lay0.getChildren().addAll(
+		VBox lay2 = new VBox();
+		lay2.getStyleClass().add("vbox-small");
+		lay2.getChildren().addAll(
 			layoutOption2(),
 			layoutOption3(),
 			layoutOption4()
 		);
 		
 		HBox lay1 = new HBox();
-		lay0.getStyleClass().add("hbox-small");
+		lay1.getStyleClass().add("hbox-small");
 		lay1.getChildren().addAll(
 			layoutOption1(),
 			new Separator(Orientation.VERTICAL),
-			lay0,
+			lay2,
 			new Separator(Orientation.VERTICAL)
 		);
 		return lay1;

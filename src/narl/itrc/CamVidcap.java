@@ -117,10 +117,10 @@ public class CamVidcap extends CamBundle {
 				capIndex = Integer.valueOf(args[0].trim());
 				break;
 			}
+			implSetup(this);
 		} catch (NumberFormatException e) {
 			Misc.loge("Wrong configure - " + txtConfig);
 		}
-		implSetup(this);
 	}
 
 	@Override

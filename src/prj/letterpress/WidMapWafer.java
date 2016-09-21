@@ -7,31 +7,29 @@ import java.util.ArrayList;
 
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
+import javafx.scene.Node;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.ArcType;
 import narl.itrc.BoxPhyValue;
 import narl.itrc.PanBase;
-import narl.itrc.PanDecorate;
-import narl.itrc.PanMapBase;
+import narl.itrc.WidPanMapBase;
 
 import com.jfoenix.controls.JFXComboBox;
 
-public class PanMapWafer extends PanMapBase {
-
-	private Label txtScale= new Label("??? mm/px");	
-	private JFXComboBox<String> chkWafD;
+public class WidMapWafer extends WidPanMapBase {
+	
+	private JFXComboBox<String> chkWafSeq;
+	private JFXComboBox<String> chkWafDia;
 	private BoxPhyValue boxDieW;	
 	private BoxPhyValue boxDieH;
 	private BoxPhyValue boxLane;
 
-	public PanMapWafer(){
-		super("顆粒配置圖");		
-		init_widget();
+	public WidMapWafer(){
+		super("顆粒配置圖");
 		setMapSize(getDiameter());
 		setDieSize(
 			boxDieW.getValue(),
@@ -43,55 +41,34 @@ public class PanMapWafer extends PanMapBase {
 	private final String DEF_DIE_WIDTH = "68mm";
 	private final String DEF_DIE_HEIGHT= "26mm";
 	
-	private void init_widget(){
-		chkWafD = new JFXComboBox<String>();
-		chkWafD.getItems().addAll(
-			"4''晶圓",
-			"5''晶圓",
-			"6''晶圓",
-			"7''晶圓",
-			"8''晶圓",
-			"9''晶圓",
-			"10''晶圓",
-			"11''晶圓",
-			"12''晶圓"
-		);
-		chkWafD.getSelectionModel().select(diameter2index(8));//default is 8' wafer
-		boxDieW = new BoxPhyValue("顆粒寬").setType("mm").setValue(DEF_DIE_WIDTH);
-		boxDieH = new BoxPhyValue("顆粒高").setType("mm").setValue(DEF_DIE_HEIGHT);
-		boxLane = new BoxPhyValue("走道寬").setType("mm").setValue("0mm");
-	}
-		
-	private int diameter2index(int val){
-		int idx = (val<0)?(Math.round((float)(mapSize[0]/25.4))):(val);
-		idx = idx - 4;//the minimum diameter of wafer is 4''
-		if(idx<0){ 
-			return 0;
+	private double getDiameter(){		
+		double dia = 8*25.4;//default is 8 inch, but unit is 'mm'
+		//hard code!!!
+		switch(chkWafDia.getSelectionModel().getSelectedIndex()){
+		case 0: dia = 6 *25.4; break;
+		case 1: dia = 8 *25.4; break;
+		case 2: dia = 12*25.4; break;
 		}
-		return idx;
-	}
-
-	/**
-	 * Get the wafer diameter, unit is 'mm'.<p>
-	 * @return - diameter
-	 */
-	public double getDiameter(){
-		int idx = chkWafD.getSelectionModel().getSelectedIndex();
-		return (idx+4)*25.4;//unit is millimeter
+		return dia;
 	}
 	
-	private GridPane con = null;
-	public Pane getConsole(){
-		if(con!=null){			
-			return null;//we just create one console
+	/*private int diameter2index(){
+		int idx = (int)Math.round(mapSize[0]/25.4);
+		//int idx = (val<0)?(Math.round((float)(mapSize[0]/25.4))):(val);
+		if(idx!=0 && idx!=1 && idx!=1){
+			idx = 1;//why???
 		}
-		final double CHK_SIZE = 110.;
+		return idx;
+	}*/
+	
+	@Override
+	public Node layoutSetting() {
 		
 		final EventHandler<ActionEvent> eventRedraw = 
 			new EventHandler<ActionEvent>()
 		{
 			@Override
-			public void handle(ActionEvent event) {
+			public void handle(ActionEvent event) {				
 				setMapSize(getDiameter());
 				setDieSize(
 					boxDieW.getValue(),
@@ -100,40 +77,53 @@ public class PanMapWafer extends PanMapBase {
 				generate();
 			}
 		};
+
+		final double CHK_SIZE = 110.;
+		chkWafDia = new JFXComboBox<String>();
+		chkWafDia.setPrefWidth(CHK_SIZE);
+		chkWafDia.setOnAction(eventRedraw);
+		chkWafDia.getItems().addAll(
+			"6'' 晶圓",
+			"8'' 晶圓",
+			"12''晶圓"
+		);
+		chkWafDia.getSelectionModel().select(1);//default is 8'' wafer
+
+		chkWafSeq = new JFXComboBox<String>();
+		chkWafSeq.setPrefWidth(CHK_SIZE);
+		chkWafSeq.setOnAction(eventRedraw);
+		chkWafSeq.getItems().addAll(
+			"交錯",
+			"擴散"
+		);
+		chkWafSeq.getSelectionModel().select(0);
 		
-		chkWafD.setPrefWidth(CHK_SIZE);
-		chkWafD.setOnAction(eventRedraw);
-		
-		JFXComboBox<String> chkMethod = new JFXComboBox<String>();
-		chkMethod.setPrefWidth(CHK_SIZE);
-		chkMethod.getItems().addAll("循序掃描");
-		chkMethod.getSelectionModel().select(0);
-				
+		boxDieW = new BoxPhyValue("顆粒寬").setType("mm").setValue(DEF_DIE_WIDTH);
 		boxDieW.setOnAction(eventRedraw);
+		boxDieH = new BoxPhyValue("顆粒高").setType("mm").setValue(DEF_DIE_HEIGHT);
 		boxDieH.setOnAction(eventRedraw);
-		boxLane.setOnAction(EVENT->{
-		});
+		boxLane = new BoxPhyValue("走道寬").setType("mm").setValue("0mm");
+		//boxLane.setOnAction(EVENT->{});
 		
 		Button btnInc = new Button("+");
 		btnInc.setOnAction(EVENT->{	incScale();	});
 		Button btnDec = new Button("-");
 		btnDec.setOnAction(EVENT->{	decScale();	});
 		
-		con = new GridPane();
-		con.getStyleClass().add("grid-small");
-		con.addRow(0,new Label("掃描方式"),new Label("："),chkMethod);
-		con.addRow(1,new Label("晶圓大小"),new Label("："),chkWafD);		
-		con.addRow(2,new Label("顆粒寬")  ,new Label("："),boxDieW);
-		con.addRow(3,new Label("顆粒高")  ,new Label("："),boxDieH);
-		con.addRow(4,new Label("走道寬")  ,new Label("："),boxLane);
-		con.addRow(5,new Label("比例尺")  ,new Label("："),txtScale);
-		con.add(new Label("ZOOM"), 0, 6, 1, 1);
-		con.add(PanBase.fillHBox(btnInc,btnDec), 1, 6, 2, 1);
-		//con.add(txtInfo, 0, 5, 4, 1);
-		
-		return PanDecorate.group("配置圖設定",con);
-	}
+		GridPane lay1 = new GridPane();
+		lay1.getStyleClass().add("grid-small");
+		lay1.addRow(0,new Label("掃描模式"),new Label("："),chkWafSeq);
+		lay1.addRow(1,new Label("晶圓大小"),new Label("："),chkWafDia);		
+		lay1.addRow(2,new Label("顆粒寬")  ,new Label("："),boxDieW);
+		lay1.addRow(3,new Label("顆粒高")  ,new Label("："),boxDieH);
+		lay1.addRow(4,new Label("間距大小"),new Label("："),boxLane);
+		//lay1.addRow(5,new Label("比例尺")  ,new Label("："),txtScale);
+		lay1.add(new Label("ZOOM"), 0, 6, 1, 1);
+		lay1.add(PanBase.fillHBox(btnInc,btnDec), 1, 6, 2, 1);
 
+		return lay1;
+	}
+	
 	@Override
 	public void drawShape(GraphicsContext gc) {
 		gc.save();
@@ -166,14 +156,40 @@ public class PanMapWafer extends PanMapBase {
 	}
 	
 	@Override
-	public void layoutDie(ArrayList<Die> lst) {
-		double rad = getDiameter()/2.;
-		double diw = boxDieW.getValue();
-		double dih = boxDieH.getValue();
+	public void layoutDie() {
+		double dia = getDiameter();
+		double rad = dia/2.;
+		double gap = boxLane.getValue();
+		double diw = boxDieW.getValue()+gap;
+		double dih = boxDieH.getValue()+gap;
 		
-		//int max = Math.round((float)((rad*rad*Math.PI)/(diw*dih)));
+		int[] cnt = {
+			(int)(Math.floor(dia/diw)),
+			(int)(Math.floor(dia/dih))
+		};
+		double[] org = {
+			0-diw*cnt[0],
+			0-dih*cnt[1],
+		};
+		double[] size = {diw/2., dih/2.};
+
+		//test the location from top of wafer
+		for(int j=0; j<cnt[1]; j++){
+			double[] vtx = {0,0};
+			//test the length of each row~~~
+			for(int i=0; i<(cnt[1]*2-1); i++){
+				boolean flag = isValidDie(
+					vtx[0],vtx[1],
+					diw,dih,rad
+				);
+				if(flag==true){
+					lstDie.add(new Die().setLfBm(vtx[0],vtx[1]));
+				}
+			}
+		}
+		
 		//list all possibility
-		double pos[][]={
+		/*double pos[][]={
 			{0     ,0     },
 			{diw/2.,0     },
 			{0     ,dih/2.},
@@ -196,10 +212,37 @@ public class PanMapWafer extends PanMapBase {
 		calculate_valid_grid(
 			pos[idx][0],pos[idx][1],
 			diw,dih,rad,
-			lst
-		);
-		//which scan path is depend on check-box
-		calculate_sequence_path();
+			lstDie
+		);*/
+		
+		//This is 'hard code'
+		switch(chkWafSeq.getSelectionModel().getSelectedIndex()){
+		case 0://交錯式 - 最長路徑優先
+			//calculate_interleave_path();
+			break;
+		case 1://中心擴散
+			break;
+		}
+	}
+	
+	private boolean isValidDie(
+		double left,double top,
+		double dieWidth,double dieHeight,
+		double wafRadius
+	){
+		double[][] vtx={
+			{left,top},
+			{left+dieWidth, top},
+			{left,top+dieHeight},
+			{left+dieWidth,top+dieHeight},
+		};
+		for(int k=0; k<4; k++){
+			double dist = Math.hypot(vtx[k][0],vtx[k][1]);
+			if(dist>wafRadius){
+				return false;
+			}
+		}
+		return true;
 	}
 	
 	private int calculate_valid_grid(
@@ -245,15 +288,15 @@ public class PanMapWafer extends PanMapBase {
 		return count;
 	}
 	
-	private void calculate_sequence_path(){		
-		//the sequence is dependent on "calculate_valid_grid()"
+	private void calculate_interleave_path(){
 		
+		//the sequence is dependent on "calculate_valid_grid()"
 		int cnt = lstDie.size() - 1;
 		//always put the last die
 		Die d1,d2;
 		d1 = lstDie.get(cnt);
 		d1.key = cnt + 1;
-		lstPath.put(d1.key,d1);
+		lstSeq.put(d1.key,d1);
 		
 		for(int i=0; i<cnt; i++){
 			d1 = lstDie.get(i);
@@ -261,7 +304,7 @@ public class PanMapWafer extends PanMapBase {
 			double[] p1 = d1.getPosition();
 			double[] p2 = d2.getPosition();
 			d1.key = i+1;//key is one-based number!!!
-			lstPath.put(d1.key,d1);
+			lstSeq.put(d1.key,d1);
 			if(p1[1]==p2[1]){
 				//check whether they are in one line(row).				
 				continue;
@@ -285,7 +328,7 @@ public class PanMapWafer extends PanMapBase {
 			for(; k<=j; k++){
 				d3 = lstDie.get(k);
 				d3.key = sum - k + 1;//key is one-based number!!!
-				lstPath.put(d3.key,d3);
+				lstSeq.put(d3.key,d3);
 			}
 		}
 	}

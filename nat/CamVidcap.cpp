@@ -36,7 +36,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamVidcap_implSetup(
 		logv(env,"[VID] image sequence:%s",txtName);
 	}else{
 		vid->open(dom+idx);
-		logv(env,"[VID] identify=%d+%d",dom,idx);
+		logv(env,"[VID] capId=%d+%d",dom,idx);
 	}
 
 	if(vid->isOpened()==false){

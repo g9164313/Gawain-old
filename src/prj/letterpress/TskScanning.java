@@ -4,24 +4,24 @@ import javafx.concurrent.Task;
 import narl.itrc.DevMotion;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
-import narl.itrc.PanMapBase;
+import narl.itrc.WidPanMapBase;
 import narl.itrc.TskAction;
 
 public class TskScanning extends TskAction {
 
-	private PanMapBase map = null;
+	private WidPanMapBase map = null;
 	private DevMotion stg = null;
 	
-	public TskScanning(DevMotion stage,PanMapBase mapper){
+	public TskScanning(DevMotion stage,WidPanMapBase mapper){
 		init(stage,mapper);
 	}
 	
-	public TskScanning(DevMotion stage,PanMapBase mapper,PanBase pan){
+	public TskScanning(DevMotion stage,WidPanMapBase mapper,PanBase pan){
 		super(pan);
 		init(stage,mapper);
 	}
 	
-	private void init(DevMotion stage,PanMapBase mapper){
+	private void init(DevMotion stage,WidPanMapBase mapper){
 		title = "Task-Scanning";
 		map = mapper;
 		stg = stage;

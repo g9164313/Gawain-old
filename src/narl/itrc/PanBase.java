@@ -417,13 +417,6 @@ public abstract class PanBase {
 		return lay;
 	}
 	
-	protected Button genButton0(
-		final String title,
-		final String iconName
-	){
-		return genButton(title,iconName,"btn-raised");
-	}
-	
 	protected Button genButton1(
 		final String title,
 		final String iconName
@@ -445,7 +438,42 @@ public abstract class PanBase {
 		return genButton(title,iconName,"btn-raised3");
 	}
 	
-	protected Button genButton(
+	protected Button genButton4(
+		final String title,
+		final String iconName
+	){
+		return genButton(title,iconName,"btn-raised4");
+	}
+	
+	public static Button genJButton1(
+		final String title,
+		final String iconName
+	){
+		return genButton(title,iconName,"btn-raised1");
+	}
+	
+	public static Button genJButton2(
+		final String title,
+		final String iconName
+	){
+		return genButton(title,iconName,"btn-raised2");
+	}
+
+	public static Button genJButton3(
+		final String title,
+		final String iconName
+	){
+		return genButton(title,iconName,"btn-raised3");
+	}
+	
+	public static Button genJButton4(
+		final String title,
+		final String iconName
+	){
+		return genButton(title,iconName,"btn-raised4");
+	}
+	
+	private static Button genButton(
 		final String title,
 		final String iconName,
 		final String styleName

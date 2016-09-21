@@ -16,7 +16,7 @@ public class ImgRender {
 	}
 	
 	public ImgRender(CamBundle... list){
-		setBundle(list);
+		add(list);
 	}
 
 	private Task<Integer> looper;
@@ -189,7 +189,11 @@ public class ImgRender {
 	
 	private ArrayList<ImgPreview> lstPreview = new ArrayList<ImgPreview>();
 
-	public ImgRender setBundle(CamBundle... list){
+	public int getSize(){
+		return lstPreview.size();
+	}
+	
+	public ImgRender add(CamBundle... list){
 		for(int i=0; i<list.length; i++){
 			lstPreview.add(new ImgPreview(list[i]));
 		}
@@ -222,18 +226,18 @@ public class ImgRender {
 		int width = 640;//default size~~~
 		int height= 480;//default size~~~
 		switch(args.length){
-		case 0:
-			index = 0;
-			break;
 		case 1:
 			index = args[0];
 			break;
-		default:
+		case 2:
+			width = args[0];
+			height= args[1];
+			break;		
 		case 3:
 			index = args[0];
 			width = args[1];
 			height= args[2];
-			break;		
+			break;	
 		}
 		if(index>=lstPreview.size()){
 			return null;

@@ -6,6 +6,77 @@
 #include <utils_ipc.hpp>
 #include <algorithm>
 
+/*void list_dir(string path,vector<string>& lst,string prex);
+
+extern Mat cutOutBounding(Mat& img,Mat& msk,int width,int height);
+extern void removeNoise(Mat& msk,int* board);
+
+int main5(int argc, char* argv[]) {
+
+	string pathBack="./cam0/back";
+	vector<string> lstBack;
+	list_dir(pathBack,lstBack,"");
+
+	string pathFore="./cam0/fore";
+	vector<string> lstFore;
+	list_dir(pathFore,lstFore,"Chip1");
+
+	string pathMeas="./cam0/meas";
+	vector<string> lstMeas;
+	list_dir(pathMeas,lstMeas,"Sp01L120");
+
+	IpcToken tkn("cam1");
+
+	tkn.exec("IDFY");
+	cout<<"CMD=idfy @ RESP="<<tkn.getMsg()<<endl;
+
+	tkn.exec("MEM0,6576,4384,mono");
+	cout<<"RESP="<<tkn.getMsg()<<endl;
+	void* buff = tkn.getMem(0);
+	if(buff==NULL){
+		cout<<"something is wrong!!!"<<endl;
+		return -1;
+	}
+
+	/*tkn.exec("CLR,back");
+	cout<<"RESP="<<tkn.getMsg()<<endl;
+	tkn.exec("CLR,fore");
+	cout<<"RESP="<<tkn.getMsg()<<endl;
+
+	for(size_t i=0; i<lstBack.size(); i++){
+		string name = pathBack+"/"+lstBack[i];
+		Mat img = imread(name,IMREAD_GRAYSCALE);
+		Mat nod(img.rows,img.cols,CV_8UC1,buff);
+		img.copyTo(nod);
+		tkn.exec("SAVE,BACK");
+		cout<<"CMD=save,back @ RESP="<<tkn.getMsg()<<endl;
+	}
+	for(size_t i=0; i<lstFore.size(); i++){
+		string name = pathFore+"/"+lstFore[i];
+		Mat img = imread(name,IMREAD_GRAYSCALE);
+		Mat nod(img.rows,img.cols,CV_8UC1,buff);
+		img.copyTo(nod);
+		tkn.exec("SAVE,FORE");
+		cout<<"CMD=save,fore @ RESP="<<tkn.getMsg()<<endl;
+	}
+	tkn.exec("TRAN");
+	cout<<"CMD=tran @ RESP="<<tkn.getMsg()<<endl;*/
+
+	/*for(size_t i=0; i<lstMeas.size(); i++){
+		string name = pathMeas+"/"+lstMeas[i];
+		Mat img = imread(name,IMREAD_GRAYSCALE);
+		Mat nod(img.rows,img.cols,CV_8UC1,buff);
+		img.copyTo(nod);
+		tkn.exec("MEAS");
+		cout<<"CMD=MEAS @ RESP="<<tkn.getMsg()<<endl;
+	}
+
+	//tkn.pipeSend("gfgfggf");
+	//tkn.pipeRecv(NULL);
+	//cout<<"RESP>>"<<tkn.getMsg()<<endl;
+	return 0;
+}*/
+
 void list_dir(string path,vector<string>& lst,string prex){
 	lst.clear();
 	DIR* dir;

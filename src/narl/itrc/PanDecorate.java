@@ -12,45 +12,56 @@ public abstract class PanDecorate extends StackPane {
 	private Node  body = null;
 	
 	public PanDecorate(){
-		initBody();
-		getStyleClass().add("group-border");
-		getChildren().addAll(body);
+		this(null,null);
 	}
 	
 	public PanDecorate(String txt){
-		initTitle(txt);			
-		initBody();			
-		getStyleClass().add("group-border");
-		getChildren().addAll(name,body);
+		this(txt,null);
 	}
 
 	public PanDecorate(Node cntxt){
-		body = cntxt;
-		getStyleClass().add("group-border");
-		getChildren().addAll(body);
+		this(null,cntxt);
 	}
 	
-	public PanDecorate(String txt,Node cntxt){
-		initTitle(txt);
-		body = cntxt;
+	public PanDecorate(String txt,Node nod){
+		init_title(txt);
+		init_frame(nod);		
 		getStyleClass().add("group-border");
-		getChildren().addAll(name,body);
+		if(name!=null){
+			getChildren().add(name);
+		}
+		if(body!=null){
+			getChildren().add(body);
+		}	
 	}
 	
-	private void initTitle(String txt){
+	private void init_title(String txt){
+		if(txt==null){
+			return;
+		}
 		name = new Label(" "+txt);
 		name.getStyleClass().add("group-title");
 		StackPane.setAlignment(name,Pos.TOP_LEFT);
 	}
-	private void initBody(){
+	
+	private void init_frame(Node nod){
+		if(nod!=null){
+			body = nod;
+			return;
+		}
 		body = layoutBody();
 		body.getStyleClass().add("group-content");
-		StackPane.setAlignment(body,Pos.BOTTOM_LEFT);
+		StackPane.setAlignment(this.body,Pos.BOTTOM_LEFT);
 	}
 	
 	public abstract Node layoutBody();
 	
-	public static Pane group(Node cntxt){
+	/**
+	 * the convenient method to generate the group frame.
+	 * @param cntxt - group context
+	 * @return
+	 */
+	public static Pane group(final Node cntxt){
 		return new PanDecorate(cntxt){
 			@Override
 			public Node layoutBody() {
@@ -60,16 +71,16 @@ public abstract class PanDecorate extends StackPane {
 	}
 	
 	/**
-	 * Use static method to generate the group frame.
+	 * the convenient method to generate the group frame.
 	 * @param txt - group title
 	 * @param cntxt - group context
 	 * @return
 	 */
-	public static Pane group(String txt,Node cntxt){
+	public static Pane group(final String txt,final Node cntxt){
 		return new PanDecorate(txt,cntxt){
 			@Override
 			public Node layoutBody() {
-				return null;//do nothing~~~
+				return cntxt;//do nothing~~~
 			}
 		};
 	}
