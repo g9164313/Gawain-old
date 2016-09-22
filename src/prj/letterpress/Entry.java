@@ -2,27 +2,22 @@ package prj.letterpress;
 
 import com.jfoenix.controls.JFXTabPane;
 
-import javafx.concurrent.Task;
 import javafx.geometry.Side;
 import javafx.scene.Node;
 import javafx.scene.Parent;
-import javafx.scene.control.Button;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane.TabClosingPolicy;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
-import javafx.scene.layout.VBox;
 import javafx.stage.WindowEvent;
 import narl.itrc.BoxLogger;
 import narl.itrc.CamBundle;
 import narl.itrc.CamVidcap;
 import narl.itrc.DevTTY;
 import narl.itrc.ImgRender;
-import narl.itrc.Misc;
 import narl.itrc.PanBase;
 import narl.itrc.TskAction;
-import narl.itrc.TskDialog;
 
 public class Entry extends PanBase {
 

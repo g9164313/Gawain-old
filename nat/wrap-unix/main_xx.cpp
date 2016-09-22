@@ -8,7 +8,8 @@
 
 
 int main(int argc, char* argv[]) {
-	Mat img = imread("./gg2/16138125-2016-09-20-154917.pgm",IMREAD_GRAYSCALE);
+
+	Mat img = imread("./gg2/16025855-2016-09-20-151416.pgm",IMREAD_GRAYSCALE);
 
 	/*Mat nd1(img.size(),img.type());
 	Mat nd2(img.size(),img.type());
@@ -31,7 +32,19 @@ int main(int argc, char* argv[]) {
 	Mat sigma;
 	cv::sqrt(mu2 - mu.mul(mu), sigma);
 
-	imwrite("./gg2/cc.png",norm_32f(sigma));
+
+
+	/*Mat dst1 = norm_32f(sigma(Rect(771,453,700,700)));
+
+	Mat dst2;
+
+	dst1.convertTo(dst2,CV_8UC1);
+
+	applyColorMap(dst2,dst1,COLORMAP_JET);*/
+
+	imwrite("./gg2/cc.png",sigma);
+
+	//imwrite("./gg2/cc.png",norm_32f(sigma));
 	return 0;
 }
 

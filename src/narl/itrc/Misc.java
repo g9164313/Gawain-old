@@ -682,16 +682,21 @@ public class Misc {
 	}
 	//--------------------------//
 	
-	public static String syncExec(String... command){
+	/**
+	 * execute a command. Remember this is 'blocking' function
+	 * @param cmd - command line and arguments
+	 * @return
+	 */
+	public static String exec(String... cmd){
 		String txt = "";
 		try {
-			ProcessBuilder pb = new ProcessBuilder(command);
+			ProcessBuilder pb = new ProcessBuilder(cmd);
 			pb.redirectOutput();
 			pb.redirectError();
-			Process p = pb.start();
-			p.waitFor();
+			Process pc = pb.start();
+			pc.waitFor();
 			byte[] buf = new byte[2048];
-			p.getInputStream().read(buf);
+			pc.getInputStream().read(buf);
 			for(byte bb:buf){			
 				if(bb==0){
 					break;
@@ -700,7 +705,7 @@ public class Misc {
 			}
 			//try standard error stream~~~
 			if(txt.length()==0){				
-				p.getErrorStream().read(buf);
+				pc.getErrorStream().read(buf);
 				for(byte bb:buf){							
 					if(bb==0){
 						break;
@@ -708,7 +713,7 @@ public class Misc {
 					txt = txt + (char)bb;
 				}
 			}
-			p.destroy();
+			pc.destroy();
 		} catch (IOException e) {
 			txt = "[ERROR]: "+e.getMessage();
 		} catch (InterruptedException e) {
@@ -716,6 +721,49 @@ public class Misc {
 		}		
 		return txt;
 	}
+	
+	private static Process procIJ = null;
+	
+	public static void execIJ(String full_name){
+		if(procIJ!=null){
+			//just only execute one instance~~~
+			if(procIJ.isAlive()==true){
+				procIJ.destroy();
+				procIJ = null;//for next turn~~~~
+				return;
+			}			
+		}
+		String ij_path = Gawain.prop.getProperty("IJ_PATH","");		
+		if(ij_path.length()==0){
+			PanBase.msgBox.notifyError(
+				"內部資訊",
+				"請在 conf.properties 設定 ImageJ 執行路徑"
+			);
+			return;
+		}
+		if(new File(ij_path).exists()==false){
+			PanBase.msgBox.notifyError(
+				"內部資訊",
+				"在 "+ij_path+" 找不到 ij.jar"
+			);
+			return;
+		}
+		try {			
+			//How to find 'java' from M$ Windows OS ? 
+			ProcessBuilder pb = new ProcessBuilder(
+				"/usr/bin/java",
+				"-Xmx1024m",
+				"-jar",
+				ij_path,
+				full_name
+			);
+			pb.directory(Misc.fsPathTemp);
+			procIJ = pb.start();
+		} catch (Exception e) {
+			Misc.loge(e.getMessage());
+		}
+	} 
+	
 	//--------------------------//
 
 	//Do we need this ???

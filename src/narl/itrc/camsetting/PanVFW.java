@@ -46,7 +46,7 @@ public class PanVFW extends ScrollPane implements PanBase.EventHook {
 		
 		ARG_NAME = "--device=/dev/video"+dev.getIndex();
 		
-		parse_prop(Misc.syncExec(CMD_V4L2,ARG_NAME,"--list-ctrls-menus"));		
+		parse_prop(Misc.exec(CMD_V4L2,ARG_NAME,"--list-ctrls-menus"));		
 		
 		lay0.addRow(0,new Label("項目"),new Label("控制"));
 		for(int i=0; i<lstBox.size(); i++){
@@ -172,7 +172,7 @@ public class PanVFW extends ScrollPane implements PanBase.EventHook {
 			return Integer.valueOf(txt.substring(pos+1).trim());
 		}
 		private void exec(String _val){
-			String msg = Misc.syncExec(
+			String msg = Misc.exec(
 				CMD_V4L2,ARG_NAME,
 				"--set-ctrl="+name.getText()+"="+_val
 			);

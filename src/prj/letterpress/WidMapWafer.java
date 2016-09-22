@@ -163,7 +163,7 @@ public class WidMapWafer extends WidPanMapBase {
 		double diw = boxDieW.getValue()+gap;
 		double dih = boxDieH.getValue()+gap;
 		
-		int[] cnt = {
+		/*int[] cnt = {
 			(int)(Math.floor(dia/diw)),
 			(int)(Math.floor(dia/dih))
 		};
@@ -186,10 +186,10 @@ public class WidMapWafer extends WidPanMapBase {
 					lstDie.add(new Die().setLfBm(vtx[0],vtx[1]));
 				}
 			}
-		}
+		}*/
 		
 		//list all possibility
-		/*double pos[][]={
+		double pos[][]={
 			{0     ,0     },
 			{diw/2.,0     },
 			{0     ,dih/2.},
@@ -213,7 +213,7 @@ public class WidMapWafer extends WidPanMapBase {
 			pos[idx][0],pos[idx][1],
 			diw,dih,rad,
 			lstDie
-		);*/
+		);
 		
 		//This is 'hard code'
 		switch(chkWafSeq.getSelectionModel().getSelectedIndex()){

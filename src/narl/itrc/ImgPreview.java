@@ -23,14 +23,16 @@ import javafx.scene.shape.ArcType;
 public class ImgPreview {
 		
 	public CamBundle bundle = null;
+	public ImgRender render = null;
 	public Image imdata = null;
 	
 	private ImageView screen = null;
 	private Canvas overlay1 = null;//show information	
 	private Canvas overlay2 = null;//show ROI
 	
-	public ImgPreview(CamBundle bnd){
-		bundle = bnd;
+	public ImgPreview(ImgRender rnd,CamBundle bnd){
+		render = rnd;
+		bundle = bnd;		
 	}
 	
 	public void fetch(){
@@ -291,13 +293,21 @@ public class ImgPreview {
 				subs.getItems().add(chk);
 			}
 			root.getItems().add(subs);
-		}		
-		MenuItem itm0 = new MenuItem("取消");
-		itm0.setOnAction(event->{
+		}
+		
+		MenuItem itm;
+		itm = new MenuItem("執行 ImageJ");
+		itm.setOnAction(event->{
+			render.execIJ(this);
+		});
+		root.getItems().add(itm);
+		
+		itm = new MenuItem("取消");
+		itm.setOnAction(event->{
 			clearMark(-1);//clear all mark~~~~
 			roiType.selectToggle(null);
 		});
-		root.getItems().add(itm0);
+		root.getItems().add(itm);
 		return root;
 	}
 

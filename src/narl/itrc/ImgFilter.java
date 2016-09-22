@@ -1,7 +1,6 @@
 package narl.itrc;
 
 import java.util.ArrayList;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
@@ -13,6 +12,12 @@ public abstract class ImgFilter {
 	
 	public AtomicInteger state = new AtomicInteger(STA_IDLE);
 	
+	/**
+	 * The meaning of this variable is dependent on filter.
+	 * But this number presents the index of 'ImgPreview' list.
+	 */
+	public int prvIdx = -1;
+		
 	public boolean isCooked(){
 		int sta = state.get();
 		if(sta==STA_COOK){

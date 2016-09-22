@@ -1,5 +1,7 @@
 package prj.letterpress;
 
+import java.io.File;
+
 import com.jfoenix.controls.JFXCheckBox;
 import com.jfoenix.controls.JFXComboBox;
 import com.jfoenix.controls.JFXRadioButton;
@@ -19,6 +21,7 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import narl.itrc.ImgRender;
+import narl.itrc.Misc;
 import narl.itrc.PanBase;
 import narl.itrc.PanDecorate;
 
@@ -99,7 +102,10 @@ public class WidAoiViews extends BorderPane {
 
 		//----other actions----
 		
-		 Button btnGoHome = PanBase.genJButton1("定位標靶","selection.png");
+		Button btnGoHome = PanBase.genJButton1("定位標靶","selection.png");
+		btnGoHome.setOnAction(event->{			
+			//Misc.execIJ();
+		});
 		
 		//----combine them all----
 		HBox lay1 = new HBox();

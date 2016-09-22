@@ -16,8 +16,12 @@ public class ImgRender {
 	}
 	
 	public ImgRender(CamBundle... list){
-		add(list);
+		addPreview(list);
 	}
+	
+	private ArrayBlockingQueue<ImgFilter> lstFilter = new ArrayBlockingQueue<ImgFilter>(100);
+	
+	private ArrayList<ImgPreview> lstPreview = new ArrayList<ImgPreview>();
 
 	private Task<Integer> looper;
 
@@ -55,7 +59,8 @@ public class ImgRender {
 					continue;//it is still RAW!!!!
 				}
 				//First, always set this because 
-				//blocking queue not remove object immediately								
+				//blocking queue not remove object immediately	
+				//'showData' decides whether we should remove this filter~~~
 				if(flt.showData(lstPreview)==true){
 					flt.state.set(ImgFilter.STA_SHOW);
 					lstFilter.remove(flt);					
@@ -145,57 +150,15 @@ public class ImgRender {
 		}
 		return false;
 	}
-	
-	public ImgRender snap(String name){
-		if(lstFilter.contains(fltrSnap)==true){
-			PanBase.msgBox.notifyInfo("Render","忙碌中");
-			return this;
-		}
-		int pos = name.lastIndexOf(File.separatorChar);
-		if(pos<0){
-			//set default path~~~
-			fltrSnap.snapName[0] = "."+File.separatorChar;			
-		}else{
-			//trim path~~~
-			fltrSnap.snapName[0] = name.substring(0,pos);
-			name = name.substring(pos+1);
-		}
-		pos = name.lastIndexOf('.');
-		if(pos<0){
-			return this;
-		}		
-		fltrSnap.snapName[1] = name.substring(0,pos);
-		fltrSnap.snapName[2] = name.substring(pos);		
-		lstFilter.add(fltrSnap);
-		return this;
-	}
-	
-	public ImgRender addFilter(ImgFilter fltr){
-		if(lstFilter.contains(fltr)==true){
-			Misc.logw("已經有Filter");
-			return this;
-		}
-		lstFilter.add(fltr);
-		return this;
-	}
-	
-	public ImgRender addFilter(ImgFilter... list){
-		for(int i=0; i<list.length; i++){
-			addFilter(list[i]);
-		}
-		return this;
-	}
-	//----------------------//
-	
-	private ArrayList<ImgPreview> lstPreview = new ArrayList<ImgPreview>();
+	//--------------------------------------------//
 
 	public int getSize(){
 		return lstPreview.size();
 	}
 	
-	public ImgRender add(CamBundle... list){
-		for(int i=0; i<list.length; i++){
-			lstPreview.add(new ImgPreview(list[i]));
+	public ImgRender addPreview(CamBundle... list){
+		for(CamBundle bnd:list){			
+			lstPreview.add(new ImgPreview(this,bnd));
 		}
 		return this;
 	}
@@ -244,11 +207,77 @@ public class ImgRender {
 		}
 		return lstPreview.get(index).genBoard(title,width,height);
 	}
-	//----------------------//
+	//--------------------------------------------//
 	
-	private ArrayBlockingQueue<ImgFilter> lstFilter = new ArrayBlockingQueue<ImgFilter>(100);
-
-	private class FilterSnap extends ImgFilter {
+	public ImgRender snap(String name){
+		if(lstFilter.contains(fltrSnap)==true){
+			PanBase.msgBox.notifyInfo("Render","忙碌中");
+			return this;
+		}
+		int pos = name.lastIndexOf(File.separatorChar);
+		if(pos<0){
+			//set default path~~~
+			fltrSnap.snapName[0] = "."+File.separatorChar;			
+		}else{
+			//trim path~~~
+			fltrSnap.snapName[0] = name.substring(0,pos);
+			name = name.substring(pos+1);
+		}
+		pos = name.lastIndexOf('.');
+		if(pos<0){
+			return this;
+		}		
+		fltrSnap.snapName[1] = name.substring(0,pos);
+		fltrSnap.snapName[2] = name.substring(pos);		
+		lstFilter.add(fltrSnap);
+		return this;
+	}
+	
+	public ImgRender execIJ(ImgPreview pv){
+		if(lstFilter.contains(fltrExecIJ)==true){
+			PanBase.msgBox.notifyInfo("Render","忙碌中");
+			return this;
+		}
+		fltrExecIJ.prvIdx = lstPreview.indexOf(pv);
+		lstFilter.add(fltrExecIJ);
+		return this;
+	}
+	
+	public ImgRender addFilter(ImgFilter fltr){
+		if(lstFilter.contains(fltr)==true){
+			Misc.logw("已經有Filter");
+			return this;
+		}
+		lstFilter.add(fltr);
+		return this;
+	}
+	
+	public ImgRender addFilter(ImgFilter... list){
+		for(int i=0; i<list.length; i++){
+			addFilter(list[i]);
+		}
+		return this;
+	}
+	//--------------------------------------------//
+	
+	private static class FilterExecIJ extends ImgFilter {
+		@Override
+		public void cookData(ArrayList<ImgPreview> list) {
+			String name = Misc.fsPathTemp+File.separator+"temp.png";
+			ImgPreview prv = list.get(prvIdx);
+			CamBundle bnd = prv.bundle;
+			bnd.saveImage(name);
+			Misc.execIJ(name);
+		}
+		@Override
+		public boolean showData(ArrayList<ImgPreview> list) {
+			return true;
+		}
+	}	
+	
+	private static FilterExecIJ fltrExecIJ = new FilterExecIJ();
+	
+	private static class FilterSnap extends ImgFilter {
 		/**
 		 * This is file name for filter 'snap'.<p> 
 		 * It means "path", "prefix" and "postfix"(.jpg, .png, .gif, etc).<p>
@@ -295,6 +324,6 @@ public class ImgRender {
 			return true;
 		}
 	}
-	
-	private FilterSnap fltrSnap = new FilterSnap();
+
+	private static FilterSnap fltrSnap = new FilterSnap();
 }
