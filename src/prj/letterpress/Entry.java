@@ -29,7 +29,7 @@ public class Entry extends PanBase {
 	public static CamBundle cam1 = new CamVidcap("1");	
 	public static ImgRender rndr = new ImgRender(cam0,cam1);
 	
-	public static DevB140M stg0 = new DevB140M();
+	public static DevB140M stg0 = new DevB140M("/dev/ttyS0,115200,8n1");
 	public static DevTTY   stg1 = new DevTTY("/dev/ttyACM0,9600,8n1");//this connect to ATmega controller  
 	
 	private WidMapWafer wmap = new WidMapWafer();
@@ -42,12 +42,12 @@ public class Entry extends PanBase {
 	/**
 	 * this flag means that we don't enable camera (render stage)
 	 */
-	private boolean camDryRun = false;
+	private boolean camDryRun = true;
 	
 	/**
 	 * this flag means that we don't enable motion stage
 	 */
-	private boolean stgDryRun = true;
+	private boolean stgDryRun = false;
 
 	@Override
 	protected void eventShown(WindowEvent e){

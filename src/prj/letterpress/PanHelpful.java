@@ -87,6 +87,11 @@ public class PanHelpful extends PanDecorate {
 		chk.setIndeterminate(false);
 		chk.setOnAction(event->{
 			//get state from device
+			if(chk.isSelected()){
+				Entry.stg0.exec("OB 1,1\r\n");
+			}else{
+				Entry.stg0.exec("OB 1,0\r\n");
+			}
 			Misc.logv("select="+chk.isSelected());
 		});
 		return chk;
@@ -99,14 +104,14 @@ public class PanHelpful extends PanDecorate {
 	private Button btnExpose;
 	
 	private void begExpose(){
-		//TODO: implement action~~~~
+		Entry.stg0.exec("OB 2,1\r\n");
 		btnExpose.setText(TXT_STOP);
 		btnExpose.setUserData(true);
 		boxExpose.setDisable(true);		
 	}
 	
-	private void endExpose(){		
-		//TODO: implement action~~~~
+	private void endExpose(){
+		Entry.stg0.exec("OB 2,0\r\n");
 		btnExpose.setText(TXT_START);
 		btnExpose.setUserData(false);
 		boxExpose.setDisable(false);		
