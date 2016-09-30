@@ -8,43 +8,122 @@
 
 
 int main(int argc, char* argv[]) {
-
-	Mat img = imread("./gg2/16025855-2016-09-20-151416.pgm",IMREAD_GRAYSCALE);
-
-	/*Mat nd1(img.size(),img.type());
-	Mat nd2(img.size(),img.type());
-	Scharr(img,nd1,-1,1,0,3);
-	Scharr(img,nd2,-1,0,1,3);
-	img = (nd1+nd2)/2;
-	imwrite("./gg2/cc.png",img);*/
-
-	Size rad(7,7);
-
-	Mat nod;
-	img.convertTo(nod, CV_32F);
-
-	Mat mu;
-	blur(nod, mu, rad);
-
-	Mat mu2;
-	blur(nod.mul(nod), mu2, rad);
-
-	Mat sigma;
-	cv::sqrt(mu2 - mu.mul(mu), sigma);
+	const char* name = "./gg2/16138125-2016-09-20-154944.pgm";
+	Mat img = imread(name,IMREAD_GRAYSCALE);
+	Mat ova = imread(name,IMREAD_COLOR);
 
 
+	Mat nod1,nod2;
+	Canny(img,nod1,2500,5000,7,true);
+	imwrite("./gg2/cc0.png",nod1);
 
-	/*Mat dst1 = norm_32f(sigma(Rect(771,453,700,700)));
+	Mat kern = getStructuringElement(
+		MORPH_ELLIPSE,
+		Size(3,3),
+		Point(-1,-1)
+	);
+	dilate(nod1,nod2,kern);
+	imwrite("./gg2/cc1.png",nod2);
 
-	Mat dst2;
+	vector<vector<Point> > cts;
+	findContours(nod2,cts,RETR_LIST,CHAIN_APPROX_SIMPLE);
+	if(cts.size()==0){
+		cerr<<"fail to find contours!!"<<endl;
+		return -1;
+	}
 
-	dst1.convertTo(dst2,CV_8UC1);
+	vector<Point> shaprRect,shapeCross;
+	shaprRect.push_back(Point(0  ,0  ));
+	shaprRect.push_back(Point(100,0  ));
+	shaprRect.push_back(Point(100,100));
+	shaprRect.push_back(Point(0  ,100));
 
-	applyColorMap(dst2,dst1,COLORMAP_JET);*/
+	const int wh=35,dp=20;
+	shapeCross.push_back(Point(wh      , 0       ));
+	shapeCross.push_back(Point(wh+dp   , 0       ));
+	shapeCross.push_back(Point(wh+dp   , wh      ));
+	shapeCross.push_back(Point(wh+dp+wh, wh      ));
+	shapeCross.push_back(Point(wh+dp+wh, wh+dp   ));
+	shapeCross.push_back(Point(wh+dp   , wh+dp   ));
+	shapeCross.push_back(Point(wh+dp   , wh+dp+wh));
+	shapeCross.push_back(Point(wh      , wh+dp+wh));
+	shapeCross.push_back(Point(wh      , wh+dp   ));
+	shapeCross.push_back(Point(0       , wh+dp   ));
+	shapeCross.push_back(Point(0       , wh      ));
+	shapeCross.push_back(Point(wh      , wh      ));
 
-	imwrite("./gg2/cc.png",sigma);
+	vector<Point> locaRect,locaCross;
+	for(int i=0; i<cts.size(); i++){
+		vector<Point> approx;
 
-	//imwrite("./gg2/cc.png",norm_32f(sigma));
+		Mat points(cts[i]);
+		approxPolyDP(
+			points,
+			approx,
+			7,
+			true
+		);
+
+		if(approx.size()<4){
+			continue;
+		}
+		//test minimum enclose square~~
+		double scoreRect = matchShapes(
+			shaprRect,approx,
+			CV_CONTOURS_MATCH_I3,0
+		);
+		double scoreCross = matchShapes(
+			shapeCross,approx,
+			CV_CONTOURS_MATCH_I3,0
+		);
+		RotatedRect rect = minAreaRect(approx);
+		if(scoreRect<scoreCross){
+			if(scoreRect>0.7){
+				continue;
+			}
+			locaRect.push_back(rect.center);
+		}else{
+			if(scoreCross>0.7){
+				continue;
+			}
+			locaCross.push_back(rect.center);
+		}
+
+		/*char name[60];
+		sprintf(name,"./gg2/dd-%d.png",i+1);
+		Mat tmp;
+		ova.copyTo(tmp);
+		polylines(
+			tmp,
+			approx, true,
+			Scalar(0,255,0)
+		);
+		imwrite(name,tmp);*/
+	}
+
+	if(locaRect.size()>0){
+		Point vtx = average(locaRect);
+		rectangle(ova,
+			vtx+Point(-5,-5),
+			vtx+Point( 5, 5),
+			Scalar(255,0,0)
+		);
+	}
+	if(locaCross.size()>0){
+		Point vtx = average(locaCross);
+		line(ova,
+			vtx+Point(0, 10),
+			vtx+Point(0,-10),
+			Scalar(0,0,255)
+		);
+		line(ova,
+			vtx+Point( 10,0),
+			vtx+Point(-10,0),
+			Scalar(0,0,255)
+		);
+	}
+	imwrite("./gg2/cc2.png",ova);
+
 	return 0;
 }
 

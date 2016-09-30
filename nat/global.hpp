@@ -49,6 +49,8 @@ inline void msleep(int msec){
 
 using namespace std;
 
+extern void unsharpen(Mat& src,int rad,double scale);
+
 extern void setJdouble(JNIEnv *env,jobject thiz,const char* name,double val);
 extern double getJdouble(JNIEnv *env,jobject thiz,const char* name);
 extern void setFloat(JNIEnv *env,jobject thiz,const char* name,float val);

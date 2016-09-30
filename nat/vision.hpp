@@ -18,6 +18,17 @@ extern void mapPoint(JNIEnv *env, jobject obj, cv::Point& dst);
 extern void mapRect(JNIEnv *env, jobject obj, cv::Rect& dst);
 extern void mapRect(JNIEnv *env, Rect& src, jobject dst);
 
+
+extern Mat thresClamp(const Mat& src,int lower,int upper);
+
+extern Mat filterVariance(
+	const Mat& src,
+	const int radius,
+	double* min=NULL,
+	double* max=NULL
+);
+
+
 #define TICK_BEG \
 	{int64 __tick=getTickCount();
 #define TICK_END(tag) \
@@ -27,6 +38,17 @@ extern void mapRect(JNIEnv *env, Rect& src, jobject dst);
 	double __tick_sec = (double)((getTickCount() - __tick))/getTickFrequency();\
 	accum = accum + __tick_sec;\
 	std::cout<<"["tag"] " << __tick_sec <<"sec"<< endl; }
+
+inline Point average(vector<Point>& pts){
+	Point avg(0,0);
+	size_t cnt = pts.size();
+	for(size_t i=0; i<cnt; i++){
+		avg = avg + pts[i];
+	}
+	avg.x = avg.x / cnt;
+	avg.y = avg.y / cnt;
+	return avg;
+}
 
 inline void maskPixel(Mat& img,InputArray msk){
 	Mat tmp;

@@ -69,7 +69,7 @@ LIB_MULTICAM:= -L$(ROOT_MULTICAM) -lMultiCam
 
 CC=g++
 
-CC_FLAG = -g -I. $(INC_JNI)
+CC_FLAG = -g -I. $(INC_JNI) -O3
 CC_FLAG += -DVISION $(shell pkg-config --cflags opencv) 
 #CC_FLAG += $(shell pkg-config --cflags libmodbus) 
 #CC_FLAG += $(shell pkg-config --cflags qt5) 
@@ -110,8 +110,8 @@ else
 endif
 	
 
-$(TARGET_EXE):  ./wrap-unix/main_xx.cpp FilterIsBlur.cpp
-#$(TARGET_EXE):  ./wrap-unix/main4.cpp
+#$(TARGET_EXE):  ./wrap-unix/main_xx.cpp FilterIsBlur.cpp utils_cv.cpp
+$(TARGET_EXE):  ./wrap-unix/main4.cpp
 	$(CC) $(CC_FLAG) -o $@ $^ $(LD_LIBS)
 
 #$(TARGET_EXE):  /home/qq/labor/opencv-3.1/contrib/modules/text/samples/character_recognition.cpp

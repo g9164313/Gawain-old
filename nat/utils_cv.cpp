@@ -1,17 +1,61 @@
+#ifndef VISION
+#define VISION
+#endif
 #include <global.hpp>
 #include <CamBundle.hpp>
 
-void unsharpen(Mat& src) {
+void unsharpen(Mat& src,int rad,double scale) {
+	rad = (rad%2==0)?(rad+1):(rad);
 	Mat msk(src.size(), src.type());
 	src.copyTo(msk);
-	double scale;
-	minMaxLoc(src, NULL, &scale);
-	scale = scale * 0.2;
-	GaussianBlur(src, src, Size(), 4.3, 4.3);
-	msk = msk * (1 + scale) + src * (-scale);
+	GaussianBlur(
+		src,src,
+		Size(rad,rad),
+		0
+	);
+	msk = msk * (1+scale) + src * (1-scale);
 	msk.copyTo(src);
 }
 //-----------------------------------//
+
+Mat thresClamp(const Mat& src,int lower,int upper){
+	Mat dst = Mat::zeros(src.size(),CV_8UC1);
+	Mat upp = Mat::zeros(src.size(),CV_8UC1);
+	Mat low = Mat::zeros(src.size(),CV_8UC1);
+	threshold(src,low,lower,255.,THRESH_BINARY);
+	threshold(src,upp,upper,255,THRESH_BINARY_INV);
+	bitwise_and(low,upp,dst);
+	return dst;
+}
+//-----------------------------------//
+
+Mat filterVariance(
+	const Mat& src,
+	const int radius,
+	double* min,
+	double* max
+){
+	Size range(radius,radius);
+	Mat node1;
+	src.convertTo(node1, CV_32F);
+	Mat mu;
+	blur(node1, mu, range);
+	Mat mu2;
+	blur(node1.mul(node1), mu2, range);
+	Mat sigma;
+	cv::sqrt(mu2 - mu.mul(mu), sigma);
+	Mat dst;
+	normalize(sigma, dst, 0., 255., NORM_MINMAX, CV_8UC1);
+	if(min!=NULL||max!=NULL){
+		double _min,_max;
+		minMaxLoc(sigma,&_min,&_max);
+		if(min!=NULL){ *min = _min; }
+		if(max!=NULL){ *max = _max; }
+	}
+	return dst;
+}
+//-----------------------------------//
+
 
 int findMaxBlob(vector<vector<Point> >& blob){
 	int idx=0;
@@ -54,8 +98,7 @@ void toColor(Mat& src,Mat& dst){
 }
 //-----------------------------------//
 
-
-extern "C" JNIEXPORT void JNICALL Java_narl_itrc_Misc_namedWindow(
+/*extern "C" JNIEXPORT void JNICALL Java_narl_itrc_Misc_namedWindow(
 	JNIEnv * env,
 	jobject thiz,
 	jstring jname
@@ -136,7 +179,7 @@ extern "C" JNIEXPORT long JNICALL Java_narl_itrc_Misc_imRead(
 	Mat* img = new Mat();
 	(*img) = imread(name,flags);
 	return (jlong)img;
-}
+}*/
 
 extern "C" JNIEXPORT void JNICALL Java_narl_itrc_Misc_imRelease(
 	JNIEnv * env,
