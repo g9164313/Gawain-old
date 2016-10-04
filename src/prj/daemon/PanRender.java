@@ -76,8 +76,7 @@ public class PanRender extends PanBase {
 		HBox lay0 = new HBox();
 		lay0.getStyleClass().add("vbox-small");
 		lay0.getChildren().addAll(
-			rndr.genBoard("預覽1", 0)
-			/*,rndr.genPreview("預覽2")*/
+			rndr.getPreview(0)
 		);
 		
 		btnPlaying = new JFXButton();

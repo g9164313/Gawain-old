@@ -8,7 +8,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import com.sun.glass.ui.Application;
 
 import javafx.concurrent.Task;
-import javafx.scene.layout.Pane;
 
 public class ImgRender {
 	
@@ -39,20 +38,23 @@ public class ImgRender {
 
 	private void loopBody(){		
 		for(ImgPreview prv:lstPreview){
-			prv.fetch();
+			prv.fetchBuff();
 		}
 		for(ImgFilter flt:lstFilter){			
 			flt.cookData(lstPreview);
 			flt.state.set(ImgFilter.STA_COOK);
 		}
-		Application.invokeAndWait(eventShow);
+		for(ImgPreview prv:lstPreview){
+			prv.fetchInfo();
+		}
+		Application.invokeAndWait(eventRender);
 	}
-	
-	private final Runnable eventShow = new Runnable(){
+
+	private final Runnable eventRender = new Runnable(){
 		@Override
 		public void run() {
 			for(ImgPreview prv:lstPreview){
-				prv.refresh();
+				prv.rendering();//Here!! we update pictures
 			}
 			for(ImgFilter flt:lstFilter){
 				if(flt.isCooked()==false){
@@ -70,7 +72,7 @@ public class ImgRender {
 			}
 		}
 	};
-
+	
 	/**
 	 * start to play video stream 
 	 * @return self
@@ -175,37 +177,6 @@ public class ImgRender {
 			return null;
 		}
 		return lstPreview.get(idx);
-	}
-	
-	public Pane getBoard(int idx){
-		if(idx>=lstPreview.size()){
-			return null;
-		}
-		return lstPreview.get(idx).getBoard();
-	}
-	
-	public Pane genBoard(String title,int... args){
-		int index = 0;
-		int width = 640;//default size~~~
-		int height= 480;//default size~~~
-		switch(args.length){
-		case 1:
-			index = args[0];
-			break;
-		case 2:
-			width = args[0];
-			height= args[1];
-			break;		
-		case 3:
-			index = args[0];
-			width = args[1];
-			height= args[2];
-			break;	
-		}
-		if(index>=lstPreview.size()){
-			return null;
-		}
-		return lstPreview.get(index).genBoard(title,width,height);
 	}
 	//--------------------------------------------//
 	

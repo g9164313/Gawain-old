@@ -28,6 +28,19 @@ extern Mat filterVariance(
 	double* max=NULL
 );
 
+inline Mat checkMono(Mat& src){
+	int typ =src.type();
+	if(typ==CV_8UC1){
+		return src;
+	}else if(typ==CV_8UC3){
+		Mat dst(src.size(),CV_8UC3);
+		cvtColor(src,dst,COLOR_BGR2GRAY);
+		return dst;
+	}
+	cerr<<"no support convert"<<endl;
+	return Mat::zeros(src.size(),CV_8UC3);
+}
+
 
 #define TICK_BEG \
 	{int64 __tick=getTickCount();

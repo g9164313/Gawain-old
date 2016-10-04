@@ -16,11 +16,11 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.ArcType;
 import narl.itrc.BoxPhyValue;
 import narl.itrc.PanBase;
-import narl.itrc.WidPanMapBase;
+import narl.itrc.WidMapBase;
 
 import com.jfoenix.controls.JFXComboBox;
 
-public class WidMapWafer extends WidPanMapBase {
+public class WidMapWafer extends WidMapBase {
 	
 	private JFXComboBox<String> chkWafSeq;
 	private JFXComboBox<String> chkWafDia;
@@ -214,15 +214,14 @@ public class WidMapWafer extends WidPanMapBase {
 			diw,dih,rad,
 			lstDie
 		);
-		
+		calculate_interleave_path();
 		//This is 'hard code'
-		switch(chkWafSeq.getSelectionModel().getSelectedIndex()){
-		case 0://交錯式 - 最長路徑優先
-			//calculate_interleave_path();
-			break;
-		case 1://中心擴散
-			break;
-		}
+		//switch(chkWafSeq.getSelectionModel().getSelectedIndex()){
+		//case 0://交錯式 - 最長路徑優先
+		//	break;
+		//case 1://中心擴散
+		//	break;
+		//}
 	}
 	
 	private boolean isValidDie(

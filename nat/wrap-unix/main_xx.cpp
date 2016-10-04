@@ -8,7 +8,7 @@
 
 
 int main(int argc, char* argv[]) {
-	const char* name = "./gg2/16138125-2016-09-20-154944.pgm";
+	const char* name = "./gg2/16138125-2016-09-20-154907.pgm";
 	Mat img = imread(name,IMREAD_GRAYSCALE);
 	Mat ova = imread(name,IMREAD_COLOR);
 
@@ -106,7 +106,7 @@ int main(int argc, char* argv[]) {
 		rectangle(ova,
 			vtx+Point(-5,-5),
 			vtx+Point( 5, 5),
-			Scalar(255,0,0)
+			Scalar(0,255,255)
 		);
 	}
 	if(locaCross.size()>0){

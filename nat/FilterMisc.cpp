@@ -10,7 +10,6 @@
 #include <iomanip>
 using namespace cv::text;
 
-
 static char fileNM1[200],fileNM2[200],fileGRP[200];//full-path file name
 
 void filterNMText(Mat& src,vector<Rect>& boxes){

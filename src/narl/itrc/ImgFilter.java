@@ -37,7 +37,7 @@ public abstract class ImgFilter {
 	/**
 	 * this invoked by working-thread.<p>
 	 * user can process or cook data here.<p>
-	 * @param bnd - camera bundle
+	 * @param list - the list of preview
 	 * @return true - we done, take off.<p> false- keep this in queue.<p>
 	 */
 	public abstract void cookData(ArrayList<ImgPreview> list);//this invoked by render-thread
@@ -46,8 +46,9 @@ public abstract class ImgFilter {
 	 * this invoked by GUI-thread.<p>
 	 * user can show charts or change the state of widget here.<p>
 	 * So, clearing region is the user responsibility.<p> 
-	 * @param bnd - camera bundle
+	 * @param list - the list of preview
 	 * @return true - we done, take off.<p> false- keep this in queue.<p>
 	 */
 	public abstract boolean showData(ArrayList<ImgPreview> list);//this invoked by GUI thread
 };
+

@@ -1,12 +1,10 @@
 package prj.letterpress;
 
-import java.io.File;
+import java.util.ArrayList;
 
-import com.jfoenix.controls.JFXCheckBox;
 import com.jfoenix.controls.JFXComboBox;
 import com.jfoenix.controls.JFXRadioButton;
 import com.jfoenix.controls.JFXTextField;
-import com.jfoenix.validation.RequiredFieldValidator;
 
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
@@ -18,15 +16,31 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.VBox;
+import narl.itrc.CamBundle;
+import narl.itrc.ImgFilter;
+import narl.itrc.ImgPreview;
 import narl.itrc.ImgRender;
-import narl.itrc.Misc;
 import narl.itrc.PanBase;
 import narl.itrc.PanDecorate;
 
 public class WidAoiViews extends BorderPane {
 
+	class FilterAlign extends ImgFilter {
+		private WidAoiViews inst;
+		public FilterAlign(WidAoiViews instance){
+			inst = instance;
+		}
+		@Override
+		public void cookData(ArrayList<ImgPreview> list) {
+			inst.implCookData(list.get(0).bundle);
+		}
+		@Override
+		public boolean showData(ArrayList<ImgPreview> list) {
+			return false;
+		}
+	};
+	private native void implCookData(CamBundle bnd);
+	
 	private ImgRender rndr;
 	
 	private int filterSize = 3;	
@@ -36,18 +50,17 @@ public class WidAoiViews extends BorderPane {
 		this.rndr = rndr;
 		setCenter(layoutViews());
 		setBottom(layoutOption());
+		rndr.addFilter(new FilterAlign(this));
 	}
-	
+
 	private Node layoutViews(){
-		HBox lay = new HBox();		
+		HBox lay0 = new HBox();
+		lay0.getStyleClass().add("hbox-small");
 		for(int idx=0; idx<rndr.getSize(); idx++){
-			Pane pan = rndr.getPreview(idx).genBoard(
-				String.format("攝影機 %d",idx+1),
-				512,512
-			);
-			lay.getChildren().add(pan);
+			Pane pan = rndr.getPreview(idx);
+			lay0.getChildren().add(pan);
 		}
-		return lay;		
+		return lay0;		
 	}
 	
 	private Node layoutOption(){
@@ -101,10 +114,8 @@ public class WidAoiViews extends BorderPane {
 		lay4.addRow(0, radStep[2]);
 
 		//----other actions----
-		
-		Button btnGoHome = PanBase.genJButton1("定位標靶","selection.png");
-		btnGoHome.setOnAction(event->{			
-			//Misc.execIJ();
+		Button btnMeas = PanBase.genJButton1("測試分析","selection.png");
+		btnMeas.setOnAction(event->{			
 		});
 		
 		//----combine them all----
@@ -117,7 +128,7 @@ public class WidAoiViews extends BorderPane {
 			new Separator(Orientation.VERTICAL),
 			lay4,
 			new Separator(Orientation.VERTICAL),
-			btnGoHome
+			btnMeas
 		);
 		return PanDecorate.group("設定",lay1);
 	}

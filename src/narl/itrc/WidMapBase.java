@@ -25,7 +25,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.transform.Affine;
 import javafx.stage.FileChooser;
 
-public abstract class WidPanMapBase extends PanDecorate {
+public abstract class WidMapBase extends PanDecorate {
 
 	private static final SnapshotParameters parm = new SnapshotParameters();
 	
@@ -36,15 +36,15 @@ public abstract class WidPanMapBase extends PanDecorate {
 	protected static final Color clrSelect = Color.web("#ffeb3b");
 	protected static final Color clrWalking= Color.web("#64b5f6");
 	
-	public WidPanMapBase(){
+	public WidMapBase(){
 		this(null);
 	}
 	
-	public WidPanMapBase(String title,DevMotion stage){
+	public WidMapBase(String title,DevMotion stage){
 		this(title);
 	}
 	
-	public WidPanMapBase(String title){
+	public WidMapBase(String title){
 		super(title);
 		init();
 	}
@@ -56,7 +56,7 @@ public abstract class WidPanMapBase extends PanDecorate {
 			FileChooser dia = new FileChooser();
 			dia.setInitialFileName("layout.txt");
 			dia.setTitle("匯出layout");
-			File fs = dia.showSaveDialog(WidPanMapBase.this.getScene().getWindow());
+			File fs = dia.showSaveDialog(WidMapBase.this.getScene().getWindow());
 			if(fs==null){
 				return;
 			}

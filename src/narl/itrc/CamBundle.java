@@ -24,6 +24,12 @@ public abstract class CamBundle implements Gawain.EventHook {
 	//-------------------------//
 	
 	/**
+	 * configuration, the meaning of value is dependent on devices.<p>
+	 * Meaning of this variable is depend on device.<p> 
+	 */
+	public String txtConfig = "";
+
+	/**
 	 * The pointer to a context for whatever devices.<p>
 	 * this pointer show whether device is ready.<p>
 	 */
@@ -54,10 +60,15 @@ public abstract class CamBundle implements Gawain.EventHook {
 	private int bufSizeH = 0;
 	
 	/**
-	 * configuration, the meaning of value is dependent on devices.<p>
-	 * Meaning of this variable is depend on device.<p> 
+	 * 'Image file' for 'ptrBuff'，data is encoded by compressor.<p>
+	 * Format may be PNG, JPG or TIFF.<p>
 	 */
-	public String txtConfig = "";
+	private byte[] imgBuff = null;
+	
+	/**
+	 * It is also a PNG image file. Overlay with grabbed image.<p>
+	 */
+	private byte[] imgInfo = null;
 
 	/**
 	 * prepare and initialize camera, the instance will be keep in 'ptrCntx'.<p>
@@ -92,6 +103,25 @@ public abstract class CamBundle implements Gawain.EventHook {
 	 */
 	public abstract Parent genPanelSetting(PanBase pan);
 
+	public Image getImgBuff(){ 
+		return get_image(imgBuff); 
+	}
+	
+	public Image getImgInfo(){
+		return get_image(imgInfo); 
+	}
+	
+	private Image get_image(byte[] arr){
+		if(arr==null){
+			return null;
+		}
+		return new Image(new ByteArrayInputStream(arr));
+	}
+	
+	public void clearImgInfo(){		
+		imgInfo = null;
+	}
+	
 	public void showPanel(){		
 		new PanBase("相機設定"){
 			@Override
@@ -127,22 +157,13 @@ public abstract class CamBundle implements Gawain.EventHook {
 	public boolean isReady(){
 		return (ptrCntx==0)?(false):(true);
 	}
-
-	public Image getImage(){
-		if(ptrBuff==0){
-			return null;
-		}
-		byte[] dat = getData();
-		if(dat==null){
-			return null;
-		}
-		return new Image(new ByteArrayInputStream(dat));
-	}
-	private native byte[] getData();
 	
 	public native void saveImage(String name);
 	
 	public native void saveImageROI(String name,int[] roi);
 }
+
+
+
 
 

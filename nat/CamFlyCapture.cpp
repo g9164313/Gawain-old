@@ -69,7 +69,6 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamFlyCapture_implFetch(
 		img.GetData(),
 		(double)img.GetReceivedDataSize()/(double)img.GetRows()
 	);
-
 	MACRO_FETCH_COPY(tmp)
 }
 

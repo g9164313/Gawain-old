@@ -1,9 +1,9 @@
 package narl.itrc;
 
+import com.sun.glass.ui.Application;
+
 import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.ContextMenu;
-import javafx.scene.control.Label;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.RadioMenuItem;
@@ -12,145 +12,66 @@ import javafx.scene.control.Toggle;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.input.MouseButton;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Pane;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.ArcType;
 
-public class ImgPreview {
+public class ImgPreview extends BorderPane {
 		
 	public CamBundle bundle = null;
 	public ImgRender render = null;
-	public Image imdata = null;
 	
-	private ImageView screen = null;
-	private Canvas overlay1 = null;//show information	
-	private Canvas overlay2 = null;//show ROI
+	private Image[] imdata = {null, null};
+	
+	private ImageView[] screen ={
+		new ImageView(),//show grabbed image
+		new ImageView(),//show augment image(edge, point, and mask etc...)
+	};
+	private Canvas overlay = new Canvas();//show ROI
 	
 	public ImgPreview(ImgRender rnd,CamBundle bnd){
 		render = rnd;
-		bundle = bnd;		
+		bundle = bnd;
+		init_layout();
 	}
 	
-	public void fetch(){
-		imdata = null;
+	public void fetchBuff(){
+		imdata[0] = null;
 		if(bundle!=null){
 			bundle.fetch();
-			imdata = bundle.getImage();
+			imdata[0] = bundle.getImgBuff();
 		}
 	}
 	
-	public void refresh(){
+	public void fetchInfo(){
+		imdata[1] = null;
+		if(bundle!=null){
+			//information is gave by filter 
+			imdata[1] = bundle.getImgInfo();
+		}
+	}
+	
+	public void rendering(){
 		//called by GUI-thread
-		if(screen==null || imdata==null){
+		if(Application.isEventThread()==false){
 			return;
 		}
-		screen.setImage(imdata);
-		
-		//always check dimension~~~
-		int sw = (int)imdata.getWidth();
-		int sh = (int)imdata.getHeight();
-		int dw = (int)overlay1.getWidth();
-		int dh = (int)overlay1.getHeight();
-		if(sw!=dw||sh!=dh){			
-			overlay1.setWidth(sw); 
-			overlay1.setHeight(sh);
-			overlay2.setWidth(sw); 
-			overlay2.setHeight(sh);
+		screen[0].setImage(imdata[0]);
+		screen[1].setImage(imdata[1]);
+		//check overlay dimension,always~~~
+		if(imdata[0]!=null){
+			int sw = (int)imdata[0].getWidth();
+			int sh = (int)imdata[0].getHeight();
+			int dw = (int)overlay.getWidth();
+			int dh = (int)overlay.getHeight();
+			if(sw!=dw||sh!=dh){			
+				overlay.setWidth(sw); 
+				overlay.setHeight(sh);
+			}
 		}
 	}
 	//--------------------------//
-	
-	private Pane board = null;
-	private Label txtName = new Label();
-	private Label txtInf1 = new Label();
-	private Label txtInf2 = new Label();
-	
-	public Pane genBoard(String title,int width,int height){		
-		if(board!=null){
-			//if we have already create board, just pass it~~~
-			return board;
-		}
-		
-		txtName.setText(title);
-		screen = new ImageView();		
-		overlay1 = new Canvas();
-		overlay2 = new Canvas();
-		overlay2.setOnMousePressed(event->{
-			Mark mk = getCurrentMark();
-			if(mk==null){ return; }
-			if(event.getButton()!=MouseButton.PRIMARY){
-				return;
-			}
-			pinVal[0] = pinVal[2] = (int)event.getX();
-			pinVal[1] = pinVal[3] = (int)event.getY();
-		});
-		overlay2.setOnMouseDragged(event->{
-			Mark mk = getCurrentMark();
-			if(mk==null){ return; }//Do we need this??
-			int mx = (int)event.getX();
-			int my = (int)event.getY();
-			switch(mk.type){
-			case MARK_PONT:
-				pinVal[0] = pinVal[2] = mx;
-				pinVal[1] = pinVal[3] = my;
-				break;
-			case MARK_RECT:
-				pinVal[2] = mx;
-				pinVal[3] = my;				
-				break;
-			}
-			drawPinPoint();
-		});
-		overlay2.setOnMouseReleased(event->{
-			Mark mk = getCurrentMark();
-			if(mk==null){ return; }//Do we need this??
-			if(event.getButton()!=MouseButton.PRIMARY){
-				return;
-			}
-			int mx = (int)event.getX();
-			int my = (int)event.getY();
-			switch(mk.type){
-			case MARK_PONT:
-				pinVal[0] = pinVal[2] = mx;
-				pinVal[1] = pinVal[3] = my;
-				break;
-			case MARK_RECT:
-				pinVal[2] = mx;
-				pinVal[3] = my;				
-				break;
-			}
-			mk.nail(pinVal);
-			refreshMark();
-		});	
-		
-		StackPane grp = new StackPane();
-		grp.getChildren().addAll(
-			screen,
-			overlay1,
-			overlay2
-		);
-		
-		ScrollPane pan = new ScrollPane();
-		pan.setMinSize(width+13,height+13);
-		pan.setContent(grp);
-		pan.setFitToWidth(true);
-		pan.setFitToHeight(true);
-		pan.setContextMenu(create_menu());
 
-		HBox lay0 = new HBox();
-		lay0.getStyleClass().add("vbox-small");
-		lay0.getChildren().addAll(txtName,txtInf1,txtInf2);
-		
-		board = new VBox();		
-		board.getChildren().addAll(lay0,pan);
-		
-		return board;		
-	}
-		
 	public static final String[] markTypeName = {
 		"單點",
 		"矩形"
@@ -226,7 +147,7 @@ public class ImgPreview {
 	private int pinVal[] = {0,0,0,0};//the first and second pin point
 	
 	private void drawPinPoint(){
-		GraphicsContext gc = overlay2.getGraphicsContext2D();
+		/*GraphicsContext gc = overlay2.getGraphicsContext2D();
 		int ww = (int)overlay2.getWidth();
 		int hh = (int)overlay2.getHeight();
 		gc.clearRect(0,0,ww,hh);		
@@ -241,11 +162,11 @@ public class ImgPreview {
 			20, 20, 
 			0., 360.,
 			ArcType.OPEN
-		);
+		);*/
 	}
 
 	private void refreshMark(){
-		GraphicsContext gc = overlay2.getGraphicsContext2D();
+		/*GraphicsContext gc = overlay2.getGraphicsContext2D();
 		int ww = (int)overlay2.getWidth();
 		int hh = (int)overlay2.getHeight();
 		gc.clearRect(0,0,ww,hh);
@@ -269,7 +190,7 @@ public class ImgPreview {
 				);
 				break;
 			}
-		}
+		}*/
 	}
 	
 	private final ToggleGroup roiType = new ToggleGroup();
@@ -302,7 +223,7 @@ public class ImgPreview {
 		});
 		root.getItems().add(itm);
 		
-		itm = new MenuItem("取消");
+		itm = new MenuItem("取消標記");
 		itm.setOnAction(event->{
 			clearMark(-1);//clear all mark~~~~
 			roiType.selectToggle(null);
@@ -311,41 +232,16 @@ public class ImgPreview {
 		return root;
 	}
 
-	public Pane getBoard(){
-		return board;
-	}
-	/**
-	 * This is same as OpenCV structure - 'Rect'.<p>
-	 * @author qq
-	 *
-	 */
-	/*public static class Rect {
-		int x, y, width, height;
-		public Rect(){			
-		}
-		public Rect(int x,int y,int width,int height){
-			this.x = x;
-			this.y = y;
-			this.width = width;
-			this.height= height;
-		}
-	}*/
-	
 	//protected static final Color clrGround = Color.web("#b0bec5");
 	
-	public void clearAll(){
+	/*public void clearAll(){
 		overlay1.getGraphicsContext2D().clearRect(
 			0, 0, 
 			overlay1.getWidth(), overlay1.getHeight()
 		);
-	}
+	}*/
 	
-	/**
-	 * Draw rectangle, the array size must be 4 times.<p>
-	 * Each elements present 'x', 'y', 'width', and 'height'
-	 * @param rect - [x,y,width,height], [x,y,width,height]...
-	 */
-	public void drawRect(int[] rect){
+	/*public void drawRect(int[] rect){
 		if(rect==null){
 			return;
 		}
@@ -369,6 +265,94 @@ public class ImgPreview {
 		for(int i=0; i<pts.length; i+=2){
 			//gc.strokePolygon(xPoints, yPoints, nPoints);
 		}
+	}*/	
+	//--------------------------//
+
+	private void init_layout(){
+		StackPane lay0 = new StackPane();
+		lay0.getChildren().addAll(
+			screen[0],
+			screen[1],
+			overlay
+		);
+		ScrollPane lay1 = new ScrollPane();
+		lay1.setMinSize(640,480);		
+		lay1.setContent(lay0);
+		lay1.setContextMenu(create_menu());
+		setCenter(lay1);
 	}
+	
+	/*public Pane genBoard(String title,int width,int height){		
+	if(board!=null){
+		//if we have already create board, just pass it~~~
+		return board;
+	}
+	overlay2.setOnMousePressed(event->{
+		Mark mk = getCurrentMark();
+		if(mk==null){ return; }
+		if(event.getButton()!=MouseButton.PRIMARY){
+			return;
+		}
+		pinVal[0] = pinVal[2] = (int)event.getX();
+		pinVal[1] = pinVal[3] = (int)event.getY();
+	});
+	overlay2.setOnMouseDragged(event->{
+		Mark mk = getCurrentMark();
+		if(mk==null){ return; }//Do we need this??
+		int mx = (int)event.getX();
+		int my = (int)event.getY();
+		switch(mk.type){
+		case MARK_PONT:
+			pinVal[0] = pinVal[2] = mx;
+			pinVal[1] = pinVal[3] = my;
+			break;
+		case MARK_RECT:
+			pinVal[2] = mx;
+			pinVal[3] = my;				
+			break;
+		}
+		drawPinPoint();
+	});
+	overlay2.setOnMouseReleased(event->{
+		Mark mk = getCurrentMark();
+		if(mk==null){ return; }//Do we need this??
+		if(event.getButton()!=MouseButton.PRIMARY){
+			return;
+		}
+		int mx = (int)event.getX();
+		int my = (int)event.getY();
+		switch(mk.type){
+		case MARK_PONT:
+			pinVal[0] = pinVal[2] = mx;
+			pinVal[1] = pinVal[3] = my;
+			break;
+		case MARK_RECT:
+			pinVal[2] = mx;
+			pinVal[3] = my;				
+			break;
+		}
+		mk.nail(pinVal);
+		refreshMark();
+	});
+
+	StackPane grp = new StackPane();
+	grp.getChildren().addAll(
+		screen[0]
+	);
+	
+	ScrollPane pan = new ScrollPane();
+	pan.setMinSize(width+13,height+13);		
+	pan.setContent(grp);
+	pan.setContextMenu(create_menu());
+	//pan.setFitToWidth(true);
+	//pan.setFitToHeight(true);
+	//HBox.setHgrow(lay2,Priority.ALWAYS);
+	
+	board = new BorderPane();
+	board.setCenter(pan);		
+	return board;		
+	}*/
 };
+
+
 
