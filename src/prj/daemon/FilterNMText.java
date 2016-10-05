@@ -42,7 +42,7 @@ public class FilterNMText extends ImgFilter {
 		btn.getStyleClass().add("btn-raised1");
 		btn.setMaxWidth(Double.MAX_VALUE);
 		btn.setOnAction(event->{
-			rndr.addFilter(FilterNMText.this);
+			rndr.attach(FilterNMText.this);
 		});
 		return btn;
 	}

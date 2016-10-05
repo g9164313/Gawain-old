@@ -14,6 +14,53 @@ extern void set_img_array(
 
 extern void drawEdge(Mat& overlay,const Mat& edge);
 
+extern void drawRectangle(
+	Mat& overlay,
+	Rect rec,
+	const Scalar& color,
+	int thickness = 1,
+	int lineType = LINE_8
+);
+
+extern void drawRectangle(
+	Mat& overlay,
+	Point pt1,
+	Point pt2,
+	const Scalar& color,
+	int thickness = 1,
+	int lineType = LINE_8
+);
+
+extern void drawCrossT(
+	Mat& overlay,
+	Point pts,
+	const Scalar& color,
+	int thickness = 1,
+	int lineSize = 10
+);
+
+extern void drawCrossX(
+	Mat& overlay,
+	Point pts,
+	const Scalar& color,
+	int thickness = 1,
+	int lineSize = 10
+);
+
+extern void drawPolyline(
+	Mat& overlay,
+	vector<Point>& cts,
+	const Scalar& color,
+	int thickness = 1,
+	int lineType = LINE_8
+);
+
+extern void drawContour(
+	Mat& overlay,
+	vector<vector<Point> >& cts,
+	const Scalar& color
+);
+
 #define MACRO_SET_IMG_INFO(ova) set_img_array(env,bundle,idImgInfo,ova,"imgInfo",".png");
 
 //--------------------------------------------//

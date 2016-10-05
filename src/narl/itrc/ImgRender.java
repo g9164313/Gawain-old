@@ -214,21 +214,21 @@ public class ImgRender {
 		return this;
 	}
 	
-	public ImgRender addFilter(ImgFilter fltr){
-		if(lstFilter.contains(fltr)==true){
-			Misc.logw("已經有Filter");
-			return this;
+	public ImgRender attach(ImgFilter... list){
+		for(ImgFilter fltr:list){
+			if(lstFilter.contains(fltr)==false){
+				lstFilter.add(fltr);
+			}
 		}
-		lstFilter.add(fltr);
 		return this;
 	}
 	
-	public ImgRender addFilter(ImgFilter... list){
-		for(int i=0; i<list.length; i++){
-			addFilter(list[i]);
+	public void detach(ImgFilter fltr){
+		if(lstFilter.contains(fltr)==true){
+			lstFilter.remove(fltr);
 		}
-		return this;
 	}
+	
 	//--------------------------------------------//
 	
 	private static class FilterExecIJ extends ImgFilter {

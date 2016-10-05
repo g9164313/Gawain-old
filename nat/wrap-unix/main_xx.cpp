@@ -23,7 +23,7 @@ int main(int argc, char* argv[]) {
 		Point(-1,-1)
 	);
 	dilate(nod1,nod2,kern);
-	imwrite("./gg2/cc1.png",nod2);
+	//imwrite("./gg2/cc1.png",nod2);
 
 	vector<vector<Point> > cts;
 	findContours(nod2,cts,RETR_LIST,CHAIN_APPROX_SIMPLE);

@@ -57,9 +57,9 @@ public class ImgPreview extends BorderPane {
 			return;
 		}
 		screen[0].setImage(imdata[0]);
-		screen[1].setImage(imdata[1]);
-		//check overlay dimension,always~~~
+		screen[1].setImage(imdata[1]);		
 		if(imdata[0]!=null){
+			//check overlay dimension,always~~~
 			int sw = (int)imdata[0].getWidth();
 			int sh = (int)imdata[0].getHeight();
 			int dw = (int)overlay.getWidth();

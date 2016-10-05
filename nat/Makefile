@@ -60,12 +60,12 @@ ROOT_MULTICAM:=/opt/euresys/multicam
 
 INC_MULTICAM:=-I$(ROOT_MULTICAM)/include
 
-LIB_MULTICAM:= -L$(ROOT_MULTICAM) -lMultiCam 
+LIB_MULTICAM:=-L$(ROOT_MULTICAM) -lMultiCam 
 
 
-#############################
-### decide configuration ####
-#############################
+########################
+###  configuration  ####
+########################
 
 CC=g++
 
@@ -85,20 +85,23 @@ LD_LIBS = $(shell pkg-config --libs opencv)
 LD_LIBS += $(LIB_FLYCAPTURE)
 #LD_LIBS += $(LIB_MULTICAM)
 #LD_LIBS += $(LIB_PYLON)
+########################
 
 #SFR_MITRE =  ./SFR/sfr_iso.c ./SFR/find_area.c
-IMG_FILTER = FilterLetterpress.cpp
+IMG_FILTER = 
+
 #DEV_CAMERA = CamVidcap.cpp 
 #DEV_CAMERA = CamVidcap.cpp CamMulticam.cpp 
-DEV_CAMERA = CamVidcap.cpp CamFlyCapture.cpp 
+DEV_CAMERA = CamVidcap.cpp CamFlyCapture.cpp
 
-#################
+PRJ_CUSTOM = PrjLetterpress.cpp
+########################
 
 OBJECTS = $(SOURCES:.cpp=.o)
 
 CHECK_EXEC := $(word 2,$(shell pgrep -f "narl.itrc.Gawain"))
 
-$(TARGET_SO): utils_jni.cpp utils_cv.cpp CamBundle.cpp DevTTY.cpp $(IMG_FILTER) $(DEV_CAMERA) 
+$(TARGET_SO): utils_jni.cpp utils_cv.cpp CamBundle.cpp DevTTY.cpp $(IMG_FILTER) $(DEV_CAMERA) $(PRJ_CUSTOM)
 	$(CC) $(CC_FLAG)  -fPIC -shared -o $@ $^ $(LD_LIBS)
 	cp -rf $@ ../bin/narl/itrc/nat
 	cp -rf $@ ../src/narl/itrc/nat

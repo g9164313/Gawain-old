@@ -45,7 +45,7 @@ public class FilterIsBlur extends ImgFilter {
 		btn.getStyleClass().add("btn-raised1");
 		btn.setMaxWidth(Double.MAX_VALUE);
 		btn.setOnAction(event->{
-			rndr.addFilter(FilterIsBlur.this);
+			rndr.attach(FilterIsBlur.this);
 		});
 		
 		txtParm[0].setPrefWidth(80);

@@ -46,9 +46,106 @@ void drawEdge(Mat& overlay,const Mat& edge){
 	merge(chan,4,overlay);
 }
 
-extern "C" JNIEXPORT jbyteArray JNICALL Java_narl_itrc_CamBundle_getData(
+void drawRectangle(
+	Mat& overlay,
+	Rect rec,
+	const Scalar& color,
+	int thickness,
+	int lineType
+){
+	Scalar clr = color;
+	clr[3] = 255;
+	rectangle(overlay,rec,clr,thickness,lineType);
+}
+
+void drawRectangle(
+	Mat& overlay,
+	Point pt1,
+	Point pt2,
+	const Scalar& color,
+	int thickness,
+	int lineType
+){
+	Scalar clr = color;
+	clr[3] = 255;
+	rectangle(overlay,pt1,pt2,clr,thickness,lineType);
+}
+
+void drawCrossT(
+	Mat& overlay,
+	Point pts,
+	const Scalar& color,
+	int thickness,
+	int lineSize
+){
+	Scalar clr = color;
+	clr[3] = 255;
+	lineSize = lineSize/2;
+	Point p1,p2;
+	p1 = p2 = pts;
+	p1.x = p1.x - lineSize;
+	p2.x = p2.x + lineSize;
+	line(overlay,p1,p2,clr,thickness);
+	p1 = p2 = pts;
+	p1.y = p1.y - lineSize;
+	p2.y = p2.y + lineSize;
+	line(overlay,p1,p2,clr,thickness);
+}
+
+void drawCrossX(
+	Mat& overlay,
+	Point pts,
+	const Scalar& color,
+	int thickness,
+	int lineSize
+){
+	Scalar clr = color;
+	clr[3] = 255;
+	lineSize = ceil((lineSize*1.414213562f)/4.f);
+	Point p1,p2;
+	p1 = p2 = pts;
+	p1.x = p1.x - lineSize;
+	p1.y = p1.y - lineSize;
+	p2.x = p2.x + lineSize;
+	p2.y = p2.y + lineSize;
+	line(overlay,p1,p2,clr,thickness);
+	p1 = p2 = pts;
+	p1.x = p1.x + lineSize;
+	p1.y = p1.y - lineSize;
+	p2.x = p2.x - lineSize;
+	p2.y = p2.y + lineSize;
+	line(overlay,p1,p2,clr,thickness);
+}
+
+void drawPolyline(
+	Mat& overlay,
+	vector<Point>& cts,
+	const Scalar& color,
+	int thickness,
+	int lineType
+){
+	Scalar clr = color;
+	clr[3] = 255;
+	polylines(overlay, cts, true, clr, thickness, lineType);
+}
+
+void drawContour(
+	Mat& overlay,
+	vector<vector<Point> >& cts,
+	const Scalar& color
+){
+	Scalar clr = color;
+	clr[3] = 255;
+	drawContours(
+		overlay,
+		cts, -1,
+		clr
+	);
+}
+
+/*extern "C" JNIEXPORT jbyteArray JNICALL Java_narl_itrc_CamBundle_getData(
 	JNIEnv* env,
-	jobject bundle /*this object must be class 'CamBundle'*/
+	jobject bundle
 ){
 	MACRO_PREPARE
 	if(buff==NULL){
@@ -64,11 +161,11 @@ extern "C" JNIEXPORT jbyteArray JNICALL Java_narl_itrc_CamBundle_getData(
 		(jbyte*)&buf[0]
 	);
 	return arrBuf;
-}
+}*/
 
 extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamBundle_saveImage(
 	JNIEnv * env,
-	jobject bundle, /*this object must be class 'CamBundle'*/
+	jobject bundle,
 	jstring jname
 ){
 	MACRO_PREPARE
