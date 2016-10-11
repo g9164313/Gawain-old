@@ -13,6 +13,7 @@ import javafx.scene.layout.Priority;
 import javafx.stage.WindowEvent;
 import narl.itrc.BoxLogger;
 import narl.itrc.CamBundle;
+import narl.itrc.CamFlyCapture;
 import narl.itrc.CamVidcap;
 import narl.itrc.DevTTY;
 import narl.itrc.ImgRender;
@@ -25,8 +26,10 @@ public class Entry extends PanBase {
 		//firstAction = FIRST_MAXIMIZED;
 	}
 
-	public static CamBundle cam0 = new CamVidcap("0");
-	public static CamBundle cam1 = new CamVidcap("1");	
+	//public static CamBundle cam0 = new CamVidcap("0");
+	//public static CamBundle cam1 = new CamVidcap("1");
+	public static CamBundle cam0 = new CamFlyCapture("s:16025855");
+	public static CamBundle cam1 = new CamFlyCapture("s:16138125");
 	public static ImgRender rndr = new ImgRender(cam0,cam1);
 	
 	public static DevB140M stg0 = new DevB140M("/dev/ttyS0,115200,8n1");
@@ -42,19 +45,19 @@ public class Entry extends PanBase {
 	/**
 	 * this flag means that we don't enable camera (render stage)
 	 */
-	private boolean camDryRun = false;
+	private boolean camEnable = true;
 	
 	/**
 	 * this flag means that we don't enable motion stage
 	 */
-	private boolean stgDryRun = true;
+	private boolean stgEnable = false;
 
 	@Override
 	protected void eventShown(WindowEvent e){
-		if(camDryRun==false){
+		if(camEnable==true){
 			rndr.play();
 		}
-		if(stgDryRun==false){
+		if(stgEnable==true){
 			//10pps <==> 50um
 			stg0.setFactor(200,200,200,200);
 			stg0.setTokenBase('A');
@@ -71,7 +74,7 @@ public class Entry extends PanBase {
 	
 	@Override
 	protected void eventClose(WindowEvent e){
-		if(camDryRun==false){
+		if(camEnable==false){
 			rndr.stop();//let application release resource~~
 		}	
 	}

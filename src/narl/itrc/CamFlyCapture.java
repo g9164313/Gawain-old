@@ -4,17 +4,57 @@ import javafx.scene.Parent;
 
 public class CamFlyCapture extends CamBundle {
 
-	
-	public CamFlyCapture(){
+	/**
+	 * user can assign camera by serial-number or index.<p>
+	 * @param conf - default is the index of camera<p> 
+	 *     "1" - the first camera, one-based.<p> 
+	 *     "s:12345" - match serial number.<p>
+	 */
+	public CamFlyCapture(String conf){
+		super(conf);
 	}
 	
-	private native void implSetup(CamBundle cam);
+	/**
+	 * just get the first camera
+	 */
+	public CamFlyCapture(){
+		super("");
+	}
+	
+	private native void implSetup(CamBundle cam,int index,boolean isSeral);
 	private native void implFetch(CamBundle cam);
 	private native void implClose(CamBundle cam);
 	
 	@Override
 	public void setup() {
-		implSetup(this);
+		int indx = 0;
+		boolean flag = false;
+		
+		String conf = txtConfig;
+		if(conf.length()!=0){
+			if(conf.startsWith("s:")){
+				flag = true;
+				conf = conf.substring(2);
+				try{
+					indx = Integer.valueOf(conf);//this is serial-number
+				}catch(NumberFormatException e){
+					indx = 0;
+					flag = false;
+				}
+			}else{
+				//index is zero-based!!!
+				try{
+					indx = Integer.valueOf(txtConfig) - 1;
+					if(indx<0){
+						indx = 0;//reset it~~
+					}
+				}catch(NumberFormatException e){
+					indx = 0;
+				}
+			}
+		}
+		
+		implSetup(this,indx,flag);
 	}
 
 	@Override

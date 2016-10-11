@@ -113,15 +113,15 @@ else
 endif
 	
 
-$(TARGET_EXE):  ./wrap-unix/main_xx.cpp FilterIsBlur.cpp utils_cv.cpp
-#$(TARGET_EXE):  ./wrap-unix/main4.cpp
+#$(TARGET_EXE):  ./wrap-unix/main_xx.cpp FilterIsBlur.cpp utils_cv.cpp
+$(TARGET_EXE):  ./wrap-unix/FlyCap2.cpp
 	$(CC) $(CC_FLAG) -o $@ $^ $(LD_LIBS)
 
 #$(TARGET_EXE):  /home/qq/labor/opencv-3.1/contrib/modules/text/samples/character_recognition.cpp
 #	$(CC) $(CC_FLAG) -o $@ $^ $(LD_LIBS)
 
 all: $(TARGET_SO)
-#all: $(TARGET_EXE)
+all: $(TARGET_EXE)
 #all: $(TARGET_EXE) $(TARGET_SO) 
 
 clean:

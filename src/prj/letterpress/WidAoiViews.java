@@ -34,7 +34,7 @@ public class WidAoiViews extends BorderPane {
 		@Override
 		public void cookData(ArrayList<ImgPreview> list) {
 			inst.implFindTarget(list.get(0).bundle,step);
-			inst.implFindTarget(list.get(1).bundle,step);
+			//inst.implFindTarget(list.get(1).bundle,step);
 			//implements, stage go~~~~
 		}
 		@Override

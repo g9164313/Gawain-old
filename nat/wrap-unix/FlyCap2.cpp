@@ -13,6 +13,23 @@ int main()
 	Camera camera;
 	CameraInfo camInfo;
 
+	BusManager bus;
+	unsigned int cnt;
+	error = bus.GetNumOfCameras(&cnt);
+	if (error != PGRERROR_OK){
+		return -2;
+	}
+
+	PGRGuid guid;
+	for(int i=0; i<cnt; i++){
+		error = bus.GetCameraFromIndex( i, &guid );
+		printf("%X-%X-%X-%X\n\n",
+			guid.value[0],guid.value[1],
+			guid.value[2],guid.value[3]
+		);
+	}
+	return 0;
+
 	// Connect the camera
     error = camera.Connect( 0 );
     if ( error != PGRERROR_OK )

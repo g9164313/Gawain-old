@@ -97,6 +97,8 @@ extern void drawContour(
 	env->SetLongField(bundle, idCntx ,(jlong)(cntx)); \
 	MACRO_RESET_FIELD(buff,width,height,type)
 
+#define MACRO_SETUP_END0() MACRO_SETUP_END(0,0,0,0,0)
+
 #define MACRO_SETUP_END1(cntx) MACRO_SETUP_END(cntx,0,0,0,0)
 
 #define MACRO_SETUP_END2(cntx,type) MACRO_SETUP_END(cntx,0,0,0,type)
