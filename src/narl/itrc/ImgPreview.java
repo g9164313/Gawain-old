@@ -196,9 +196,8 @@ public class ImgPreview extends BorderPane {
 	private final ToggleGroup roiType = new ToggleGroup();
 	
 	private ContextMenu create_menu(){		
-		final 
-		ContextMenu root = new ContextMenu();
-		for(int i=0; i<mark.length; i++){			
+		final ContextMenu root = new ContextMenu();
+		/*for(int i=0; i<mark.length; i++){			
 			Menu subs = new Menu("標記 "+i);
 			for(int j=0; j<markTypeName.length; j++){
 				RadioMenuItem chk = new RadioMenuItem(markTypeName[j]);
@@ -214,7 +213,7 @@ public class ImgPreview extends BorderPane {
 				subs.getItems().add(chk);
 			}
 			root.getItems().add(subs);
-		}
+		}*/
 		
 		MenuItem itm;
 		itm = new MenuItem("執行 ImageJ");
@@ -227,6 +226,12 @@ public class ImgPreview extends BorderPane {
 		itm.setOnAction(event->{
 			clearMark(-1);//clear all mark~~~~
 			roiType.selectToggle(null);
+		});
+		root.getItems().add(itm);
+		
+		itm = new MenuItem("setting");
+		itm.setOnAction(event->{
+			bundle.genPanelSetting(null);
 		});
 		root.getItems().add(itm);
 		return root;

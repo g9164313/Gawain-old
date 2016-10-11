@@ -25,6 +25,8 @@ public class CamFlyCapture extends CamBundle {
 	private native void implFetch(CamBundle cam);
 	private native void implClose(CamBundle cam);
 	
+	private native void implShowCtrl(CamBundle cam);
+	
 	@Override
 	public void setup() {
 		int indx = 0;
@@ -67,9 +69,11 @@ public class CamFlyCapture extends CamBundle {
 		implClose(this);
 	}
 
+	private long ptrDlgCtrl = 0;
+	
 	@Override
 	public Parent genPanelSetting(PanBase pan) {
-		// TODO Auto-generated method stub
+		implShowCtrl(this);
 		return null;
 	}
 

@@ -7,6 +7,7 @@
 #include <global.hpp>
 #include <CamBundle.hpp>
 #include "FlyCapture2.h"
+#include "FlyCapture2GUI.h"
 
 using namespace FlyCapture2;
 
@@ -150,9 +151,30 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamFlyCapture_implClose(
 		cam->Disconnect();
 		delete cam;
 	}
+	CameraControlDlg* dlg = (CameraControlDlg*)(getJlong(env,thiz,"ptrDlgCtrl"));
+	if(dlg!=NULL){
+		delete dlg;
+	}
 	MACRO_CLOSE_END
 }
 
-
+extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamFlyCapture_implShowCtrl(
+	JNIEnv* env,
+	jobject thiz,
+	jobject bundle
+){
+	MACRO_FETCH_BEG
+	if(cntx==NULL){
+		return;
+	}
+	Camera* cam = (Camera*)cntx;
+	CameraControlDlg* dlg = (CameraControlDlg*)(getJlong(env,thiz,"ptrDlgCtrl"));
+	if(dlg==NULL){
+		dlg = new CameraControlDlg();
+		dlg->Connect(cam);
+		dlg->ShowModal();
+		setJlong(env,thiz,"ptrDlgCtrl",(jlong)dlg);
+	}
+}
 
 
