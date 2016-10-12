@@ -132,6 +132,10 @@ public class DevDIO3232 implements Gawain.EventHook {
 	}
 	
 	@Override
+	public void release() {
+	}
+	
+	@Override
 	public void shutdown() {
 		close();
 	}

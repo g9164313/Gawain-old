@@ -22,6 +22,11 @@ public class DevTTY implements Gawain.EventHook {
 	}
 	
 	@Override
+	public void release() {
+		close();
+	}
+	
+	@Override
 	public void shutdown() {
 		close();
 	}

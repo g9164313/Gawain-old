@@ -18,6 +18,10 @@ public abstract class CamBundle implements Gawain.EventHook {
 	}
 	
 	@Override
+	public void release() {
+	}
+	
+	@Override
 	public void shutdown() {
 		close();
 	}	

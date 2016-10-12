@@ -9,13 +9,25 @@ import com.sun.glass.ui.Application;
 
 import javafx.concurrent.Task;
 
-public class ImgRender {
+public class ImgRender implements Gawain.EventHook {
 	
 	public ImgRender(){
+		Gawain.hook(this);
 	}
 	
-	public ImgRender(CamBundle... list){
-		addPreview(list);
+	public ImgRender(CamBundle... list){		
+		this();
+		addPreview(list);		
+	}
+
+	@Override
+	public void release() {
+		stop();
+	}
+
+	@Override
+	public void shutdown() {
+		//camera will be released in this stage~~~~
 	}
 	
 	private ArrayBlockingQueue<ImgFilter> lstFilter = new ArrayBlockingQueue<ImgFilter>(100);
@@ -80,7 +92,7 @@ public class ImgRender {
 	public ImgRender play(){
 		if(looper!=null){
 			if(looper.isDone()==false){
-				return this;//looper is running,keep from reentry
+				return this;
 			}
 		}		
 		looper = new Task<Integer>(){
@@ -93,7 +105,7 @@ public class ImgRender {
 				){	
 					//long diff = System.currentTimeMillis();
 					loopBody();
-					if(Application.GetApplication()==null){
+					if(Gawain.flgStop.get()==true){
 						break;//check application is valid
 					}
 					//diff = System.currentTimeMillis() - diff;
@@ -111,20 +123,16 @@ public class ImgRender {
 	 * @return self
 	 */
 	public ImgRender stop(){	
-		if(looper!=null){
-			if(looper.isDone()==true){
-				return this;//looper is dead!!!
-			}
+		if(looper==null){
+			return this;
 		}
-		looper.cancel();
-		//wait for working thread~~~
-		while(looper.isRunning()==true){
+		while(looper.isDone()==false){
+			looper.cancel();
 			try {
 				Thread.sleep(50);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
-			}
-			looper.cancel();
+			}			
 		}		
 		return this;
 	}
@@ -228,7 +236,6 @@ public class ImgRender {
 			lstFilter.remove(fltr);
 		}
 	}
-	
 	//--------------------------------------------//
 	
 	private static class FilterExecIJ extends ImgFilter {

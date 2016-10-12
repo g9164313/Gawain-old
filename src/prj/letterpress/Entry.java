@@ -24,12 +24,15 @@ public class Entry extends PanBase {
 
 	public Entry(){
 		firstAction = FIRST_MAXIMIZED;
+		instance = this;
 	}
 
-	//public static CamBundle cam0 = new CamVidcap("0");
-	//public static CamBundle cam1 = new CamVidcap("1");
-	public static CamBundle cam0 = new CamFlyCapture("s:16025855");
-	public static CamBundle cam1 = new CamFlyCapture("s:16138125");
+	public static Entry instance = null;
+	
+	public static CamBundle cam0 = new CamVidcap("0");
+	public static CamBundle cam1 = new CamVidcap("1");
+	//public static CamBundle cam0 = new CamFlyCapture("s:16025855");
+	//public static CamBundle cam1 = new CamFlyCapture("s:16138125");
 	public static ImgRender rndr = new ImgRender(cam0,cam1);
 	
 	public static DevB140M stg0 = new DevB140M("/dev/ttyS0,115200,8n1");

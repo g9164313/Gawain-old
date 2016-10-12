@@ -4,9 +4,7 @@ import com.sun.glass.ui.Application;
 
 import javafx.scene.canvas.Canvas;
 import javafx.scene.control.ContextMenu;
-import javafx.scene.control.Menu;
 import javafx.scene.control.MenuItem;
-import javafx.scene.control.RadioMenuItem;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Toggle;
 import javafx.scene.control.ToggleGroup;
@@ -195,7 +193,7 @@ public class ImgPreview extends BorderPane {
 	
 	private final ToggleGroup roiType = new ToggleGroup();
 	
-	private ContextMenu create_menu(){		
+	private ContextMenu prpare_mouse_context(){		
 		final ContextMenu root = new ContextMenu();
 		/*for(int i=0; i<mark.length; i++){			
 			Menu subs = new Menu("標記 "+i);
@@ -216,61 +214,47 @@ public class ImgPreview extends BorderPane {
 		}*/
 		
 		MenuItem itm;
+		
+		itm = new MenuItem("拍照儲存");
+		itm.setOnAction(event->{
+			render.snap("snap.png");
+		});
+		root.getItems().add(itm);
+		
 		itm = new MenuItem("執行 ImageJ");
 		itm.setOnAction(event->{
 			render.execIJ(this);
 		});
 		root.getItems().add(itm);
 		
-		itm = new MenuItem("取消標記");
+		//itm = new MenuItem("取消標記");
+		//itm.setOnAction(event->{
+		//	clearMark(-1);//clear all mark~~~~
+		//	roiType.selectToggle(null);
+		//});
+		//root.getItems().add(itm);
+		
+		itm = new MenuItem("設定相機");
 		itm.setOnAction(event->{
-			clearMark(-1);//clear all mark~~~~
-			roiType.selectToggle(null);
+			bundle.genPanelSetting(null);
 		});
 		root.getItems().add(itm);
 		
-		itm = new MenuItem("setting");
+		itm = new MenuItem("清除畫面");
 		itm.setOnAction(event->{
-			bundle.genPanelSetting(null);
+			bundle.clearImgInfo();
 		});
 		root.getItems().add(itm);
 		return root;
 	}
 
 	//protected static final Color clrGround = Color.web("#b0bec5");
-	
 	/*public void clearAll(){
 		overlay1.getGraphicsContext2D().clearRect(
 			0, 0, 
 			overlay1.getWidth(), overlay1.getHeight()
 		);
 	}*/
-	
-	/*public void drawRect(int[] rect){
-		if(rect==null){
-			return;
-		}
-		GraphicsContext gc = overlay1.getGraphicsContext2D();
-		gc.setStroke(Color.GREENYELLOW);
-		gc.setLineWidth(2);
-		for(int i=0; i<rect.length; i+=4){
-			gc.strokeRect(
-				rect[i+0],rect[i+1],
-				rect[i+2],rect[i+3]
-			);
-		}
-	}
-	
-	public void drawContour(int[] pts){
-		if(pts==null){
-			return;
-		}
-		GraphicsContext gc = overlay1.getGraphicsContext2D();
-		gc.setStroke(Color.GREENYELLOW);
-		for(int i=0; i<pts.length; i+=2){
-			//gc.strokePolygon(xPoints, yPoints, nPoints);
-		}
-	}*/	
 	//--------------------------//
 
 	private void init_layout(){
@@ -283,7 +267,7 @@ public class ImgPreview extends BorderPane {
 		ScrollPane lay1 = new ScrollPane();
 		lay1.setMinSize(640,480);		
 		lay1.setContent(lay0);
-		lay1.setContextMenu(create_menu());
+		lay1.setContextMenu(prpare_mouse_context());
 		setCenter(lay1);
 	}
 	

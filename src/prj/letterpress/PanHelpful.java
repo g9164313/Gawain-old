@@ -17,11 +17,11 @@ import javafx.scene.control.TextField;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 import narl.itrc.DevMotion;
 import narl.itrc.Misc;
+import narl.itrc.PanBase;
 import narl.itrc.PanDecorate;
 
 public class PanHelpful extends PanDecorate {
@@ -196,13 +196,17 @@ public class PanHelpful extends PanDecorate {
 			layoutOption4()
 		);
 		
+		Button btnClose = PanBase.genButton3("關閉程式","close.png");	
+		btnClose.setOnAction(event->{Entry.instance.dismiss();});
+		
 		HBox lay1 = new HBox();
 		lay1.getStyleClass().add("hbox-small");
 		lay1.getChildren().addAll(
 			layoutOption1(),
 			new Separator(Orientation.VERTICAL),
 			lay2,
-			new Separator(Orientation.VERTICAL)
+			new Separator(Orientation.VERTICAL),
+			btnClose
 		);
 		return lay1;
 	}

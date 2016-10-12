@@ -24,8 +24,9 @@ extern void drawRectangle(
 
 extern void drawRectangle(
 	Mat& overlay,
-	Point pt1,
-	Point pt2,
+	Point center,
+	int width,
+	int height,
 	const Scalar& color,
 	int thickness = 1,
 	int lineType = LINE_8
@@ -34,17 +35,17 @@ extern void drawRectangle(
 extern void drawCrossT(
 	Mat& overlay,
 	Point pts,
+	int lineSize,
 	const Scalar& color,
-	int thickness = 1,
-	int lineSize = 10
+	int thickness = 1
 );
 
 extern void drawCrossX(
 	Mat& overlay,
 	Point pts,
+	int lineSize,
 	const Scalar& color,
-	int thickness = 1,
-	int lineSize = 10
+	int thickness = 1
 );
 
 extern void drawPolyline(
@@ -57,8 +58,7 @@ extern void drawPolyline(
 
 extern void drawContour(
 	Mat& overlay,
-	vector<vector<Point> >& cts,
-	const Scalar& color
+	vector<vector<Point> >& cts
 );
 
 #define MACRO_SET_IMG_INFO(ova) set_img_array(env,bundle,idImgInfo,ova,"imgInfo",".png");

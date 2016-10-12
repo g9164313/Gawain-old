@@ -6,9 +6,9 @@
 #include <utils_ipc.hpp>
 #include <algorithm>
 
-
-int main(int argc, char* argv[]) {
-	const char* name = "./gg2/16138125-2016-09-20-154907.pgm";
+int main3(int argc, char* argv[]) {
+	//const char* name = "./gg2/16138125-2016-09-20-154907.pgm";
+	const char* name = "./gg2/test-image.png";
 	Mat img = imread(name,IMREAD_GRAYSCALE);
 	Mat ova = imread(name,IMREAD_COLOR);
 
@@ -81,7 +81,11 @@ int main(int argc, char* argv[]) {
 			if(scoreRect>0.7){
 				continue;
 			}
+			if(isContourConvex(approx)==false){
+				continue;
+			}
 			locaRect.push_back(rect.center);
+			polylines(ova, approx, true, Scalar(255,0,255));
 		}else{
 			if(scoreCross>0.7){
 				continue;
@@ -126,7 +130,29 @@ int main(int argc, char* argv[]) {
 
 	return 0;
 }
+//--------------------------------------//
 
+int main(int argc, char* argv[]){
+	//generate color mapping~~~~
+	Mat src(1,256,CV_8UC1);
+	Mat dst(1,256,CV_8UC3);
+	for(int i=0; i<256; i++){
+		src.at<uint8_t>(0,i) = i;
+	}
+	//cout<<src<<endl;
+	applyColorMap(src,dst,COLORMAP_JET);
+	cout<<"static Scalar clr_jet[]={"<<endl<<"\t";
+	for(int i=0; i<256; i++){
+		Vec3b pix = dst.at<Vec3b>(0,i);
+		printf("Scalar(%3d,%3d,%3d,255), ",pix[2],pix[1],pix[0]);
+		if(i%4==3){
+			printf("\n\t");
+		}
+	}
+	cout<<"};"<<endl;
+	//cout<<dst<<endl;
+	return 0;
+}
 //--------------------------------------//
 
 extern "C" int IsBlurred(

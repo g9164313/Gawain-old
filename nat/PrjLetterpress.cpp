@@ -4,7 +4,7 @@
  *  Created on: 2016年10月3日
  *      Author: qq
  */
-#include <vision.hpp>
+#include <global.hpp>
 #include <CamBundle.hpp>
 
 static vector<Point> shapeRect,shapeCross;
@@ -36,9 +36,11 @@ extern "C" JNIEXPORT void JNICALL Java_prj_letterpress_WidAoiViews_implInitShape
 	shapeCross.push_back(Point(wh      , wh      ));
 }
 
-static int param[4] = {2000,5000,7,3};
+#define PARAM_SIZE 5
 
-void getParam(
+static int param[PARAM_SIZE] = {2000,0,7,3,7};
+
+void getParameter(
 	JNIEnv* env,
 	jobject thiz
 ){
@@ -48,7 +50,25 @@ void getParam(
 	);
 	jobject obj = env->GetObjectField(thiz,id);
 	jintArray arr=*(reinterpret_cast<jintArray*>(&obj));
-	env->GetIntArrayRegion(arr,0,4,param);
+	env->GetIntArrayRegion(arr,0,PARAM_SIZE,param);
+}
+
+void setPosition(
+	JNIEnv* env,
+	jobject thiz,
+	const char* name,
+	Point value
+){
+	jintArray jpos;
+	jint* pos = intArray2Ptr(
+		env,
+		env->GetObjectClass(thiz),
+		thiz,
+		name,jpos
+	);
+	pos[0] = value.x;
+	pos[1] = value.y;
+	env->ReleaseIntArrayElements(jpos,pos,0);
 }
 
 extern "C" JNIEXPORT void JNICALL Java_prj_letterpress_WidAoiViews_implFindTarget(
@@ -58,17 +78,24 @@ extern "C" JNIEXPORT void JNICALL Java_prj_letterpress_WidAoiViews_implFindTarge
 	jint step
 ){
 	MACRO_PREPARE
-	if(buff==NULL){
+	if(cntx==NULL){
 		return;
 	}
+
 	Mat src(height,width,type,buff);
 	Mat img = checkMono(src);
 	Mat ova = Mat::zeros(img.size(),CV_8UC4);
 
-	getParam(env,thiz);
+	getParameter(env,thiz);
 
 	Mat nod1,nod2;
-	Canny(img,nod1,param[0],param[1],param[2],true);
+	Canny(
+		img,nod1,
+		param[0],
+		param[0]+param[1],
+		param[2],
+		true
+	);
 
 	Mat kern = getStructuringElement(
 		MORPH_ELLIPSE,
@@ -84,24 +111,17 @@ extern "C" JNIEXPORT void JNICALL Java_prj_letterpress_WidAoiViews_implFindTarge
 
 	vector<vector<Point> > cts;
 	findContours(nod2,cts,RETR_LIST,CHAIN_APPROX_SIMPLE);
-	if(step==2){
-		cout<<"findContours="<<cts.size()<<endl;
-		drawContour(ova,cts,Scalar(0,255,0));
-		MACRO_SET_IMG_INFO(ova);
-		return;
-	}
 	if(cts.size()==0){
-		cerr<<"fail to find contours!!"<<endl;
 		return;
 	}
+
+	double leastScore = ((double)param[5])/((double)param[6]);
 
 	vector<Point> locaRect,locaCross;
 	for(int i=0; i<cts.size(); i++){
 		vector<Point> approx;
-
 		Mat points(cts[i]);
-		approxPolyDP(points, approx, 7, true);
-
+		approxPolyDP(points, approx, param[4], true);
 		if(approx.size()<4){
 			continue;
 		}
@@ -116,31 +136,41 @@ extern "C" JNIEXPORT void JNICALL Java_prj_letterpress_WidAoiViews_implFindTarge
 		);
 		RotatedRect rect = minAreaRect(approx);
 		if(scoreRect<scoreCross){
-			if(scoreRect>0.7){
+			if(scoreRect>0.05){
+				continue;
+			}
+			if(isContourConvex(approx)==false){
 				continue;
 			}
 			locaRect.push_back(rect.center);
 		}else{
-			if(scoreCross>0.7){
+			if(scoreCross>0.05){
+				continue;
+			}
+			if(isContourConvex(approx)==true){
 				continue;
 			}
 			locaCross.push_back(rect.center);
 		}
 	}
+	if(step==2){
+		drawContour(ova,cts);
+		MACRO_SET_IMG_INFO(ova);
+		return;
+	}
+
 	if(locaRect.size()>0){
-		Point vtx = average(locaRect);
+		Point pos = average(locaRect);
+		setPosition(env,thiz,"posRect",pos);
 		if(step==3){
-			Rect rr(
-				vtx.x-50,vtx.y-50,
-				100,100
-			);
-			drawRectangle(ova,rr,Scalar(0,255,255,255));
+			drawRectangle(ova,pos,30,30,Scalar(0,255,255),3);
 		}
 	}
 	if(locaCross.size()>0){
-		Point vtx = average(locaCross);
+		Point pos = average(locaCross);
+		setPosition(env,thiz,"posCross",pos);
 		if(step==3){
-			drawCrossT(ova,vtx,Scalar(255,0,0,255),3,30);
+			drawCrossT(ova,pos,30,Scalar(255,0,0),3);
 		}
 	}
 	if(step==3){

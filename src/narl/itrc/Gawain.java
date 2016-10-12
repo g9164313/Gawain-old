@@ -15,6 +15,7 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.jar.JarFile;
 
 import javafx.animation.KeyFrame;
@@ -35,7 +36,8 @@ import narl.itrc.nat.Loader;
 
 public class Gawain extends Application {
 	
-	public interface EventHook {		
+	public interface EventHook {
+		public void release();
 		public void shutdown();		
 	}
 	
@@ -49,7 +51,10 @@ public class Gawain extends Application {
 	}
 	
 	private static void hookShutdown(){
-		//release resource~~~
+		//It is 'multiple-stage'，not sequence~~~
+		for(EventHook h:hook){
+			h.release();
+		}
 		for(EventHook h:hook){
 			h.shutdown();
 		}
@@ -282,30 +287,29 @@ public class Gawain extends Application {
 		}
 	}
 	
+	public static AtomicBoolean flgStop = new AtomicBoolean(false);
+	
 	@Override
 	public void stop() throws Exception {
 		//Do we need to close render looper???
+		flgStop.set(true);
 		PanBase.msgBox.stop();
 	}
-	 
-	private static boolean optUnpack = false;
 	
-	public static void main(String[] argv) {
-		propInit();
+	private static boolean optUnpack = false;
 		
+	public static void main(String[] argv) {
+		flgStop.set(false);
+		propInit();
 		//parse arguments~~~~
 		for(int i=0; i<argv.length; i++){
 			if(argv[i].toLowerCase().startsWith("-unpack")==true){
 				optUnpack = true;
 			}
 		}
-		
 		//liceBind();//check dark license~~~
-		
 		launch(argv);
-		
 		propSave();
-		
 		hookShutdown();
 	}
 }
