@@ -129,14 +129,17 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamFlyCapture_implFetch(
 		loge(env,"fail to fetch image");
 		return;
 	}
-	Mat tmp(
+	Mat src(
 		img.GetRows(),
 		img.GetCols(),
 		type,
 		img.GetData(),
 		(double)img.GetReceivedDataSize()/(double)img.GetRows()
 	);
-	MACRO_FETCH_COPY(tmp)
+	//scale???
+	Mat dst;
+	resize(src,dst,Size(img.GetCols()/2,img.GetRows()/2));
+	MACRO_FETCH_COPY(dst)
 }
 
 extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamFlyCapture_implClose(
@@ -172,8 +175,13 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamFlyCapture_implShowCtrl(
 	if(dlg==NULL){
 		dlg = new CameraControlDlg();
 		dlg->Connect(cam);
-		dlg->ShowModal();
+		dlg->SetTitle(">_<");
 		setJlong(env,thiz,"ptrDlgCtrl",(jlong)dlg);
+	}
+	if(dlg->IsVisible()==false){
+		dlg->ShowModal();
+	}else{
+		dlg->Hide();
 	}
 }
 

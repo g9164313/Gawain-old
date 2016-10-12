@@ -67,8 +67,6 @@ extern "C" JNIEXPORT void JNICALL Java_prj_letterpress_WidAoiViews_implFindTarge
 
 	getParam(env,thiz);
 
-	cout<<"param={"<<param[0]<<","<<param[1]<<","<<param[2]<<","<<param[3]<<"}"<<endl;
-
 	Mat nod1,nod2;
 	Canny(img,nod1,param[0],param[1],param[2],true);
 
@@ -131,11 +129,22 @@ extern "C" JNIEXPORT void JNICALL Java_prj_letterpress_WidAoiViews_implFindTarge
 	}
 	if(locaRect.size()>0){
 		Point vtx = average(locaRect);
+		if(step==3){
+			Rect rr(
+				vtx.x-50,vtx.y-50,
+				100,100
+			);
+			drawRectangle(ova,rr,Scalar(0,255,255,255));
+		}
 	}
 	if(locaCross.size()>0){
 		Point vtx = average(locaCross);
+		if(step==3){
+			drawCrossT(ova,vtx,Scalar(255,0,0,255),3,30);
+		}
 	}
-	//drawRectangle(ova,Rect(50,50,100,100),Scalar(0,0,255,0));
-	//drawCrossT(ova,Point(50,50),Scalar(0,0,255,0),5,30);
+	if(step==3){
+		MACRO_SET_IMG_INFO(ova);
+	}
 }
 

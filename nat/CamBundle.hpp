@@ -118,7 +118,7 @@ extern void drawContour(
 	_src.copyTo(_dst);
 
 #define MACRO_FETCH_COPY(_src) \
-	if(buff==NULL || width!=tmp.cols || height!=tmp.rows){ \
+	if(buff==NULL || width!=_src.cols || height!=_src.rows){ \
 		MACRO_FETCH_REMAP(_src) \
 		MACRO_RESET_FIELD(buff,width,height,type) \
 		set_img_array(env,bundle,idImgBuff,_dst,"imgBuff",".jpg");\

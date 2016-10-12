@@ -23,7 +23,7 @@ import narl.itrc.TskAction;
 public class Entry extends PanBase {
 
 	public Entry(){
-		//firstAction = FIRST_MAXIMIZED;
+		firstAction = FIRST_MAXIMIZED;
 	}
 
 	//public static CamBundle cam0 = new CamVidcap("0");
