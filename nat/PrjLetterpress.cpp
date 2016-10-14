@@ -83,7 +83,7 @@ static Point findTarget(
 	Mat& ova,
 	vector<Point>& shape,
 	vector<vector<Point> >& cts,
-	bool checkConvex,
+	bool checkRect,
 	int numVertex,
 	float silimarity,
 	float* score
@@ -97,12 +97,21 @@ static Point findTarget(
 		Mat points(cts[i]);
 		approxPolyDP(points, approx, param[5], true);
 		//cout<<"vtx="<<approx.size()<<",min="<<numVertex<<endl;
-		if(approx.size()<numVertex){
+		int vtx = approx.size();
+		if(vtx<numVertex || (3*numVertex)<vtx){
 			continue;
 		}
 		double area = contourArea(approx);
 		if(area<(30*30)){
-			continue;//area constrain~~~
+			continue;//noise???
+		}
+		RotatedRect rect = minAreaRect(approx);
+		if(checkRect==true){
+			double bound = rect.size.width * rect.size.height;
+			double ratio = min(area,bound)/max(area,bound);
+			if(ratio<0.8){
+				continue;
+			}
 		}
 		//if(isContourConvex(approx)==checkConvex){
 		//	continue;
@@ -117,7 +126,6 @@ static Point findTarget(
 		//cout<<"score="<<score_shp<<endl;
 		if(score_shp<silimarity){
 			//we found a similar target~~~
-			RotatedRect rect = minAreaRect(approx);
 			if(cnt==0){
 				loca = rect.center;
 			}else{
@@ -243,7 +251,7 @@ extern "C" JNIEXPORT jfloat JNICALL Java_prj_letterpress_WidAoiViews_implFindRec
 	Point cros(mask[0],mask[1]);
 	circle(
 		nod2,
-		cros,70,
+		cros,50,
 		Scalar::all(0),-1
 	);//erase something~~~
 	env->ReleaseIntArrayElements(jmask,mask,0);

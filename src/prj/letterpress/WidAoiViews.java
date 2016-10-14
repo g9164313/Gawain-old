@@ -96,7 +96,7 @@ public class WidAoiViews extends BorderPane {
 	 * 6: minimum score for Cross-T.<p>
 	 * 7: minimum score for Rectangle.<p>
 	 */
-	private int param[] = {100,190,100,5,5,7,70,70};
+	private int param[] = {100,190,10,5,5,7,70,70};
 
 	private double[] scoreCros = {0,0};
 	private int[][] locaCros = {{-1,-1},{-1,-1}};
