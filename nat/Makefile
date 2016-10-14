@@ -120,8 +120,8 @@ $(TARGET_EXE):  ./wrap-unix/main_xx.cpp CamBundle.cpp utils_cv.cpp utils_jni.cpp
 #$(TARGET_EXE):  /home/qq/labor/opencv-3.1/contrib/modules/text/samples/character_recognition.cpp
 #	$(CC) $(CC_FLAG) -o $@ $^ $(LD_LIBS)
 
-#all: $(TARGET_SO)
-all: $(TARGET_EXE)
+all: $(TARGET_SO)
+#all: $(TARGET_EXE)
 #all: $(TARGET_EXE) $(TARGET_SO) 
 
 clean:

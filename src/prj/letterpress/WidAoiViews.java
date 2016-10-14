@@ -39,10 +39,10 @@ public class WidAoiViews extends BorderPane {
 			inst.implInitParam();
 			switch(step){
 			case MARK_CROS:
-				/*inst.scoreCros[0] = inst.implFindCros(
+				inst.scoreCros[0] = inst.implFindCros(
 					list.get(0).bundle,
 					inst.locaCros[0]
-				);*/
+				);
 				inst.scoreCros[1] = inst.implFindCros(
 					list.get(1).bundle,
 					inst.locaCros[1]
@@ -96,7 +96,7 @@ public class WidAoiViews extends BorderPane {
 	 * 6: minimum score for Cross-T.<p>
 	 * 7: minimum score for Rectangle.<p>
 	 */
-	private int param[] = {100,300,50,5,5,7,70,70};
+	private int param[] = {100,190,100,5,5,7,70,70};
 
 	private double[] scoreCros = {0,0};
 	private int[][] locaCros = {{-1,-1},{-1,-1}};
