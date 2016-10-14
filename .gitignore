@@ -1,7 +1,7 @@
 Makefiel
 /build.fxbuild
 *.class
-#*.glade
+*.glade
 
 # Mobile Tools for Java (J2ME)
 .mtj.tmp/

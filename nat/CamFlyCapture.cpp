@@ -63,6 +63,100 @@ static Camera* getCameraByIndex(
 	return cam;
 }
 
+static int checkType(JNIEnv* env,Camera* cam){
+	//Do we have better methods ???
+	FlyCapture2::Error error;
+	CameraInfo inf;
+	error = cam->GetCameraInfo(&inf);
+	if(error==PGRERROR_OK){
+		if(inf.isColorCamera==true){
+			return CV_8UC3;
+		}
+	}else{
+		logw(env,"fail to get information");
+	}
+	return CV_8UC1;
+}
+
+static void checkFormat7(
+	JNIEnv* env,
+	jobject thiz,
+	Camera* cam
+){
+	FlyCapture2::Error error;
+	const Mode k_fmt7Mode = MODE_0;
+	bool valid;
+	Format7ImageSettings fmt7setting;
+	Format7PacketInfo fmt7packet;
+	jintArray jfmt7int;
+	jint* fmt7int = intArray2Ptr(
+		env,
+		env->GetObjectClass(thiz),
+		thiz,
+		"fmt7setting",jfmt7int
+	);
+	if(fmt7int[0]<0){
+		goto EXIT_CHECK_FMT;
+	}
+
+	fmt7setting.mode = k_fmt7Mode;
+	fmt7setting.offsetX= fmt7int[1];
+	fmt7setting.offsetY= fmt7int[2];
+	fmt7setting.width  = fmt7int[3];
+	fmt7setting.height = fmt7int[4];
+	fmt7setting.pixelFormat = UNSPECIFIED_PIXEL_FORMAT;
+
+	error = cam->ValidateFormat7Settings(
+		&fmt7setting,
+		&valid,
+		&fmt7packet
+	);
+	if(error!=PGRERROR_OK){
+		loge(env,"fail to valid fmt7setting");
+		goto EXIT_CHECK_FMT;
+	}
+	if(valid==false){
+		fmt7int[1] = -1;
+		loge(env,"invalid fmt7setting");
+		goto EXIT_CHECK_FMT;
+	}
+	error = cam->SetFormat7Configuration(
+		&fmt7setting,
+		fmt7packet.recommendedBytesPerPacket
+	);
+	if(error!=PGRERROR_OK){
+		loge(env,"fail to configure fmt7setting");
+		goto EXIT_CHECK_FMT;
+	}
+	logv(env,
+		"format change to (%d,%d)-%dx%d",
+		fmt7int[1],fmt7int[2],fmt7int[3],fmt7int[4]
+	);
+EXIT_CHECK_FMT:
+	env->ReleaseIntArrayElements(jfmt7int,fmt7int,0);
+}
+
+static void checkProperty(
+	JNIEnv* env,
+	jobject thiz,
+	Camera* cam
+){
+	FlyCapture2::Error error;
+	Property prop;
+
+	prop.type = SHUTTER;
+	error = cam->GetProperty(&prop);
+	if(error==PGRERROR_OK){
+		cout<<"shutter="<<prop.absValue<<"("<<prop.absControl<<")"<<endl;
+	}
+
+	prop.type = GAIN;
+	error = cam->GetProperty(&prop);
+	if(error==PGRERROR_OK){
+		cout<<"GAIN="<<prop.absValue<<"("<<prop.absControl<<")"<<endl;
+	}
+}
+
 extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamFlyCapture_implSetup(
 	JNIEnv* env,
 	jobject thiz,
@@ -70,21 +164,19 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamFlyCapture_implSetup(
 	jint index,
 	jboolean isSerial
 ){
-	MACRO_SETUP_BEG
-
 	FlyCapture2::Error error;
 	BusManager bus;
 	unsigned int total;
+	unsigned int type;
+	MACRO_SETUP_BEG
 
 	error = bus.GetNumOfCameras(&total);
 	if(error!=PGRERROR_OK){
 		loge(env,"fail to get number of camera");
-		MACRO_SETUP_END0()
-		return;
+		goto EXIT_SETUP;
 	}
 	if(total==0){
-		MACRO_SETUP_END0()
-		return;
+		goto EXIT_SETUP;
 	}
 
 	Camera* cam;
@@ -94,21 +186,15 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamFlyCapture_implSetup(
 		cam = getCameraByIndex(env,bus,index,total);
 	}
 	if(cam==NULL){
-		MACRO_SETUP_END0()
-		return;
+		goto EXIT_SETUP;
 	}
 
-	CameraInfo inf;
-	int type = CV_8UC1;
-	error = cam->GetCameraInfo(&inf);
-	if(error==PGRERROR_OK){
-		if(inf.isColorCamera==true){
-			type = CV_8UC3;
-		}
-	}else{
-		logw(env,"fail to get information");
-	}
+	type = checkType(env,cam);
+	checkFormat7(env,thiz,cam);
 	cam->StartCapture();
+	checkProperty(env,thiz,cam);
+
+EXIT_SETUP:
 	MACRO_SETUP_END2(cam,type)
 }
 
@@ -121,7 +207,6 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamFlyCapture_implFetch(
 	if(cntx==NULL){
 		return;
 	}
-
 	Camera* cam = (Camera*)cntx;
 	Image img;
 	FlyCapture2::Error err = cam->RetrieveBuffer(&img);
@@ -129,17 +214,18 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamFlyCapture_implFetch(
 		loge(env,"fail to fetch image");
 		return;
 	}
-	Mat src(
+	Mat m_img(
 		img.GetRows(),
 		img.GetCols(),
 		type,
 		img.GetData(),
-		(double)img.GetReceivedDataSize()/(double)img.GetRows()
+		img.GetDataSize()
 	);
+	//img.GetReceivedDataSize()/img.GetRows()
 	//scale???
-	Mat dst;
-	resize(src,dst,Size(img.GetCols()/2,img.GetRows()/2));
-	MACRO_FETCH_COPY(dst)
+	//Mat dst;
+	//resize(src,dst,Size(img.GetCols()/4,img.GetRows()/4));
+	MACRO_FETCH_COPY(m_img)
 }
 
 extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamFlyCapture_implClose(
@@ -157,6 +243,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamFlyCapture_implClose(
 	CameraControlDlg* dlg = (CameraControlDlg*)(getJlong(env,thiz,"ptrDlgCtrl"));
 	if(dlg!=NULL){
 		delete dlg;
+		setJlong(env,thiz,"ptrDlgCtrl",0);
 	}
 	MACRO_CLOSE_END
 }
@@ -180,8 +267,6 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamFlyCapture_implShowCtrl(
 	}
 	if(dlg->IsVisible()==false){
 		dlg->ShowModal();
-	}else{
-		dlg->Hide();
 	}
 }
 

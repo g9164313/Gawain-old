@@ -6,7 +6,6 @@ import com.jfoenix.controls.JFXComboBox;
 import com.jfoenix.controls.JFXRadioButton;
 import com.jfoenix.controls.JFXTextField;
 
-import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -25,59 +24,77 @@ import narl.itrc.PanBase;
 import narl.itrc.PanDecorate;
 
 public class WidAoiViews extends BorderPane {
-
-	class FilterAligment extends ImgFilter {
-		public int step = 1;
+	
+	private final int MARK_CROS= 1;
+	private final int MARK_RECT = 2;
+		
+	class FilterMark extends ImgFilter {
+		public int step = MARK_CROS;
 		private WidAoiViews inst;
-		public FilterAligment(WidAoiViews instance){
+		public FilterMark(WidAoiViews instance){
 			inst = instance;
 		}
 		@Override
 		public void cookData(ArrayList<ImgPreview> list) {
-			inst.implFindTarget(list.get(0).bundle,step);
-			//inst.implFindTarget(list.get(1).bundle,step);
+			inst.implInitParam();
+			switch(step){
+			case MARK_CROS:
+				inst.scoreCros[0] = inst.implFindCros(
+					list.get(0).bundle,
+					inst.debugMode,
+					inst.locaCros[0]
+				);
+				break;
+			case MARK_RECT:
+				break;
+			}
 		}
 		@Override
 		public boolean showData(ArrayList<ImgPreview> list) {
-			txtPosUpdate();
-			return false;
+			switch(step){
+			case MARK_CROS:
+				txtPosCros();
+				return true;
+			case MARK_RECT://run just once~~~
+				txtPosRect();
+				return true;//run just once~~~
+			}
+			return true;
 		}
 	};
 	
-	private native void implInitShape();	
-	private native void implFindTarget(CamBundle bnd,int step);
+	private native void implInitShape();
+	private native void implInitParam();
+	private native double implFindCros(CamBundle bnd,int debug,int[] loca);
+	private native double implFindRect(CamBundle bnd,int debug,int[] mask,int[] loca);
 	
-	private FilterAligment filter = new FilterAligment(this);
+	private FilterMark filterMark = new FilterMark(this);
+	
+	private int debugMode = 0;
 	
 	/**
 	 * Parameter for AOI. Their meanings are : <p>
+	 * Binary Threshold.<p>
 	 * Canny Threshold.<p>
 	 * Canny Threshold, but only offset value.<p>
 	 * Canny Aperture.<p>
 	 * Dilate Size.<p>
 	 * Approximates Epsilon.<p>
-	 * Score - Numerator.<p>
-	 * Score - Denominator.<p>
 	 */
-	private int param[] = {2000,0,7,3,7,3,100};
+	private int param[] = {10,30,10,3,1,7};
 
-	/**
-	 * Rectangle Position.<p>
-	 * After identifying target, native would write the result into this variable.<p> 
-	 */
-	private int posRect[] = {-1,-1};
+	private double[] scoreCros = {0,0};
+	private int[][] locaCros = {{-1,-1},{-1,-1}};
 	
-	/**
-	 * T-Cross Position.<p>
-	 * After identifying target, native would write the result into this variable.<p> 
-	 */
-	private int posCross[] = {-1,-1};
-
+	private double[] scoreRect = {0,0};	
+	private int[][] locaRect = {{-1,-1},{-1,-1}};
+	
 	public WidAoiViews(ImgRender rndr){
 		setCenter(layoutViews());
 		setRight(layoutOption());
 		implInitShape();
-		txtPosUpdate();		
+		txtPosCros();
+		txtPosRect();
 	}
 
 	private Node layoutViews(){
@@ -91,81 +108,67 @@ public class WidAoiViews extends BorderPane {
 	}
 	
 	private Node layoutOption(){
-		
-		final ToggleGroup grpStep = new ToggleGroup();
-		final JFXRadioButton[] radStep = new JFXRadioButton[3];
-		
-		//----parameters for step.1----//
-		radStep[0] = new JFXRadioButton("Segment");
-		radStep[0].setToggleGroup(grpStep);
-		radStep[0].setOnAction(event->{
-			filter.step = 1;
-			Entry.rndr.attach(filter);
+				
+		//----parameter----
+		final JFXComboBox<Integer> dbg_mode = new JFXComboBox<Integer>();		
+		dbg_mode.getItems().addAll(0,1,2,3);
+		dbg_mode.getSelectionModel().select(debugMode);
+		dbg_mode.setOnAction(event->{
+			debugMode = dbg_mode.getValue();
 		});
+		dbg_mode.setMaxWidth(Double.MAX_VALUE);
+		GridPane.setFillWidth(dbg_mode,true);
 		
 		GridPane lay2 = new GridPane();
 		lay2.getStyleClass().add("grid-small");
-		lay2.add(radStep[0],0,0,2,1);
-		lay2.addRow(1,new Label("Th.Val"),genBoxValue(0));
-		lay2.addRow(2,new Label("Offset"),genBoxValue(1));
-		lay2.addRow(3,new Label("Aperture"),genCmbRange(2));		
-		lay2.addRow(4,new Label("Dilate"  ),genCmbRange(3));
-
-		//----parameters for step.2----//
-		radStep[1] = new JFXRadioButton("Contours");
-		radStep[1].setToggleGroup(grpStep);
-		radStep[1].setOnAction(event->{
-			filter.step = 2;
-			Entry.rndr.attach(filter);
-		});
+		lay2.addRow(0,new Label("Debug Mode："),dbg_mode);
+		lay2.addRow(1,new Label("Binary-Thres："),genBoxValue(0));
+		lay2.addRow(2,new Label("Canny-Value：") ,genBoxValue(1));
+		lay2.addRow(3,new Label("Canny-Offset："),genBoxValue(2));
+		lay2.addRow(4,new Label("Canny-Apture："),genCmbRange(3));
+		lay2.addRow(5,new Label("Dilate Size：") ,genCmbRange(4));
+		lay2.addRow(6,new Label("Appx-Epsilon："),genCmbRange(5));
 		
+		//----information----
 		GridPane lay3 = new GridPane();
 		lay3.getStyleClass().add("grid-small");
-		lay3.add(radStep[1], 0, 0, 2, 1);
-		lay3.addRow(1,new Label("Approx."),genCmbRange(4));
+		lay3.add(new Label("----左視角----"),0,0,3,1);
+		lay3.addRow(1,new Label("十字位置："),txtTarget[0]);		
+		lay3.addRow(2,new Label("口型位置："),txtTarget[4]);
+		lay3.addRow(3,new Label("相似度.1："),txtTarget[2]);
+		lay3.addRow(4,new Label("相似度.2："),txtTarget[6]);
+		lay3.add(new Label("    "),0,5,3,1);
+		lay3.add(new Label("----右視角----"),0,6,3,1);
+		lay3.addRow(7,new Label("十字位置："),txtTarget[1]);		
+		lay3.addRow(8,new Label("口型位置："),txtTarget[5]);
+		lay3.addRow(9,new Label("相似度.1："),txtTarget[3]);
+		lay3.addRow(10,new Label("相似度.2："),txtTarget[7]);
 		
-		//----parameters for step.3----//
-		radStep[2] = new JFXRadioButton("Matching");
-		radStep[2].setToggleGroup(grpStep);
-		radStep[2].setOnAction(event->{
-			filter.step = 3;
-			Entry.rndr.attach(filter);
+		//----actions----
+		Button btnMarkCros = PanBase.genButton1("標定十字",null);
+		btnMarkCros.setOnAction(event->{
+			resetPosCros();
+			filterMark.step = MARK_CROS;//reset~~~
+			Entry.rndr.attach(filterMark);
+		});
+		
+		Button btnMarkRect = PanBase.genButton1("標定口型",null);
+		btnMarkRect.setOnAction(event->{
+			resetPosRect();
+			filterMark.step = MARK_RECT;//reset~~~
+			Entry.rndr.attach(filterMark);
 		});
 
-		GridPane lay4 = new GridPane();
-		lay4.getStyleClass().add("grid-small");
-		lay4.add(radStep[2], 0, 0, 2, 1);
-		lay4.addRow(1,new Label("Score(分子)"),genBoxValue(5));		
-		lay4.addRow(2,new Label("Score(分母)"),genBoxValue(6));
-		lay4.addRow(3,new Label("口型位置："),txtPosicion[0]);
-		lay4.addRow(4,new Label("十字位置："),txtPosicion[1]);
-		
-		//----other actions----
-		Button btnTesting = PanBase.genButton1("測試結果",null);
-		
-		Button btnStopping = PanBase.genButton1("取消分析",null);
-		btnStopping.setOnAction(event->{
-			radStep[0].setSelected(false);
-			radStep[1].setSelected(false);
-			radStep[2].setSelected(false);
-			filter.step = 0;//reset~~~
-			Entry.rndr.detach(filter);
-		});
-		btnStopping.setMaxWidth(Double.MAX_VALUE);
-		GridPane.setFillWidth(btnStopping,true);
-		
 		//----combine them all----
 		VBox lay1 = new VBox();
 		lay1.getStyleClass().add("vbox-small");
 		lay1.getChildren().addAll(
-			lay2,
-			new Separator(),
 			lay3,
 			new Separator(),
-			lay4,
+			lay2,
 			new Separator(),
-			btnTesting,
-			btnStopping
+			btnMarkCros,
+			btnMarkRect
 		);
 		return PanDecorate.group("設定",lay1);
 	}
@@ -189,29 +192,65 @@ public class WidAoiViews extends BorderPane {
 	private Node genCmbRange(final int idx){
 		final JFXComboBox<String> cmb = new JFXComboBox<String>();
 		cmb.getItems().addAll(
-			"3x3","5x5","7x7","9x9",
-			"11x11","13x13","15x15","17x17"
+			"1","3","5","7","9",
+			"11","13","15","17"
 		);
 		cmb.setOnAction(event->{
 			int val = cmb.getSelectionModel().getSelectedIndex();
-			param[idx] = val*2+3;
+			param[idx] = val*2+1;
 		});
-		cmb.getSelectionModel().select((param[idx]-3)/2);
+		cmb.getSelectionModel().select((param[idx]-1)/2);
 		cmb.setMaxWidth(Double.MAX_VALUE);
 		GridPane.setFillWidth(cmb,true);
 		return cmb;
 	}
 	
-	private Label[] txtPosicion ={
-		new Label(), 
-		new Label()
+	private Label[] txtTarget = {
+		new Label()/* left cross-location */, 
+		new Label()/* right cross-location */,
+		new Label()/* left cross-score */, 
+		new Label()/* right cross-score */,
+		new Label()/* left rectangle-location */, 
+		new Label()/* right rectangle-location */,
+		new Label()/* left rectangle-score */, 
+		new Label()/* right rectangle-score */
 	};
-	private void txtPosUpdate(){
-		txtPosicion[0].setText(String.format(
-			"(%03d,%03d)",posRect[0],posRect[1]
+	private void txtPosCros(){
+		txtTarget[0].setText(String.format(
+			"(%3d,%3d)",locaCros[0][0],locaCros[0][1]
 		));
-		txtPosicion[1].setText(String.format(
-			"(%03d,%03d)",posCross[0],posCross[1]
+		txtTarget[1].setText(String.format(
+			"(%3d,%3d)",locaCros[0][0],locaCros[0][1]
 		));
+		txtTarget[2].setText(String.format(
+			"%.3f",scoreCros[0]
+		));
+		txtTarget[3].setText(String.format(
+			"%.3f",scoreCros[1]
+		));
+	}
+	private void txtPosRect(){
+		txtTarget[4].setText(String.format(
+			"(%3d,%3d)",locaRect[0][0],locaRect[0][1]
+		));
+		txtTarget[5].setText(String.format(
+			"(%3d,%3d)",locaRect[0][0],locaRect[0][1]
+		));
+		txtTarget[6].setText(String.format(
+			"%.3f",scoreRect[0]
+		));
+		txtTarget[7].setText(String.format(
+			"%.3f",scoreRect[1]
+		));
+	}
+	private void resetPosCros(){
+		locaCros[0][0] = locaCros[0][1] = -1;
+		locaCros[1][0] = locaCros[1][1] = -1;
+		scoreCros[0] = scoreCros[1] = -1.;
+	}
+	private void resetPosRect(){		
+		locaRect[0][0] = locaRect[0][1] = -1;
+		locaRect[1][0] = locaRect[1][1] = -1;
+		scoreRect[0] = scoreRect[1] = -1.;
 	}
 }

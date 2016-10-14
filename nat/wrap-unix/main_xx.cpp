@@ -6,31 +6,71 @@
 #include <utils_ipc.hpp>
 #include <algorithm>
 
-int main3(int argc, char* argv[]) {
-	//const char* name = "./gg2/16138125-2016-09-20-154907.pgm";
-	const char* name = "./gg2/test-image.png";
-	Mat img = imread(name,IMREAD_GRAYSCALE);
-	Mat ova = imread(name,IMREAD_COLOR);
+/**
+ * Parameter for AOI. Their meanings are : <p>
+ * 0: Binary Threshold.<p>
+ * 1: Canny Threshold.<p>
+ * 2: Canny Threshold, but only offset value.<p>
+ * 3: Canny Aperture.<p>
+ * 4: Dilate Size.<p>
+ * 5: Approximates Epsilon.<p>
+ */
+#define PARAM_SIZE 6
+static int param[PARAM_SIZE] = {
+	10,
+	300,50,5,
+	5,7
+};
 
-
+static Mat getEdge(Mat& img,vector<vector<Point> >& cts){
 	Mat nod1,nod2;
-	Canny(img,nod1,2500,5000,7,true);
-	imwrite("./gg2/cc0.png",nod1);
-
-	Mat kern = getStructuringElement(
-		MORPH_ELLIPSE,
-		Size(3,3),
-		Point(-1,-1)
+	Canny(
+		img,nod1,
+		param[1],
+		param[1]+param[2],
+		param[3],
+		true
 	);
-	dilate(nod1,nod2,kern);
-	//imwrite("./gg2/cc1.png",nod2);
-
-	vector<vector<Point> > cts;
-	findContours(nod2,cts,RETR_LIST,CHAIN_APPROX_SIMPLE);
-	if(cts.size()==0){
-		cerr<<"fail to find contours!!"<<endl;
-		return -1;
+	if(param[4]!=1){
+		Mat kern = getStructuringElement(
+			MORPH_ELLIPSE,
+			Size(param[4],param[4]),
+			Point(-1,-1)
+		);
+		dilate(nod1,nod2,kern);
+	}else{
+		nod2 = nod1;
 	}
+	Mat tmp;
+	nod2.copyTo(tmp);
+	circle(tmp,Point(568,464),25,Scalar::all(0),-1);
+	findContours(
+		tmp,cts,
+		RETR_LIST,CHAIN_APPROX_SIMPLE
+	);
+	return nod2;
+}
+
+extern void drawImage(Mat& overlay,const Mat& src);
+extern void drawEdgeMap(Mat& overlay,const Mat& edge);
+extern void drawContour(
+	Mat& overlay,
+	vector<vector<Point> >& cts
+);
+extern void drawPolyline(
+	Mat& overlay,
+	vector<Point>& cts,
+	int thickness=1,
+	int lineType=LINE_8
+);
+
+int main(int argc, char* argv[]) {
+	//const char* name = "./gg2/16138125-2016-09-20-154907.pgm";
+	const char* name = "./gg3/snap1_004.png";
+
+	Mat img = imread(name,IMREAD_GRAYSCALE);
+	Mat ova = Mat::zeros(img.size(),CV_8UC4);
+	drawImage(ova,img);
 
 	vector<Point> shaprRect,shapeCross;
 	shaprRect.push_back(Point(0  ,0  ));
@@ -52,87 +92,35 @@ int main3(int argc, char* argv[]) {
 	shapeCross.push_back(Point(0       , wh      ));
 	shapeCross.push_back(Point(wh      , wh      ));
 
-	vector<Point> locaRect,locaCross;
+	vector<vector<Point> > cts;
+	Mat edg = getEdge(img,cts);
+
+	double score=-1.;
 	for(int i=0; i<cts.size(); i++){
 		vector<Point> approx;
-
 		Mat points(cts[i]);
-		approxPolyDP(
-			points,
-			approx,
-			7,
-			true
-		);
-
+		approxPolyDP(points, approx, param[5], true);
 		if(approx.size()<4){
 			continue;
 		}
-		//test minimum enclose square~~
-		double scoreRect = matchShapes(
+		if(isContourConvex(approx)==false){
+			continue;
+		}
+		double score = matchShapes(
 			shaprRect,approx,
 			CV_CONTOURS_MATCH_I3,0
 		);
-		double scoreCross = matchShapes(
-			shapeCross,approx,
-			CV_CONTOURS_MATCH_I3,0
-		);
-		RotatedRect rect = minAreaRect(approx);
-		if(scoreRect<scoreCross){
-			if(scoreRect>0.7){
-				continue;
-			}
-			if(isContourConvex(approx)==false){
-				continue;
-			}
-			locaRect.push_back(rect.center);
-			polylines(ova, approx, true, Scalar(255,0,255));
-		}else{
-			if(scoreCross>0.7){
-				continue;
-			}
-			locaCross.push_back(rect.center);
-		}
-
-		/*char name[60];
-		sprintf(name,"./gg2/dd-%d.png",i+1);
-		Mat tmp;
-		ova.copyTo(tmp);
-		polylines(
-			tmp,
-			approx, true,
-			Scalar(0,255,0)
-		);
-		imwrite(name,tmp);*/
+		drawPolyline(ova,approx);
+		cout<<"score["<<i<<"]="<<score<<endl;
 	}
-
-	if(locaRect.size()>0){
-		Point vtx = average(locaRect);
-		rectangle(ova,
-			vtx+Point(-5,-5),
-			vtx+Point( 5, 5),
-			Scalar(0,255,255)
-		);
-	}
-	if(locaCross.size()>0){
-		Point vtx = average(locaCross);
-		line(ova,
-			vtx+Point(0, 10),
-			vtx+Point(0,-10),
-			Scalar(0,0,255)
-		);
-		line(ova,
-			vtx+Point( 10,0),
-			vtx+Point(-10,0),
-			Scalar(0,0,255)
-		);
-	}
-	imwrite("./gg2/cc2.png",ova);
-
+	//drawEdgeMap(ova,edg);
+	//drawContour(ova,cts);
+	imwrite("./gg3/cc3.png",ova);
 	return 0;
 }
 //--------------------------------------//
 
-int main(int argc, char* argv[]){
+int main_kkk(int argc, char* argv[]){
 	//generate color mapping~~~~
 	Mat src(1,256,CV_8UC1);
 	Mat dst(1,256,CV_8UC3);
@@ -141,8 +129,8 @@ int main(int argc, char* argv[]){
 	}
 	//cout<<src<<endl;
 	applyColorMap(src,dst,COLORMAP_JET);
-	cout<<"static Scalar clr_jet[]={"<<endl<<"\t";
-	for(int i=0; i<256; i++){
+	cout<<"static Scalar mapJetColor[]={"<<endl<<"\t";
+	for(int i=0; i<256; i+=32){
 		Vec3b pix = dst.at<Vec3b>(0,i);
 		printf("Scalar(%3d,%3d,%3d,255), ",pix[2],pix[1],pix[0]);
 		if(i%4==3){
@@ -155,7 +143,7 @@ int main(int argc, char* argv[]){
 }
 //--------------------------------------//
 
-extern "C" int IsBlurred(
+/*extern "C" int IsBlurred(
 	const uint8_t* const luminance,
 	const int width,
 	const int height,
@@ -182,7 +170,7 @@ int main2(int argc, char* argv[]) {
 	);
 	cout<<"@ blur="<<parm[0]<<" @ "<<parm[1]<<endl;
 	return 1;
-}
+}*/
 
 
 
@@ -257,7 +245,7 @@ int main2(int argc, char* argv[]) {
 }*/
 //--------------------------------------------------------------//
 
-NAT_EXPORT int tearTileNxN(
+/*NAT_EXPORT int tearTileNxN(
 	const char* nameDst,
 	const char* nameSrc,
 	long tid,
@@ -279,7 +267,7 @@ extern void gridMeas(FILE* fdDst,const char* ymlMap,FILE* fdSrc);
 
 int main1(int argc, char* argv[]) {
 
-	/*RawHead hd;
+	RawHead hd;
 	const char* name1 = "grab.6.raw";
 	const char* name2 = "pano.6.raw";
 	const char* name21= "pano.6.jpg";
@@ -330,13 +318,12 @@ int main1(int argc, char* argv[]) {
 	cout<<"extimate:"<<t<<"sec"<<endl;
 	fclose(fdSrc);
 	fclose(fdDst);
-	tearTileNxN(name41,name4,0,-1,-1,-1,0);*/
+	tearTileNxN(name41,name4,0,-1,-1,-1,0);
 
 	return 0;
 }
 //--------------------------------------------------------------//
 
-/*
 static RNG rng(-1);
 static Scalar randomColor(){
   int d1,d2;
