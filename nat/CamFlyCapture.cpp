@@ -219,13 +219,12 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamFlyCapture_implFetch(
 		img.GetCols(),
 		type,
 		img.GetData(),
-		img.GetDataSize()
+		img.GetReceivedDataSize()/img.GetRows()
 	);
-	//img.GetReceivedDataSize()/img.GetRows()
 	//scale???
-	//Mat dst;
-	//resize(src,dst,Size(img.GetCols()/4,img.GetRows()/4));
-	MACRO_FETCH_COPY(m_img)
+	Mat dst;
+	resize(m_img,dst,Size(img.GetCols()/2,img.GetRows()/2));
+	MACRO_FETCH_COPY(dst)
 }
 
 extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamFlyCapture_implClose(

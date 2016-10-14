@@ -44,8 +44,25 @@ public class WidAoiViews extends BorderPane {
 					inst.debugMode,
 					inst.locaCros[0]
 				);
+				inst.scoreCros[1] = inst.implFindCros(
+					list.get(1).bundle,
+					inst.debugMode,
+					inst.locaCros[1]
+				);
 				break;
 			case MARK_RECT:
+				inst.scoreRect[0] = inst.implFindRect(
+					list.get(0).bundle,
+					inst.debugMode,
+					inst.locaCros[0],
+					inst.locaRect[0]
+				);
+				inst.scoreRect[1] = inst.implFindRect(
+					list.get(1).bundle,
+					inst.debugMode,
+					inst.locaCros[1],
+					inst.locaRect[1]
+				);				
 				break;
 			}
 		}
@@ -65,8 +82,8 @@ public class WidAoiViews extends BorderPane {
 	
 	private native void implInitShape();
 	private native void implInitParam();
-	private native double implFindCros(CamBundle bnd,int debug,int[] loca);
-	private native double implFindRect(CamBundle bnd,int debug,int[] mask,int[] loca);
+	private native float implFindCros(CamBundle bnd,int debug,int[] loca);
+	private native float implFindRect(CamBundle bnd,int debug,int[] mask,int[] loca);
 	
 	private FilterMark filterMark = new FilterMark(this);
 	
@@ -81,8 +98,9 @@ public class WidAoiViews extends BorderPane {
 	 * Dilate Size.<p>
 	 * Approximates Epsilon.<p>
 	 */
-	private int param[] = {10,30,10,3,1,7};
-
+	private int param[] = {120,30,10,3,5,7};
+	private float score[] = {0.3f,0.07f};
+	
 	private double[] scoreCros = {0,0};
 	private int[][] locaCros = {{-1,-1},{-1,-1}};
 	
@@ -220,7 +238,7 @@ public class WidAoiViews extends BorderPane {
 			"(%3d,%3d)",locaCros[0][0],locaCros[0][1]
 		));
 		txtTarget[1].setText(String.format(
-			"(%3d,%3d)",locaCros[0][0],locaCros[0][1]
+			"(%3d,%3d)",locaCros[1][0],locaCros[1][1]
 		));
 		txtTarget[2].setText(String.format(
 			"%.3f",scoreCros[0]
@@ -234,7 +252,7 @@ public class WidAoiViews extends BorderPane {
 			"(%3d,%3d)",locaRect[0][0],locaRect[0][1]
 		));
 		txtTarget[5].setText(String.format(
-			"(%3d,%3d)",locaRect[0][0],locaRect[0][1]
+			"(%3d,%3d)",locaRect[1][0],locaRect[1][1]
 		));
 		txtTarget[6].setText(String.format(
 			"%.3f",scoreRect[0]

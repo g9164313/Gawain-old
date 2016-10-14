@@ -48,42 +48,56 @@ extern "C" JNIEXPORT void JNICALL Java_prj_letterpress_WidAoiViews_implInitShape
 #define PARAM_SIZE 6
 static int param[PARAM_SIZE] = {10,30,10,3,1,7};//this is mapping from java-code
 
+static float minScore[]={0.03,0.03};
+
 extern "C" JNIEXPORT void JNICALL Java_prj_letterpress_WidAoiViews_implInitParam(
 	JNIEnv* env,
 	jobject thiz
 ){
-	jfieldID id = env->GetFieldID(
-		env->GetObjectClass(thiz),
-		"param","[I"
-	);
-	jobject obj = env->GetObjectField(thiz,id);
-	jintArray arr=*(reinterpret_cast<jintArray*>(&obj));
-	env->GetIntArrayRegion(arr,0,PARAM_SIZE,param);
+	jclass clzz = env->GetObjectClass(thiz);
+	jfieldID id;
+	jobject obj;
+
+	id = env->GetFieldID(clzz,"param","[I");
+	obj = env->GetObjectField(thiz,id);
+	jintArray arr1=*(reinterpret_cast<jintArray*>(&obj));
+	env->GetIntArrayRegion(arr1,0,PARAM_SIZE,param);
+
+	id = env->GetFieldID(clzz,"score","[F");
+	obj = env->GetObjectField(thiz,id);
+	jfloatArray arr2=*(reinterpret_cast<jfloatArray*>(&obj));
+	env->GetFloatArrayRegion(arr2,0,2,minScore);
 }
 
 static Point findTarget(
 	vector<Point>& shape,
 	vector<vector<Point> >& cts,
-	double* score
+	bool checkConvex,
+	int numVertex,
+	float silimarity,
+	float* score
 ){
 	int cnt = 0;
 	Point loca(-1,-1);
 	double score_sum = 0.;
+	double score_min = 1.;
 	for(int i=0; i<cts.size(); i++){
 		vector<Point> approx;
 		Mat points(cts[i]);
 		approxPolyDP(points, approx, param[5], true);
-		if(approx.size()<6){
+		//cout<<"vtx="<<approx.size()<<",min="<<numVertex<<endl;
+		if(approx.size()<numVertex){
 			continue;
 		}
-		if(isContourConvex(approx)==true){
-			continue;
-		}
+		//if(isContourConvex(approx)==checkConvex){
+		//	continue;
+		//}
 		double score_shp = matchShapes(
-			shapeCross,approx,
+			shape,approx,
 			CV_CONTOURS_MATCH_I3,0
 		);
-		if(score_shp<0.07){
+		//cout<<"score="<<score_shp<<endl;
+		if(score_shp<silimarity){
 			//we found a similar target~~~
 			RotatedRect rect = minAreaRect(approx);
 			if(cnt==0){
@@ -95,6 +109,9 @@ static Point findTarget(
 			cnt++;
 			score_sum = score_sum + score_shp;
 		}
+		if(score_shp<score_min){
+			score_min = score_shp;//at least, we have minimum~~~
+		}
 	}
 	if(cnt!=0){
 		loca.x = loca.x / cnt;
@@ -102,7 +119,7 @@ static Point findTarget(
 	}
 	if(score!=NULL){
 		if(cnt==0){
-			*score = -1;
+			*score = score_min;
 		}else{
 			*score = score_sum / cnt;
 		}
@@ -111,7 +128,7 @@ static Point findTarget(
 }
 
 
-extern "C" JNIEXPORT jdouble JNICALL Java_prj_letterpress_WidAoiViews_implFindCros(
+extern "C" JNIEXPORT jfloat JNICALL Java_prj_letterpress_WidAoiViews_implFindCros(
 	JNIEnv* env,
 	jobject thiz,
 	jobject bundle,
@@ -144,21 +161,27 @@ extern "C" JNIEXPORT jdouble JNICALL Java_prj_letterpress_WidAoiViews_implFindCr
 	}
 
 	jint* loca = env->GetIntArrayElements(jloca,NULL);
-	double score;
-	Point res = findTarget(shapeCross,cts,&score);
+	float score;
+	Point res = findTarget(
+		shapeCross,
+		cts,false,4,minScore[0],
+		&score
+	);
 	loca[0] = res.x;
 	loca[1] = res.y;
 	env->ReleaseIntArrayElements(jloca,loca,0);
 	switch(debug){
-	case 3: drawContour(ova,cts); break;
-	case 0: drawCrossT(ova,res,30,Scalar(255,0,0),3); break;
+	case 2: drawContour(ova,cts); break;
+	case 0:
+		drawCrossT(ova,res,30,Scalar(0,255,255),3);
+		break;
 	}
 
 	MACRO_SET_IMG_INFO(ova);
 	return score;
 }
 
-extern "C" JNIEXPORT jdouble JNICALL Java_prj_letterpress_WidAoiViews_implFindRect(
+extern "C" JNIEXPORT jfloat JNICALL Java_prj_letterpress_WidAoiViews_implFindRect(
 	JNIEnv* env,
 	jobject thiz,
 	jobject bundle,
@@ -193,9 +216,10 @@ extern "C" JNIEXPORT jdouble JNICALL Java_prj_letterpress_WidAoiViews_implFindRe
 		nod2 = nod1;
 	}
 	jint* mask = env->GetIntArrayElements(jmask,NULL);
+	Point cros(mask[0],mask[1]);
 	circle(
 		nod2,
-		Point(mask[0],mask[1]),25,
+		cros,25,
 		Scalar::all(0),-1
 	);//erase something~~~
 	env->ReleaseIntArrayElements(jmask,mask,0);
@@ -215,17 +239,24 @@ extern "C" JNIEXPORT jdouble JNICALL Java_prj_letterpress_WidAoiViews_implFindRe
 	}
 
 	jint* loca = env->GetIntArrayElements(jloca,NULL);
-	double score;
-	Point res = findTarget(shapeRect,cts,&score);
+	float score;
+	Point res = findTarget(
+		shapeRect,
+		cts,true,4,minScore[1],
+		&score
+	);
 	loca[0] = res.x;
 	loca[1] = res.y;
 	env->ReleaseIntArrayElements(jloca,loca,0);
 	switch(debug){
-	case 3: drawContour(ova,cts); break;
-	case 0: drawRectangle(ova,res,30,30,Scalar(255,0,0),3); break;
+	case 2: drawContour(ova,cts); break;
+	case 0:
+		drawCrossT(ova,cros,30,Scalar(0,255,255),3);
+		drawRectangle(ova,res,30,30,Scalar(255,0,0),3);
+		break;
 	}
 
 	MACRO_SET_IMG_INFO(ova);
-	return -1.;
+	return score;
 }
 
