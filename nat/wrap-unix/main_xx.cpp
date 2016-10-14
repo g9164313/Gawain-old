@@ -17,7 +17,7 @@
  */
 #define PARAM_SIZE 6
 static int param[PARAM_SIZE] = {
-	10,
+	100,
 	300,50,5,
 	5,7
 };
@@ -60,13 +60,15 @@ extern void drawContour(
 extern void drawPolyline(
 	Mat& overlay,
 	vector<Point>& cts,
+	bool closed,
 	int thickness=1,
 	int lineType=LINE_8
 );
 
 int main(int argc, char* argv[]) {
 	//const char* name = "./gg2/16138125-2016-09-20-154907.pgm";
-	const char* name = "./gg3/snap1_004.png";
+	//const char* name = "./gg3/snap_fail1.png";
+	const char* name = "./gg3/snap_fail2.png";
 
 	Mat img = imread(name,IMREAD_GRAYSCALE);
 	Mat ova = Mat::zeros(img.size(),CV_8UC4);
@@ -92,8 +94,23 @@ int main(int argc, char* argv[]) {
 	shapeCross.push_back(Point(0       , wh      ));
 	shapeCross.push_back(Point(wh      , wh      ));
 
+	Mat nod1;// = getEdge(img,cts);
+	threshold(img,nod1,param[0],255,THRESH_BINARY);
+	Mat kern = getStructuringElement(
+		MORPH_RECT,
+		Size(param[4],param[4]),
+		Point(-1,-1)
+	);
+	erode(nod1,nod1,kern);
+	//drawEdgeMap(ova,nod1);
+	//imwrite("./gg3/cc2.png",ova);
+	//return -1;
+
 	vector<vector<Point> > cts;
-	Mat edg = getEdge(img,cts);
+	findContours(
+		nod1,cts,
+		RETR_LIST,CHAIN_APPROX_SIMPLE
+	);
 
 	double score=-1.;
 	for(int i=0; i<cts.size(); i++){
@@ -103,19 +120,20 @@ int main(int argc, char* argv[]) {
 		if(approx.size()<4){
 			continue;
 		}
-		if(isContourConvex(approx)==false){
-			continue;
-		}
+		//if(isContourConvex(approx)==false){
+		//	continue;
+		//}
 		double score = matchShapes(
-			shaprRect,approx,
+			shapeCross,approx,
 			CV_CONTOURS_MATCH_I3,0
 		);
 		if(score>0.7){
 			cout<<"score["<<i<<"]="<<score<<endl;
 			continue;
 		}
-		drawPolyline(ova,approx);
-		cout<<"SCORE["<<i<<"]="<<score<<endl;
+		drawPolyline(ova,approx,true);
+		float val = (1-score)*100;
+		cout<<"SCORE["<<i<<"]="<<val<<endl;
 	}
 	//drawEdgeMap(ova,edg);
 	//drawContour(ova,cts);

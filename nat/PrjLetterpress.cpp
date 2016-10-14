@@ -167,6 +167,12 @@ extern "C" JNIEXPORT jfloat JNICALL Java_prj_letterpress_WidAoiViews_implFindCro
 
 	Mat nod1;
 	threshold(img,nod1,param[0],255,THRESH_BINARY);
+	Mat kern = getStructuringElement(
+		MORPH_RECT,
+		Size(param[4],param[4]),
+		Point(-1,-1)
+	);
+	erode(nod1,nod1,kern);
 	if(debugMode==1){
 		drawEdgeMap(ova,nod1);//for edge mapping~~
 		MACRO_SET_IMG_INFO(ova);
