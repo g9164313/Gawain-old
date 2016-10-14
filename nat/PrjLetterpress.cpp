@@ -44,11 +44,15 @@ extern "C" JNIEXPORT void JNICALL Java_prj_letterpress_WidAoiViews_implInitShape
  * 3: Canny Aperture.<p>
  * 4: Dilate Size.<p>
  * 5: Approximates Epsilon.<p>
+ * 6: minimum score for Cross-T.<p>
+ * 7: minimum score for Rectangle.<p>
  */
-#define PARAM_SIZE 6
-static int param[PARAM_SIZE] = {10,30,10,3,1,7};//this is mapping from java-code
+#define PARAM_SIZE 8
+static int param[PARAM_SIZE] = {120,300,50,5,5,7,70,70};//this is mapping from java-code
 
 static float minScore[]={0.03,0.03};
+
+static int debugMode = 0;
 
 extern "C" JNIEXPORT void JNICALL Java_prj_letterpress_WidAoiViews_implInitParam(
 	JNIEnv* env,
@@ -57,19 +61,25 @@ extern "C" JNIEXPORT void JNICALL Java_prj_letterpress_WidAoiViews_implInitParam
 	jclass clzz = env->GetObjectClass(thiz);
 	jfieldID id;
 	jobject obj;
-
 	id = env->GetFieldID(clzz,"param","[I");
 	obj = env->GetObjectField(thiz,id);
 	jintArray arr1=*(reinterpret_cast<jintArray*>(&obj));
 	env->GetIntArrayRegion(arr1,0,PARAM_SIZE,param);
+	minScore[0] = (float)((100-param[6]))/100.f;
+	minScore[1] = (float)((100-param[7]))/100.f;
 
-	id = env->GetFieldID(clzz,"score","[F");
+	debugMode = env->GetIntField(
+		thiz,
+		env->GetFieldID(clzz,"debugMode","I")
+	);
+	/*id = env->GetFieldID(clzz,"score","[F");
 	obj = env->GetObjectField(thiz,id);
 	jfloatArray arr2=*(reinterpret_cast<jfloatArray*>(&obj));
-	env->GetFloatArrayRegion(arr2,0,2,minScore);
+	env->GetFloatArrayRegion(arr2,0,2,minScore);*/
 }
 
 static Point findTarget(
+	Mat& ova,
 	vector<Point>& shape,
 	vector<vector<Point> >& cts,
 	bool checkConvex,
@@ -77,8 +87,12 @@ static Point findTarget(
 	float silimarity,
 	float* score
 ){
-	int cnt = 0;
 	Point loca(-1,-1);
+	if(debugMode==2){
+		drawContour(ova,cts);
+		return loca;
+	}
+	int cnt = 0;
 	double score_sum = 0.;
 	double score_min = 1.;
 	for(int i=0; i<cts.size(); i++){
@@ -108,6 +122,9 @@ static Point findTarget(
 			}
 			cnt++;
 			score_sum = score_sum + score_shp;
+			if(debugMode==3){
+				drawPolyline(ova,approx);
+			}
 		}
 		if(score_shp<score_min){
 			score_min = score_shp;//at least, we have minimum~~~
@@ -118,11 +135,13 @@ static Point findTarget(
 		loca.y = loca.y / cnt;
 	}
 	if(score!=NULL){
+		float val =0.;
 		if(cnt==0){
-			*score = score_min;
+			val = score_min;
 		}else{
-			*score = score_sum / cnt;
+			val = score_sum / cnt;
 		}
+		(*score) = (1.f - val) * 100.f;
 	}
 	return loca;
 }
@@ -132,7 +151,6 @@ extern "C" JNIEXPORT jfloat JNICALL Java_prj_letterpress_WidAoiViews_implFindCro
 	JNIEnv* env,
 	jobject thiz,
 	jobject bundle,
-	jint debug,
 	jintArray jloca
 ){
 	MACRO_PREPARE
@@ -145,7 +163,7 @@ extern "C" JNIEXPORT jfloat JNICALL Java_prj_letterpress_WidAoiViews_implFindCro
 
 	Mat nod1;
 	threshold(img,nod1,param[0],255,THRESH_BINARY);
-	if(debug==1){
+	if(debugMode==1){
 		drawEdgeMap(ova,nod1);//for edge mapping~~
 		MACRO_SET_IMG_INFO(ova);
 		return -1.;
@@ -163,6 +181,7 @@ extern "C" JNIEXPORT jfloat JNICALL Java_prj_letterpress_WidAoiViews_implFindCro
 	jint* loca = env->GetIntArrayElements(jloca,NULL);
 	float score;
 	Point res = findTarget(
+		ova,
 		shapeCross,
 		cts,false,4,minScore[0],
 		&score
@@ -170,13 +189,9 @@ extern "C" JNIEXPORT jfloat JNICALL Java_prj_letterpress_WidAoiViews_implFindCro
 	loca[0] = res.x;
 	loca[1] = res.y;
 	env->ReleaseIntArrayElements(jloca,loca,0);
-	switch(debug){
-	case 2: drawContour(ova,cts); break;
-	case 0:
+	if(debugMode==0){
 		drawCrossT(ova,res,30,Scalar(0,255,255),3);
-		break;
 	}
-
 	MACRO_SET_IMG_INFO(ova);
 	return score;
 }
@@ -185,7 +200,6 @@ extern "C" JNIEXPORT jfloat JNICALL Java_prj_letterpress_WidAoiViews_implFindRec
 	JNIEnv* env,
 	jobject thiz,
 	jobject bundle,
-	jint debug,
 	jintArray jmask,
 	jintArray jloca
 ){
@@ -223,7 +237,7 @@ extern "C" JNIEXPORT jfloat JNICALL Java_prj_letterpress_WidAoiViews_implFindRec
 		Scalar::all(0),-1
 	);//erase something~~~
 	env->ReleaseIntArrayElements(jmask,mask,0);
-	if(debug==1){
+	if(debugMode==1){
 		drawEdgeMap(ova,nod2);//for edge mapping~~
 		MACRO_SET_IMG_INFO(ova);
 		return -1.;
@@ -241,6 +255,7 @@ extern "C" JNIEXPORT jfloat JNICALL Java_prj_letterpress_WidAoiViews_implFindRec
 	jint* loca = env->GetIntArrayElements(jloca,NULL);
 	float score;
 	Point res = findTarget(
+		ova,
 		shapeRect,
 		cts,true,4,minScore[1],
 		&score
@@ -248,14 +263,10 @@ extern "C" JNIEXPORT jfloat JNICALL Java_prj_letterpress_WidAoiViews_implFindRec
 	loca[0] = res.x;
 	loca[1] = res.y;
 	env->ReleaseIntArrayElements(jloca,loca,0);
-	switch(debug){
-	case 2: drawContour(ova,cts); break;
-	case 0:
+	if(debugMode==0){
 		drawCrossT(ova,cros,30,Scalar(0,255,255),3);
 		drawRectangle(ova,res,30,30,Scalar(255,0,0),3);
-		break;
 	}
-
 	MACRO_SET_IMG_INFO(ova);
 	return score;
 }

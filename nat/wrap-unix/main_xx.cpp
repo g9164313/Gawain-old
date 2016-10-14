@@ -110,8 +110,12 @@ int main(int argc, char* argv[]) {
 			shaprRect,approx,
 			CV_CONTOURS_MATCH_I3,0
 		);
+		if(score>0.7){
+			cout<<"score["<<i<<"]="<<score<<endl;
+			continue;
+		}
 		drawPolyline(ova,approx);
-		cout<<"score["<<i<<"]="<<score<<endl;
+		cout<<"SCORE["<<i<<"]="<<score<<endl;
 	}
 	//drawEdgeMap(ova,edg);
 	//drawContour(ova,cts);

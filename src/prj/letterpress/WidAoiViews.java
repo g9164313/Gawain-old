@@ -41,25 +41,21 @@ public class WidAoiViews extends BorderPane {
 			case MARK_CROS:
 				inst.scoreCros[0] = inst.implFindCros(
 					list.get(0).bundle,
-					inst.debugMode,
 					inst.locaCros[0]
 				);
 				inst.scoreCros[1] = inst.implFindCros(
 					list.get(1).bundle,
-					inst.debugMode,
 					inst.locaCros[1]
 				);
 				break;
 			case MARK_RECT:
 				inst.scoreRect[0] = inst.implFindRect(
 					list.get(0).bundle,
-					inst.debugMode,
 					inst.locaCros[0],
 					inst.locaRect[0]
 				);
 				inst.scoreRect[1] = inst.implFindRect(
 					list.get(1).bundle,
-					inst.debugMode,
 					inst.locaCros[1],
 					inst.locaRect[1]
 				);				
@@ -82,8 +78,8 @@ public class WidAoiViews extends BorderPane {
 	
 	private native void implInitShape();
 	private native void implInitParam();
-	private native float implFindCros(CamBundle bnd,int debug,int[] loca);
-	private native float implFindRect(CamBundle bnd,int debug,int[] mask,int[] loca);
+	private native float implFindCros(CamBundle bnd,int[] loca);
+	private native float implFindRect(CamBundle bnd,int[] mask,int[] loca);
 	
 	private FilterMark filterMark = new FilterMark(this);
 	
@@ -91,16 +87,17 @@ public class WidAoiViews extends BorderPane {
 	
 	/**
 	 * Parameter for AOI. Their meanings are : <p>
-	 * Binary Threshold.<p>
-	 * Canny Threshold.<p>
-	 * Canny Threshold, but only offset value.<p>
-	 * Canny Aperture.<p>
-	 * Dilate Size.<p>
-	 * Approximates Epsilon.<p>
+	 * 0: Binary Threshold.<p>
+	 * 1: Canny Threshold.<p>
+	 * 2: Canny Threshold, but only offset value.<p>
+	 * 3: Canny Aperture.<p>
+	 * 4: Dilate Size.<p>
+	 * 5: Approximates Epsilon.<p>
+	 * 6: minimum score for Cross-T.<p>
+	 * 7: minimum score for Rectangle.<p>
 	 */
-	private int param[] = {120,30,10,3,5,7};
-	private float score[] = {0.3f,0.07f};
-	
+	private int param[] = {120,300,50,5,5,7,70,70};
+
 	private double[] scoreCros = {0,0};
 	private int[][] locaCros = {{-1,-1},{-1,-1}};
 	
@@ -146,6 +143,8 @@ public class WidAoiViews extends BorderPane {
 		lay2.addRow(4,new Label("Canny-Apture："),genCmbRange(3));
 		lay2.addRow(5,new Label("Dilate Size：") ,genCmbRange(4));
 		lay2.addRow(6,new Label("Appx-Epsilon："),genCmbRange(5));
+		lay2.addRow(7,new Label("Score.1："),genBoxValue(6));
+		lay2.addRow(8,new Label("Score.2："),genBoxValue(7));
 		
 		//----information----
 		GridPane lay3 = new GridPane();
@@ -241,10 +240,10 @@ public class WidAoiViews extends BorderPane {
 			"(%3d,%3d)",locaCros[1][0],locaCros[1][1]
 		));
 		txtTarget[2].setText(String.format(
-			"%.3f",scoreCros[0]
+			"%.3f%",scoreCros[0]
 		));
 		txtTarget[3].setText(String.format(
-			"%.3f",scoreCros[1]
+			"%.3f%",scoreCros[1]
 		));
 	}
 	private void txtPosRect(){
@@ -255,10 +254,10 @@ public class WidAoiViews extends BorderPane {
 			"(%3d,%3d)",locaRect[1][0],locaRect[1][1]
 		));
 		txtTarget[6].setText(String.format(
-			"%.3f",scoreRect[0]
+			"%.3f%",scoreRect[0]
 		));
 		txtTarget[7].setText(String.format(
-			"%.3f",scoreRect[1]
+			"%.3f%",scoreRect[1]
 		));
 	}
 	private void resetPosCros(){
