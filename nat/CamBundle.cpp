@@ -166,11 +166,12 @@ static unsigned int mapIndex = 0;
 void drawPolyline(
 	Mat& overlay,
 	vector<Point>& cts,
+	bool closed,
 	int thickness,
 	int lineType
 ){
 	polylines(
-		overlay, cts, false,
+		overlay, cts, closed,
 		mapJetColor[mapIndex%8],
 		thickness, lineType
 	);
@@ -180,6 +181,7 @@ void drawPolyline(
 void drawPolyline(
 	Mat& overlay,
 	vector<Point>& cts,
+	bool closed,
 	const Scalar& color,
 	int thickness,
 	int lineType
@@ -187,7 +189,7 @@ void drawPolyline(
 	Scalar clr = color;
 	clr[3] = 255;
 	polylines(
-		overlay, cts, true,
+		overlay, cts, closed,
 		clr,
 		thickness, lineType
 	);

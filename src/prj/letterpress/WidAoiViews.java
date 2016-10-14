@@ -39,10 +39,10 @@ public class WidAoiViews extends BorderPane {
 			inst.implInitParam();
 			switch(step){
 			case MARK_CROS:
-				inst.scoreCros[0] = inst.implFindCros(
+				/*inst.scoreCros[0] = inst.implFindCros(
 					list.get(0).bundle,
 					inst.locaCros[0]
-				);
+				);*/
 				inst.scoreCros[1] = inst.implFindCros(
 					list.get(1).bundle,
 					inst.locaCros[1]
@@ -96,7 +96,7 @@ public class WidAoiViews extends BorderPane {
 	 * 6: minimum score for Cross-T.<p>
 	 * 7: minimum score for Rectangle.<p>
 	 */
-	private int param[] = {120,300,50,5,5,7,70,70};
+	private int param[] = {100,300,50,5,5,7,70,70};
 
 	private double[] scoreCros = {0,0};
 	private int[][] locaCros = {{-1,-1},{-1,-1}};
@@ -240,10 +240,10 @@ public class WidAoiViews extends BorderPane {
 			"(%3d,%3d)",locaCros[1][0],locaCros[1][1]
 		));
 		txtTarget[2].setText(String.format(
-			"%.3f%",scoreCros[0]
+			"%.3f%%",scoreCros[0]
 		));
 		txtTarget[3].setText(String.format(
-			"%.3f%",scoreCros[1]
+			"%.3f%%",scoreCros[1]
 		));
 	}
 	private void txtPosRect(){
@@ -254,10 +254,10 @@ public class WidAoiViews extends BorderPane {
 			"(%3d,%3d)",locaRect[1][0],locaRect[1][1]
 		));
 		txtTarget[6].setText(String.format(
-			"%.3f%",scoreRect[0]
+			"%.3f%%",scoreRect[0]
 		));
 		txtTarget[7].setText(String.format(
-			"%.3f%",scoreRect[1]
+			"%.3f%%",scoreRect[1]
 		));
 	}
 	private void resetPosCros(){

@@ -72,6 +72,7 @@ extern "C" JNIEXPORT void JNICALL Java_prj_letterpress_WidAoiViews_implInitParam
 		thiz,
 		env->GetFieldID(clzz,"debugMode","I")
 	);
+	//cout<<"score=("<<minScore[0]<<","<<minScore[1]<<"), debug="<<debugMode<<endl;
 	/*id = env->GetFieldID(clzz,"score","[F");
 	obj = env->GetObjectField(thiz,id);
 	jfloatArray arr2=*(reinterpret_cast<jfloatArray*>(&obj));
@@ -88,10 +89,6 @@ static Point findTarget(
 	float* score
 ){
 	Point loca(-1,-1);
-	if(debugMode==2){
-		drawContour(ova,cts);
-		return loca;
-	}
 	int cnt = 0;
 	double score_sum = 0.;
 	double score_min = 1.;
@@ -103,6 +100,10 @@ static Point findTarget(
 		if(approx.size()<numVertex){
 			continue;
 		}
+		double area = contourArea(approx);
+		if(area<(30*30)){
+			continue;//area constrain~~~
+		}
 		//if(isContourConvex(approx)==checkConvex){
 		//	continue;
 		//}
@@ -110,6 +111,9 @@ static Point findTarget(
 			shape,approx,
 			CV_CONTOURS_MATCH_I3,0
 		);
+		if(debugMode==2){
+			drawPolyline(ova,approx,true);
+		}
 		//cout<<"score="<<score_shp<<endl;
 		if(score_shp<silimarity){
 			//we found a similar target~~~
@@ -123,7 +127,7 @@ static Point findTarget(
 			cnt++;
 			score_sum = score_sum + score_shp;
 			if(debugMode==3){
-				drawPolyline(ova,approx);
+				drawPolyline(ova,approx,true);
 			}
 		}
 		if(score_shp<score_min){
@@ -183,7 +187,7 @@ extern "C" JNIEXPORT jfloat JNICALL Java_prj_letterpress_WidAoiViews_implFindCro
 	Point res = findTarget(
 		ova,
 		shapeCross,
-		cts,false,4,minScore[0],
+		cts,false,5,minScore[0],
 		&score
 	);
 	loca[0] = res.x;
@@ -233,7 +237,7 @@ extern "C" JNIEXPORT jfloat JNICALL Java_prj_letterpress_WidAoiViews_implFindRec
 	Point cros(mask[0],mask[1]);
 	circle(
 		nod2,
-		cros,25,
+		cros,70,
 		Scalar::all(0),-1
 	);//erase something~~~
 	env->ReleaseIntArrayElements(jmask,mask,0);

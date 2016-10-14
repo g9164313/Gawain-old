@@ -77,9 +77,7 @@ public class Entry extends PanBase {
 	
 	@Override
 	protected void eventClose(WindowEvent e){
-		if(camEnable==false){
-			rndr.stop();//let application release resource~~
-		}	
+		rndr.stop();//let application release resource~~	
 	}
 	
 	/*private Node layoutAction(){

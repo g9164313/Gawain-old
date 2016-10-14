@@ -84,7 +84,7 @@ public class ImgRender implements Gawain.EventHook {
 			}
 		}
 	};
-	
+
 	/**
 	 * start to play video stream 
 	 * @return self

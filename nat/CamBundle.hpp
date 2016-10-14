@@ -56,6 +56,7 @@ extern void drawContour(
 extern void drawPolyline(
 	Mat& overlay,
 	vector<Point>& cts,
+	bool closed,
 	const Scalar& color,
 	int thickness = 1,
 	int lineType = LINE_8
@@ -64,6 +65,7 @@ extern void drawPolyline(
 extern void drawPolyline(
 	Mat& overlay,
 	vector<Point>& cts,
+	bool closed,
 	int thickness = 1,
 	int lineType = LINE_8
 );

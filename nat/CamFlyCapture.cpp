@@ -214,7 +214,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamFlyCapture_implFetch(
 		loge(env,"fail to fetch image");
 		return;
 	}
-	Mat m_img(
+	Mat src(
 		img.GetRows(),
 		img.GetCols(),
 		type,
@@ -222,9 +222,9 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamFlyCapture_implFetch(
 		img.GetReceivedDataSize()/img.GetRows()
 	);
 	//scale???
-	Mat dst;
-	resize(m_img,dst,Size(img.GetCols()/2,img.GetRows()/2));
-	MACRO_FETCH_COPY(dst)
+	//Mat dst;
+	//resize(src,dst,Size(img.GetCols()/2,img.GetRows()/2));
+	MACRO_FETCH_COPY(src)
 }
 
 extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamFlyCapture_implClose(
