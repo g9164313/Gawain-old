@@ -3,14 +3,14 @@ package prj.letterpress;
 import java.util.ArrayList;
 
 import com.jfoenix.controls.JFXComboBox;
-import com.jfoenix.controls.JFXRadioButton;
 import com.jfoenix.controls.JFXTextField;
 
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
-import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
@@ -23,6 +23,12 @@ import narl.itrc.ImgRender;
 import narl.itrc.PanBase;
 import narl.itrc.PanDecorate;
 
+/**
+ * AXIS-A : 10pps <==> 50um
+ * AXIS-B : 10pps <==> 50um
+ * @author qq
+ *
+ */
 public class WidAoiViews extends BorderPane {
 	
 	private final int MARK_CROS= 1;
@@ -76,12 +82,30 @@ public class WidAoiViews extends BorderPane {
 		}
 	};
 	
-	private native void implInitShape();
-	private native void implInitParam();
-	private native float implFindCros(CamBundle bnd,int[] loca);
-	private native float implFindRect(CamBundle bnd,int[] mask,int[] loca);
-	
 	private FilterMark filterMark = new FilterMark(this);
+	
+	class FilterAlign extends ImgFilter implements 
+		EventHandler<ActionEvent>
+	{
+		private WidAoiViews inst;
+		public FilterAlign(WidAoiViews instance) {
+			inst = instance;
+		}
+		@Override
+		public void cookData(ArrayList<ImgPreview> list) {
+		}
+		@Override
+		public boolean showData(ArrayList<ImgPreview> list) {
+			return true;
+		}
+		@Override
+		public void handle(ActionEvent event) {
+
+		}
+	};
+
+	public FilterAlign filterAlign= new FilterAlign(this);
+	//-------------------------------//
 	
 	private int debugMode = 0;
 	
@@ -103,7 +127,13 @@ public class WidAoiViews extends BorderPane {
 	
 	private double[] scoreRect = {0,0};	
 	private int[][] locaRect = {{-1,-1},{-1,-1}};
-	
+		
+	private native void implInitShape();
+	private native void implInitParam();
+	private native float implFindCros(CamBundle bnd,int[] loca);
+	private native float implFindRect(CamBundle bnd,int[] mask,int[] loca);	
+	//-------------------------------//
+
 	public WidAoiViews(ImgRender rndr){
 		setCenter(layoutViews());
 		setRight(layoutOption());

@@ -23,6 +23,7 @@ import narl.itrc.DevMotion;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
 import narl.itrc.PanDecorate;
+import narl.itrc.TskAction;
 
 public class PanHelpful extends PanDecorate {
 
@@ -185,6 +186,39 @@ public class PanHelpful extends PanDecorate {
 		return lay;
 	}
 
+	private TskAction tsk1 = new TskGoHome(null);
+	private TskAction tsk2 = new TskHolder(null);
+	private TskAction tsk3 = new TskScan(Entry.inst.wmap,null);
+
+	private Node layoutOption5(){
+		GridPane lay = new GridPane();
+		lay.getStyleClass().add("grid-medium");
+		
+		Button btnHome = PanBase.genButton1("原點校正","arrow-compress-all.png");
+		btnHome.setOnAction(tsk1);
+
+		Button btnAlign = PanBase.genButton1("對位標靶","selection.png");
+		btnAlign.setOnAction(Entry.inst.prvw.filterAlign);
+		
+		Button btnScan = PanBase.genButton1("晶圓曝光","blur.png");
+		btnScan.setOnAction(tsk3);
+
+		Button btnGoing = PanBase.genButton1("快速執行","run.png");
+		btnGoing.setOnAction(event->{
+			
+		});
+		
+		Button btnHold = PanBase.genButton2("進/退片","coffee-to-go.png");
+		btnHold.setOnAction(tsk2);
+		
+		Button btnClose = PanBase.genButton3("關閉程式","close.png");	
+		btnClose.setOnAction(event->Entry.inst.dismiss());
+		
+		lay.addRow(0, btnHome, btnAlign, btnScan,  btnGoing);
+		lay.addRow(1, btnHold, btnClose);
+		return lay;
+	}
+	
 	@Override
 	public Node layoutBody() {
 		
@@ -195,10 +229,7 @@ public class PanHelpful extends PanDecorate {
 			layoutOption3(),
 			layoutOption4()
 		);
-		
-		Button btnClose = PanBase.genButton3("關閉程式","close.png");	
-		btnClose.setOnAction(event->{Entry.instance.dismiss();});
-		
+
 		HBox lay1 = new HBox();
 		lay1.getStyleClass().add("hbox-small");
 		lay1.getChildren().addAll(
@@ -206,7 +237,7 @@ public class PanHelpful extends PanDecorate {
 			new Separator(Orientation.VERTICAL),
 			lay2,
 			new Separator(Orientation.VERTICAL),
-			btnClose
+			layoutOption5()
 		);
 		return lay1;
 	}
