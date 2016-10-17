@@ -46,6 +46,7 @@ public class TskGoHome extends TskAction {
 			cur = Entry.stg0.pulse[idx].get();			
 			Misc.logv("AXIS-%c %d --> %d",tkn,pre,cur);
 		}while(Math.abs(cur-pre)>5);
+		
 		Entry.stg0.exec("WT 500;DE "+col+"0;DP "+col+"0;TP\r\n");
 	}
 	
@@ -53,6 +54,7 @@ public class TskGoHome extends TskAction {
 	public int looper(Task<Integer> tsk) {
 		walking('A');
 		walking('B');
+		Entry.stg0.exec_TP();
 		Misc.logv("Mission complete");
 		return 1;
 	}

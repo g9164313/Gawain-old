@@ -159,6 +159,7 @@ public class Pan4AxisPad extends FlowPane {
 		//information-block
 		GridPane panInfo = new GridPane();
 		panInfo.getStyleClass().add("grid-small");
+		
 		panInfo.add(createPadRest(TKN_X_P), 0, 0);
 		panInfo.add(createPadRest(TKN_Y_P), 0, 1);
 		panInfo.add(createPadRest(TKN_Z_P), 0, 2);
@@ -171,6 +172,7 @@ public class Pan4AxisPad extends FlowPane {
 		//control-block
 		GridPane panCtrl = new GridPane();
 		panCtrl.getStyleClass().add("grid-small");
+		
 		panCtrl.setPrefSize(boardSize, boardSize);
 		
 		panCtrl.add(createPadArrow(TKN_Z_N), 0, 0, 1, 1);		

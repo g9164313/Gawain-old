@@ -60,9 +60,12 @@ public class PanHelpful extends PanDecorate {
 			new Button(DIR_NEG1),new Button(DIR_POS1),
 			new Button(DIR_NEG1),new Button(DIR_POS1),
 			new Button(DIR_NEG1),new Button(DIR_POS1),
+			new Button(DIR_ZERO),
+			new Button(DIR_ZERO),
+			new Button(DIR_ZERO)
 		};
-
-		for(int i=0; i<btn.length; i++){
+		
+		for(int i=0; i<6; i++){
 			int id = i/2;
 			char tkn = '?';
 			switch(id){
@@ -77,9 +80,22 @@ public class PanHelpful extends PanDecorate {
 			box[id].setPrefWidth(75);
 		}
 		
-		lay.addRow(0, new Label("X軸"),lcd[0],btn[0],box[0],btn[1]);
-		lay.addRow(1, new Label("Y軸"),lcd[1],btn[2],box[1],btn[3]);
-		lay.addRow(2, new Label("θ軸"),lcd[2],btn[4],box[2],btn[5]);
+		btn[6].setOnAction(event->{
+			Entry.stg0.exec("DE ,0;DP ,0;\r\n"); 
+			Entry.stg0.exec_TP();
+		});
+		btn[7].setOnAction(event->{
+			Entry.stg0.exec("DE 0;DP 0;\r\n"); 
+			Entry.stg0.exec_TP();
+		});
+		btn[8].setOnAction(event->{
+			Entry.stg0.exec("DE ,,0;DP ,,0;\r\n"); 
+			Entry.stg0.exec_TP();
+		});
+		
+		lay.addRow(0, new Label("X軸"),lcd[0],btn[0],box[0],btn[1],btn[6]);
+		lay.addRow(1, new Label("Y軸"),lcd[1],btn[2],box[1],btn[3],btn[7]);
+		lay.addRow(2, new Label("θ軸"),lcd[2],btn[4],box[2],btn[5],btn[8]);
 		return lay;
 	}
 
@@ -186,14 +202,14 @@ public class PanHelpful extends PanDecorate {
 		return lay;
 	}
 
-	private TskAction tsk1 = new TskGoHome(null);
-	private TskAction tsk2 = new TskHolder(null);
-	private TskAction tsk3 = new TskScan(Entry.inst.wmap,null);
-
 	private Node layoutOption5(){
 		GridPane lay = new GridPane();
 		lay.getStyleClass().add("grid-medium");
-		
+	
+		final TskAction tsk1 = new TskGoHome(null);
+		final TskAction tsk2 = new TskHolder(null);
+		final TskAction tsk3 = new TskScan(Entry.inst.wmap,null);
+
 		Button btnHome = PanBase.genButton1("原點校正","arrow-compress-all.png");
 		btnHome.setOnAction(tsk1);
 
@@ -248,6 +264,8 @@ public class PanHelpful extends PanDecorate {
 	private static final String DIR_NEG1="<  ";
 	private static final String DIR_NEG2="<<";
 	
+	private static final String DIR_ZERO="RST";
+	
 	class EventKick implements EventHandler<MouseEvent>{
 		private char dir = '+';
 		private char tkn = '?';		
@@ -286,8 +304,6 @@ public class PanHelpful extends PanDecorate {
 				btn.setText((dir=='+')?(DIR_POS1):(DIR_NEG1));
 				if(val==0){
 					jogging(false,dir);
-				}else{
-					moving(val);
 				}
 			}
 		}
