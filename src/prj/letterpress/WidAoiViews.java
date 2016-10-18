@@ -323,7 +323,7 @@ public class WidAoiViews extends BorderPane {
 			vec[0][0] = locaRect[0][0] - locaCros[0][0];
 			vec[0][1] = locaRect[0][1] - locaCros[0][1];
 			vec[2][0] = (int)Math.sqrt(vec[0][0]*vec[0][0] + vec[0][1]*vec[0][1]);
-			tmp = String.format("(%d,%d)@%d",vec[1][0],vec[1][1],vec[2][1]);
+			tmp = String.format("(%d,%d)@%d",vec[0][0],vec[0][1],vec[2][0]);
 		}else{
 			tmp = "--------";
 		}

@@ -11,27 +11,34 @@ public class TskGoHome extends TskAction {
 		super(root);
 	}
 
-	private Double[] _offset = {0., 0.};
-	
-	private void moving(char tkn,double step){
+	private void jog_to_limit(char tkn,double step){
 		Entry.stg0.joggingTo(true,step,tkn);
-		do{
+		for(;;){
 			Misc.delay(500);
 			Entry.stg0.exec_TP();
 			int cur = Entry.stg0.getPulse(tkn);
 			Misc.logv("AXIS-%c：%d",tkn,cur);
-		}while(Entry.stg0.isReverse(tkn)==true);
+			if(step<0){
+				if(Entry.stg0.isReverse(tkn)==false){
+					break;
+				}
+			}else{
+				if(Entry.stg0.isForward(tkn)==false){
+					break;
+				}
+			}
+		}
 		Entry.stg0.joggingTo(false);
 		Entry.stg0.exec_TP();
 	}
 	
 	private void walking(char tkn){
-		moving(tkn,-4000.);
+		jog_to_limit(tkn,-4000.);
 		Entry.stg0.setValue(0,tkn);
-		moving(tkn, 4000.);
-		int pos = Entry.stg0.getPulse(tkn);		
-		pos = pos / 2;
-		Entry.stg0.anchorTo((double)pos,tkn);
+		jog_to_limit(tkn, 4000.);
+		int pos = Entry.stg0.getPulse(tkn);
+		pos = pos / (2*50);//why????
+		Entry.stg0.moveTo((double)pos,tkn);
 	}
 	
 	@Override
@@ -39,11 +46,10 @@ public class TskGoHome extends TskAction {
 		Misc.logv("Panzer Vor !!!");
 		walking('X');		
 		walking('Y');
-		Entry.stg0.setValue(0,0,0);//reset the first origin~~~~
-		//Misc.logv("偏移量修正!!!");
-		//Entry.stg0.moveTo(_offset);
-		//Entry.stg0.setValue(0,0,0);//reset the second origin~~~
-		
+		Entry.stg0.setValue(0,0,0);
+		Misc.logv("偏移量修正!!!");
+		Entry.stg0.moveTo(695.32, -1486.48);//check this error offset~~~
+		Entry.stg0.setValue(0,0,0);
 		Entry.stg0.exec_TP();
 		Misc.logv("Mission complete");
 		return 1;

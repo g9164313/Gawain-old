@@ -84,12 +84,12 @@ public abstract class DevMotion {
 	}
 	
 	public int getPulse(char tkn){
-		int idx = tkn2idx_route(tkn);
+		int idx = tkn2idx(tkn);
 		return pulse[idx].getValue();
 	}
 	
 	public double getPosition(char tkn){
-		int idx = tkn2idx_route(tkn);
+		int idx = tkn2idx(tkn);
 		return (pulse[idx].getValue() * factor[idx]);
 	}
 	
@@ -181,7 +181,7 @@ public abstract class DevMotion {
 	}
 
 	protected int tkn2idx_route(char tkn){
-		Integer idx = table.get((int)(tkn-tknBase));
+		Integer idx = table.get(tkn2idx(tkn));
 		if(idx==null){
 			Misc.loge("Wrong axis name ("+tkn+")");
 			return 0;
@@ -241,7 +241,7 @@ public abstract class DevMotion {
 	/**
 	 * The way to drive motor must be implemented in this method.<p>
 	 * @param isABS - check whether this motion is absolute ot relative mode.<p>
-	 * @param value - position value.<p>
+	 * @param value - the sequence is [A,B,C,D] or [1,2,3,4]
 	 */
 	protected abstract void makeMotion(boolean isABS,Double... value);
 
@@ -411,19 +411,19 @@ public abstract class DevMotion {
 	
 	/**
 	 * Reset counter or stepper in motion device
-	 * @param value
+	 * @param value - the sequence is [A,B,C,D] or [1,2,3,4].<p>
 	 */
 	protected abstract void setPosition(Double[] value);
 	
 	/**
 	 * User can reset 'step' or 'count'.<p>
 	 * For motion card/controller, these values present the encoder position.
-	 * @param step- relative [X,Y,Z,A] value/step.<p>
+	 * @param step - the sign for [X,Y,Z,A].<p>
 	 */
 	public void setValue(Integer... step){
 		Double[] val = Misc.Int2Double(step);
 		routine(PULSE_UNIT,val);
-		setPosition(val);
+		setPosition(node);
 	}
 	
 	/**

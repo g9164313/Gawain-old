@@ -137,7 +137,6 @@ public class DevB140M extends DevMotion {
 		}catch(NumberFormatException e){
 			Misc.logw("fail to parse - %s", txt);
 		}
-		//Misc.logv("got counter="+txt);
 		updateCounter(val);
 		return val;
 	}
@@ -203,7 +202,8 @@ public class DevB140M extends DevMotion {
 	public void makeJogging(boolean go, Double[] step) {
 		if(go==true){
 			tty.fetch("JG "+axisValue(step)+";BG "+axisName(step)+"\r\n",TAIL);
-		}else{			
+		}else{
+			Misc.logv("stop jogging");
 			parse_TP(tty.fetch("ST;TP\r\n",TAIL));
 		}		
 	}
