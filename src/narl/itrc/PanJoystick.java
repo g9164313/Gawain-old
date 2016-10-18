@@ -102,7 +102,7 @@ public class PanJoystick extends FlowPane {
 			case 'x':
 				break;
 			case 'y':
-				dev.moveTo("",null,100.);
+				dev.moveTo("mm",null,100.);
 				break;
 			}
 		}

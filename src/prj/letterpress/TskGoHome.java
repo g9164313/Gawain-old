@@ -11,49 +11,39 @@ public class TskGoHome extends TskAction {
 		super(root);
 	}
 
-	private void walking(char tkn){
-		
-		String col=null;
-		switch(tkn){
-		case 'A': col=""   ;break;
-		case 'B': col=","  ;break;
-		case 'C': col=",," ;break;
-		case 'D': col=",,,";break;
-		default:
-			return;
-		}
-		int idx = tkn - 'A';
-		int pre,cur;
-		
-		Misc.logv("Panzer Vor !!!");
-		
-		Entry.stg0.exec("JG "+col+"-4000;BG "+tkn+"\r\n");
+	private Double[] _offset = {0., 0.};
+	
+	private void moving(char tkn,double step){
+		Entry.stg0.joggingTo(true,step,tkn);
 		do{
-			pre = Entry.stg0.pulse[idx].get();
 			Misc.delay(500);
 			Entry.stg0.exec_TP();
-			cur = Entry.stg0.pulse[idx].get();			
-			Misc.logv("AXIS-%c %d --> %d",tkn,pre,cur);
+			int cur = Entry.stg0.getPulse(tkn);
+			Misc.logv("AXIS-%c：%d",tkn,cur);
 		}while(Entry.stg0.isReverse(tkn)==true);
-		
-		Misc.logv("Panzer Vor !!!");
-		
-		Entry.stg0.exec("PR "+col+"16000;BG "+tkn+"\r\n");
-		do{			
-			pre = Entry.stg0.pulse[idx].get();
-			Misc.delay(500);
-			Entry.stg0.exec_TP();			
-			cur = Entry.stg0.pulse[idx].get();			
-			Misc.logv("AXIS-%c %d --> %d",tkn,pre,cur);
-		}while(Math.abs(cur-pre)>5);
-		
-		Entry.stg0.exec("WT 500;DE "+col+"0;DP "+col+"0;TP\r\n");
+		Entry.stg0.joggingTo(false);
+		Entry.stg0.exec_TP();
+	}
+	
+	private void walking(char tkn){
+		moving(tkn,-4000.);
+		Entry.stg0.setValue(0,tkn);
+		moving(tkn, 4000.);
+		int pos = Entry.stg0.getPulse(tkn);		
+		pos = pos / 2;
+		Entry.stg0.anchorTo((double)pos,tkn);
 	}
 	
 	@Override
 	public int looper(Task<Integer> tsk) {
-		walking('A');
-		walking('B');
+		Misc.logv("Panzer Vor !!!");
+		walking('X');		
+		walking('Y');
+		Entry.stg0.setValue(0,0,0);//reset the first origin~~~~
+		//Misc.logv("偏移量修正!!!");
+		//Entry.stg0.moveTo(_offset);
+		//Entry.stg0.setValue(0,0,0);//reset the second origin~~~
+		
 		Entry.stg0.exec_TP();
 		Misc.logv("Mission complete");
 		return 1;

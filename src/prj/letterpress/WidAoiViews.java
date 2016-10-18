@@ -20,6 +20,7 @@ import narl.itrc.CamBundle;
 import narl.itrc.ImgFilter;
 import narl.itrc.ImgPreview;
 import narl.itrc.ImgRender;
+import narl.itrc.Misc;
 import narl.itrc.PanBase;
 import narl.itrc.PanDecorate;
 
@@ -36,34 +37,32 @@ public class WidAoiViews extends BorderPane {
 		
 	class FilterMark extends ImgFilter {
 		public int step = MARK_CROS;
-		private WidAoiViews inst;
-		public FilterMark(WidAoiViews instance){
-			inst = instance;
+		public FilterMark(){
 		}
 		@Override
 		public void cookData(ArrayList<ImgPreview> list) {
-			inst.implInitParam();
+			implInitParam();
 			switch(step){
 			case MARK_CROS:
-				inst.scoreCros[0] = inst.implFindCros(
+				scoreCros[0] = implFindCros(
 					list.get(0).bundle,
-					inst.locaCros[0]
+					locaCros[0]
 				);
-				inst.scoreCros[1] = inst.implFindCros(
+				scoreCros[1] = implFindCros(
 					list.get(1).bundle,
-					inst.locaCros[1]
+					locaCros[1]
 				);
 				break;
 			case MARK_RECT:
-				inst.scoreRect[0] = inst.implFindRect(
+				scoreRect[0] = implFindRect(
 					list.get(0).bundle,
-					inst.locaCros[0],
-					inst.locaRect[0]
+					locaCros[0],
+					locaRect[0]
 				);
-				inst.scoreRect[1] = inst.implFindRect(
+				scoreRect[1] = implFindRect(
 					list.get(1).bundle,
-					inst.locaCros[1],
-					inst.locaRect[1]
+					locaCros[1],
+					locaRect[1]
 				);				
 				break;
 			}
@@ -76,35 +75,57 @@ public class WidAoiViews extends BorderPane {
 				return true;
 			case MARK_RECT://run just once~~~
 				txtPosRect();
+				txtShowVector();
 				return true;//run just once~~~
 			}
 			return true;
 		}
 	};
-	
-	private FilterMark filterMark = new FilterMark(this);
+	private FilterMark filterMark = new FilterMark();
 	
 	class FilterAlign extends ImgFilter implements 
 		EventHandler<ActionEvent>
 	{
-		private WidAoiViews inst;
-		public FilterAlign(WidAoiViews instance) {
-			inst = instance;
+		public FilterAlign() {
+		}
+		private void check_loca_rect(ArrayList<ImgPreview> list){
+			scoreRect[0] = implFindRect(
+				list.get(0).bundle,
+				locaCros[0],
+				locaRect[0]
+			);
+			scoreRect[1] = implFindRect(
+				list.get(1).bundle,
+				locaCros[1],
+				locaRect[1]
+			);
 		}
 		@Override
 		public void cookData(ArrayList<ImgPreview> list) {
+			check_loca_rect(list);
+			int[][] vec = txtShowVector();
+			if(vec[2][0]<=30 && vec[2][1]<=30){
+				//all distance is very short, we meet the landing site
+				isValid = true;
+				return;
+			}
 		}
+		private boolean isValid = false;
 		@Override
 		public boolean showData(ArrayList<ImgPreview> list) {
-			return true;
+			txtPosRect();
+			return (!isValid);
 		}
 		@Override
 		public void handle(ActionEvent event) {
-
+			if(locaCros[0][0]<0 || locaCros[1][0]<0){
+				PanBase.msgBox.notifyWarning("注意","必須先決定十字標靶位置");
+				return;
+			}
+			Entry.rndr.attach(filterAlign);
 		}
 	};
-
-	public FilterAlign filterAlign= new FilterAlign(this);
+	public FilterAlign filterAlign= new FilterAlign();
 	//-------------------------------//
 	
 	private int debugMode = 0;
@@ -127,7 +148,7 @@ public class WidAoiViews extends BorderPane {
 	
 	private double[] scoreRect = {0,0};	
 	private int[][] locaRect = {{-1,-1},{-1,-1}};
-		
+
 	private native void implInitShape();
 	private native void implInitParam();
 	private native float implFindCros(CamBundle bnd,int[] loca);
@@ -206,6 +227,9 @@ public class WidAoiViews extends BorderPane {
 			Entry.rndr.attach(filterMark);
 		});
 
+		Button btnMarkAlign = PanBase.genButton1("標靶對位",null);
+		btnMarkAlign.setOnAction(filterAlign);
+		
 		//----combine them all----
 		VBox lay1 = new VBox();
 		lay1.getStyleClass().add("vbox-small");
@@ -215,7 +239,8 @@ public class WidAoiViews extends BorderPane {
 			lay2,
 			new Separator(),
 			btnMarkCros,
-			btnMarkRect
+			btnMarkRect,
+			btnMarkAlign
 		);
 		return PanDecorate.group("設定",lay1);
 	}
@@ -289,6 +314,32 @@ public class WidAoiViews extends BorderPane {
 		txtTarget[7].setText(String.format(
 			"%.3f%%",scoreRect[1]
 		));
+	}	
+	private int[][] txtShowVector(){
+		int[][] vec = {{0,0},{0,0},{-1,-1}};
+		String txt = "向量：", tmp=null;
+		//left camera
+		if(locaCros[0][0]>=0){
+			vec[0][0] = locaRect[0][0] - locaCros[0][0];
+			vec[0][1] = locaRect[0][1] - locaCros[0][1];
+			vec[2][0] = (int)Math.sqrt(vec[0][0]*vec[0][0] + vec[0][1]*vec[0][1]);
+			tmp = String.format("(%d,%d)@%d",vec[1][0],vec[1][1],vec[2][1]);
+		}else{
+			tmp = "--------";
+		}
+		txt = txt + tmp + "，";
+		//right camera
+		if(locaCros[1][0]>=0){
+			vec[1][0] = locaRect[1][0] - locaCros[1][0];
+			vec[1][1] = locaRect[1][1] - locaCros[1][1];
+			vec[2][1] = (int)Math.sqrt(vec[1][0]*vec[1][0] + vec[1][1]*vec[1][1]);
+			tmp = String.format("(%d,%d)@%d",vec[1][0],vec[1][1],vec[2][1]);
+		}else{
+			tmp = "--------";
+		}
+		txt = txt + tmp;
+		Misc.logv(txt);
+		return vec;
 	}
 	private void resetPosCros(){
 		locaCros[0][0] = locaCros[0][1] = -1;

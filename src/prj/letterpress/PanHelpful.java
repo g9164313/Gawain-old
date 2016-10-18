@@ -213,7 +213,7 @@ public class PanHelpful extends PanDecorate {
 		Button btnHome = PanBase.genButton1("原點校正","arrow-compress-all.png");
 		btnHome.setOnAction(tsk1);
 
-		Button btnAlign = PanBase.genButton1("對位標靶","selection.png");
+		Button btnAlign = PanBase.genButton1("標靶對位","selection.png");
 		btnAlign.setOnAction(Entry.inst.prvw.filterAlign);
 		
 		Button btnScan = PanBase.genButton1("晶圓曝光","blur.png");
@@ -271,14 +271,12 @@ public class PanHelpful extends PanDecorate {
 		private char tkn = '?';		
 		private TextField box;
 		private Button btn;
-		
 		public EventKick(char tkn,char dir,TextField box,Button btn){
 			this.tkn = tkn;
 			this.dir = dir;
 			this.box = box;
 			this.btn = btn;
 		}
-		
 		@Override
 		public void handle(MouseEvent event) {
 			int val = 0;
@@ -307,21 +305,20 @@ public class PanHelpful extends PanDecorate {
 				}
 			}
 		}
-
 		private void jogging(boolean go,char dir){
 			double val = (dir=='+')?(2000):(-2000);
 			switch(tkn){
 			case 'x':
 			case 'X':
-				Entry.stg0.jogTo(go,DevMotion.PULSE_UNIT, val);
+				Entry.stg0.joggingTo(go,DevMotion.PULSE_UNIT, val);
 				break;
 			case 'y':
 			case 'Y':
-				Entry.stg0.jogTo(go,DevMotion.PULSE_UNIT, null, val);
+				Entry.stg0.joggingTo(go,DevMotion.PULSE_UNIT, null, val);
 				break;
 			case '@':
 				val = val * 10.;//special~~~
-				Entry.stg0.jogTo(go,DevMotion.PULSE_UNIT, null, null, val);
+				Entry.stg0.joggingTo(go,DevMotion.PULSE_UNIT, null, null, val);
 				break;				
 			}
 		}
@@ -331,14 +328,14 @@ public class PanHelpful extends PanDecorate {
 			switch(tkn){
 			case 'x':
 			case 'X':
-				Entry.stg0.asyncMoveTo(DevMotion.PULSE_UNIT,(double)val);
+				Entry.stg0.asyncOffsetTo(DevMotion.PULSE_UNIT,(double)val);
 				break;
 			case 'y':
 			case 'Y':
-				Entry.stg0.asyncMoveTo(DevMotion.PULSE_UNIT,null,(double)val);
+				Entry.stg0.asyncOffsetTo(DevMotion.PULSE_UNIT,null,(double)val);
 				break;
 			case '@':
-				Entry.stg0.asyncMoveTo(DevMotion.PULSE_UNIT,null,null,(double)val);
+				Entry.stg0.asyncOffsetTo(DevMotion.PULSE_UNIT,null,null,(double)val);
 				break;				
 			}
 		}		

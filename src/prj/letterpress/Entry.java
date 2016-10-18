@@ -54,7 +54,7 @@ public class Entry extends PanBase {
 			rndr.play();
 		}
 		if(stgEnable==true){
-			//10pps <==> 50um
+			//1pps <==> 5um
 			stg0.setFactor(200,200,200,200);
 			stg0.setTokenBase('A');
 			stg0.setRoutine('B','A','C','D');

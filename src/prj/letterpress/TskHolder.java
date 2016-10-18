@@ -1,7 +1,6 @@
 package prj.letterpress;
 
 import javafx.concurrent.Task;
-import narl.itrc.DevMotion;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
 import narl.itrc.TskAction;
@@ -17,45 +16,45 @@ public class TskHolder extends TskAction {
 		super(root);
 	}
 	
-	private void insert_tray(){
+	private void insert_tray(char tkn){
 		Entry.stg0.exec("PA 0;BG A\r\n");
-		do{			
-			int pre = Entry.stg0.pulse[1].get();
+		for(;;){
+			Entry.stg0.exec_TP();
+			int pre = Entry.stg0.getPulse(tkn);
 			Misc.delay(500);
 			Entry.stg0.exec_TP();			
-			int cur = Entry.stg0.pulse[1].get();			
+			int cur = Entry.stg0.getPulse(tkn);		
 			Misc.logv("AXIS-A：%d",cur);
 			if(Math.abs(cur-pre)<=1){
 				break;
 			}
-		}while(true);
-		Entry.stg0.exec_TP();
+		}	
 	}
 	
-	private void remove_tray(){
-		Entry.stg0.jogTo(true,DevMotion.PULSE_UNIT, null, -4000.);
+	private void remove_tray(char tkn){
+		Entry.stg0.joggingTo(true,-4000.,tkn);
 		do{
 			Misc.delay(500);
 			Entry.stg0.exec_TP();
-			int cur = Entry.stg0.pulse[1].get();			
-			Misc.logv("AXIS-A：%d",cur);
-		}while(Entry.stg0.isReverse('A')==true);
-		Entry.stg0.jogTo(false,DevMotion.PULSE_UNIT, null, -4000.);
+			int cur = Entry.stg0.getPulse(tkn);
+			Misc.logv("AXIS-%c：%d",tkn,cur);
+		}while(Entry.stg0.isReverse(tkn)==true);
+		Entry.stg0.joggingTo(false);
 		Entry.stg0.exec_TP();
 	}
 	
 	@Override
 	public int looper(Task<Integer> tsk) {
 		Entry.stg0.exec_TP();
-		int pos = Entry.stg0.pulse[1].get();
+		int pos = Entry.stg0.getPulse('Y');
 		if(pos<=1000){
 			Misc.logv("退出\n Panzer Vor !!!");
-			Entry.stg0.exec("OB 1,0\r\n");
-			remove_tray();
+			Entry.stg0.exec("OB 1,0\r\n");//disable air pump~~~
+			remove_tray('Y');
 		}else{
 			Misc.logv("吸入\n Panzer Vor !!!");
-			Entry.stg0.exec("OB 1,1\r\n");
-			insert_tray();
+			Entry.stg0.exec("OB 1,1\r\n");//enable air pump!!!
+			insert_tray('Y');
 		}		
 		return 1;
 	}

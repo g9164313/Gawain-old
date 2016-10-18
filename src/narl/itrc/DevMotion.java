@@ -18,7 +18,7 @@ public abstract class DevMotion {
 	public DevMotion(){		
 	}
 
-	protected String DEF_UNIT="mm";
+	protected String BASE_UNIT="mm";
 	
 	/**
 	 * This is a special unit for motion device
@@ -28,6 +28,7 @@ public abstract class DevMotion {
 	/**
 	 * Use this coefficient convert millimeter to pulse or counter.<p>
 	 * The sequence is also same as stage axis-token.<p>
+	 * The token is (1,2,3,4...) or (A,B,C,D...).<p>
 	 */	
 	private double[] factor = null;
 
@@ -42,13 +43,14 @@ public abstract class DevMotion {
 	/**
 	 * This array keep the input value(move or arch).<p>
 	 * The sequence is also same as stage axis-token.<p>
+	 * The token is (1,2,3,4...) or (A,B,C,D...).<p>
 	 */
 	private Double[] node = null;
 	
 	/**
 	 * This array keep pulse/counter value.<p>
-	 * They present (X,Y,Z,A...)
 	 * Remember, device must use 'makePosition' to reflect this variable.<p>
+	 * The token is (X,Y,Z,A...).<p>
 	 */
 	public SimpleIntegerProperty[] pulse = {
 		new SimpleIntegerProperty(),
@@ -79,6 +81,16 @@ public abstract class DevMotion {
 		}else{
 			event.run();
 		}
+	}
+	
+	public int getPulse(char tkn){
+		int idx = tkn2idx_route(tkn);
+		return pulse[idx].getValue();
+	}
+	
+	public double getPosition(char tkn){
+		int idx = tkn2idx_route(tkn);
+		return (pulse[idx].getValue() * factor[idx]);
 	}
 	
 	/**
@@ -122,7 +134,7 @@ public abstract class DevMotion {
 		tknBase = base;
 	}
 
-	private void convert(Double[] val,String unit){
+	private void convert(String unit,Double[] val){
 		if(unit.equalsIgnoreCase(PULSE_UNIT)==true){
 			return;
 		}
@@ -130,16 +142,15 @@ public abstract class DevMotion {
 			if(val[i]==null){
 				continue;
 			}
-			val[i] = Misc.phyConvert(val[i],unit,DEF_UNIT);			
+			val[i] = Misc.phyConvert(val[i],unit,BASE_UNIT);			
 		}
 	}
 	
-	private void routine(Double[] val,String unit){
+	private void routine(String unit,Double[] val){
 		
 		if(table.isEmpty()==true || node==null){
 			return;
 		}
-		
 		for(int i=0; i<node.length; i++){
 			node[i] = null;//reset all value again~~~
 		}
@@ -154,7 +165,6 @@ public abstract class DevMotion {
 			} 
 			node[j] = val[i];
 		}
-		
 		if(unit.equalsIgnoreCase(PULSE_UNIT)==true){
 			return;
 		}
@@ -170,26 +180,89 @@ public abstract class DevMotion {
 		}		
 	}
 
-	protected abstract void makeMotion(boolean isABS,Double[] value);
+	protected int tkn2idx_route(char tkn){
+		Integer idx = table.get((int)(tkn-tknBase));
+		if(idx==null){
+			Misc.loge("Wrong axis name ("+tkn+")");
+			return 0;
+		}
+		return idx;
+	}
+	
+	private int tkn2idx(char tkn){
+		switch(tkn){
+		case 'x':
+		case 'X':
+			return 0;
+		case 'y':
+		case 'Y':
+			return 1;
+		case 'z':
+		case 'Z':
+			return 2;
+		case 'a':
+		case 'A':
+			return 3;
+		}
+		return 0;
+	}
+	
+	private Double[] dbl_array = null;
+	protected Double[] prepare_double_array(double val,char tkn){
+		if(table.isEmpty()==true || node==null){
+			return null;
+		}
+		if(dbl_array==null){
+			dbl_array = new Double[node.length];
+		}
+		for(int i=0; i<node.length; i++){
+			dbl_array[i] = null;
+		}
+		dbl_array[tkn2idx(tkn)] = val;
+		return dbl_array;
+	}
+	
+	
+	private Integer[] int_array = null;
+	protected Integer[] prepare_int_array(int val,char tkn){
+		if(table.isEmpty()==true || node==null){
+			return null;
+		}
+		if(int_array==null){
+			int_array = new Integer[node.length];
+		}
+		for(int i=0; i<node.length; i++){
+			int_array[i] = null;
+		}
+		int_array[tkn2idx(tkn)] = val;
+		return int_array;
+	}
+
+	/**
+	 * The way to drive motor must be implemented in this method.<p>
+	 * @param isABS - check whether this motion is absolute ot relative mode.<p>
+	 * @param value - position value.<p>
+	 */
+	protected abstract void makeMotion(boolean isABS,Double... value);
 
 	private Thread async = null;
 
-	public void asyncArchTo(final String unit,Double... location){
+	public void asyncAnchorTo(final String unit,Double... location){
 		async = TskBase.macro("asyncArchTo", async,
 			new Task<Void>(){
 			@Override
 			protected Void call() throws Exception {
-				archTo(unit,location);
+				anchorTo(unit,location);
 				return null;
 			}
 		});
 	}
 	
-	public void asyncArchTo(Double... location){
-		asyncArchTo(DEF_UNIT,location);
+	public void asyncAnchorTo(Double... location){
+		asyncAnchorTo(PULSE_UNIT,location);
 	}
 	
-	public void asyncMoveTo(final String unit,Double... offset){
+	public void asyncOffsetTo(final String unit,Double... offset){
 		async = TskBase.macro("asyncMoveTo", async,
 			new Task<Void>(){
 			@Override
@@ -201,38 +274,82 @@ public abstract class DevMotion {
 	}
 	
 	public void asyncMoveTo(Double... offset){
-		asyncMoveTo(DEF_UNIT,offset);
+		asyncOffsetTo(PULSE_UNIT,offset);
 	}
 	
 	/**
 	 * Stage must go to this absolute location.<p>
-	 * @param location - x,y,z,a...
-	 * @param unit - length unit, default is millimeter
+	 * @param unit - length unit, default is millimeter.<p>
+	 * @param location - relative [X,Y,Z,A] value/step.<p>
 	 */
-	public void archTo(String unit,Double... location){
-		convert(location,unit);
-		routine(location,unit);
+	public void anchorTo(String unit,Double... location){
+		convert(unit,location);
+		routine(unit,location);
 		makeMotion(true,node);
 	}
 	
 	/**
 	 * Stage must go to this absolute location.<p>
 	 * Default unit is millimeter.<p>
-	 * @param location - [X,Y,Z,A] value
+	 * @param unit - length unit, default is millimeter.<p>
+	 * @param location - [X,Y,Z,A] value.<p>
+	 * @param token - the sign for [X,Y,Z,A]
 	 */
-	public void archTo(Double... location){
-		archTo("mm",location);
+	public void anchorTo(String unit, Double location,char token){
+		anchorTo(
+			unit,
+			prepare_double_array(location,token)
+		);
 	}
 	
 	/**
+	 * Stage must go to this absolute location.<p>
+	 * Default unit is millimeter.<p>
+	 * @param location - relative [X,Y,Z,A] value/step.<p>
+	 */
+	public void anchorTo(Double... location){
+		anchorTo(
+			PULSE_UNIT,
+			location
+		);
+	}
+	
+
+	/**
+	 * Stage must go to this absolute location.<p>
+	 * Default unit is millimeter.<p>
+	 * @param location - .<p>
+	 * @param token - the sign for [X,Y,Z,A].<p>
+	 */
+	public void anchorTo(Double location,char token){
+		anchorTo(
+			PULSE_UNIT,
+			prepare_double_array(location,token)
+		);
+	}
+
+	/**
 	 * Stage will make a relative move.<p>
-	 * @param offset - relative [X,Y,Z,A] value/step
-	 * @param unit - length unit, default is millimeter
+	 * @param offset - relative [X,Y,Z,A] value/step.<p>
+	 * @param unit - length unit, default is millimeter.<p>
 	 */
 	public void moveTo(String unit,Double... offset){		
-		convert(offset,unit);
-		routine(offset,unit);
+		convert(unit,offset);
+		routine(unit,offset);
 		makeMotion(false,node);
+	}
+	
+	/**
+	 * Stage will make a relative move.<p>	
+	 * @param unit  - the unit for offset
+	 * @param offset- relative [X,Y,Z,A] value/step
+	 * @param token - the sign for [X,Y,Z,A]
+	 */
+	public void moveTo(String unit,Double offset,char token){		
+		moveTo(
+			unit,
+			prepare_double_array(offset,token)
+		);
 	}
 	
 	/**
@@ -240,32 +357,87 @@ public abstract class DevMotion {
 	 * @param offset - relative [X,Y,Z,A] value/step
 	 */
 	public void moveTo(Double... offset){		
-		moveTo("mm",offset);
+		moveTo(
+			PULSE_UNIT,
+			offset
+		);
 	}
+
+	/**
+	 * Stage will make a relative move.<p> 	 
+	 * @param offset- relative [X,Y,Z,A] value/step.<p>
+	 * @param token - the sign for [X,Y,Z,A].<p>
+	 */
+	public void moveTo(Double offset,char token){		
+		moveTo(
+			PULSE_UNIT,
+			prepare_double_array(offset,token)
+		);
+	}
+
 	
 	/**
 	 * This is a special motion, motor is just running and stop at any time.<p> 
 	 */
-	public abstract void Jogging(boolean go,Double... val);
+	public abstract void makeJogging(boolean go,Double[] step);
 	
 	
-	public void jogTo(boolean go,String unit,Double... offset){
-		convert(offset,unit);
-		routine(offset,unit);
-		Jogging(go,node);
+	public void joggingTo(boolean go,String unit,Double... step){
+		convert(unit,step);
+		routine(unit,step);
+		makeJogging(go,node);
 	}
 	
+	public void joggingTo(boolean go,String unit,Double step,char token){
+		joggingTo(
+			go,unit,
+			prepare_double_array(step,token)
+		);
+	}
 	
-	protected abstract void takePosition(Double[] value);
+	public void joggingTo(boolean go,Double... step){
+		joggingTo(
+			go,PULSE_UNIT,
+			step
+		);
+	}
+	
+	public void joggingTo(boolean go,Double step,char token){
+		joggingTo(
+			go,PULSE_UNIT,
+			prepare_double_array(step,token)
+		);
+	}
+	
+	/**
+	 * Reset counter or stepper in motion device
+	 * @param value
+	 */
+	protected abstract void setPosition(Double[] value);
 	
 	/**
 	 * User can reset 'step' or 'count'.<p>
 	 * For motion card/controller, these values present the encoder position.
+	 * @param step- relative [X,Y,Z,A] value/step.<p>
+	 */
+	public void setValue(Integer... step){
+		Double[] val = Misc.Int2Double(step);
+		routine(PULSE_UNIT,val);
+		setPosition(val);
+	}
+	
+	/**
+	 * User can reset 'step' or 'count' by token.<p>
+	 * For motion card/controller, these values present the encoder position.
 	 * @param step
 	 */
-	public void setPosition(Integer... step){
-		Double[] val = Misc.Int2Double(step);
-		routine(val,PULSE_UNIT);
-		takePosition(val);
+	public void setValue(int step,char tkn){
+		setValue(prepare_int_array(step,tkn));
 	}
+	
+	/**
+	 * Update counter or stepper in motion device
+	 * 
+	 */
+	protected abstract void getPosition();	
 }

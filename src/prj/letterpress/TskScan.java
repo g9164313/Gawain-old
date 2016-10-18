@@ -39,7 +39,7 @@ public class TskScan extends TskAction {
 		Double[] pos;
 		while((pos = map.getSequencePath())!=null){		
 			Misc.logv("移動至 (%3.1f,%3.1f)",pos[0],pos[1]);
-			stg.archTo(pos);
+			stg.anchorTo("mm",pos);
 			//start to exposure
 			Misc.logv("照射中...");
 			Misc.delay(1000);
@@ -54,7 +54,7 @@ public class TskScan extends TskAction {
 		tick = System.currentTimeMillis() - tick;
 		tsec = ((float)tick)/1000.f;
 		Misc.logv("歷時: %.3fsec",tsec);		
-		stg.archTo(0.,0.);
+		stg.anchorTo("mm",0.,0.);
 		Misc.logv("go home...");
 		return -1;
 	}

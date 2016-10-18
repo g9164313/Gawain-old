@@ -73,8 +73,7 @@ public class DevB140M extends DevMotion {
 		return checkBit(1,parse_TS(tkn));
 	}
 	
-	private int parse_TS(char tkn){
-		int idx = tkn - 'A';
+	private int parse_TS(char tkn){		
 		String txt = exec("TS\r\n");
 		int pos = txt.indexOf("TS");
 		if(pos>=0){
@@ -85,7 +84,6 @@ public class DevB140M extends DevMotion {
 			.replace(":","")
 			.trim()
 			.split(",");
-		
 		int[] val = {0,0,0,0};		
 		try{
 			val[0] = Integer.valueOf(arg[0].trim());
@@ -95,8 +93,7 @@ public class DevB140M extends DevMotion {
 		}catch(NumberFormatException e){
 			Misc.logw("fail to parse - %s", txt);
 		}
-		//Misc.logv("Status="+txt);
-		return val[idx];
+		return val[tkn2idx_route(tkn)];
 	}
 	
 	private boolean checkBit(int pos,int val){
@@ -189,7 +186,7 @@ public class DevB140M extends DevMotion {
 	}
 	
 	@Override
-	protected void makeMotion(boolean abs,Double[] val) {
+	protected void makeMotion(boolean abs,Double... val) {
 		String cmd;
 		if(abs==true){
 			cmd = "PA ";
@@ -199,34 +196,36 @@ public class DevB140M extends DevMotion {
 		cmd = cmd + axisValue(val);		
 		cmd = cmd + ";BG " + axisName(val);		
 		cmd = cmd + ";MC;WT 200;TP\r\n";
-		//Misc.logv("CMD: "+cmd);
 		parse_TP(tty.fetch(cmd,TAIL));
 	}
 	
 	@Override
-	public void Jogging(boolean go, Double... val) {
+	public void makeJogging(boolean go, Double[] step) {
 		if(go==true){
-			String cmd = 
-				"JG "+axisValue(val)+
-				";BG "+axisName(val)+"\r\n";
-			//Misc.logv("CMD: "+cmd);
-			tty.fetch(cmd,TAIL);
+			tty.fetch("JG "+axisValue(step)+";BG "+axisName(step)+"\r\n",TAIL);
 		}else{			
 			parse_TP(tty.fetch("ST;TP\r\n",TAIL));
 		}		
 	}
 	
 	@Override
-	public void takePosition(Double[] value) {
-		String cmd = "DE ";
+	public void setPosition(Double[] value) {
+		String arg="";
 		for(int i=0; i<value.length; i++){
 			if(value[i]==null){
-				cmd = cmd + ",";				
+				arg = arg + ",";				
 			}else{
-				cmd = cmd + value[i].intValue() + ",";
+				arg = arg + value[i].intValue() + ",";
 			}
 		}
-		parse_TP(tty.fetch(cmd+";TP\r\n",TAIL));
+		arg = arg + ";";
+		parse_TP(tty.fetch("DE "+arg+"DP "+arg+"TP\r\n",TAIL));
+	}
+	
+	@Override
+	protected void getPosition() {
+		int[] val = parse_TP(tty.fetch("TP\r\n",TAIL));
+		updateCounter(val);
 	}
 	//----------------------------------//
 	
@@ -306,7 +305,7 @@ public class DevB140M extends DevMotion {
 			boxCounter = new BoxIntValue("Counter-"+tkn).setEvent(event->{
 				Double[] val = {null,null,null,null};
 				val[tkn2idx()] = new Double(boxCounter.propValue.get());
-				takePosition(val);
+				setPosition(val);
 			});
 			
 			HBox pan1 = new HBox();
@@ -318,13 +317,13 @@ public class DevB140M extends DevMotion {
 			btnPos.setOnAction(event->{
 				Double[] val = {null,null,null,null};
 				val[tkn2idx()] = (double)boxOffset.propValue.get();
-				moveTo(DevMotion.PULSE_UNIT,val);
+				moveTo(val);
 			});	
 			Button btnNeg = new Button("－");
 			btnNeg.setOnAction(event->{
 				Double[] val = {null,null,null,null};
 				val[tkn2idx()] = (double)(-1*boxOffset.propValue.get());
-				moveTo(DevMotion.PULSE_UNIT,val);
+				moveTo(val);
 			});	
 			
 			pan1.getChildren().addAll(btnNeg,boxOffset,btnPos);
@@ -359,7 +358,6 @@ public class DevB140M extends DevMotion {
 		new AxisInfo('C'),
 		new AxisInfo('D'),
 	};
-	
 	public Node layoutConsole(){
 		
 		VBox lay0 = new VBox();
@@ -395,5 +393,5 @@ public class DevB140M extends DevMotion {
 		);
 		lay0.getChildren().addAll(pan0,pan1);
 		return lay0;
-	}	
+	}
 }
