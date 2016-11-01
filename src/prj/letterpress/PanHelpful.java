@@ -35,7 +35,7 @@ public class PanHelpful extends PanDecorate {
 		GridPane lay = new GridPane();
 		lay.getStyleClass().add("grid-small");
 		
-		Lcd[] lcd ={null,null,null};
+		/*Lcd[] lcd ={null,null,null};
 		for(int i=0; i<lcd.length; i++){
 			lcd[i] = LcdBuilder.create()
 				.prefWidth(100)
@@ -47,9 +47,14 @@ public class PanHelpful extends PanDecorate {
 				.valueFont(Lcd.LcdFont.ELEKTRA)
 				.animated(true)
 				.build();
-			
-			lcd[i].valueProperty().bind(Entry.stg0.pulse[i]);
-		}
+			lcd[i].valueProperty().bind(Entry.stg0.pulse[i].divide(50));
+		}*/
+		
+		Label[] lcd = new Label[3];
+		for(int i=0; i<lcd.length; i++){
+			lcd[i] = new Label();
+			lcd[i].textProperty().bind(Entry.stg0.pulse[i].divide(50).asString("%8d"));
+		}//the difference between encoder and motor is 50!!!  
 
 		final TextField[] box = {
 			new TextField("0"),
@@ -214,12 +219,12 @@ public class PanHelpful extends PanDecorate {
 		btnHome.setOnAction(tsk1);
 
 		Button btnAlign = PanBase.genButton1("標靶對位","selection.png");
-		btnAlign.setOnAction(Entry.inst.prvw.filterAlign);
+		btnAlign.setOnAction(Entry.inst.prvw.filterBias);
 		
 		Button btnScan = PanBase.genButton1("晶圓曝光","blur.png");
 		btnScan.setOnAction(tsk3);
 
-		Button btnGoing = PanBase.genButton1("快速執行","run.png");
+		Button btnGoing = PanBase.genButton2("快速執行","run.png");
 		btnGoing.setOnAction(event->{
 			
 		});
@@ -230,8 +235,8 @@ public class PanHelpful extends PanDecorate {
 		Button btnClose = PanBase.genButton3("關閉程式","close.png");	
 		btnClose.setOnAction(event->Entry.inst.dismiss());
 		
-		lay.addRow(0, btnHome, btnAlign, btnScan,  btnGoing);
-		lay.addRow(1, btnHold, btnClose);
+		lay.addRow(0, btnHome, btnAlign, btnScan);
+		lay.addRow(1, btnHold, btnGoing, btnClose);
 		return lay;
 	}
 	
