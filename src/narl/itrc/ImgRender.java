@@ -84,7 +84,6 @@ public class ImgRender implements Gawain.EventHook {
 			}
 		}
 	};
-
 	/**
 	 * start to play video stream 
 	 * @return self
@@ -232,7 +231,7 @@ public class ImgRender implements Gawain.EventHook {
 	}
 	
 	public void detach(ImgFilter fltr){
-		if(lstFilter.contains(fltr)==true){
+		if(lstFilter.contains(fltr)==true){			
 			lstFilter.remove(fltr);
 		}
 	}

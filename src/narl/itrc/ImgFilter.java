@@ -3,6 +3,8 @@ package narl.itrc;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.sun.glass.ui.Application;
+
 
 public abstract class ImgFilter {
 	
@@ -11,6 +13,27 @@ public abstract class ImgFilter {
 	public static final int STA_SHOW = 2;
 	
 	public AtomicInteger state = new AtomicInteger(STA_IDLE);
+	
+	public void updateData(ArrayList<ImgPreview> list){
+		cacheList = list;
+		if(Application.isEventThread()==true){			
+			eventUpdate.run();
+		}else{		
+			Application.invokeAndWait(eventUpdate);
+		}				
+	}
+	
+	private ArrayList<ImgPreview> cacheList;
+	
+	private final Runnable eventUpdate = new Runnable(){
+		@Override
+		public void run() {
+			for(ImgPreview prv:cacheList){
+				prv.rendering();
+			}
+		}
+	};
+	
 	
 	/**
 	 * The meaning of this variable is dependent on filter.
@@ -33,6 +56,8 @@ public abstract class ImgFilter {
 		}
 		return false;
 	}
+	
+	
 	
 	/**
 	 * this invoked by working-thread.<p>

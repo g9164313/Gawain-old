@@ -50,10 +50,10 @@ public class WidAoiViews extends BorderPane {
 			implInitParam();
 			switch(step){
 			case MARK_CROS:
-				update_loca_cross(list);
+				get_loca_cross(list);
 				break;
 			case MARK_RECT:
-				update_loca_rect(list,locaRect);			
+				get_loca_rect(list,locaRect);			
 				break;
 			}
 		}
@@ -73,82 +73,70 @@ public class WidAoiViews extends BorderPane {
 	};
 	private FilterMark filterMark = new FilterMark();
 	
-	private final double biasScale = 100.;//TODO:try it!!!
+	private final double biasAxis = 100.;//This is experiment value~~~
+	private final double biasTheta = 100.;//This is experiment value~~~
 	class FilterBias extends ImgFilter implements 
 		EventHandler<ActionEvent>
 	{
 		public FilterBias() {
 		}
-		int loca_prev[][] = {{-1,-1},{-1,-1}};
-		private int step = 0;
 		@Override
 		public void cookData(ArrayList<ImgPreview> list) {
-			switch(step){
-			case 0:
-				update_loca_rect(list,locaRect);
-				Entry.stg0.moveTo(biasScale,'x');
-				break;
-			case 1:
-				update_loca_rect(list,loca_prev);
-				Entry.stg0.moveTo(-biasScale,'x');
-				break;
-			case 2:
-				update_loca_rect(list,locaRect);
-				Entry.stg0.moveTo(biasScale,'y');
-				break;
-			case 3:
-				update_loca_rect(list,loca_prev);
-				Entry.stg0.moveTo(-biasScale,'y');
-				break;
-			case 4:
-				solve_trans();
-				//check the origin of Theta value
-				update_loca_rect(list,locaRect);
-				Entry.stg0.moveTo(biasScale,'a');
-				break;
-			case 5:
-				update_loca_rect(list,loca_prev);
-				Entry.stg0.moveTo(-biasScale,'a');//back to origin~~~~
-				break;
-			case 6:
-				break;
-			}
+			
+			int loca_prev[][] = {{-1,-1},{-1,-1}};
+			
+			get_loca_rect(list,locaRect);			
+			updateData(list);
+			Entry.stg0.moveTo(biasAxis,'x');			
+			get_loca_rect(list,loca_prev);
+			updateData(list);
+			Entry.stg0.moveTo(-biasAxis,'x');//go to original point
+			get_vector(0,loca_prev);
+				
+			get_loca_rect(list,locaRect);
+			updateData(list);
+			Entry.stg0.moveTo(biasAxis,'y');
+			get_loca_rect(list,loca_prev);
+			updateData(list);
+			Entry.stg0.moveTo(-biasAxis,'y');//go to original point
+			get_vector(1,loca_prev);
+			
+			
+			solve_trans();
+			
+			//check the origin of Theta value
+			get_loca_rect(list,locaRect);
+			Entry.stg0.moveTo(biasTheta,'a');
+			Misc.logv("start to check Theta");
+				
+			get_loca_rect(list,loca_prev);
+			Entry.stg0.moveTo(-biasTheta,'a');//back to origin~~~~
 		}
 		@Override
 		public boolean showData(ArrayList<ImgPreview> list) {			
-			switch(step++){
-			case 0: txtLocaRect(); break;
-			case 1: update_vector(0,loca_prev); break;
-			case 2:	txtLocaRect(); break;
-			case 3:	update_vector(1,loca_prev); break;
-			case 4: Misc.logv("start to check Theta"); break;
-			case 5: /* check  positive or negative */ break;
-			
-			case 6: return true;
-			}
-			return false;
+			return true;
 		}
+
 		@Override
 		public void handle(ActionEvent event) {
 			if(locaCros[0][0]<0 || locaCros[1][0]<0){
 				PanBase.msgBox.notifyWarning("注意","必須先決定十字標靶位置");
 				return;
 			}
-			step = 0;//reset stepper~~~~
 			Entry.rndr.attach(filterBias);
 		}
 	};
 	public FilterBias filterBias = new FilterBias();
 
-	private void update_loca_cross(ArrayList<ImgPreview> list){
+	private void get_loca_cross(ArrayList<ImgPreview> list){
 		scoreCros[0] = implFindCros(list.get(0).bundle,locaCros[0]);
 		scoreCros[1] = implFindCros(list.get(1).bundle,locaCros[1]);
 	}
-	private void update_loca_rect(ArrayList<ImgPreview> list,int[][] loca){
+	private void get_loca_rect(ArrayList<ImgPreview> list,int[][] loca){
 		scoreRect[0] = implFindRect(list.get(0).bundle,locaCros[0],loca[0]);
 		scoreRect[1] = implFindRect(list.get(1).bundle,locaCros[1],loca[1]);
 	}
-	private void update_vector(int i,int[][] locaVetx){
+	private void get_vector(int i,int[][] locaVetx){
 		vectScale[i][0] = vectScale[i][1] = 0;//reset one~~~
 		int[] v1=null,v2=null;//just pickup one side
 		if(locaRect[0][0]>=0 && locaVetx[0][0]>=0){
@@ -173,8 +161,8 @@ public class WidAoiViews extends BorderPane {
 	}
 	
 	private void solve_trans(){
-		locaTran[0][0] = (vectScale[0][0]/biasScale); locaTran[0][1] = (vectScale[1][0]/biasScale);
-		locaTran[1][0] = (vectScale[0][1]/biasScale); locaTran[1][1] = (vectScale[1][1]/biasScale);
+		locaTran[0][0] = (vectScale[0][0]/biasAxis); locaTran[0][1] = (vectScale[1][0]/biasAxis);
+		locaTran[1][0] = (vectScale[0][1]/biasAxis); locaTran[1][1] = (vectScale[1][1]/biasAxis);
 		RealMatrix val = new Array2DRowRealMatrix(locaTran,false);
 		RealMatrix mat = new LUDecomposition(val).getSolver().getInverse();
 		locaTran[0][0] = mat.getEntry(0,0); locaTran[0][1] = mat.getEntry(0,1);
@@ -295,13 +283,6 @@ public class WidAoiViews extends BorderPane {
 		lay3.addRow(4,new Label("相似度.2："),
 			txtTarget[6],new Label(SPACE),txtTarget[7]
 		);
-
-		//lay3.add(new Label("[右視角]"),3,0,3,1);
-		//lay3.addRow(7,);		
-		//lay3.addRow(8,new Label("口型位置："),txtTarget[5]);
-		//lay3.addRow(9,new Label("相似度.1："),txtTarget[3]);
-		//lay3.addRow(10,new Label("相似度.2："),txtTarget[7]);
-		
 		//----actions----
 		Button btnMarkCros = PanBase.genButton1("標定十字",null);
 		btnMarkCros.setOnAction(event->{

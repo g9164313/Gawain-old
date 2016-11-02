@@ -1,8 +1,5 @@
 package prj.letterpress;
 
-import eu.hansolo.enzo.lcd.Lcd;
-import eu.hansolo.enzo.lcd.LcdBuilder;
-import eu.hansolo.enzo.lcd.Lcd.LcdDesign;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.event.EventHandler;
@@ -98,13 +95,6 @@ public class PanHelpful extends PanDecorate {
 			Entry.stg0.exec_TP();
 		});
 		
-		lay.addRow(0, new Label("X軸"),lcd[0],btn[0],box[0],btn[1],btn[6]);
-		lay.addRow(1, new Label("Y軸"),lcd[1],btn[2],box[1],btn[3],btn[7]);
-		lay.addRow(2, new Label("θ軸"),lcd[2],btn[4],box[2],btn[5],btn[8]);
-		return lay;
-	}
-
-	private Node layoutOption2(){
 		final CheckBox chk = new CheckBox("幫浦開關");
 		chk.setIndeterminate(false);
 		chk.setOnAction(event->{
@@ -116,7 +106,12 @@ public class PanHelpful extends PanDecorate {
 			}
 			Misc.logv("select="+chk.isSelected());
 		});
-		return chk;
+		
+		lay.addRow(0, new Label("X軸"),lcd[0],btn[0],box[0],btn[1],btn[6]);
+		lay.addRow(1, new Label("Y軸"),lcd[1],btn[2],box[1],btn[3],btn[7]);
+		lay.addRow(2, new Label("θ軸"),lcd[2],btn[4],box[2],btn[5],btn[8]);
+		lay.addRow(3, chk);
+		return lay;
 	}
 
 	private final String TXT_START = "UV照射";
@@ -124,6 +119,8 @@ public class PanHelpful extends PanDecorate {
 	private Timeline actExpose;
 	private TextField boxExpose;
 	private Button btnExpose;
+	
+	public static final String TXT_LIGHT_VAL = "10";
 	
 	private void begExpose(){
 		Entry.stg0.exec("OB 2,1\r\n");
@@ -140,9 +137,9 @@ public class PanHelpful extends PanDecorate {
 	}
 
 	private Node layoutOption3(){
-		HBox lay = new HBox();
-		lay.getStyleClass().add("hbox-one-line");
-		
+		GridPane lay = new GridPane();
+		lay.getStyleClass().add("grid-small");
+
 		boxExpose = new TextField("1sec");
 		boxExpose.setPrefWidth(100);
 		
@@ -170,12 +167,28 @@ public class PanHelpful extends PanDecorate {
 				endExpose();
 			}
 		});
+
+		TextField boxLight = new TextField(TXT_LIGHT_VAL);
+		boxLight.setPrefWidth(100);
 		
-		lay.getChildren().addAll(boxExpose,btnExpose);	
+		Button btnLight = new Button("光源強度");
+		btnLight.setOnAction(event->{
+			String txt = boxLight.getText();			
+			try{
+				int val = Integer.valueOf(txt);
+				Entry.stg1.writeTxt("1,"+val+"\r\n");
+				Entry.stg1.writeTxt("2,"+val+"\r\n");
+			}catch(NumberFormatException e){
+				boxLight.setText(TXT_LIGHT_VAL);//We fail, just reset value~~~
+			}
+		});
+		
+		lay.addRow(0,boxExpose,btnExpose);
+		lay.addRow(1,boxLight,btnLight);
 		return lay;
 	}
 	
-	private Node layoutOption4(){		
+	private Node layoutOption5(){		
 		HBox lay = new HBox();
 		lay.getStyleClass().add("hbox-one-line");
 		
@@ -185,29 +198,29 @@ public class PanHelpful extends PanDecorate {
 		btn1.setPrefWidth(btn_width);
 		btn1.setOnMousePressed(event->{
 			btn1.setText("停止");
-			Entry.stg1.writeTxt('C');
+			Entry.stg2.writeTxt('C');
 		});
 		btn1.setOnMouseReleased(event->{
 			btn1.setText("正轉");
-			Entry.stg1.writeTxt('H');
+			Entry.stg2.writeTxt('H');
 		});
 
 		final Button btn2 = new Button("反轉");
 		btn2.setPrefWidth(btn_width);
 		btn2.setOnMousePressed(event->{
 			btn2.setText("停止");
-			Entry.stg1.writeTxt('K');
+			Entry.stg2.writeTxt('K');
 		});
 		btn2.setOnMouseReleased(event->{
 			btn2.setText("反轉");
-			Entry.stg1.writeTxt('H');
+			Entry.stg2.writeTxt('H');
 		});
 		
 		lay.getChildren().addAll(new Label("反射鏡"),btn1,btn2);
 		return lay;
 	}
 
-	private Node layoutOption5(){
+	private Node layoutOption6(){
 		GridPane lay = new GridPane();
 		lay.getStyleClass().add("grid-medium");
 	
@@ -246,9 +259,8 @@ public class PanHelpful extends PanDecorate {
 		VBox lay2 = new VBox();
 		lay2.getStyleClass().add("vbox-small");
 		lay2.getChildren().addAll(
-			layoutOption2(),
 			layoutOption3(),
-			layoutOption4()
+			layoutOption5()
 		);
 
 		HBox lay1 = new HBox();
@@ -258,7 +270,7 @@ public class PanHelpful extends PanDecorate {
 			new Separator(Orientation.VERTICAL),
 			lay2,
 			new Separator(Orientation.VERTICAL),
-			layoutOption5()
+			layoutOption6()
 		);
 		return lay1;
 	}

@@ -33,7 +33,8 @@ public class Entry extends PanBase {
 	public static ImgRender rndr = new ImgRender(cam0,cam1);
 	
 	public static DevB140M stg0 = new DevB140M("/dev/ttyS0,115200,8n1");
-	public static DevTTY   stg1 = new DevTTY("/dev/ttyACM0,9600,8n1");//this connect to ATmega controller  
+	public static DevTTY   stg1 = new DevTTY("/dev/ttyS1,9600,8n1");//this connect to light controller
+	public static DevTTY   stg2 = new DevTTY("/dev/ttyACM0,9600,8n1");//this connect to ATmega controller  
 	
 	public WidMapWafer wmap = new WidMapWafer();
 	public WidAoiViews prvw = new WidAoiViews(rndr);
