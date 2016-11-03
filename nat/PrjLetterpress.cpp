@@ -56,29 +56,23 @@ extern "C" JNIEXPORT void JNICALL Java_prj_letterpress_WidAoiViews_implTrainGrnd
 	jobject bundle0,
 	jobject bundle1
 ){
-	Mat src0 = prepare_data(env,bundle0);
-	Mat src1 = prepare_data(env,bundle0);
-
-	Mat _src0,_src1;
-	src0.convertTo(_src0,CV_32FC1);
-	src1.convertTo(_src1,CV_32FC1);
-
-
-	static int idx=0;
-	char name[100];
-	sprintf(name,"test%02d-0.png",idx);
-	imwrite(name,src0);
-	sprintf(name,"test%02d-1.png",idx);
-	imwrite(name,src1);
-	idx++;
-
-	if(grndAccum[0].empty()==true){
-		src0.copyTo(grndAccum[0]);
-		src1.copyTo(grndAccum[1]);
-	}else{
-		grndAccum[0] = grndAccum[0] + _src0;
-		grndAccum[1] = grndAccum[1] + _src1;
+	Mat src[2];
+	src[0] = prepare_data(env,bundle0);
+	src[1] = prepare_data(env,bundle1);
+	//static int idx=0;
+	for(int i=0; i<2; i++){
+		Mat _src;
+		src[i].convertTo(_src,CV_32FC1);
+		if(grndAccum[i].empty()==true){
+			_src.copyTo(grndAccum[i]);
+		}else{
+			grndAccum[i] = grndAccum[i] + _src;
+		}
+		//char name[100];
+		//sprintf(name,"test%02d-%d.png",idx,i+1);
+		//imwrite(name,src[i]);
 	}
+	//idx++;
 }
 
 extern "C" JNIEXPORT void JNICALL Java_prj_letterpress_WidAoiViews_implTrainDone(
@@ -88,19 +82,15 @@ extern "C" JNIEXPORT void JNICALL Java_prj_letterpress_WidAoiViews_implTrainDone
 	jstring jname1,
 	int count
 ){
-
-	char name[500];
-	jstrcpy(env,jname0,name);
-	cout<<"save file:"<<name<<",";
-	jstrcpy(env,jname1,name);
-	cout<<name<<endl;
-
-	//imread(name,IMREAD_GRAYSCALE);
-	grndAccum[0].release();
-	grndAccum[1].release();
+	char name[2][500];
+	jstrcpy(env,jname0,name[0]);
+	jstrcpy(env,jname1,name[1]);
+	for(int i=0; i<2; i++){
+		grndAccum[i] = grndAccum[i] / count;
+		imwrite(name[i],grndAccum[i]);
+		grndAccum[i].release();
+	}
 }
-
-
 
 /**
  * Parameter for AOI. Their meanings are : <p>

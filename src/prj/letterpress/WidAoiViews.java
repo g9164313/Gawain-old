@@ -59,10 +59,12 @@ public class WidAoiViews extends BorderPane {
 				backName1,
 				10
 			);
+			
 			//get_loca_cross(list);
 		}
 		@Override
 		public boolean showData(ArrayList<ImgPreview> list) {
+			Misc.logv("校正結束");
 			txtLocaCross();
 			return true;
 		}

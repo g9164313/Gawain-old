@@ -168,8 +168,8 @@ public class PanHelpful extends PanDecorate {
 			String txt = boxLight.getText();			
 			try{
 				int val = Integer.valueOf(txt);
-				Entry.stg1.writeTxt("1,"+val+"\r\n");
-				Entry.stg1.writeTxt("2,"+val+"\r\n");
+				Entry.stg1.writeTxt("1,"+val+"\r\n",20);
+				Entry.stg1.writeTxt("2,"+val+"\r\n",20);
 			}catch(NumberFormatException e){
 				boxLight.setText(TXT_LIGHT_VAL);//We fail, just reset value~~~
 			}

@@ -181,6 +181,11 @@ public class DevTTY implements Gawain.EventHook {
 		implWrite(buf);
 	}
 	
+	public void writeTxt(String txt,int ms){
+		writeTxt(txt);
+		Misc.delay(ms);
+	}
+	
 	public void writeTxt(char txt){
 		byte[] buf = { (byte)txt };
 		implWrite(buf);
