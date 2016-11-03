@@ -52,6 +52,8 @@ public class Entry extends PanBase {
 	@Override
 	protected void eventShown(WindowEvent e){
 		if(camEnable==true){
+			cam0.setROI(412, 600, 800, 800);
+			cam1.setROI(908, 736, 800, 800);			
 			rndr.play();
 		}
 		if(stgEnable==true){

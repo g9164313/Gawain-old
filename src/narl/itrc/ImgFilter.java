@@ -14,27 +14,26 @@ public abstract class ImgFilter {
 	
 	public AtomicInteger state = new AtomicInteger(STA_IDLE);
 	
-	public void updateData(ArrayList<ImgPreview> list){
-		cacheList = list;
+	protected void refreshData(final ArrayList<ImgPreview> list){
 		if(Application.isEventThread()==true){			
-			eventUpdate.run();
-		}else{		
-			Application.invokeAndWait(eventUpdate);
+			return;
+		}
+		final Runnable eventUpdate = new Runnable(){
+			@Override
+			public void run() {
+				for(ImgPreview prv:list){
+					prv.rendering();
+				}
+			}
+		};
+		Application.invokeAndWait(eventUpdate);
+		//get the next image~~~
+		for(ImgPreview prv:list){
+			prv.fetchBuff();
+			prv.fetchInfo();
 		}				
 	}
-	
-	private ArrayList<ImgPreview> cacheList;
-	
-	private final Runnable eventUpdate = new Runnable(){
-		@Override
-		public void run() {
-			for(ImgPreview prv:cacheList){
-				prv.rendering();
-			}
-		}
-	};
-	
-	
+		
 	/**
 	 * The meaning of this variable is dependent on filter.
 	 * But this number presents the index of 'ImgPreview' list.

@@ -3,6 +3,8 @@
 
 #include <global.hpp>
 
+extern Mat prepare_data(JNIEnv * env,jobject bundle);
+
 extern void set_img_array(
 	JNIEnv * env,
 	jobject bnd,
@@ -12,7 +14,10 @@ extern void set_img_array(
 	const char* ext
 );
 
-extern void drawEdgeMap(Mat& overlay,const Mat& edge);
+extern void drawEdgeMap(
+	Mat& overlay,
+	const Mat& edge
+);
 
 extern void drawRectangle(
 	Mat& overlay,
@@ -69,6 +74,8 @@ extern void drawPolyline(
 	int thickness = 1,
 	int lineType = LINE_8
 );
+
+//--------------------------------------------//
 
 #define MACRO_SET_IMG_INFO(ova) set_img_array(env,bundle,idImgInfo,ova,"imgInfo",".png");
 
@@ -136,6 +143,7 @@ extern void drawPolyline(
 		_src.copyTo(_dst); \
 		set_img_array(env,bundle,idImgBuff,_dst,"imgBuff",".jpg");\
 	}
+
 //--------------------------------------------//
 
 #define MACRO_CLOSE_BEG MACRO_PREPARE

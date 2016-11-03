@@ -16,8 +16,8 @@ public class TskGoHome extends TskAction {
 		for(;;){
 			Misc.delay(500);
 			Entry.stg0.exec_TP();
-			int cur = Entry.stg0.getPulse(tkn);
-			Misc.logv("AXIS-%c：%d",tkn,cur);
+			//int cur = Entry.stg0.getPulse(tkn);
+			//Misc.logv("AXIS-%c：%d",tkn,cur);
 			if(step<0){
 				if(Entry.stg0.isReverse(tkn)==false){
 					break;
@@ -48,7 +48,7 @@ public class TskGoHome extends TskAction {
 		walking('Y');
 		Entry.stg0.setValue(0,0,0);
 		Misc.logv("偏移量修正!!!");
-		Entry.stg0.moveTo(695.32, -1486.48);//check this error offset~~~
+		Entry.stg0.moveTo(1590.,-1590.);//check this error offset~~~
 		Entry.stg0.setValue(0,0,0);
 		Entry.stg0.exec_TP();
 		Misc.logv("Mission complete");

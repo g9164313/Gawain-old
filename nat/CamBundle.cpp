@@ -10,6 +10,11 @@
 #define VISION
 #endif
 
+Mat prepare_data(JNIEnv * env,jobject bundle){
+	MACRO_PREPARE
+	return Mat(height,width,type,buff);
+}
+
 /**
  * set a overlay picture to indicate information
  * @param bnd - just 'bundle'
@@ -194,6 +199,7 @@ void drawPolyline(
 		thickness, lineType
 	);
 }
+//----------------------------//
 
 extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamBundle_saveImage(
 	JNIEnv * env,

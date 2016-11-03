@@ -1,9 +1,9 @@
 package prj.letterpress;
 
+import java.io.File;
 import java.util.ArrayList;
 
 import org.apache.commons.math3.linear.Array2DRowRealMatrix;
-import org.apache.commons.math3.linear.DecompositionSolver;
 import org.apache.commons.math3.linear.LUDecomposition;
 import org.apache.commons.math3.linear.RealMatrix;
 
@@ -28,7 +28,6 @@ import narl.itrc.ImgPreview;
 import narl.itrc.ImgRender;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
-import narl.itrc.PanDecorate;
 
 /**
  * AXIS-A : 10pps <==> 50um
@@ -41,37 +40,34 @@ public class WidAoiViews extends BorderPane {
 	private final int MARK_CROS= 1;
 	private final int MARK_RECT = 2;
 		
-	class FilterMark extends ImgFilter {
-		public int step = MARK_CROS;
-		public FilterMark(){
+	class FilterCalib extends ImgFilter {
+		
+		public FilterCalib(){
 		}
 		@Override
 		public void cookData(ArrayList<ImgPreview> list) {
 			implInitParam();
-			switch(step){
-			case MARK_CROS:
-				get_loca_cross(list);
-				break;
-			case MARK_RECT:
-				get_loca_rect(list,locaRect);			
-				break;
+			for(int i=0; i<10; i++){
+				implTrainGrnd(
+					list.get(0).bundle,
+					list.get(1).bundle
+				);
+				refreshData(list);//next frame~~~
 			}
+			implTrainDone(
+				backName0,
+				backName1,
+				10
+			);
+			//get_loca_cross(list);
 		}
 		@Override
 		public boolean showData(ArrayList<ImgPreview> list) {
-			switch(step){
-			case MARK_CROS:
-				txtPosCros();
-				return true;
-			case MARK_RECT://run just once~~~
-				txtLocaRect();
-				txtShowVector();
-				return true;//run just once~~~
-			}
+			txtLocaCross();
 			return true;
 		}
 	};
-	private FilterMark filterMark = new FilterMark();
+	private FilterCalib filterCalib = new FilterCalib();
 	
 	private final double biasAxis = 100.;//This is experiment value~~~
 	private final double biasTheta = 100.;//This is experiment value~~~
@@ -86,22 +82,21 @@ public class WidAoiViews extends BorderPane {
 			int loca_prev[][] = {{-1,-1},{-1,-1}};
 			
 			get_loca_rect(list,locaRect);			
-			updateData(list);
+			refreshData(list);
 			Entry.stg0.moveTo(biasAxis,'x');			
 			get_loca_rect(list,loca_prev);
-			updateData(list);
+			refreshData(list);
 			Entry.stg0.moveTo(-biasAxis,'x');//go to original point
 			get_vector(0,loca_prev);
 				
 			get_loca_rect(list,locaRect);
-			updateData(list);
+			refreshData(list);
 			Entry.stg0.moveTo(biasAxis,'y');
 			get_loca_rect(list,loca_prev);
-			updateData(list);
+			refreshData(list);
 			Entry.stg0.moveTo(-biasAxis,'y');//go to original point
 			get_vector(1,loca_prev);
-			
-			
+
 			solve_trans();
 			
 			//check the origin of Theta value
@@ -205,10 +200,11 @@ public class WidAoiViews extends BorderPane {
 	 * 6: minimum score for Cross-T.<p>
 	 * 7: minimum score for Rectangle.<p>
 	 */
-	private int param[] = {100,190,10,5,5,7,70,70};
+	private int param[] = {125,190,10,5,5,7,70,70};
 
 	private double[] scoreCros = {0,0};
-	private int[][] locaCros = {{-1,-1},{-1,-1}};
+	//private int[][] locaCros = {{-1,-1},{-1,-1}};
+	private int[][] locaCros = {{348,472},{482,455}};
 	
 	private double[] scoreRect = {0,0};	
 	private int[][] locaRect = {{-1,-1},{-1,-1}};
@@ -217,17 +213,29 @@ public class WidAoiViews extends BorderPane {
 	
 	private double[][] locaTran = {{0.,0.},{0.,0.}};
 	
-	private native void implInitShape();
+	private native void implInitEnviroment(String name0,String name1);
 	private native void implInitParam();
+	private native void implTrainGrnd(CamBundle bnd0,CamBundle bnd1);
+	private native void implTrainDone(String name0,String name1,int count);
 	private native float implFindCros(CamBundle bnd,int[] loca);
 	private native float implFindRect(CamBundle bnd,int[] mask,int[] loca);
 	//-------------------------------//
 
+	private final String backName0 = Misc.pathTemp+"back0.png";
+	private final String backName1 = Misc.pathTemp+"back1.png";
+	
 	public WidAoiViews(ImgRender rndr){
+		File fs0 = new File(backName0);
+		File fs1 = new File(backName1);
+		if(fs0.exists()==true && fs1.exists()==true){
+			implInitEnviroment(backName0,backName1);
+		}else{
+			implInitEnviroment(null,null);
+		}
+
 		setCenter(layoutViews());
-		setRight(layoutOption());
-		implInitShape();
-		txtPosCros();
+		setRight(layoutOption());		
+		txtLocaCross();
 		txtLocaRect();
 	}
 
@@ -284,22 +292,21 @@ public class WidAoiViews extends BorderPane {
 			txtTarget[6],new Label(SPACE),txtTarget[7]
 		);
 		//----actions----
-		Button btnMarkCros = PanBase.genButton1("標定十字",null);
+		Button btnMarkCros = PanBase.genButton1("校正平台",null);
 		btnMarkCros.setOnAction(event->{
-			resetPosCros();
-			filterMark.step = MARK_CROS;//reset~~~
-			Entry.rndr.attach(filterMark);
+			resetLocaCross();
+			Entry.rndr.attach(filterCalib);
 		});
 		
 		Button btnMarkRect = PanBase.genButton1("標定口型",null);
 		btnMarkRect.setOnAction(event->{
-			resetPosRect();
-			filterMark.step = MARK_RECT;//reset~~~
-			Entry.rndr.attach(filterMark);
+			//resetLocaRect();
+			//filterMark.step = MARK_RECT;//reset~~~
+			//Entry.rndr.attach(filterMark);
 		});
 
-		Button btnMarkAlign = PanBase.genButton1("校正平台",null);
-		btnMarkAlign.setOnAction(filterBias);
+		Button btnMarkAlign = PanBase.genButton1("?????",null);
+		//btnMarkAlign.setOnAction(filterBias);
 		
 		//----combine them all----
 		VBox lay1 = new VBox();
@@ -360,7 +367,7 @@ public class WidAoiViews extends BorderPane {
 		new Label()/* left rectangle-score */, 
 		new Label()/* right rectangle-score */
 	};
-	private void txtPosCros(){
+	private void txtLocaCross(){
 		txtTarget[0].setText(String.format(
 			"(%3d,%3d)",locaCros[0][0],locaCros[0][1]
 		));
@@ -414,12 +421,12 @@ public class WidAoiViews extends BorderPane {
 		Misc.logv(txt);
 		return vec;
 	}
-	private void resetPosCros(){
+	private void resetLocaCross(){
 		locaCros[0][0] = locaCros[0][1] = -1;
 		locaCros[1][0] = locaCros[1][1] = -1;
 		scoreCros[0] = scoreCros[1] = -1.;
 	}
-	private void resetPosRect(){		
+	private void resetLocaRect(){		
 		locaRect[0][0] = locaRect[0][1] = -1;
 		locaRect[1][0] = locaRect[1][1] = -1;
 		scoreRect[0] = scoreRect[1] = -1.;

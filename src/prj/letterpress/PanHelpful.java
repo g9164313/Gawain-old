@@ -14,6 +14,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 import narl.itrc.DevMotion;
@@ -94,23 +95,10 @@ public class PanHelpful extends PanDecorate {
 			Entry.stg0.exec("DE ,,0;DP ,,0;\r\n"); 
 			Entry.stg0.exec_TP();
 		});
-		
-		final CheckBox chk = new CheckBox("幫浦開關");
-		chk.setIndeterminate(false);
-		chk.setOnAction(event->{
-			//get state from device
-			if(chk.isSelected()){
-				Entry.stg0.exec("OB 1,1\r\n");
-			}else{
-				Entry.stg0.exec("OB 1,0\r\n");
-			}
-			Misc.logv("select="+chk.isSelected());
-		});
-		
+				
 		lay.addRow(0, new Label("X軸"),lcd[0],btn[0],box[0],btn[1],btn[6]);
 		lay.addRow(1, new Label("Y軸"),lcd[1],btn[2],box[1],btn[3],btn[7]);
 		lay.addRow(2, new Label("θ軸"),lcd[2],btn[4],box[2],btn[5],btn[8]);
-		lay.addRow(3, chk);
 		return lay;
 	}
 
@@ -119,9 +107,7 @@ public class PanHelpful extends PanDecorate {
 	private Timeline actExpose;
 	private TextField boxExpose;
 	private Button btnExpose;
-	
-	public static final String TXT_LIGHT_VAL = "10";
-	
+		
 	private void begExpose(){
 		Entry.stg0.exec("OB 2,1\r\n");
 		btnExpose.setText(TXT_STOP);
@@ -139,11 +125,13 @@ public class PanHelpful extends PanDecorate {
 	private Node layoutOption3(){
 		GridPane lay = new GridPane();
 		lay.getStyleClass().add("grid-small");
-
-		boxExpose = new TextField("1sec");
-		boxExpose.setPrefWidth(100);
 		
-		btnExpose = new Button(TXT_START);
+		final int BOX_SIZE = 90;
+		
+		boxExpose = new TextField("1sec");
+		boxExpose.setPrefWidth(BOX_SIZE);
+		
+		btnExpose = new Button(TXT_START);		
 		btnExpose.setUserData(false);
 		btnExpose.setOnAction(event->{
 			double val = 0.;
@@ -167,11 +155,15 @@ public class PanHelpful extends PanDecorate {
 				endExpose();
 			}
 		});
-
-		TextField boxLight = new TextField(TXT_LIGHT_VAL);
-		boxLight.setPrefWidth(100);
+		btnExpose.setMaxWidth(Double.MAX_VALUE);
+		GridPane.setHgrow(btnExpose, Priority.ALWAYS);
 		
-		Button btnLight = new Button("光源強度");
+		final String TXT_LIGHT_VAL = "45";
+		
+		TextField boxLight = new TextField(TXT_LIGHT_VAL);
+		boxLight.setPrefWidth(BOX_SIZE);
+		
+		Button btnLight = new Button("光源強度");		
 		btnLight.setOnAction(event->{
 			String txt = boxLight.getText();			
 			try{
@@ -182,13 +174,45 @@ public class PanHelpful extends PanDecorate {
 				boxLight.setText(TXT_LIGHT_VAL);//We fail, just reset value~~~
 			}
 		});
+		btnLight.setMaxWidth(Double.MAX_VALUE);
+		GridPane.setHgrow(btnLight, Priority.ALWAYS);
 		
 		lay.addRow(0,boxExpose,btnExpose);
 		lay.addRow(1,boxLight,btnLight);
 		return lay;
 	}
 	
-	private Node layoutOption5(){		
+	private Node layoutOption4(){
+		HBox lay = new HBox();
+		lay.getStyleClass().add("hbox-one-line");
+		
+		final CheckBox chkPump = new CheckBox("幫浦開關");
+		chkPump.setIndeterminate(false);
+		chkPump.setOnAction(event->{
+			//get state from device
+			if(chkPump.isSelected()){
+				Entry.stg0.exec("OB 1,1\r\n");
+			}else{
+				Entry.stg0.exec("OB 1,0\r\n");
+			}
+		});
+		
+		final CheckBox chkMirror = new CheckBox("反射鏡開關");
+		chkMirror.setIndeterminate(false);
+		chkMirror.setOnAction(event->{
+			//get state from device
+			if(chkMirror.isSelected()){
+				Entry.stg2.writeTxt('C');
+			}else{
+				Entry.stg2.writeTxt('K');
+			}
+		});
+		
+		lay.getChildren().addAll(chkPump,chkMirror);
+		return lay;
+	}
+	
+	/*private Node layoutOption5(){		
 		HBox lay = new HBox();
 		lay.getStyleClass().add("hbox-one-line");
 		
@@ -218,7 +242,7 @@ public class PanHelpful extends PanDecorate {
 		
 		lay.getChildren().addAll(new Label("反射鏡"),btn1,btn2);
 		return lay;
-	}
+	}*/
 
 	private Node layoutOption6(){
 		GridPane lay = new GridPane();
@@ -260,7 +284,7 @@ public class PanHelpful extends PanDecorate {
 		lay2.getStyleClass().add("vbox-small");
 		lay2.getChildren().addAll(
 			layoutOption3(),
-			layoutOption5()
+			layoutOption4()
 		);
 
 		HBox lay1 = new HBox();

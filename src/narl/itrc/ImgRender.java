@@ -60,6 +60,11 @@ public class ImgRender implements Gawain.EventHook {
 			prv.fetchInfo();
 		}
 		Application.invokeAndWait(eventRender);
+		for(ImgFilter flt:lstFilter){
+			if(flt.state.get()==ImgFilter.STA_SHOW){
+				lstFilter.remove(flt);//??not sure??
+			}
+		}
 	}
 
 	private final Runnable eventRender = new Runnable(){
@@ -76,8 +81,7 @@ public class ImgRender implements Gawain.EventHook {
 				//blocking queue not remove object immediately	
 				//'showData' decides whether we should remove this filter~~~
 				if(flt.showData(lstPreview)==true){
-					flt.state.set(ImgFilter.STA_SHOW);
-					lstFilter.remove(flt);					
+					flt.state.set(ImgFilter.STA_SHOW);	
 				}else{
 					flt.state.set(ImgFilter.STA_IDLE);
 				}
@@ -222,6 +226,7 @@ public class ImgRender implements Gawain.EventHook {
 	}
 	
 	public ImgRender attach(ImgFilter... list){
+		//They are attached by GUI-event
 		for(ImgFilter fltr:list){
 			if(lstFilter.contains(fltr)==false){
 				lstFilter.add(fltr);
@@ -230,11 +235,11 @@ public class ImgRender implements Gawain.EventHook {
 		return this;
 	}
 	
-	public void detach(ImgFilter fltr){
+	/*public void detach(ImgFilter fltr){
 		if(lstFilter.contains(fltr)==true){			
 			lstFilter.remove(fltr);
 		}
-	}
+	}*/
 	//--------------------------------------------//
 	
 	private static class FilterExecIJ extends ImgFilter {

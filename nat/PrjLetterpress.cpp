@@ -9,9 +9,13 @@
 
 static vector<Point> shapeCross,shapeRect;
 
-extern "C" JNIEXPORT void JNICALL Java_prj_letterpress_WidAoiViews_implInitShape(
+static Mat grndImage[2], grndAccum[2];
+
+extern "C" JNIEXPORT void JNICALL Java_prj_letterpress_WidAoiViews_implInitEnviroment(
 	JNIEnv* env,
-	jobject thiz
+	jobject thiz,
+	jstring jname0,
+	jstring jname1
 ){
 	const int wh=35,dp=20;
 	shapeCross.clear();
@@ -34,7 +38,69 @@ extern "C" JNIEXPORT void JNICALL Java_prj_letterpress_WidAoiViews_implInitShape
 	shapeRect.push_back(Point(len,0  ));
 	shapeRect.push_back(Point(len,len));
 	shapeRect.push_back(Point(0  ,len));
+
+	char name[500];
+	if(jname0!=NULL){
+		jstrcpy(env,jname0,name);
+		grndImage[0] = imread(name,IMREAD_GRAYSCALE);
+	}
+	if(jname1!=NULL){
+		jstrcpy(env,jname1,name);
+		grndImage[1] = imread(name,IMREAD_GRAYSCALE);
+	}
 }
+
+extern "C" JNIEXPORT void JNICALL Java_prj_letterpress_WidAoiViews_implTrainGrnd(
+	JNIEnv* env,
+	jobject thiz,
+	jobject bundle0,
+	jobject bundle1
+){
+	Mat src0 = prepare_data(env,bundle0);
+	Mat src1 = prepare_data(env,bundle0);
+
+	Mat _src0,_src1;
+	src0.convertTo(_src0,CV_32FC1);
+	src1.convertTo(_src1,CV_32FC1);
+
+
+	static int idx=0;
+	char name[100];
+	sprintf(name,"test%02d-0.png",idx);
+	imwrite(name,src0);
+	sprintf(name,"test%02d-1.png",idx);
+	imwrite(name,src1);
+	idx++;
+
+	if(grndAccum[0].empty()==true){
+		src0.copyTo(grndAccum[0]);
+		src1.copyTo(grndAccum[1]);
+	}else{
+		grndAccum[0] = grndAccum[0] + _src0;
+		grndAccum[1] = grndAccum[1] + _src1;
+	}
+}
+
+extern "C" JNIEXPORT void JNICALL Java_prj_letterpress_WidAoiViews_implTrainDone(
+	JNIEnv* env,
+	jobject thiz,
+	jstring jname0,
+	jstring jname1,
+	int count
+){
+
+	char name[500];
+	jstrcpy(env,jname0,name);
+	cout<<"save file:"<<name<<",";
+	jstrcpy(env,jname1,name);
+	cout<<name<<endl;
+
+	//imread(name,IMREAD_GRAYSCALE);
+	grndAccum[0].release();
+	grndAccum[1].release();
+}
+
+
 
 /**
  * Parameter for AOI. Their meanings are : <p>

@@ -57,6 +57,15 @@ extern void drawContour(
 	Mat& overlay,
 	vector<vector<Point> >& cts
 );
+extern void drawRectangle(
+	Mat& overlay,
+	Point center,
+	int width,
+	int height,
+	const Scalar& color,
+	int thickness=1,
+	int lineType=LINE_8
+);
 extern void drawPolyline(
 	Mat& overlay,
 	vector<Point>& cts,
@@ -65,36 +74,131 @@ extern void drawPolyline(
 	int lineType=LINE_8
 );
 
+void init_shape(vector<Point>& sh1, vector<Point>& sh2){
+	sh1.push_back(Point(0  ,0  ));
+	sh1.push_back(Point(100,0  ));
+	sh1.push_back(Point(100,100));
+	sh1.push_back(Point(0  ,100));
+	const int wh=35,dp=20;
+	sh2.push_back(Point(wh      , 0       ));
+	sh2.push_back(Point(wh+dp   , 0       ));
+	sh2.push_back(Point(wh+dp   , wh      ));
+	sh2.push_back(Point(wh+dp+wh, wh      ));
+	sh2.push_back(Point(wh+dp+wh, wh+dp   ));
+	sh2.push_back(Point(wh+dp   , wh+dp   ));
+	sh2.push_back(Point(wh+dp   , wh+dp+wh));
+	sh2.push_back(Point(wh      , wh+dp+wh));
+	sh2.push_back(Point(wh      , wh+dp   ));
+	sh2.push_back(Point(0       , wh+dp   ));
+	sh2.push_back(Point(0       , wh      ));
+	sh2.push_back(Point(wh      , wh      ));
+}
+
+void filterHanning(Mat& src,const int quarter){
+	Mat _src;
+	src.convertTo(_src,CV_32FC1);
+	Size area;
+	if(quarter<=0 || 4<quarter){
+		area.width = src.cols;
+		area.height= src.rows;
+	}else{
+		area.width = src.cols*2;
+		area.height= src.rows*2;
+	}
+	Mat hann,_han;
+	createHanningWindow(hann,area,CV_32F);
+	switch(quarter){
+	case 1:
+		_han = hann(Rect(
+			src.cols,0,
+			src.cols,src.rows
+		));
+		break;
+	case 2:
+		_han = hann(Rect(
+			0,0,
+			src.cols,src.rows
+		));
+		break;
+	case 3:
+		_han = hann(Rect(
+			0,src.rows,
+			src.cols,src.rows
+		));
+		break;
+	case 4:
+		_han = hann(Rect(
+			src.cols,src.rows,
+			src.cols,src.rows
+		));
+		break;
+	default:
+		_han = hann;
+		break;
+	}
+	multiply(_src,_han,_src);
+	_src.convertTo(src,CV_8UC1);
+	//normalize(_src,src,0,255,NORM_MINMAX,CV_8UC1);
+}
+
 int main(int argc, char* argv[]) {
 	//const char* name = "./gg2/16138125-2016-09-20-154907.pgm";
 	//const char* name = "./gg3/snap_fail1.png";
-	const char* name = "./gg3/snap_fail2.png";
+	const char* name = "./aa1.png";
 
 	Mat img = imread(name,IMREAD_GRAYSCALE);
 	Mat ova = Mat::zeros(img.size(),CV_8UC4);
 	drawImage(ova,img);
 
 	vector<Point> shaprRect,shapeCross;
-	shaprRect.push_back(Point(0  ,0  ));
-	shaprRect.push_back(Point(100,0  ));
-	shaprRect.push_back(Point(100,100));
-	shaprRect.push_back(Point(0  ,100));
+	init_shape(shaprRect,shapeCross);
 
-	const int wh=35,dp=20;
-	shapeCross.push_back(Point(wh      , 0       ));
-	shapeCross.push_back(Point(wh+dp   , 0       ));
-	shapeCross.push_back(Point(wh+dp   , wh      ));
-	shapeCross.push_back(Point(wh+dp+wh, wh      ));
-	shapeCross.push_back(Point(wh+dp+wh, wh+dp   ));
-	shapeCross.push_back(Point(wh+dp   , wh+dp   ));
-	shapeCross.push_back(Point(wh+dp   , wh+dp+wh));
-	shapeCross.push_back(Point(wh      , wh+dp+wh));
-	shapeCross.push_back(Point(wh      , wh+dp   ));
-	shapeCross.push_back(Point(0       , wh+dp   ));
-	shapeCross.push_back(Point(0       , wh      ));
-	shapeCross.push_back(Point(wh      , wh      ));
 
-	Mat nod1;// = getEdge(img,cts);
+	equalizeHist(img,img);
+	imwrite("cc1.png",img);
+	//threshold(img,img,100,255,THRESH_BINARY);
+	//imwrite("cc2.png",img);
+
+	/*int rw,dw;
+	rw=550; dw=90;
+	Mat rectA = Mat::zeros(rw,rw,CV_8UC1);
+	rectangle(rectA,Rect(dw/2,dw/2,rw-dw,rw-dw),Scalar::all(255),dw);
+
+	rw=150; dw=20;
+	Mat rectB = Mat::zeros(rw,rw,CV_8UC1);
+	rectangle(rectB,Rect(dw/2,dw/2,rw-dw,rw-dw),Scalar::all(255),dw);
+
+
+	Mat temp = rectA;
+	Mat result(
+		img.cols-temp.cols+1,
+		img.rows-temp.rows+1,
+		CV_32FC1
+	);
+	matchTemplate(
+		img,temp,
+		result,
+		CV_TM_CCORR_NORMED
+	);
+
+	double valMin, valMax;
+	Point posMin, posMax;
+	minMaxLoc(
+		result,
+		&valMin,&valMax,
+		&posMin,&posMax
+	);
+	cout<<"min="<<valMin<<" @ "<<posMin<<endl;
+	cout<<"max="<<valMax<<" @ "<<posMax<<endl;
+
+	posMax.x = posMax.x + temp.cols/2;
+	posMax.y = posMax.y + temp.cols/2;
+
+	drawRectangle(ova,posMin,30,30,Scalar(0,0,255),3);//red
+	drawRectangle(ova,posMax,30,30,Scalar(255,0,0),3);//blue
+	*/
+
+	/*Mat nod1;// = getEdge(img,cts);
 	threshold(img,nod1,param[0],255,THRESH_BINARY);
 	Mat kern = getStructuringElement(
 		MORPH_RECT,
@@ -136,8 +240,8 @@ int main(int argc, char* argv[]) {
 		cout<<"SCORE["<<i<<"]="<<val<<endl;
 	}
 	//drawEdgeMap(ova,edg);
-	//drawContour(ova,cts);
-	imwrite("./gg3/cc3.png",ova);
+	//drawContour(ova,cts);*/
+	//imwrite("./final.png",ova);
 	return 0;
 }
 //--------------------------------------//
