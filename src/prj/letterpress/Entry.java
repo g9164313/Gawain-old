@@ -60,7 +60,7 @@ public class Entry extends PanBase {
 			//1pps <==> 5um
 			stg0.setFactor(200,200,200,200);
 			stg0.setTokenBase('A');
-			stg0.setRoutine('B','A','C','D');
+			stg0.setRoutine('B','A','D','C');
 			stg0.exec("RS\r\n");//this command must be executed independently.
 			stg0.exec(
 				"SP 10000,10000,50000,10000;"+

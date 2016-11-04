@@ -262,7 +262,7 @@ public class PanHelpful extends PanDecorate {
 		btnHome.setOnAction(tsk1);
 
 		Button btnAlign = PanBase.genButton1("標靶對位","selection.png");
-		btnAlign.setOnAction(Entry.inst.prvw.filterBias);
+		btnAlign.setOnAction(Entry.inst.prvw.filterAlign);
 		
 		Button btnScan = PanBase.genButton1("晶圓曝光","blur.png");
 		btnScan.setOnAction(tsk3);

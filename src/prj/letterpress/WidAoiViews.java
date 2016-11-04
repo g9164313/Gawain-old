@@ -85,8 +85,8 @@ public class WidAoiViews extends BorderPane {
 	{
 		public FilterBias() {
 		}
-		private final double biasStep = 5.;//This is experiment value~~~
-		private final double biasTheta= 25.;//This is experiment value~~~
+		private final double biasDivStep = 10.;//effect~~~
+		private final double biasTheta= 100.;//This is experiment value~~~
 		private int[][] vec;
 		@Override
 		public void cookData(ArrayList<ImgPreview> list) {			
@@ -100,30 +100,30 @@ public class WidAoiViews extends BorderPane {
 				}else{
 					Entry.stg0.moveTo(-biasTheta,'a');
 				}
-				refreshData(list);
-				return;
+			}else{
+				int dx = Math.min(vec[0][0],vec[1][0]);
+				int dy = Math.min(vec[0][1],vec[1][1]);
+				if(Math.abs(dx)>10 || Math.abs(dy)>10){
+					double stp_x = dx / biasDivStep;
+					//Entry.stg0.moveTo(stp_x,'x');
+					double stp_y = -dy / biasDivStep;
+					//Entry.stg0.moveTo(stp_y,'y');
+					Entry.stg0.moveTo(stp_x,stp_y);
+				}
 			}
-
-			int dx = Math.min(vec[0][0], vec[1][0]);
-			int dy = Math.min(vec[0][1], vec[1][1]);
-			if(Math.abs(dx)>10 || Math.abs(dy)>10){
-				//double stp_x = dx * biasStep;
-				//Entry.stg0.moveTo(stp_x,'x');
-				double stp_y = dy * biasStep;				
-				Entry.stg0.moveTo(stp_y,'y');
-				//Entry.stg0.moveTo(stp_x,stp_y);
-				refreshData(list);
-				return;
-			}
+			//reload information again!!!
+			refreshData(list);
+			filterMarkRect.cookData(list);
+			vec = get_vector();
 		}
 		@Override
 		public boolean showData(ArrayList<ImgPreview> list) {
 			txtLocaRect();
-			int th = vec[2][0]-vec[2][1];
-			if(Math.abs(th)<10){
+			int hypth = Math.min(vec[2][0],vec[2][1]);
+			if(Math.abs(hypth)<20){
 				return true;//we success!!!!!
 			}			
-			return true;
+			return false;
 		}
 		@Override
 		public void handle(ActionEvent event) {
@@ -131,10 +131,10 @@ public class WidAoiViews extends BorderPane {
 				PanBase.msgBox.notifyWarning("注意","必須先決定十字標靶位置");
 				return;
 			}
-			Entry.rndr.attach(filterBias);
+			Entry.rndr.attach(filterAlign);
 		}
 	};
-	public FilterBias filterBias = new FilterBias();
+	public FilterBias filterAlign = new FilterBias();
 
 	private int[][] get_vector(){
 		int[][] vec = {{0,0},{0,0},{-1,-1}};
@@ -276,7 +276,7 @@ public class WidAoiViews extends BorderPane {
 		});
 
 		Button btnMarkAlign = PanBase.genButton1("?????",null);
-		//btnMarkAlign.setOnAction(filterBias);
+		btnMarkAlign.setOnAction(filterAlign);
 		
 		//----combine them all----
 		VBox lay1 = new VBox();
