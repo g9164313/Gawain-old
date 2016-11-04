@@ -1,10 +1,14 @@
 package prj.letterpress;
 
+import eu.hansolo.enzo.lcd.Lcd;
+import eu.hansolo.enzo.lcd.Lcd.LcdDesign;
+import eu.hansolo.enzo.lcd.LcdBuilder;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.event.EventHandler;
 import javafx.event.EventType;
 import javafx.geometry.Orientation;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
@@ -52,6 +56,8 @@ public class PanHelpful extends PanDecorate {
 		for(int i=0; i<lcd.length; i++){
 			lcd[i] = new Label();
 			lcd[i].textProperty().bind(Entry.stg0.pulse[i].divide(50).asString("%8d"));
+			lcd[i].setPrefWidth(80);
+			lcd[i].setAlignment(Pos.BASELINE_RIGHT);
 		}//the difference between encoder and motor is 50!!!  
 
 		final TextField[] box = {

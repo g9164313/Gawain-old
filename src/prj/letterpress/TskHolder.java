@@ -24,7 +24,6 @@ public class TskHolder extends TskAction {
 			Misc.delay(500);
 			Entry.stg0.exec_TP();			
 			int cur = Entry.stg0.getPulse(tkn);		
-			Misc.logv("AXIS-A：%d",cur);
 			if(Math.abs(cur-pre)<=1){
 				break;
 			}
@@ -37,7 +36,6 @@ public class TskHolder extends TskAction {
 			Misc.delay(500);
 			Entry.stg0.exec_TP();
 			int cur = Entry.stg0.getPulse(tkn);
-			Misc.logv("AXIS-%c：%d",tkn,cur);
 		}while(Entry.stg0.isReverse(tkn)==true);
 		Entry.stg0.joggingTo(false);
 		Entry.stg0.exec_TP();

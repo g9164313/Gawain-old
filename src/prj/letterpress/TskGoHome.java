@@ -48,7 +48,7 @@ public class TskGoHome extends TskAction {
 		walking('Y');
 		Entry.stg0.setValue(0,0,0);
 		Misc.logv("偏移量修正!!!");
-		Entry.stg0.moveTo(1590.,-1590.);//check this error offset~~~
+		Entry.stg0.moveTo(1590.+50.,-1590.+50.);//check this error offset~~~
 		Entry.stg0.setValue(0,0,0);
 		Entry.stg0.exec_TP();
 		Misc.logv("Mission complete");

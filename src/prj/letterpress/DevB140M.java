@@ -203,7 +203,7 @@ public class DevB140M extends DevMotion {
 		if(go==true){
 			tty.fetch("JG "+axisValue(step)+";BG "+axisName(step)+"\r\n",TAIL);
 		}else{
-			Misc.logv("stop jogging");
+			//Misc.logv("stop jogging");
 			parse_TP(tty.fetch("ST;TP\r\n",TAIL));
 		}		
 	}

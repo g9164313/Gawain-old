@@ -46,10 +46,11 @@ public class WidAoiViews extends BorderPane {
 		@Override
 		public void cookData(ArrayList<ImgPreview> list) {
 			CamBundle bnd0 = list.get(0).bundle;
-			CamBundle bnd1 = list.get(0).bundle;
+			CamBundle bnd1 = list.get(1).bundle;
 			for(int i=0; i<10; i++){
 				implTrainGrnd(bnd0,bnd1);
 				refreshData(list);//next frame~~~
+				Misc.logv("收集影像(%d)",i+1);
 			}
 			implTrainDone(backName0,backName1,10);
 			scoreCross[0] = implFindCross(bnd0,0,param,locaCross[0]);
@@ -69,15 +70,15 @@ public class WidAoiViews extends BorderPane {
 		@Override
 		public void cookData(ArrayList<ImgPreview> list) {
 			CamBundle bnd0 = list.get(0).bundle;
-			CamBundle bnd1 = list.get(0).bundle;
-			scoreRect[0] = implFindCross(bnd0,0,param,locaRect[0]);
-			scoreRect[1] = implFindCross(bnd1,1,param,locaRect[1]);
+			CamBundle bnd1 = list.get(1).bundle;
+			scoreRect[0] = implFindRect(bnd0,0,param,locaRect[0],locaCross[0]);
+			scoreRect[1] = implFindRect(bnd1,1,param,locaRect[1],locaCross[1]);
 		}
 		@Override
 		public boolean showData(ArrayList<ImgPreview> list) {
 			txtLocaRect();
 			txtShowVector();
-			return false;
+			return true;
 		}
 	}
 	private FilterMarkRect filterMarkRect = new FilterMarkRect();
@@ -185,8 +186,8 @@ public class WidAoiViews extends BorderPane {
 		0,0,0,0
 	};
 	
-	private double[] scoreCross = {0,0};//left, right
-	private int[][] locaCross = {{-1,-1},{-1,-1}};
+	private float[] scoreCross = {0,0};//left, right
+	private int[][] locaCross = {{271,560},{527,565}};
 
 	private double[] scoreRect = {0,0};//left, right
 	private int[][] locaRect = {{-1,-1},{-1,-1}};
@@ -196,7 +197,7 @@ public class WidAoiViews extends BorderPane {
 	private native void implTrainDone(String name0,String name1,int count);
 	
 	private native float implFindCross(CamBundle bnd,int idx,int[] param,int[] loca);
-	private native float implFindRect(CamBundle bnd,int idx,int[] param,int[] loca);
+	private native float implFindRect(CamBundle bnd,int idx,int[] param,int[] loca,int[] locaCross);
 	//-------------------------------//
 
 	private final String backName0 = Misc.pathTemp+"back0.png";
@@ -267,9 +268,10 @@ public class WidAoiViews extends BorderPane {
 			txtTarget[6],new Label(SPACE),txtTarget[7]
 		);
 		//----actions----
-		Button btnMarkCros = PanBase.genButton1("校正平台",null);
+		Button btnMarkCros = PanBase.genButton1("標定十字",null);
 		btnMarkCros.setOnAction(event->{
 			resetLocaCross();
+			resetLocaRect();
 			Entry.rndr.attach(filterCalib);
 		});
 		
@@ -397,11 +399,11 @@ public class WidAoiViews extends BorderPane {
 	private void resetLocaCross(){
 		locaCross[0][0] = locaCross[0][1] = -1;
 		locaCross[1][0] = locaCross[1][1] = -1;
-		scoreCross[0] = scoreCross[1] = -1.;
+		scoreCross[0] = scoreCross[1] = -1.f;
 	}
 	private void resetLocaRect(){		
 		locaRect[0][0] = locaRect[0][1] = -1;
 		locaRect[1][0] = locaRect[1][1] = -1;
-		scoreRect[0] = scoreRect[1] = -1.;
+		scoreRect[0] = scoreRect[1] = -1.f;
 	}
 }

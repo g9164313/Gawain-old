@@ -42,18 +42,18 @@ public class Entry extends PanBase {
 	/**
 	 * this flag means that we don't enable camera (render stage)
 	 */
-	private boolean camEnable = false;
+	private boolean camEnable = true;
 	
 	/**
 	 * this flag means that we don't enable motion stage
 	 */
-	private boolean stgEnable = false;
+	private boolean stgEnable = true;
 
 	@Override
 	protected void eventShown(WindowEvent e){
 		if(camEnable==true){
-			cam0.setROI(412, 600, 800, 800);
-			cam1.setROI(908, 736, 800, 800);			
+			cam0.setROI( 498, 755, 800, 800);
+			cam1.setROI(1212, 843, 800, 800);			
 			rndr.play();
 		}
 		if(stgEnable==true){

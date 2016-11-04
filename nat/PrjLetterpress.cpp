@@ -155,11 +155,11 @@ static float findShape(
 		if(param[0]==2){
 			drawPolyline(ova,approx,true);
 		}
-		//cout<<"score="<<score_shp<<endl;
-		if(score_shp>0.1){
+		if(score_shp>0.5){
 			continue;
 		}
 		//we found a similar target~~~
+		score_sum = score_sum + score_shp;
 		if(cnt==0){
 			loca = rect.center;
 		}else{
@@ -173,8 +173,9 @@ static float findShape(
 	}
 	float score;
 	if(cnt!=0){
-		score = score_sum / cnt;
+		score = score_sum / (float)cnt;
 		score = (1.f-score)*100.f;
+		cout<<"cnt="<<cnt<<",location="<<loca<<endl;
 		loca.x = loca.x / cnt;
 		loca.y = loca.y / cnt;
 	}else{
@@ -202,10 +203,6 @@ extern "C" JNIEXPORT jfloat JNICALL Java_prj_letterpress_WidAoiViews_implFindCro
 	jint param[10];
 	env->GetIntArrayRegion(jparam,0,17,param);
 
-	cout<<param[0]<<".Param[1~4]={"
-		<<param[1]<<", "<<param[2]<<", "<<param[3]<<", "<<param[4]<<", "
-	<<"}"<<endl;
-
 	Mat src(height,width,type,buff);
 	Mat img = checkMono(src);
 	Mat ova = Mat::zeros(src.size(),CV_8UC4);
@@ -230,7 +227,7 @@ extern "C" JNIEXPORT jfloat JNICALL Java_prj_letterpress_WidAoiViews_implFindCro
 		RETR_LIST,CHAIN_APPROX_SIMPLE
 	);
 	if(cts.size()==0){
-		return -2.;
+		return 0.f;
 	}
 
 	jint* _loca = env->GetIntArrayElements(jloca,NULL);
@@ -254,7 +251,8 @@ extern "C" JNIEXPORT jfloat JNICALL Java_prj_letterpress_WidAoiViews_implFindRec
 	jobject bundle,
 	jint idx,
 	jintArray jparam,
-	jintArray jloca
+	jintArray jloca,
+	jintArray jlocaCross
 ){
 	MACRO_PREPARE
 	if(cntx==NULL){
@@ -263,10 +261,6 @@ extern "C" JNIEXPORT jfloat JNICALL Java_prj_letterpress_WidAoiViews_implFindRec
 
 	jint param[10];
 	env->GetIntArrayRegion(jparam,0,17,param);
-
-	cout<<param[0]<<".Param[9~12]={"
-		<<param[9]<<", "<<param[10]<<", "<<param[11]<<", "<<param[12]<<", "
-	<<"}"<<endl;
 
 	Mat src(height,width,type,buff);
 	Mat img = checkMono(src);
@@ -305,18 +299,28 @@ extern "C" JNIEXPORT jfloat JNICALL Java_prj_letterpress_WidAoiViews_implFindRec
 	);
 	jint* _loca = env->GetIntArrayElements(jloca,NULL);
 	double score;
-	Point loca;
+	Point locaRect;
 	minMaxLoc(
 		result,
 		NULL,&score,
-		NULL,&loca
+		NULL,&locaRect
 	);
-	_loca[0] = loca.x;
-	_loca[1] = loca.y;
+	_loca[0] = locaRect.x;
+	_loca[1] = locaRect.y;
 	env->ReleaseIntArrayElements(jloca,_loca,0);
 
-	drawRectangle(ova,loca,30,30,Scalar(255,0,0),3);
+	if(jlocaCross!=NULL){
+		_loca = env->GetIntArrayElements(jlocaCross,NULL);
+		Point locaCross(_loca[0],_loca[1]);
+		drawCrossT(ova,locaCross,30,Scalar(0,255,255),3);
+		env->ReleaseIntArrayElements(jlocaCross,_loca,0);
+	}
+	drawRectangle(ova,locaRect,30,30,Scalar(255,0,0),3);
 	MACRO_SET_IMG_INFO(ova);
 	return score * 100.f;
 }
+
+
+
+
 
