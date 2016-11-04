@@ -41,26 +41,19 @@ public class WidAoiViews extends BorderPane {
 	private final int MARK_RECT = 2;
 		
 	class FilterCalib extends ImgFilter {
-		
 		public FilterCalib(){
 		}
 		@Override
 		public void cookData(ArrayList<ImgPreview> list) {
-			implInitParam();
+			CamBundle bnd0 = list.get(0).bundle;
+			CamBundle bnd1 = list.get(0).bundle;
 			for(int i=0; i<10; i++){
-				implTrainGrnd(
-					list.get(0).bundle,
-					list.get(1).bundle
-				);
+				implTrainGrnd(bnd0,bnd1);
 				refreshData(list);//next frame~~~
 			}
-			implTrainDone(
-				backName0,
-				backName1,
-				10
-			);
-			
-			//get_loca_cross(list);
+			implTrainDone(backName0,backName1,10);
+			scoreCross[0] = implFindCross(bnd0,0,param,locaCross[0]);
+			scoreCross[1] = implFindCross(bnd1,1,param,locaCross[1]);
 		}
 		@Override
 		public boolean showData(ArrayList<ImgPreview> list) {
@@ -70,6 +63,25 @@ public class WidAoiViews extends BorderPane {
 		}
 	};
 	private FilterCalib filterCalib = new FilterCalib();
+	//----------------------------------//
+	
+	class FilterMarkRect extends ImgFilter {
+		@Override
+		public void cookData(ArrayList<ImgPreview> list) {
+			CamBundle bnd0 = list.get(0).bundle;
+			CamBundle bnd1 = list.get(0).bundle;
+			scoreRect[0] = implFindCross(bnd0,0,param,locaRect[0]);
+			scoreRect[1] = implFindCross(bnd1,1,param,locaRect[1]);
+		}
+		@Override
+		public boolean showData(ArrayList<ImgPreview> list) {
+			txtLocaRect();
+			txtShowVector();
+			return false;
+		}
+	}
+	private FilterMarkRect filterMarkRect = new FilterMarkRect();
+	//----------------------------------//
 	
 	private final double biasAxis = 100.;//This is experiment value~~~
 	private final double biasTheta = 100.;//This is experiment value~~~
@@ -81,42 +93,20 @@ public class WidAoiViews extends BorderPane {
 		@Override
 		public void cookData(ArrayList<ImgPreview> list) {
 			
-			int loca_prev[][] = {{-1,-1},{-1,-1}};
-			
-			get_loca_rect(list,locaRect);			
-			refreshData(list);
-			Entry.stg0.moveTo(biasAxis,'x');			
-			get_loca_rect(list,loca_prev);
-			refreshData(list);
-			Entry.stg0.moveTo(-biasAxis,'x');//go to original point
-			get_vector(0,loca_prev);
-				
-			get_loca_rect(list,locaRect);
-			refreshData(list);
-			Entry.stg0.moveTo(biasAxis,'y');
-			get_loca_rect(list,loca_prev);
-			refreshData(list);
-			Entry.stg0.moveTo(-biasAxis,'y');//go to original point
-			get_vector(1,loca_prev);
-
-			solve_trans();
-			
-			//check the origin of Theta value
-			get_loca_rect(list,locaRect);
-			Entry.stg0.moveTo(biasTheta,'a');
-			Misc.logv("start to check Theta");
-				
-			get_loca_rect(list,loca_prev);
-			Entry.stg0.moveTo(-biasTheta,'a');//back to origin~~~~
+			//refreshData(list);
+			//Entry.stg0.moveTo(biasAxis,'x');			
+			//refreshData(list);
+			//Entry.stg0.moveTo(-biasTheta,'a');//back to origin~~~~
 		}
 		@Override
-		public boolean showData(ArrayList<ImgPreview> list) {			
+		public boolean showData(ArrayList<ImgPreview> list) {
+			txtLocaRect();
+			txtShowVector();
 			return true;
 		}
-
 		@Override
 		public void handle(ActionEvent event) {
-			if(locaCros[0][0]<0 || locaCros[1][0]<0){
+			if(locaCross[0][0]<0 || locaCross[1][0]<0){
 				PanBase.msgBox.notifyWarning("注意","必須先決定十字標靶位置");
 				return;
 			}
@@ -125,15 +115,8 @@ public class WidAoiViews extends BorderPane {
 	};
 	public FilterBias filterBias = new FilterBias();
 
-	private void get_loca_cross(ArrayList<ImgPreview> list){
-		scoreCros[0] = implFindCros(list.get(0).bundle,locaCros[0]);
-		scoreCros[1] = implFindCros(list.get(1).bundle,locaCros[1]);
-	}
-	private void get_loca_rect(ArrayList<ImgPreview> list,int[][] loca){
-		scoreRect[0] = implFindRect(list.get(0).bundle,locaCros[0],loca[0]);
-		scoreRect[1] = implFindRect(list.get(1).bundle,locaCros[1],loca[1]);
-	}
-	private void get_vector(int i,int[][] locaVetx){
+	
+	/*private void get_vector(int i,int[][] locaVetx){
 		vectScale[i][0] = vectScale[i][1] = 0;//reset one~~~
 		int[] v1=null,v2=null;//just pickup one side
 		if(locaRect[0][0]>=0 && locaVetx[0][0]>=0){
@@ -156,7 +139,6 @@ public class WidAoiViews extends BorderPane {
 			i,vectScale[i][0],vectScale[i][1]
 		);
 	}
-	
 	private void solve_trans(){
 		locaTran[0][0] = (vectScale[0][0]/biasAxis); locaTran[0][1] = (vectScale[1][0]/biasAxis);
 		locaTran[1][0] = (vectScale[0][1]/biasAxis); locaTran[1][1] = (vectScale[1][1]/biasAxis);
@@ -165,16 +147,15 @@ public class WidAoiViews extends BorderPane {
 		locaTran[0][0] = mat.getEntry(0,0); locaTran[0][1] = mat.getEntry(0,1);
 		locaTran[1][0] = mat.getEntry(1,0); locaTran[1][1] = mat.getEntry(1,1);
 	}
-
 	private double[] get_axis_bias(){
 		double[] bias = {0.,0.};
 		double[] vect = {0.,0.};
 		int[] v1 = null,v2 = null;
-		if(locaCros[0][0]>=0 && locaRect[0][0]>=0){
-			v2 = locaCros[0];
+		if(locaCross[0][0]>=0 && locaRect[0][0]>=0){
+			v2 = locaCross[0];
 			v1 = locaRect[0];
-		}else if(locaCros[1][0]>=0 && locaRect[1][0]>=0){
-			v2 = locaCros[1];
+		}else if(locaCross[1][0]>=0 && locaRect[1][0]>=0){
+			v2 = locaCross[1];
 			v1 = locaRect[1];
 		}else{
 			Misc.loge("No valid location!!!");
@@ -185,42 +166,37 @@ public class WidAoiViews extends BorderPane {
 		bias[0] = locaTran[0][0] * vect[0] +  locaTran[0][1] * vect[1];
 		bias[1] = locaTran[1][0] * vect[0] +  locaTran[1][1] * vect[1];
 		return bias;
-	}
-	
+	}*/
 	//-------------------------------//
-	
-	private int debugMode = 0;
-	
+
 	/**
-	 * Parameter for AOI. Their meanings are : <p>
-	 * 0: Binary Threshold.<p>
-	 * 1: Canny Threshold.<p>
-	 * 2: Canny Threshold, but only offset value.<p>
-	 * 3: Canny Aperture.<p>
-	 * 4: Dilate Size.<p>
-	 * 5: Approximates Epsilon.<p>
-	 * 6: minimum score for Cross-T.<p>
-	 * 7: minimum score for Rectangle.<p>
+	 * 0 - debug mode
+	 * 1 - Binary-Threshold for Cross-T
+	 * 2 - Morphology-kernel for Cross-T
+	 * 3 - Epsilon for Cross-T
+	 * 
+	 * 9 - Binary-Threshold for Rectangle
+	 * 10- Morphology-kernel for Rectangle
 	 */
-	private int param[] = {125,190,10,5,5,7,70,70};
-
-	private double[] scoreCros = {0,0};
-	//private int[][] locaCros = {{-1,-1},{-1,-1}};
-	private int[][] locaCros = {{348,472},{482,455}};
+	private int[] param = {0,
+		150,5,7,0,
+		0,0,0,0,
+		128,5,0,0,
+		0,0,0,0
+	};
 	
-	private double[] scoreRect = {0,0};	
+	private double[] scoreCross = {0,0};//left, right
+	private int[][] locaCross = {{-1,-1},{-1,-1}};
+
+	private double[] scoreRect = {0,0};//left, right
 	private int[][] locaRect = {{-1,-1},{-1,-1}};
-
-	private double[][] vectScale = {{0.,0.},{0.,0.}};//X-bias,Y-bias
-	
-	private double[][] locaTran = {{0.,0.},{0.,0.}};
 	
 	private native void implInitEnviroment(String name0,String name1);
-	private native void implInitParam();
 	private native void implTrainGrnd(CamBundle bnd0,CamBundle bnd1);
 	private native void implTrainDone(String name0,String name1,int count);
-	private native float implFindCros(CamBundle bnd,int[] loca);
-	private native float implFindRect(CamBundle bnd,int[] mask,int[] loca);
+	
+	private native float implFindCross(CamBundle bnd,int idx,int[] param,int[] loca);
+	private native float implFindRect(CamBundle bnd,int idx,int[] param,int[] loca);
 	//-------------------------------//
 
 	private final String backName0 = Misc.pathTemp+"back0.png";
@@ -256,25 +232,22 @@ public class WidAoiViews extends BorderPane {
 		//----parameter----
 		final JFXComboBox<Integer> dbg_mode = new JFXComboBox<Integer>();		
 		dbg_mode.getItems().addAll(0,1,2,3);
-		dbg_mode.getSelectionModel().select(debugMode);
-		dbg_mode.setOnAction(event->{
-			debugMode = dbg_mode.getValue();
-		});
+		dbg_mode.getSelectionModel().select(param[0]);
+		dbg_mode.setOnAction(event->{ param[0] = dbg_mode.getValue(); });
 		dbg_mode.setMaxWidth(Double.MAX_VALUE);
 		GridPane.setFillWidth(dbg_mode,true);
 		
 		GridPane lay2 = new GridPane();
 		lay2.getStyleClass().add("grid-small");
 		lay2.addRow(0,new Label("Debug Mode："),dbg_mode);
-		lay2.addRow(1,new Label("Binary-Thres："),genBoxValue(0));
-		lay2.addRow(2,new Label("Canny-Value：") ,genBoxValue(1));
-		lay2.addRow(3,new Label("Canny-Offset："),genBoxValue(2));
-		lay2.addRow(4,new Label("Canny-Apture："),genCmbRange(3));
-		lay2.addRow(5,new Label("Dilate Size：") ,genCmbRange(4));
-		lay2.addRow(6,new Label("Appx-Epsilon："),genCmbRange(5));
-		lay2.addRow(7,new Label("Score.1："),genBoxValue(6));
-		lay2.addRow(8,new Label("Score.2："),genBoxValue(7));
 		
+		lay2.addRow(1,new Label("Cross - Thres："),genBoxValue(1));
+		lay2.addRow(2,new Label("Cross - Struct：") ,genCmbRange(2));
+		lay2.addRow(3,new Label("Cross - Epsilon："),genCmbRange(3));
+	
+		lay2.addRow(4,new Label("Rect - Thres："),genBoxValue(9));
+		lay2.addRow(5,new Label("Rect - Struct：") ,genCmbRange(10));
+
 		//----information----
 		final String SPACE="  ";
 		GridPane lay3 = new GridPane();
@@ -302,9 +275,8 @@ public class WidAoiViews extends BorderPane {
 		
 		Button btnMarkRect = PanBase.genButton1("標定口型",null);
 		btnMarkRect.setOnAction(event->{
-			//resetLocaRect();
-			//filterMark.step = MARK_RECT;//reset~~~
-			//Entry.rndr.attach(filterMark);
+			resetLocaRect();			
+			Entry.rndr.attach(filterMarkRect);
 		});
 
 		Button btnMarkAlign = PanBase.genButton1("?????",null);
@@ -328,8 +300,7 @@ public class WidAoiViews extends BorderPane {
 	}
 
 	private Node genBoxValue(final int idx){
-		final JFXTextField box = new JFXTextField();                    
-		box.setPromptText("canny threshold");
+		final JFXTextField box = new JFXTextField();
 		box.setPrefWidth(100);
 		box.setText(""+param[idx]);
 		box.setOnAction(event->{
@@ -371,16 +342,16 @@ public class WidAoiViews extends BorderPane {
 	};
 	private void txtLocaCross(){
 		txtTarget[0].setText(String.format(
-			"(%3d,%3d)",locaCros[0][0],locaCros[0][1]
+			"(%3d,%3d)",locaCross[0][0],locaCross[0][1]
 		));
 		txtTarget[1].setText(String.format(
-			"(%3d,%3d)",locaCros[1][0],locaCros[1][1]
+			"(%3d,%3d)",locaCross[1][0],locaCross[1][1]
 		));
 		txtTarget[2].setText(String.format(
-			"%.3f%%",scoreCros[0]
+			"%.3f%%",scoreCross[0]
 		));
 		txtTarget[3].setText(String.format(
-			"%.3f%%",scoreCros[1]
+			"%.3f%%",scoreCross[1]
 		));
 	}
 	private void txtLocaRect(){
@@ -401,9 +372,9 @@ public class WidAoiViews extends BorderPane {
 		int[][] vec = {{0,0},{0,0},{-1,-1}};
 		String txt = "向量：", tmp=null;
 		//left camera
-		if(locaCros[0][0]>=0){
-			vec[0][0] = locaRect[0][0] - locaCros[0][0];
-			vec[0][1] = locaRect[0][1] - locaCros[0][1];
+		if(locaCross[0][0]>=0){
+			vec[0][0] = locaRect[0][0] - locaCross[0][0];
+			vec[0][1] = locaRect[0][1] - locaCross[0][1];
 			vec[2][0] = (int)Math.sqrt(vec[0][0]*vec[0][0] + vec[0][1]*vec[0][1]);
 			tmp = String.format("(%d,%d)@%d",vec[0][0],vec[0][1],vec[2][0]);
 		}else{
@@ -411,9 +382,9 @@ public class WidAoiViews extends BorderPane {
 		}
 		txt = txt + tmp + "，";
 		//right camera
-		if(locaCros[1][0]>=0){
-			vec[1][0] = locaRect[1][0] - locaCros[1][0];
-			vec[1][1] = locaRect[1][1] - locaCros[1][1];
+		if(locaCross[1][0]>=0){
+			vec[1][0] = locaRect[1][0] - locaCross[1][0];
+			vec[1][1] = locaRect[1][1] - locaCross[1][1];
 			vec[2][1] = (int)Math.sqrt(vec[1][0]*vec[1][0] + vec[1][1]*vec[1][1]);
 			tmp = String.format("(%d,%d)@%d",vec[1][0],vec[1][1],vec[2][1]);
 		}else{
@@ -424,9 +395,9 @@ public class WidAoiViews extends BorderPane {
 		return vec;
 	}
 	private void resetLocaCross(){
-		locaCros[0][0] = locaCros[0][1] = -1;
-		locaCros[1][0] = locaCros[1][1] = -1;
-		scoreCros[0] = scoreCros[1] = -1.;
+		locaCross[0][0] = locaCross[0][1] = -1;
+		locaCross[1][0] = locaCross[1][1] = -1;
+		scoreCross[0] = scoreCross[1] = -1.;
 	}
 	private void resetLocaRect(){		
 		locaRect[0][0] = locaRect[0][1] = -1;

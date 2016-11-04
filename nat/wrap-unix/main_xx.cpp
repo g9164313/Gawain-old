@@ -74,174 +74,46 @@ extern void drawPolyline(
 	int lineType=LINE_8
 );
 
-void init_shape(vector<Point>& sh1, vector<Point>& sh2){
-	sh1.push_back(Point(0  ,0  ));
-	sh1.push_back(Point(100,0  ));
-	sh1.push_back(Point(100,100));
-	sh1.push_back(Point(0  ,100));
-	const int wh=35,dp=20;
-	sh2.push_back(Point(wh      , 0       ));
-	sh2.push_back(Point(wh+dp   , 0       ));
-	sh2.push_back(Point(wh+dp   , wh      ));
-	sh2.push_back(Point(wh+dp+wh, wh      ));
-	sh2.push_back(Point(wh+dp+wh, wh+dp   ));
-	sh2.push_back(Point(wh+dp   , wh+dp   ));
-	sh2.push_back(Point(wh+dp   , wh+dp+wh));
-	sh2.push_back(Point(wh      , wh+dp+wh));
-	sh2.push_back(Point(wh      , wh+dp   ));
-	sh2.push_back(Point(0       , wh+dp   ));
-	sh2.push_back(Point(0       , wh      ));
-	sh2.push_back(Point(wh      , wh      ));
-}
+static vector<Point> shaprRect,shapeCross;
 
-void filterHanning(Mat& src,const int quarter){
-	Mat _src;
-	src.convertTo(_src,CV_32FC1);
-	Size area;
-	if(quarter<=0 || 4<quarter){
-		area.width = src.cols;
-		area.height= src.rows;
-	}else{
-		area.width = src.cols*2;
-		area.height= src.rows*2;
-	}
-	Mat hann,_han;
-	createHanningWindow(hann,area,CV_32F);
-	switch(quarter){
-	case 1:
-		_han = hann(Rect(
-			src.cols,0,
-			src.cols,src.rows
-		));
-		break;
-	case 2:
-		_han = hann(Rect(
-			0,0,
-			src.cols,src.rows
-		));
-		break;
-	case 3:
-		_han = hann(Rect(
-			0,src.rows,
-			src.cols,src.rows
-		));
-		break;
-	case 4:
-		_han = hann(Rect(
-			src.cols,src.rows,
-			src.cols,src.rows
-		));
-		break;
-	default:
-		_han = hann;
-		break;
-	}
-	multiply(_src,_han,_src);
-	_src.convertTo(src,CV_8UC1);
-	//normalize(_src,src,0,255,NORM_MINMAX,CV_8UC1);
-}
+extern void init_shape();
+extern void init_template();
+
+extern float matchRect(
+	Mat& image,
+	const Mat& ground,
+	int thres,
+	Point& location
+);
 
 int main(int argc, char* argv[]) {
-	//const char* name = "./gg2/16138125-2016-09-20-154907.pgm";
-	//const char* name = "./gg3/snap_fail1.png";
-	const char* name = "./aa1.png";
+	init_template();
+	init_shape();
 
-	Mat img = imread(name,IMREAD_GRAYSCALE);
-	Mat ova = Mat::zeros(img.size(),CV_8UC4);
-	drawImage(ova,img);
+	Mat gnd1 = imread("./gg5/back1.png",IMREAD_GRAYSCALE);
+	Mat gnd2 = imread("./gg5/back2.png",IMREAD_GRAYSCALE);
 
-	vector<Point> shaprRect,shapeCross;
-	init_shape(shaprRect,shapeCross);
+	const char* name = "./gg5/snap1_006.png";
+	const char* o_name = "result.png";
 
+	//char name[500];
+	//char o_name[500];
+	//for(int i=1; i<=20; i++){
+		//sprintf(name,"./gg5/snap1_%03d.png",i);
+		//sprintf(o_name,"./result_%03d.png",i);
 
-	equalizeHist(img,img);
-	imwrite("cc1.png",img);
-	//threshold(img,img,100,255,THRESH_BINARY);
-	//imwrite("cc2.png",img);
+		Mat img = imread(name,IMREAD_GRAYSCALE);
+		Mat ova = Mat::zeros(img.size(),CV_8UC4);
+		drawImage(ova,img);
 
-	/*int rw,dw;
-	rw=550; dw=90;
-	Mat rectA = Mat::zeros(rw,rw,CV_8UC1);
-	rectangle(rectA,Rect(dw/2,dw/2,rw-dw,rw-dw),Scalar::all(255),dw);
+		Point loca;
+		float val = matchRect(img,gnd1,128,loca);
+		drawRectangle(ova,loca,418,418,Scalar(255,0,0),3);
+		drawRectangle(ova,loca,140,140,Scalar(255,0,0),3);
+		cout<<"the result of "<<o_name<<" is "<<val<<endl;
 
-	rw=150; dw=20;
-	Mat rectB = Mat::zeros(rw,rw,CV_8UC1);
-	rectangle(rectB,Rect(dw/2,dw/2,rw-dw,rw-dw),Scalar::all(255),dw);
-
-
-	Mat temp = rectA;
-	Mat result(
-		img.cols-temp.cols+1,
-		img.rows-temp.rows+1,
-		CV_32FC1
-	);
-	matchTemplate(
-		img,temp,
-		result,
-		CV_TM_CCORR_NORMED
-	);
-
-	double valMin, valMax;
-	Point posMin, posMax;
-	minMaxLoc(
-		result,
-		&valMin,&valMax,
-		&posMin,&posMax
-	);
-	cout<<"min="<<valMin<<" @ "<<posMin<<endl;
-	cout<<"max="<<valMax<<" @ "<<posMax<<endl;
-
-	posMax.x = posMax.x + temp.cols/2;
-	posMax.y = posMax.y + temp.cols/2;
-
-	drawRectangle(ova,posMin,30,30,Scalar(0,0,255),3);//red
-	drawRectangle(ova,posMax,30,30,Scalar(255,0,0),3);//blue
-	*/
-
-	/*Mat nod1;// = getEdge(img,cts);
-	threshold(img,nod1,param[0],255,THRESH_BINARY);
-	Mat kern = getStructuringElement(
-		MORPH_RECT,
-		Size(param[4],param[4]),
-		Point(-1,-1)
-	);
-	erode(nod1,nod1,kern);
-	//drawEdgeMap(ova,nod1);
-	//imwrite("./gg3/cc2.png",ova);
-	//return -1;
-
-	vector<vector<Point> > cts;
-	findContours(
-		nod1,cts,
-		RETR_LIST,CHAIN_APPROX_SIMPLE
-	);
-
-	double score=-1.;
-	for(int i=0; i<cts.size(); i++){
-		vector<Point> approx;
-		Mat points(cts[i]);
-		approxPolyDP(points, approx, param[5], true);
-		if(approx.size()<4){
-			continue;
-		}
-		//if(isContourConvex(approx)==false){
-		//	continue;
-		//}
-		double score = matchShapes(
-			shapeCross,approx,
-			CV_CONTOURS_MATCH_I3,0
-		);
-		if(score>0.7){
-			cout<<"score["<<i<<"]="<<score<<endl;
-			continue;
-		}
-		drawPolyline(ova,approx,true);
-		float val = (1-score)*100;
-		cout<<"SCORE["<<i<<"]="<<val<<endl;
-	}
-	//drawEdgeMap(ova,edg);
-	//drawContour(ova,cts);*/
-	//imwrite("./final.png",ova);
+		imwrite(o_name,ova);
+	//}
 	return 0;
 }
 //--------------------------------------//
@@ -464,4 +336,52 @@ static Scalar randomColor(){
 }
  */
 
+/*
+ void filterHanning(Mat& src,const int quarter){
+	Mat _src;
+	src.convertTo(_src,CV_32FC1);
+	Size area;
+	if(quarter<=0 || 4<quarter){
+		area.width = src.cols;
+		area.height= src.rows;
+	}else{
+		area.width = src.cols*2;
+		area.height= src.rows*2;
+	}
+	Mat hann,_han;
+	createHanningWindow(hann,area,CV_32F);
+	switch(quarter){
+	case 1:
+		_han = hann(Rect(
+			src.cols,0,
+			src.cols,src.rows
+		));
+		break;
+	case 2:
+		_han = hann(Rect(
+			0,0,
+			src.cols,src.rows
+		));
+		break;
+	case 3:
+		_han = hann(Rect(
+			0,src.rows,
+			src.cols,src.rows
+		));
+		break;
+	case 4:
+		_han = hann(Rect(
+			src.cols,src.rows,
+			src.cols,src.rows
+		));
+		break;
+	default:
+		_han = hann;
+		break;
+	}
+	multiply(_src,_han,_src);
+	_src.convertTo(src,CV_8UC1);
+	//normalize(_src,src,0,255,NORM_MINMAX,CV_8UC1);
+}
+*/
 

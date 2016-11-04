@@ -7,16 +7,13 @@
 #include <global.hpp>
 #include <CamBundle.hpp>
 
-static vector<Point> shapeCross,shapeRect;
-
 static Mat grndImage[2], grndAccum[2];
 
-extern "C" JNIEXPORT void JNICALL Java_prj_letterpress_WidAoiViews_implInitEnviroment(
-	JNIEnv* env,
-	jobject thiz,
-	jstring jname0,
-	jstring jname1
-){
+static vector<Point> shapeCross;
+
+static Mat templateRect;
+
+void init_shape(){
 	const int wh=35,dp=20;
 	shapeCross.clear();
 	shapeCross.push_back(Point(wh      , 0       ));
@@ -31,13 +28,39 @@ extern "C" JNIEXPORT void JNICALL Java_prj_letterpress_WidAoiViews_implInitEnvir
 	shapeCross.push_back(Point(0       , wh+dp   ));
 	shapeCross.push_back(Point(0       , wh      ));
 	shapeCross.push_back(Point(wh      , wh      ));
+}
 
-	const int len = 100;
-	shapeRect.clear();
-	shapeRect.push_back(Point(0  ,0  ));
-	shapeRect.push_back(Point(len,0  ));
-	shapeRect.push_back(Point(len,len));
-	shapeRect.push_back(Point(0  ,len));
+void init_template(){
+
+	const Scalar clr = Scalar::all(255);
+
+	const int innWidth = 140;
+	const int innBoard = 4;
+
+	templateRect = Mat::zeros(
+		innWidth+innBoard,
+		innWidth+innBoard,
+		CV_8UC1
+	);
+	int cc = templateRect.cols/2;
+	Rect inn(
+		cc - innWidth/2,
+		cc - innWidth/2,
+		innWidth, innWidth
+	);
+	rectangle(templateRect,inn,clr,innBoard);
+	//imwrite("cc1.png",tempRect);
+}
+
+extern "C" JNIEXPORT void JNICALL Java_prj_letterpress_WidAoiViews_implInitEnviroment(
+	JNIEnv* env,
+	jobject thiz,
+	jstring jname0,
+	jstring jname1
+){
+	init_shape();
+
+	init_template();
 
 	char name[500];
 	if(jname0!=NULL){
@@ -92,69 +115,22 @@ extern "C" JNIEXPORT void JNICALL Java_prj_letterpress_WidAoiViews_implTrainDone
 	}
 }
 
-/**
- * Parameter for AOI. Their meanings are : <p>
- * 0: Binary Threshold.<p>
- * 1: Canny Threshold.<p>
- * 2: Canny Threshold, but only offset value.<p>
- * 3: Canny Aperture.<p>
- * 4: Dilate Size.<p>
- * 5: Approximates Epsilon.<p>
- * 6: minimum score for Cross-T.<p>
- * 7: minimum score for Rectangle.<p>
- */
-#define PARAM_SIZE 8
-static int param[PARAM_SIZE] = {120,300,50,5,5,7,70,70};//this is mapping from java-code
-
-static float minScore[]={0.03,0.03};
-
-static int debugMode = 0;
-
-extern "C" JNIEXPORT void JNICALL Java_prj_letterpress_WidAoiViews_implInitParam(
-	JNIEnv* env,
-	jobject thiz
-){
-	jclass clzz = env->GetObjectClass(thiz);
-	jfieldID id;
-	jobject obj;
-	id = env->GetFieldID(clzz,"param","[I");
-	obj = env->GetObjectField(thiz,id);
-	jintArray arr1=*(reinterpret_cast<jintArray*>(&obj));
-	env->GetIntArrayRegion(arr1,0,PARAM_SIZE,param);
-	minScore[0] = (float)((100-param[6]))/100.f;
-	minScore[1] = (float)((100-param[7]))/100.f;
-
-	debugMode = env->GetIntField(
-		thiz,
-		env->GetFieldID(clzz,"debugMode","I")
-	);
-	//cout<<"score=("<<minScore[0]<<","<<minScore[1]<<"), debug="<<debugMode<<endl;
-	/*id = env->GetFieldID(clzz,"score","[F");
-	obj = env->GetObjectField(thiz,id);
-	jfloatArray arr2=*(reinterpret_cast<jfloatArray*>(&obj));
-	env->GetFloatArrayRegion(arr2,0,2,minScore);*/
-}
-
-static Point findTarget(
+static float findShape(
 	Mat& ova,
 	vector<Point>& shape,
 	vector<vector<Point> >& cts,
-	bool checkRect,
-	int numVertex,
-	float silimarity,
-	float* score
+	int* param,
+	Point& loca
 ){
-	Point loca(-1,-1);
 	int cnt = 0;
 	double score_sum = 0.;
-	double score_min = 1.;
 	for(int i=0; i<cts.size(); i++){
 		vector<Point> approx;
 		Mat points(cts[i]);
-		approxPolyDP(points, approx, param[5], true);
+		approxPolyDP(points, approx, param[3], true);
 		//cout<<"vtx="<<approx.size()<<",min="<<numVertex<<endl;
 		int vtx = approx.size();
-		if(vtx<numVertex || (3*numVertex)<vtx){
+		if(vtx<4){
 			continue;
 		}
 		double area = contourArea(approx);
@@ -162,13 +138,13 @@ static Point findTarget(
 			continue;//noise???
 		}
 		RotatedRect rect = minAreaRect(approx);
-		if(checkRect==true){
-			double bound = rect.size.width * rect.size.height;
-			double ratio = min(area,bound)/max(area,bound);
-			if(ratio<0.8){
-				continue;
-			}
-		}
+		//if(checkRect==true){
+		//	double bound = rect.size.width * rect.size.height;
+		//	double ratio = min(area,bound)/max(area,bound);
+		//	if(ratio<0.8){
+		//		continue;
+		//	}
+		//}
 		//if(isContourConvex(approx)==checkConvex){
 		//	continue;
 		//}
@@ -176,68 +152,73 @@ static Point findTarget(
 			shape,approx,
 			CV_CONTOURS_MATCH_I3,0
 		);
-		if(debugMode==2){
+		if(param[0]==2){
 			drawPolyline(ova,approx,true);
 		}
 		//cout<<"score="<<score_shp<<endl;
-		if(score_shp<silimarity){
-			//we found a similar target~~~
-			if(cnt==0){
-				loca = rect.center;
-			}else{
-				loca.x += rect.center.x;
-				loca.y += rect.center.y;
-			}
-			cnt++;
-			score_sum = score_sum + score_shp;
-			if(debugMode==3){
-				drawPolyline(ova,approx,true);
-			}
+		if(score_shp>0.1){
+			continue;
 		}
-		if(score_shp<score_min){
-			score_min = score_shp;//at least, we have minimum~~~
+		//we found a similar target~~~
+		if(cnt==0){
+			loca = rect.center;
+		}else{
+			loca.x = loca.x + rect.center.x;
+			loca.y = loca.y + rect.center.y;
+		}
+		cnt++;
+		if(param[0]==3){
+			drawPolyline(ova,approx,true);
 		}
 	}
+	float score;
 	if(cnt!=0){
+		score = score_sum / cnt;
+		score = (1.f-score)*100.f;
 		loca.x = loca.x / cnt;
 		loca.y = loca.y / cnt;
+	}else{
+		score = 0.;
+		loca.x = -1;
+		loca.y = -1;
 	}
-	if(score!=NULL){
-		float val =0.;
-		if(cnt==0){
-			val = score_min;
-		}else{
-			val = score_sum / cnt;
-		}
-		(*score) = (1.f - val) * 100.f;
-	}
-	return loca;
+	return score;
 }
 
 
-extern "C" JNIEXPORT jfloat JNICALL Java_prj_letterpress_WidAoiViews_implFindCros(
+extern "C" JNIEXPORT jfloat JNICALL Java_prj_letterpress_WidAoiViews_implFindCross(
 	JNIEnv* env,
 	jobject thiz,
 	jobject bundle,
+	jint idx,
+	jintArray jparam,
 	jintArray jloca
 ){
 	MACRO_PREPARE
 	if(cntx==NULL){
 		return -1.;
 	}
+
+	jint param[10];
+	env->GetIntArrayRegion(jparam,0,17,param);
+
+	cout<<param[0]<<".Param[1~4]={"
+		<<param[1]<<", "<<param[2]<<", "<<param[3]<<", "<<param[4]<<", "
+	<<"}"<<endl;
+
 	Mat src(height,width,type,buff);
 	Mat img = checkMono(src);
 	Mat ova = Mat::zeros(src.size(),CV_8UC4);
 
 	Mat nod1;
-	threshold(img,nod1,param[0],255,THRESH_BINARY);
+	threshold(img,nod1,param[1],255,THRESH_BINARY);
 	Mat kern = getStructuringElement(
 		MORPH_RECT,
-		Size(param[4],param[4]),
+		Size(param[2],param[2]),
 		Point(-1,-1)
 	);
 	erode(nod1,nod1,kern);
-	if(debugMode==1){
+	if(param[0]==1){
 		drawEdgeMap(ova,nod1);//for edge mapping~~
 		MACRO_SET_IMG_INFO(ova);
 		return -1.;
@@ -252,19 +233,16 @@ extern "C" JNIEXPORT jfloat JNICALL Java_prj_letterpress_WidAoiViews_implFindCro
 		return -2.;
 	}
 
-	jint* loca = env->GetIntArrayElements(jloca,NULL);
+	jint* _loca = env->GetIntArrayElements(jloca,NULL);
 	float score;
-	Point res = findTarget(
-		ova,
-		shapeCross,
-		cts,false,5,minScore[0],
-		&score
-	);
-	loca[0] = res.x;
-	loca[1] = res.y;
-	env->ReleaseIntArrayElements(jloca,loca,0);
-	if(debugMode==0){
-		drawCrossT(ova,res,30,Scalar(0,255,255),3);
+	Point loca;
+	score = findShape(ova,shapeCross,cts,param,loca);
+	_loca[0] = loca.x;
+	_loca[1] = loca.y;
+	env->ReleaseIntArrayElements(jloca,_loca,0);
+
+	if(param[0]==0){
+		drawCrossT(ova,loca,30,Scalar(0,255,255),3);
 	}
 	MACRO_SET_IMG_INFO(ova);
 	return score;
@@ -274,74 +252,71 @@ extern "C" JNIEXPORT jfloat JNICALL Java_prj_letterpress_WidAoiViews_implFindRec
 	JNIEnv* env,
 	jobject thiz,
 	jobject bundle,
-	jintArray jmask,
+	jint idx,
+	jintArray jparam,
 	jintArray jloca
 ){
 	MACRO_PREPARE
 	if(cntx==NULL){
 		return -1.;
 	}
+
+	jint param[10];
+	env->GetIntArrayRegion(jparam,0,17,param);
+
+	cout<<param[0]<<".Param[9~12]={"
+		<<param[9]<<", "<<param[10]<<", "<<param[11]<<", "<<param[12]<<", "
+	<<"}"<<endl;
+
 	Mat src(height,width,type,buff);
 	Mat img = checkMono(src);
 	Mat ova = Mat::zeros(src.size(),CV_8UC4);
 
-	Mat nod1,nod2;
-	Canny(
-		img,nod1,
-		param[1],
-		param[1]+param[2],
-		param[3],
-		true
+	img = img - grndImage[idx];
+	equalizeHist(img,img);
+	threshold(img,img,param[9],255,THRESH_BINARY);
+	Mat kern = getStructuringElement(
+		MORPH_ELLIPSE,
+		Size(param[10],param[10]),
+		Point(-1,-1)
 	);
-	if(param[4]!=1){
-		Mat kern = getStructuringElement(
-			MORPH_ELLIPSE,
-			Size(param[4],param[4]),
-			Point(-1,-1)
-		);
-		dilate(nod1,nod2,kern);
-	}else{
-		nod2 = nod1;
-	}
-	jint* mask = env->GetIntArrayElements(jmask,NULL);
-	Point cros(mask[0],mask[1]);
-	circle(
-		nod2,
-		cros,50,
-		Scalar::all(0),-1
-	);//erase something~~~
-	env->ReleaseIntArrayElements(jmask,mask,0);
-	if(debugMode==1){
-		drawEdgeMap(ova,nod2);//for edge mapping~~
-		MACRO_SET_IMG_INFO(ova);
-		return -1.;
-	}
+	erode(img,img,kern);
+	dilate(img,img,kern);
+	//imwrite("cc2.png",image);
 
-	vector<vector<Point> > cts;
-	findContours(
-		nod2,cts,
-		RETR_LIST,CHAIN_APPROX_SIMPLE
+	Mat ex_img;
+	copyMakeBorder(
+		img,ex_img,
+		templateRect.rows/2,templateRect.rows/2,
+		templateRect.cols/2,templateRect.cols/2,
+		BORDER_CONSTANT
 	);
-	if(cts.size()==0){
-		return -2.;
-	}
+	//imwrite("cc3.png",ex_img);
 
-	jint* loca = env->GetIntArrayElements(jloca,NULL);
-	float score;
-	Point res = findTarget(
-		ova,
-		shapeRect,
-		cts,true,4,minScore[1],
-		&score
+	Mat result(
+		ex_img.cols-templateRect.cols+1,
+		ex_img.rows-templateRect.rows+1,
+		CV_32FC1
 	);
-	loca[0] = res.x;
-	loca[1] = res.y;
-	env->ReleaseIntArrayElements(jloca,loca,0);
-	if(debugMode==0){
-		drawCrossT(ova,cros,30,Scalar(0,255,255),3);
-		drawRectangle(ova,res,30,30,Scalar(255,0,0),3);
-	}
+	matchTemplate(
+		ex_img,templateRect,
+		result,
+		CV_TM_CCORR_NORMED
+	);
+	jint* _loca = env->GetIntArrayElements(jloca,NULL);
+	double score;
+	Point loca;
+	minMaxLoc(
+		result,
+		NULL,&score,
+		NULL,&loca
+	);
+	_loca[0] = loca.x;
+	_loca[1] = loca.y;
+	env->ReleaseIntArrayElements(jloca,_loca,0);
+
+	drawRectangle(ova,loca,30,30,Scalar(255,0,0),3);
 	MACRO_SET_IMG_INFO(ova);
-	return score;
+	return score * 100.f;
 }
 

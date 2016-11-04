@@ -113,7 +113,7 @@ else
 endif
 	
 
-$(TARGET_EXE):  ./wrap-unix/main_xx.cpp CamBundle.cpp utils_cv.cpp utils_jni.cpp
+$(TARGET_EXE):  ./wrap-unix/main_xx.cpp PrjLetterpress.cpp CamBundle.cpp utils_cv.cpp utils_jni.cpp
 #$(TARGET_EXE):  ./wrap-unix/FlyCap2.cpp
 	$(CC) $(CC_FLAG) -o $@ $^ $(LD_LIBS)
 

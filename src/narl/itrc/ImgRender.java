@@ -30,7 +30,8 @@ public class ImgRender implements Gawain.EventHook {
 		//camera will be released in this stage~~~~
 	}
 	
-	private ArrayBlockingQueue<ImgFilter> lstFilter = new ArrayBlockingQueue<ImgFilter>(100);
+	//private ArrayBlockingQueue<ImgFilter> lstFilter = new ArrayBlockingQueue<ImgFilter>(100);
+	private ArrayList<ImgFilter> lstFilter = new ArrayList<ImgFilter>(100);
 	
 	private ArrayList<ImgPreview> lstPreview = new ArrayList<ImgPreview>();
 
@@ -60,11 +61,6 @@ public class ImgRender implements Gawain.EventHook {
 			prv.fetchInfo();
 		}
 		Application.invokeAndWait(eventRender);
-		for(ImgFilter flt:lstFilter){
-			if(flt.state.get()==ImgFilter.STA_SHOW){
-				lstFilter.remove(flt);//??not sure??
-			}
-		}
 	}
 
 	private final Runnable eventRender = new Runnable(){
@@ -81,7 +77,8 @@ public class ImgRender implements Gawain.EventHook {
 				//blocking queue not remove object immediately	
 				//'showData' decides whether we should remove this filter~~~
 				if(flt.showData(lstPreview)==true){
-					flt.state.set(ImgFilter.STA_SHOW);	
+					flt.state.set(ImgFilter.STA_SHOW);
+					lstFilter.remove(flt);
 				}else{
 					flt.state.set(ImgFilter.STA_IDLE);
 				}
