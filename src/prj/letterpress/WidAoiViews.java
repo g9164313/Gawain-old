@@ -3,10 +3,6 @@ package prj.letterpress;
 import java.io.File;
 import java.util.ArrayList;
 
-import org.apache.commons.math3.linear.Array2DRowRealMatrix;
-import org.apache.commons.math3.linear.LUDecomposition;
-import org.apache.commons.math3.linear.RealMatrix;
-
 import com.jfoenix.controls.JFXComboBox;
 import com.jfoenix.controls.JFXTextField;
 
@@ -63,7 +59,7 @@ public class WidAoiViews extends BorderPane {
 			return true;
 		}
 	};
-	private FilterCalib filterCalib = new FilterCalib();
+	private FilterCalib filterCalibrate = new FilterCalib();
 	//----------------------------------//
 	
 	class FilterMarkRect extends ImgFilter {
@@ -77,32 +73,56 @@ public class WidAoiViews extends BorderPane {
 		@Override
 		public boolean showData(ArrayList<ImgPreview> list) {
 			txtLocaRect();
-			txtShowVector();
+			get_vector();
 			return true;
 		}
 	}
 	private FilterMarkRect filterMarkRect = new FilterMarkRect();
 	//----------------------------------//
 	
-	private final double biasAxis = 100.;//This is experiment value~~~
-	private final double biasTheta = 100.;//This is experiment value~~~
 	class FilterBias extends ImgFilter implements 
 		EventHandler<ActionEvent>
 	{
 		public FilterBias() {
 		}
+		private final double biasStep = 5.;//This is experiment value~~~
+		private final double biasTheta= 25.;//This is experiment value~~~
+		private int[][] vec;
 		@Override
-		public void cookData(ArrayList<ImgPreview> list) {
+		public void cookData(ArrayList<ImgPreview> list) {			
+			filterMarkRect.cookData(list);//update all location~~~
+			vec = get_vector();
 			
-			//refreshData(list);
-			//Entry.stg0.moveTo(biasAxis,'x');			
-			//refreshData(list);
-			//Entry.stg0.moveTo(-biasTheta,'a');//back to origin~~~~
+			int th = vec[2][0]-vec[2][1];
+			if(Math.abs(th)>10){
+				if(th>0){
+					Entry.stg0.moveTo(biasTheta,'a');
+				}else{
+					Entry.stg0.moveTo(-biasTheta,'a');
+				}
+				refreshData(list);
+				return;
+			}
+
+			int dx = Math.min(vec[0][0], vec[1][0]);
+			int dy = Math.min(vec[0][1], vec[1][1]);
+			if(Math.abs(dx)>10 || Math.abs(dy)>10){
+				//double stp_x = dx * biasStep;
+				//Entry.stg0.moveTo(stp_x,'x');
+				double stp_y = dy * biasStep;				
+				Entry.stg0.moveTo(stp_y,'y');
+				//Entry.stg0.moveTo(stp_x,stp_y);
+				refreshData(list);
+				return;
+			}
 		}
 		@Override
 		public boolean showData(ArrayList<ImgPreview> list) {
 			txtLocaRect();
-			txtShowVector();
+			int th = vec[2][0]-vec[2][1];
+			if(Math.abs(th)<10){
+				return true;//we success!!!!!
+			}			
 			return true;
 		}
 		@Override
@@ -116,58 +136,32 @@ public class WidAoiViews extends BorderPane {
 	};
 	public FilterBias filterBias = new FilterBias();
 
-	
-	/*private void get_vector(int i,int[][] locaVetx){
-		vectScale[i][0] = vectScale[i][1] = 0;//reset one~~~
-		int[] v1=null,v2=null;//just pickup one side
-		if(locaRect[0][0]>=0 && locaVetx[0][0]>=0){
-			v1 = locaRect[0];
-			v2 = locaVetx[0];
-		}else if(locaRect[1][0]>=0 && locaVetx[1][0]>=0){
-			v1 = locaRect[1];
-			v2 = locaVetx[1];
+	private int[][] get_vector(){
+		int[][] vec = {{0,0},{0,0},{-1,-1}};
+		String txt = "向量：", tmp=null;
+		//left camera
+		if(locaCross[0][0]>=0){
+			vec[0][0] = locaRect[0][0] - locaCross[0][0];
+			vec[0][1] = locaRect[0][1] - locaCross[0][1];
+			vec[2][0] = (int)Math.sqrt(vec[0][0]*vec[0][0] + vec[0][1]*vec[0][1]);
+			tmp = String.format("(%d,%d)@%d",vec[0][0],vec[0][1],vec[2][0]);
 		}else{
-			Misc.loge("No valid vector");
-			return;
+			tmp = "???";
 		}
-		vectScale[i][0] = v2[0] - v1[0];
-		vectScale[i][1] = v2[1] - v1[1];
-		double hypt = Math.hypot(vectScale[i][0],vectScale[i][1]);
-		vectScale[i][0] = vectScale[i][0] / hypt;
-		vectScale[i][1] = vectScale[i][1] / hypt;
-		Misc.logv(
-			"vect-%d = (%.3f,%.3f)",
-			i,vectScale[i][0],vectScale[i][1]
-		);
-	}
-	private void solve_trans(){
-		locaTran[0][0] = (vectScale[0][0]/biasAxis); locaTran[0][1] = (vectScale[1][0]/biasAxis);
-		locaTran[1][0] = (vectScale[0][1]/biasAxis); locaTran[1][1] = (vectScale[1][1]/biasAxis);
-		RealMatrix val = new Array2DRowRealMatrix(locaTran,false);
-		RealMatrix mat = new LUDecomposition(val).getSolver().getInverse();
-		locaTran[0][0] = mat.getEntry(0,0); locaTran[0][1] = mat.getEntry(0,1);
-		locaTran[1][0] = mat.getEntry(1,0); locaTran[1][1] = mat.getEntry(1,1);
-	}
-	private double[] get_axis_bias(){
-		double[] bias = {0.,0.};
-		double[] vect = {0.,0.};
-		int[] v1 = null,v2 = null;
-		if(locaCross[0][0]>=0 && locaRect[0][0]>=0){
-			v2 = locaCross[0];
-			v1 = locaRect[0];
-		}else if(locaCross[1][0]>=0 && locaRect[1][0]>=0){
-			v2 = locaCross[1];
-			v1 = locaRect[1];
+		txt = txt + tmp + "，";
+		//right camera
+		if(locaCross[1][0]>=0){
+			vec[1][0] = locaRect[1][0] - locaCross[1][0];
+			vec[1][1] = locaRect[1][1] - locaCross[1][1];
+			vec[2][1] = (int)Math.sqrt(vec[1][0]*vec[1][0] + vec[1][1]*vec[1][1]);
+			tmp = String.format("(%d,%d)@%d",vec[1][0],vec[1][1],vec[2][1]);
 		}else{
-			Misc.loge("No valid location!!!");
-			return bias;
+			tmp = "???";
 		}
-		vect[0] = v2[0] - v1[0];
-		vect[1] = v2[1] - v1[1];
-		bias[0] = locaTran[0][0] * vect[0] +  locaTran[0][1] * vect[1];
-		bias[1] = locaTran[1][0] * vect[0] +  locaTran[1][1] * vect[1];
-		return bias;
-	}*/
+		txt = txt + tmp;
+		Misc.logv(txt);
+		return vec;
+	}
 	//-------------------------------//
 
 	/**
@@ -272,7 +266,7 @@ public class WidAoiViews extends BorderPane {
 		btnMarkCros.setOnAction(event->{
 			resetLocaCross();
 			resetLocaRect();
-			Entry.rndr.attach(filterCalib);
+			Entry.rndr.attach(filterCalibrate);
 		});
 		
 		Button btnMarkRect = PanBase.genButton1("標定口型",null);
@@ -369,32 +363,6 @@ public class WidAoiViews extends BorderPane {
 		txtTarget[7].setText(String.format(
 			"%.3f%%",scoreRect[1]
 		));
-	}	
-	private int[][] txtShowVector(){
-		int[][] vec = {{0,0},{0,0},{-1,-1}};
-		String txt = "向量：", tmp=null;
-		//left camera
-		if(locaCross[0][0]>=0){
-			vec[0][0] = locaRect[0][0] - locaCross[0][0];
-			vec[0][1] = locaRect[0][1] - locaCross[0][1];
-			vec[2][0] = (int)Math.sqrt(vec[0][0]*vec[0][0] + vec[0][1]*vec[0][1]);
-			tmp = String.format("(%d,%d)@%d",vec[0][0],vec[0][1],vec[2][0]);
-		}else{
-			tmp = "--------";
-		}
-		txt = txt + tmp + "，";
-		//right camera
-		if(locaCross[1][0]>=0){
-			vec[1][0] = locaRect[1][0] - locaCross[1][0];
-			vec[1][1] = locaRect[1][1] - locaCross[1][1];
-			vec[2][1] = (int)Math.sqrt(vec[1][0]*vec[1][0] + vec[1][1]*vec[1][1]);
-			tmp = String.format("(%d,%d)@%d",vec[1][0],vec[1][1],vec[2][1]);
-		}else{
-			tmp = "--------";
-		}
-		txt = txt + tmp;
-		Misc.logv(txt);
-		return vec;
 	}
 	private void resetLocaCross(){
 		locaCross[0][0] = locaCross[0][1] = -1;
