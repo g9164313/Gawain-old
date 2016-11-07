@@ -275,7 +275,7 @@ public abstract class PanListAction extends VBox {
 		class TskSave extends TskDialog{
 			public File target = null;
 			public TskSave(){
-				title="儲存工作清單";
+				setName("儲存工作清單");
 			}
 			@Override
 			public int looper(Task<Integer> tsk) {				
@@ -301,7 +301,7 @@ public abstract class PanListAction extends VBox {
 		class TskLoad extends TskDialog{
 			public File target = null;
 			public TskLoad(){
-				title = "讀取工作清單";
+				setName("讀取工作清單");
 			}
 			@Override
 			public int looper(Task<Integer> tsk) {

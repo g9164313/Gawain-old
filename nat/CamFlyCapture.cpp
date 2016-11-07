@@ -112,11 +112,15 @@ static void checkFormat7(
 		&fmt7packet
 	);
 	if(error!=PGRERROR_OK){
+		cout<<"fmt7setting: "<<
+			"mode="<<k_fmt7Mode<<"，"<<
+			"("<<fmt7int[1]<<"，"<<fmt7int[2]<<
+			")-"<<fmt7int[3]<<"x"<<fmt7int[4]<<endl;
 		loge(env,"fail to valid fmt7setting");
 		goto EXIT_CHECK_FMT;
 	}
 	if(valid==false){
-		fmt7int[1] = -1;
+		fmt7int[1] = fmt7int[2] = fmt7int[3] = fmt7int[4] = -1;//we fail!!!
 		loge(env,"invalid fmt7setting");
 		goto EXIT_CHECK_FMT;
 	}

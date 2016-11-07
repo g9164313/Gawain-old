@@ -1,8 +1,5 @@
 package prj.letterpress;
 
-import eu.hansolo.enzo.lcd.Lcd;
-import eu.hansolo.enzo.lcd.Lcd.LcdDesign;
-import eu.hansolo.enzo.lcd.LcdBuilder;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.event.EventHandler;
@@ -188,6 +185,8 @@ public class PanHelpful extends PanDecorate {
 		return lay;
 	}
 	
+	
+	
 	private Node layoutOption4(){
 		HBox lay = new HBox();
 		lay.getStyleClass().add("hbox-one-line");
@@ -217,63 +216,35 @@ public class PanHelpful extends PanDecorate {
 		lay.getChildren().addAll(chkPump,chkMirror);
 		return lay;
 	}
-	
-	/*private Node layoutOption5(){		
-		HBox lay = new HBox();
-		lay.getStyleClass().add("hbox-one-line");
-		
-		final int btn_width = 59;
-		
-		final Button btn1 = new Button("正轉");
-		btn1.setPrefWidth(btn_width);
-		btn1.setOnMousePressed(event->{
-			btn1.setText("停止");
-			Entry.stg2.writeTxt('C');
-		});
-		btn1.setOnMouseReleased(event->{
-			btn1.setText("正轉");
-			Entry.stg2.writeTxt('H');
-		});
 
-		final Button btn2 = new Button("反轉");
-		btn2.setPrefWidth(btn_width);
-		btn2.setOnMousePressed(event->{
-			btn2.setText("停止");
-			Entry.stg2.writeTxt('K');
-		});
-		btn2.setOnMouseReleased(event->{
-			btn2.setText("反轉");
-			Entry.stg2.writeTxt('H');
-		});
-		
-		lay.getChildren().addAll(new Label("反射鏡"),btn1,btn2);
-		return lay;
-	}*/
-
+	@SuppressWarnings("unchecked")
 	private Node layoutOption6(){
 		GridPane lay = new GridPane();
 		lay.getStyleClass().add("grid-medium");
-	
-		final TskAction tsk1 = new TskGoHome(null);
-		final TskAction tsk2 = new TskHolder(null);
-		final TskAction tsk3 = new TskScan(Entry.inst.wmap,null);
-
+		
+		final TskAction tsk_gohome = new TskGoHome(null);
+		final TskAction tsk_holder = new TskHolder(null);
+		final TskAction tsk_scanning = new TskScanning(Entry.inst.wmap,null);
+		
 		Button btnHome = PanBase.genButton1("原點校正","arrow-compress-all.png");
-		btnHome.setOnAction(tsk1);
+		btnHome.setOnAction(tsk_gohome);
 
 		Button btnAlign = PanBase.genButton1("標靶對位","selection.png");
 		btnAlign.setOnAction(Entry.inst.prvw.filterAlign);
 		
 		Button btnScan = PanBase.genButton1("晶圓曝光","blur.png");
-		btnScan.setOnAction(tsk3);
+		btnScan.setOnAction(tsk_scanning);
 
 		Button btnGoing = PanBase.genButton2("快速執行","run.png");
-		btnGoing.setOnAction(event->{
-			
-		});
+		btnGoing.setOnAction(TskAction.createKeyframe(
+			Entry.inst.prvw.filterAlign,
+			event->{ Misc.logv("I am working..."); },
+			tsk_scanning,
+			event->{ Misc.logv("I am done..."); }
+		));
 		
 		Button btnHold = PanBase.genButton2("進/退片","coffee-to-go.png");
-		btnHold.setOnAction(tsk2);
+		btnHold.setOnAction(tsk_holder);
 		
 		Button btnClose = PanBase.genButton3("關閉程式","close.png");	
 		btnClose.setOnAction(event->Entry.inst.dismiss());
@@ -375,14 +346,14 @@ public class PanHelpful extends PanDecorate {
 			switch(tkn){
 			case 'x':
 			case 'X':
-				Entry.stg0.asyncOffsetTo(DevMotion.PULSE_UNIT,(double)val);
+				Entry.stg0.asyncMoveTo(DevMotion.PULSE_UNIT,(double)val);
 				break;
 			case 'y':
 			case 'Y':
-				Entry.stg0.asyncOffsetTo(DevMotion.PULSE_UNIT,null,(double)val);
+				Entry.stg0.asyncMoveTo(DevMotion.PULSE_UNIT,null,(double)val);
 				break;
 			case '@':
-				Entry.stg0.asyncOffsetTo(DevMotion.PULSE_UNIT,null,null,(double)val);
+				Entry.stg0.asyncMoveTo(DevMotion.PULSE_UNIT,null,null,(double)val);
 				break;				
 			}
 		}		

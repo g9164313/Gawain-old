@@ -7,7 +7,6 @@ import com.jfoenix.controls.JFXComboBox;
 import com.jfoenix.controls.JFXTextField;
 
 import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -80,10 +79,8 @@ public class WidAoiViews extends BorderPane {
 	private FilterMarkRect filterMarkRect = new FilterMarkRect();
 	//----------------------------------//
 	
-	class FilterBias extends ImgFilter implements 
-		EventHandler<ActionEvent>
-	{
-		public FilterBias() {
+	class FilterAlign extends ImgFilter {
+		public FilterAlign() {
 		}
 		private final double biasDivStep = 10.;//effect~~~
 		private final double biasTheta= 100.;//This is experiment value~~~
@@ -92,7 +89,7 @@ public class WidAoiViews extends BorderPane {
 		public void cookData(ArrayList<ImgPreview> list) {			
 			filterMarkRect.cookData(list);//update all location~~~
 			vec = get_vector();
-			
+			//TODO:how to check valid vector??
 			int th = vec[2][0]-vec[2][1];
 			if(Math.abs(th)>10){
 				if(th>0){
@@ -122,7 +119,7 @@ public class WidAoiViews extends BorderPane {
 			int hypth = Math.min(vec[2][0],vec[2][1]);
 			if(Math.abs(hypth)<20){
 				return true;//we success!!!!!
-			}			
+			}		
 			return false;
 		}
 		@Override
@@ -134,7 +131,7 @@ public class WidAoiViews extends BorderPane {
 			Entry.rndr.attach(filterAlign);
 		}
 	};
-	public FilterBias filterAlign = new FilterBias();
+	public FilterAlign filterAlign = new FilterAlign();
 
 	private int[][] get_vector(){
 		int[][] vec = {{0,0},{0,0},{-1,-1}};
@@ -275,7 +272,7 @@ public class WidAoiViews extends BorderPane {
 			Entry.rndr.attach(filterMarkRect);
 		});
 
-		Button btnMarkAlign = PanBase.genButton1("?????",null);
+		Button btnMarkAlign = PanBase.genButton1("標靶對位",null);
 		btnMarkAlign.setOnAction(filterAlign);
 		
 		//----combine them all----

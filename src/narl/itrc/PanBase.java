@@ -176,8 +176,7 @@ public abstract class PanBase {
 		stg.setUserData(PanBase.this);
 	}
 	
-	private TskBase task = null;
-	private JFXSpinner spin=new JFXSpinner();	
+	private JFXSpinner spin = new JFXSpinner();	
 	private Parent root = null;
 	
 	public void spinning(
@@ -188,9 +187,8 @@ public abstract class PanBase {
 	
 	public void spinning(
 		final boolean flag,
-		final TskBase spinTask
+		final TskAction task
 	){
-		task = spinTask;
 		if(flag==false && task!=null){
 			task.stop();
 		}
@@ -206,7 +204,7 @@ public abstract class PanBase {
 	
 	public void invokeSpinning(
 		final boolean flag,
-		final TskBase spinTask
+		final TskAction spinTask
 	){
 		if(Application.GetApplication()==null){
 			return;
@@ -222,7 +220,7 @@ public abstract class PanBase {
 		spin.setVisible(false);
 		spin.setRadius(64);
 		spin.setOnMouseClicked(EVENT->{
-			spinning(false,task);
+			spinning(false);
 		});
 		root = layout();		
 		scene = new Scene(new StackPane(root,spin));
@@ -230,8 +228,7 @@ public abstract class PanBase {
 		scene.setUserData(PanBase.this);
 	}
 
-	public static final Notification.Notifier msgBox = 
-		NotifierBuilder.create()
+	public static final Notification.Notifier msgBox = NotifierBuilder.create()
 		.popupLocation(Pos.CENTER)
 		.popupLifeTime(Duration.millis(1500))
 		.build();

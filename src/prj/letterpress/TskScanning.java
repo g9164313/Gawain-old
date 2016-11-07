@@ -7,22 +7,22 @@ import narl.itrc.PanBase;
 import narl.itrc.WidMapBase;
 import narl.itrc.TskAction;
 
-public class TskScan extends TskAction {
+public class TskScanning extends TskAction {
 
 	private WidMapBase map = null;
 	private DevMotion stg = null;
 	
-	public TskScan(WidMapBase mapper){
+	public TskScanning(WidMapBase mapper){
 		init(mapper);
 	}
 	
-	public TskScan(WidMapBase mapper,PanBase pan){
+	public TskScanning(WidMapBase mapper,PanBase pan){
 		super(pan);
 		init(mapper);
 	}
 	
 	private void init(WidMapBase mapper){
-		title = "Task-Scanning";
+		setName("Task-Scanning");
 		map = mapper;
 	}
 	

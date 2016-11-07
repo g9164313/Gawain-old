@@ -212,8 +212,7 @@ public class ImgRender implements Gawain.EventHook {
 		}		
 		fltrSnap.snapName[1] = name.substring(0,pos);
 		fltrSnap.snapName[2] = name.substring(pos);		
-		lstFilter.add(fltrSnap);
-		return this;
+		return attach(fltrSnap);
 	}
 	
 	public ImgRender execIJ(ImgPreview pv){
@@ -222,8 +221,7 @@ public class ImgRender implements Gawain.EventHook {
 			return this;
 		}
 		fltrExecIJ.prvIdx = lstPreview.indexOf(pv);
-		lstFilter.add(fltrExecIJ);
-		return this;
+		return attach(fltrExecIJ);
 	}
 	
 	public ImgRender attach(ImgFilter... list){
@@ -235,12 +233,6 @@ public class ImgRender implements Gawain.EventHook {
 		}
 		return this;
 	}
-	
-	/*public void detach(ImgFilter fltr){
-		if(lstFilter.contains(fltr)==true){			
-			lstFilter.remove(fltr);
-		}
-	}*/
 	//--------------------------------------------//
 	
 	private static class FilterExecIJ extends ImgFilter {

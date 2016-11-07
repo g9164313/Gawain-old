@@ -248,7 +248,8 @@ public abstract class DevMotion {
 	private Thread async = null;
 
 	public void asyncAnchorTo(final String unit,Double... location){
-		async = TskBase.macro("asyncArchTo", async,
+		async = TskAction.create(
+			"asyncArchTo", async,
 			new Task<Void>(){
 			@Override
 			protected Void call() throws Exception {
@@ -262,8 +263,9 @@ public abstract class DevMotion {
 		asyncAnchorTo(PULSE_UNIT,location);
 	}
 	
-	public void asyncOffsetTo(final String unit,Double... offset){
-		async = TskBase.macro("asyncMoveTo", async,
+	public void asyncMoveTo(final String unit,Double... offset){
+		async = TskAction.create(
+			"asyncMoveTo", async,
 			new Task<Void>(){
 			@Override
 			protected Void call() throws Exception {
@@ -274,7 +276,7 @@ public abstract class DevMotion {
 	}
 	
 	public void asyncMoveTo(Double... offset){
-		asyncOffsetTo(PULSE_UNIT,offset);
+		asyncMoveTo(PULSE_UNIT,offset);
 	}
 	
 	/**

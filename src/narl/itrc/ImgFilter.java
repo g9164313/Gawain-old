@@ -5,15 +5,23 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import com.sun.glass.ui.Application;
 
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 
-public abstract class ImgFilter {
+public abstract class ImgFilter implements 
+	EventHandler<ActionEvent>
+{
+	/**
+	 * It's function is same as TskAction.isTrigger.<p>
+	 */
+	public boolean isTrigger = false;
 	
 	public static final int STA_IDLE = 0;
 	public static final int STA_COOK = 1;
 	public static final int STA_SHOW = 2;
 	
 	public AtomicInteger state = new AtomicInteger(STA_IDLE);
-	
+		
 	protected void refreshData(final ArrayList<ImgPreview> list){
 		if(Application.isEventThread()==true){			
 			return;
@@ -56,8 +64,6 @@ public abstract class ImgFilter {
 		return false;
 	}
 	
-	
-	
 	/**
 	 * this invoked by working-thread.<p>
 	 * user can process or cook data here.<p>
@@ -74,5 +80,10 @@ public abstract class ImgFilter {
 	 * @return true - we done, take off.<p> false- keep this in queue.<p>
 	 */
 	public abstract boolean showData(ArrayList<ImgPreview> list);//this invoked by GUI thread
+
+	@Override
+	public void handle(ActionEvent event) {
+		//user can override this function
+	}	
 };
 

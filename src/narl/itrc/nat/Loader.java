@@ -18,7 +18,7 @@ import narl.itrc.TskDialog;
 public class Loader extends TskDialog {
 
 	public Loader(){
-		title = "Tsk-Loader";
+		setName("Tsk-Loader");
 		useSplash = "logo.jpg";
 	}
 	

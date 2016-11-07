@@ -3,7 +3,6 @@ package narl.itrc;
 import com.sun.glass.ui.Application;
 
 import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -17,12 +16,7 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 
-public abstract class TskDialog extends TskBase
-	implements EventHandler<ActionEvent>
-{
-	protected String title = "TskDialog";
-	
-	protected PanBase parent = null;
+public abstract class TskDialog extends TskAction {
 	
 	/**
 	 * User decide whether the dialog may be closed.<p>
@@ -34,10 +28,7 @@ public abstract class TskDialog extends TskBase
 	protected String useSplash = null;
 	
 	public TskDialog(){
-	}
-	
-	public TskDialog(PanBase root){
-		parent = root;
+		super("TskDialog");
 	}
 
 	private Stage workStage = null;
@@ -92,8 +83,8 @@ public abstract class TskDialog extends TskBase
 	private void initStage(){
 		workStage = new Stage(StageStyle.UNIFIED);		
 		workStage.initModality(Modality.WINDOW_MODAL);
-		if(parent!=null){
-			workStage.initOwner(parent.getStage());
+		if(root!=null){
+			workStage.initOwner(root.getStage());
 		}
 		//workStage.setOnCloseRequest(event->stop());
 		workStage.setOnHidden(event->stop());
@@ -103,14 +94,14 @@ public abstract class TskDialog extends TskBase
 			workStage.initStyle(StageStyle.TRANSPARENT);
 		}
 		workStage.centerOnScreen();
-		workStage.setTitle(title);
+		workStage.setTitle(name);
 	}
 	
 	private void init_dialog(){		
 		initStage();
 		initScene();
 		workStage.setScene(workScene);
-		start(title);
+		start();
 	}
 	
 	public void appear(){
@@ -194,8 +185,8 @@ public abstract class TskDialog extends TskBase
 		if(afterwards==false){
 			workStage.close();
 		}
-		if(parent!=null){
-			parent.getParent().setDisable(false);
+		if(root!=null){
+			root.getParent().setDisable(false);
 		}
 	}
 		
@@ -207,8 +198,8 @@ public abstract class TskDialog extends TskBase
 		if(eventBegin()==false){
 			return;
 		}
-		if(parent!=null){
-			parent.getParent().setDisable(true);
+		if(root!=null){
+			root.getParent().setDisable(true);
 		}
 		appear();
 	}	
