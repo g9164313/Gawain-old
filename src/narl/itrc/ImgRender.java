@@ -30,8 +30,8 @@ public class ImgRender implements Gawain.EventHook {
 		//camera will be released in this stage~~~~
 	}
 	
-	private ArrayBlockingQueue<ImgFilter> lstFilter = new ArrayBlockingQueue<ImgFilter>(100);
-	//private ArrayList<ImgFilter> lstFilter = new ArrayList<ImgFilter>(100);
+	private ImgFilter fltr = null;//I don't know how to use ArrayBlockingQueue with JavaFx-Task.
+	//private ArrayBlockingQueue<ImgFilter> lstFilter = new ArrayBlockingQueue<ImgFilter>(100);
 	
 	private ArrayList<ImgPreview> lstPreview = new ArrayList<ImgPreview>();
 
@@ -53,19 +53,23 @@ public class ImgRender implements Gawain.EventHook {
 		for(ImgPreview prv:lstPreview){
 			prv.fetchBuff();
 		}
-		for(ImgFilter flt:lstFilter){			
-			flt.cookData(lstPreview);
-			flt.state.set(ImgFilter.STA_COOK);
+		//for(ImgFilter flt:lstFilter){			
+			//flt.cookData(lstPreview);
+			//flt.state.set(ImgFilter.STA_COOK);
+		//}
+		if(fltr!=null){
+			fltr.cookData(lstPreview);
+			fltr.state.set(ImgFilter.STA_COOK);
 		}
 		for(ImgPreview prv:lstPreview){
 			prv.fetchInfo();
 		}
-		Application.invokeAndWait(eventRender);
-		for(ImgFilter flt:lstFilter){			
-			if(flt.state.get()==ImgFilter.STA_SHOW){
-				lstFilter.remove(flt);
-			}
-		}
+		Application.invokeAndWait(eventRender);		
+		//for(ImgFilter flt:lstFilter){			
+		//	if(flt.state.get()==ImgFilter.STA_SHOW){
+		//		lstFilter.remove(flt);
+		//	}
+		//}		
 	}
 
 	private final Runnable eventRender = new Runnable(){
@@ -74,17 +78,27 @@ public class ImgRender implements Gawain.EventHook {
 			for(ImgPreview prv:lstPreview){
 				prv.rendering();//Here!! we update pictures
 			}
-			for(ImgFilter flt:lstFilter){
-				if(flt.isCooked()==false){
-					continue;//it is still RAW!!!!
-				}
+			//for(ImgFilter flt:lstFilter){
+			//	if(flt.isCooked()==false){
+			//		continue;//it is still RAW!!!!
+			//	}
 				//First, always set this because 
 				//blocking queue not remove object immediately	
 				//'showData' decides whether we should remove this filter~~~
-				if(flt.showData(lstPreview)==true){
-					flt.state.set(ImgFilter.STA_SHOW);
-				}else{
-					flt.state.set(ImgFilter.STA_IDLE);
+			//	if(flt.showData(lstPreview)==true){
+			//		flt.state.set(ImgFilter.STA_SHOW);
+			//	}else{
+			//		flt.state.set(ImgFilter.STA_IDLE);
+			//	}
+			//}
+			if(fltr!=null){
+				if(fltr.isCooked()==true){
+					if(fltr.showData(lstPreview)==true){
+						fltr.state.set(ImgFilter.STA_SHOW);
+						fltr = null;//reset it!!!!
+					}else{
+						fltr.state.set(ImgFilter.STA_IDLE);
+					}
 				}
 			}
 		}
@@ -193,7 +207,11 @@ public class ImgRender implements Gawain.EventHook {
 	//--------------------------------------------//
 	
 	public ImgRender snap(String name){
-		if(lstFilter.contains(fltrSnap)==true){
+		//if(lstFilter.contains(fltrSnap)==true){
+		//	PanBase.msgBox.notifyInfo("Render","忙碌中");
+		//	return this;
+		//}
+		if(fltr!=null){
 			PanBase.msgBox.notifyInfo("Render","忙碌中");
 			return this;
 		}
@@ -216,7 +234,11 @@ public class ImgRender implements Gawain.EventHook {
 	}
 	
 	public ImgRender execIJ(ImgPreview pv){
-		if(lstFilter.contains(fltrExecIJ)==true){
+		//if(lstFilter.contains(fltrExecIJ)==true){
+		//	PanBase.msgBox.notifyInfo("Render","忙碌中");
+		//	return this;
+		//}
+		if(fltr!=null){
 			PanBase.msgBox.notifyInfo("Render","忙碌中");
 			return this;
 		}
@@ -224,13 +246,14 @@ public class ImgRender implements Gawain.EventHook {
 		return attach(fltrExecIJ);
 	}
 	
-	public ImgRender attach(ImgFilter... list){
+	public ImgRender attach(ImgFilter filter){
 		//They are attached by GUI-event
-		for(ImgFilter fltr:list){
-			if(lstFilter.contains(fltr)==false){
-				lstFilter.add(fltr);
-			}
-		}
+		//for(ImgFilter fltr:list){
+		//	if(lstFilter.contains(fltr)==false){
+		//		lstFilter.add(fltr);
+		//	}
+		//}
+		fltr = filter;
 		return this;
 	}
 	//--------------------------------------------//
