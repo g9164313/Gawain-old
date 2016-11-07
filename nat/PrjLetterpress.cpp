@@ -65,10 +65,12 @@ extern "C" JNIEXPORT void JNICALL Java_prj_letterpress_WidAoiViews_implInitEnvir
 	char name[500];
 	if(jname0!=NULL){
 		jstrcpy(env,jname0,name);
+		grndImage[0].release();
 		grndImage[0] = imread(name,IMREAD_GRAYSCALE);
 	}
 	if(jname1!=NULL){
 		jstrcpy(env,jname1,name);
+		grndImage[1].release();
 		grndImage[1] = imread(name,IMREAD_GRAYSCALE);
 	}
 }
@@ -276,7 +278,6 @@ extern "C" JNIEXPORT jfloat JNICALL Java_prj_letterpress_WidAoiViews_implFindRec
 	);
 	erode(img,img,kern);
 	dilate(img,img,kern);
-	//imwrite("cc2.png",image);
 
 	Mat ex_img;
 	copyMakeBorder(
@@ -285,7 +286,7 @@ extern "C" JNIEXPORT jfloat JNICALL Java_prj_letterpress_WidAoiViews_implFindRec
 		templateRect.cols/2,templateRect.cols/2,
 		BORDER_CONSTANT
 	);
-	//imwrite("cc3.png",ex_img);
+	//imwrite("cc4.png",ex_img);
 
 	Mat result(
 		ex_img.cols-templateRect.cols+1,

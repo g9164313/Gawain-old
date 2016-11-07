@@ -1,7 +1,6 @@
 package prj.letterpress;
 
 import javafx.concurrent.Task;
-import narl.itrc.DevMotion;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
 import narl.itrc.WidMapBase;
@@ -10,8 +9,7 @@ import narl.itrc.TskAction;
 public class TskScanning extends TskAction {
 
 	private WidMapBase map = null;
-	private DevMotion stg = null;
-	
+
 	public TskScanning(WidMapBase mapper){
 		init(mapper);
 	}
@@ -28,9 +26,12 @@ public class TskScanning extends TskAction {
 	
 	@Override
 	public int looper(Task<Integer> tsk) {
-		if(stg==null||map==null){
+		if(map==null){
 			return -2;
 		}
+		Misc.logv("--------重設原點--------");
+		Entry.stg0.exec("DE 0,0,0,0;DP 0,0,0,0;\r\n"); 
+		Entry.stg0.exec_TP();
 		
 		long tick = System.currentTimeMillis();
 		float tsec;
@@ -39,7 +40,7 @@ public class TskScanning extends TskAction {
 		Double[] pos;
 		while((pos = map.getSequencePath())!=null){		
 			Misc.logv("移動至 (%3.1f,%3.1f)",pos[0],pos[1]);
-			stg.anchorTo("mm",pos);
+			Entry.stg0.anchorTo("mm",pos);
 			//start to exposure
 			Misc.logv("照射中...");
 			Misc.delay(1000);
@@ -54,7 +55,7 @@ public class TskScanning extends TskAction {
 		tick = System.currentTimeMillis() - tick;
 		tsec = ((float)tick)/1000.f;
 		Misc.logv("歷時: %.3fsec",tsec);		
-		stg.anchorTo("mm",0.,0.);
+		Entry.stg0.anchorTo("mm",0.,0.);
 		Misc.logv("go home...");
 		return -1;
 	}

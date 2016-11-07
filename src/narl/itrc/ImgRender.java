@@ -30,7 +30,19 @@ public class ImgRender implements Gawain.EventHook {
 		//camera will be released in this stage~~~~
 	}
 	
-	private ImgFilter fltr = null;//I don't know how to use ArrayBlockingQueue with JavaFx-Task.
+	private ImgFilter fltr = null;
+	//I don't know how to use ArrayBlockingQueue with JavaFx-Task.
+	//The fatal error are below lines
+	//J 2543  com.sun.prism.es2.GLContext.nDrawIndexedQuads(JI[F[B)V (0 bytes) @ 0x00007fe7857c00ec [0x00007fe7857c0080+0x6c]
+	//		J 2541 C1 com.sun.prism.es2.ES2Context.renderQuads([F[BI)V (11 bytes) @ 0x00007fe7857c059c [0x00007fe7857c0440+0x15c]
+	//		J 2328 C1 com.sun.prism.impl.BaseContext.flushVertexBuffer()V (8 bytes) @ 0x00007fe78575d104 [0x00007fe78575cd60+0x3a4]
+	//		j  com.sun.prism.es2.ES2SwapChain.drawTexture(Lcom/sun/prism/es2/ES2Graphics;Lcom/sun/prism/RTTexture;FFFFFFFF)V+68
+	//		j  com.sun.prism.es2.ES2SwapChain.prepare(Lcom/sun/javafx/geom/Rectangle;)Z+146
+	//		j  com.sun.javafx.tk.quantum.PresentingPainter.run()V+350
+	//		j  java.util.concurrent.Executors$RunnableAdapter.call()Ljava/lang/Object;+4
+	//		j  java.util.concurrent.FutureTask.runAndReset()Z+47
+	//		j  com.sun.javafx.tk.RenderJob.run()V+1
+			
 	//private ArrayBlockingQueue<ImgFilter> lstFilter = new ArrayBlockingQueue<ImgFilter>(100);
 	
 	private ArrayList<ImgPreview> lstPreview = new ArrayList<ImgPreview>();

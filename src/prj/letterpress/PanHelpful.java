@@ -83,7 +83,7 @@ public class PanHelpful extends PanDecorate {
 			EventKick event = new EventKick(tkn,dir,box[id],btn[i]);
 			btn[i].addEventFilter(MouseEvent.MOUSE_PRESSED,event);
 			btn[i].addEventFilter(MouseEvent.MOUSE_RELEASED,event);
-			box[id].setPrefWidth(75);
+			box[id].setPrefWidth(80);
 		}
 		
 		btn[6].setOnAction(event->{
@@ -336,7 +336,7 @@ public class PanHelpful extends PanDecorate {
 				break;
 			case '@':
 				val = val * 10.;//special~~~
-				Entry.stg0.joggingTo(go,DevMotion.PULSE_UNIT, null, null, val);
+				Entry.stg0.joggingTo(go,DevMotion.PULSE_UNIT, null, null, null, val);
 				break;				
 			}
 		}
