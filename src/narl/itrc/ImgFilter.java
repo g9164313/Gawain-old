@@ -1,7 +1,7 @@
 package narl.itrc;
 
 import java.util.ArrayList;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.sun.glass.ui.Application;
 
@@ -12,20 +12,27 @@ public abstract class ImgFilter implements
 	EventHandler<ActionEvent>
 {
 	/**
-	 * It's function is same as TskAction.isTrigger.<p>
+	 * This function is same as TskAction.isTrigger.<p>
 	 */
 	public boolean isTrigger = false;
 	
-	public static final int STA_IDLE = 0;
-	public static final int STA_COOK = 1;
-	public static final int STA_SHOW = 2;
+	/**
+	 * ImgRender will set this variable to indicate whether thid filter is hook.<p>
+	 */
+	public AtomicBoolean isIdle = new AtomicBoolean(true);
 	
-	public AtomicInteger state = new AtomicInteger(STA_IDLE);
-		
+	/**
+	 * This variable will be provided by other thread or task.<p>
+	 * When this object is builded, render will only show image, but not cook data.<p>
+	 */
+	public AtomicBoolean asynDone = null;
+	
 	protected void refreshData(final ArrayList<ImgPreview> list){
+		
 		if(Application.isEventThread()==true){			
 			return;
 		}
+		
 		final Runnable eventUpdate = new Runnable(){
 			@Override
 			public void run() {
@@ -35,6 +42,7 @@ public abstract class ImgFilter implements
 			}
 		};
 		Application.invokeAndWait(eventUpdate);
+		
 		//get the next image~~~
 		for(ImgPreview prv:list){
 			prv.fetchBuff();
@@ -47,22 +55,6 @@ public abstract class ImgFilter implements
 	 * But this number presents the index of 'ImgPreview' list.
 	 */
 	public int prvIdx = -1;
-		
-	public boolean isCooked(){
-		int sta = state.get();
-		if(sta==STA_COOK){
-			return true;
-		}
-		return false;
-	}
-	
-	public boolean isIdle(){
-		int sta = state.get();
-		if(sta==STA_SHOW){
-			return true;
-		}
-		return false;
-	}
 	
 	/**
 	 * this invoked by working-thread.<p>

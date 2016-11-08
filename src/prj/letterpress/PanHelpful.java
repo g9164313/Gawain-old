@@ -124,7 +124,9 @@ public class PanHelpful extends PanDecorate {
 		btnExpose.setUserData(false);
 		boxExpose.setDisable(false);		
 	}
-
+	
+	private int valLight = 45;
+	
 	private Node layoutOption3(){
 		GridPane lay = new GridPane();
 		lay.getStyleClass().add("grid-small");
@@ -160,21 +162,18 @@ public class PanHelpful extends PanDecorate {
 		});
 		btnExpose.setMaxWidth(Double.MAX_VALUE);
 		GridPane.setHgrow(btnExpose, Priority.ALWAYS);
-		
-		final String TXT_LIGHT_VAL = "45";
-		
-		TextField boxLight = new TextField(TXT_LIGHT_VAL);
+
+		TextField boxLight = new TextField(""+valLight);
 		boxLight.setPrefWidth(BOX_SIZE);
-		
 		Button btnLight = new Button("光源強度");		
 		btnLight.setOnAction(event->{
 			String txt = boxLight.getText();			
 			try{
-				int val = Integer.valueOf(txt);
-				Entry.stg1.writeTxt("1,"+val+"\r\n",20);
-				Entry.stg1.writeTxt("2,"+val+"\r\n",20);
+				valLight = Integer.valueOf(txt);
+				Entry.stg1.writeTxt("1,"+valLight+"\r\n",20);
+				Entry.stg1.writeTxt("2,"+valLight+"\r\n",20);
 			}catch(NumberFormatException e){
-				boxLight.setText(TXT_LIGHT_VAL);//We fail, just reset value~~~
+				boxLight.setText(""+valLight);//We fail, just reset value~~~
 			}
 		});
 		btnLight.setMaxWidth(Double.MAX_VALUE);
@@ -184,9 +183,7 @@ public class PanHelpful extends PanDecorate {
 		lay.addRow(1,boxLight,btnLight);
 		return lay;
 	}
-	
-	
-	
+
 	private Node layoutOption4(){
 		HBox lay = new HBox();
 		lay.getStyleClass().add("hbox-one-line");
@@ -238,9 +235,25 @@ public class PanHelpful extends PanDecorate {
 		Button btnGoing = PanBase.genButton2("快速執行","run.png");
 		btnGoing.setOnAction(TskAction.createKeyframe(
 			Entry.inst.prvw.filterAlign,
-			event->{ Misc.logv("I am working..."); },
+			event->{
+				//switch mirror
+				//close upper-LED
+				Entry.stg1.writeTxt("1,0\r\n",20);
+				Entry.stg1.writeTxt("2,0\r\n",20);
+				//close bottom-LED
+				//switch tab-pager
+				Entry.pager.getSelectionModel().select(1);
+			},
 			tsk_scanning,
-			event->{ Misc.logv("I am done..."); }
+			event->{
+				//switch mirror
+				//open upper-LED
+				Entry.stg1.writeTxt("1,"+valLight+"\r\n",20);
+				Entry.stg1.writeTxt("2,"+valLight+"\r\n",20);
+				//open bottom-LED
+				//switch tab-pager
+				Entry.pager.getSelectionModel().select(0);
+			}
 		));
 		
 		Button btnHold = PanBase.genButton2("進/退片","coffee-to-go.png");

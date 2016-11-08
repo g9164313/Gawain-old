@@ -74,22 +74,22 @@ public class Entry extends PanBase {
 	
 	@Override
 	protected void eventClose(WindowEvent e){
-		rndr.stop();//let application release resource~~	
 	}
+	
+	public static JFXTabPane pager = new JFXTabPane();
 	
 	@Override
 	public Parent layout() {
 		
 		//----perspective view----
-		JFXTabPane lay3 = new JFXTabPane();
-		lay3.setSide(Side.LEFT);
-		lay3.setTabClosingPolicy(TabClosingPolicy.UNAVAILABLE);
+		pager.setSide(Side.LEFT);
+		pager.setTabClosingPolicy(TabClosingPolicy.UNAVAILABLE);
 		Tab stp1 = new Tab("AOI");
 		stp1.setContent(prvw);
 		Tab stp2 = new Tab("晶圓");
 		stp2.setContent(wmap);		
-		lay3.getTabs().addAll(stp1,stp2);
-		lay3.getSelectionModel().select(0);
+		pager.getTabs().addAll(stp1,stp2);
+		pager.getSelectionModel().select(0);
 		
 		//----operation & logger----
 		Node nod1 = new BoxLogger(100);
@@ -101,7 +101,7 @@ public class Entry extends PanBase {
 
 		//combine them all~~~
 		BorderPane lay1 = new BorderPane();
-		lay1.setCenter(lay3);
+		lay1.setCenter(pager);
 		lay1.setBottom(lay2);
 		return lay1;
 	}

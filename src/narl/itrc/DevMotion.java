@@ -1,6 +1,7 @@
 package narl.itrc;
 
 import java.util.HashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.sun.glass.ui.Application;
 
@@ -245,49 +246,77 @@ public abstract class DevMotion {
 	 */
 	protected abstract void makeMotion(boolean isABS,Double... value);
 
-	private Thread async = null;
+	private Thread asyncThread = null;
 
-	public void asyncAnchorTo(final String unit,Double... location){
-		async = TskAction.create(
-			"asyncArchTo", async,
+	private AtomicBoolean asyncDone = new AtomicBoolean(true);
+	
+	public AtomicBoolean asyncAnchorTo(final String unit,Double... location){
+		asyncDone.set(false);
+		asyncThread = TskAction.create(
+			"asyncArchTo", 
+			asyncThread,
 			new Task<Void>(){
 			@Override
 			protected Void call() throws Exception {
 				anchorTo(unit,location);
+				asyncDone.set(true);
 				return null;
 			}
 		});
+		return asyncDone;
 	}
 	
-	public void asyncAnchorTo(Double... location){
-		asyncAnchorTo(PULSE_UNIT,location);
+	public AtomicBoolean asyncAnchorTo(Double... location){
+		return asyncAnchorTo(PULSE_UNIT,location);
 	}
 	
-	public void asyncMoveTo(final String unit,Double... offset){
-		async = TskAction.create(
-			"asyncMoveTo", async,
+	public AtomicBoolean asyncAnchorTo(char token,Double location){
+		return asyncAnchorTo(PULSE_UNIT,prepare_double_array(location,token));
+	}
+	
+	public AtomicBoolean asyncMoveTo(final String unit,Double... offset){
+		asyncDone.set(false);
+		asyncThread = TskAction.create(
+			"asyncMoveTo",
+			asyncThread,
 			new Task<Void>(){
 			@Override
 			protected Void call() throws Exception {
-				moveTo(unit,offset);	
+				moveTo(unit,offset);
+				asyncDone.set(true);
 				return null;
 			}
 		});
+		return asyncDone;
 	}
 	
-	public void asyncMoveTo(Double... offset){
-		asyncMoveTo(PULSE_UNIT,offset);
+	public AtomicBoolean asyncMoveTo(Double... offset){
+		return asyncMoveTo(PULSE_UNIT,offset);
 	}
+	
+	public AtomicBoolean asyncMoveTo(char token,Double offset){
+		return asyncMoveTo(PULSE_UNIT,prepare_double_array(offset,token));
+	}	
+	//-------------------------------------------------------//
 	
 	/**
 	 * Stage must go to this absolute location.<p>
 	 * @param unit - length unit, default is millimeter.<p>
 	 * @param location - relative [X,Y,Z,A] value/step.<p>
 	 */
-	public void anchorTo(String unit,Double... location){
+	public void anchorTo(final String unit,Double... location){
 		convert(unit,location);
 		routine(unit,location);
 		makeMotion(true,node);
+	}
+		
+	/**
+	 * Stage must go to this absolute location.<p>
+	 * Default unit is millimeter.<p>
+	 * @param location - relative [X,Y,Z,A] value/step.<p>
+	 */
+	public void anchorTo(Double... location){
+		anchorTo(PULSE_UNIT,location);
 	}
 	
 	/**
@@ -297,37 +326,18 @@ public abstract class DevMotion {
 	 * @param location - [X,Y,Z,A] value.<p>
 	 * @param token - the sign for [X,Y,Z,A]
 	 */
-	public void anchorTo(String unit, Double location,char token){
-		anchorTo(
-			unit,
-			prepare_double_array(location,token)
-		);
+	public void anchorTo(char token,final String unit,Double location){
+		anchorTo(unit,prepare_double_array(location,token));
 	}
 	
-	/**
-	 * Stage must go to this absolute location.<p>
-	 * Default unit is millimeter.<p>
-	 * @param location - relative [X,Y,Z,A] value/step.<p>
-	 */
-	public void anchorTo(Double... location){
-		anchorTo(
-			PULSE_UNIT,
-			location
-		);
-	}
-	
-
 	/**
 	 * Stage must go to this absolute location.<p>
 	 * Default unit is millimeter.<p>
 	 * @param location - .<p>
 	 * @param token - the sign for [X,Y,Z,A].<p>
 	 */
-	public void anchorTo(Double location,char token){
-		anchorTo(
-			PULSE_UNIT,
-			prepare_double_array(location,token)
-		);
+	public void anchorTo(char token,Double location){
+		anchorTo(PULSE_UNIT,prepare_double_array(location,token));
 	}
 
 	/**
@@ -335,10 +345,18 @@ public abstract class DevMotion {
 	 * @param offset - relative [X,Y,Z,A] value/step.<p>
 	 * @param unit - length unit, default is millimeter.<p>
 	 */
-	public void moveTo(String unit,Double... offset){		
+	public void moveTo(final String unit,Double... offset){		
 		convert(unit,offset);
 		routine(unit,offset);
 		makeMotion(false,node);
+	}
+	
+	/**
+	 * Stage will make a relative move.<p> 
+	 * @param offset - relative [X,Y,Z,A] value/step
+	 */
+	public void moveTo(Double... offset){		
+		moveTo(PULSE_UNIT,offset);
 	}
 	
 	/**
@@ -347,34 +365,17 @@ public abstract class DevMotion {
 	 * @param offset- relative [X,Y,Z,A] value/step
 	 * @param token - the sign for [X,Y,Z,A]
 	 */
-	public void moveTo(String unit,Double offset,char token){		
-		moveTo(
-			unit,
-			prepare_double_array(offset,token)
-		);
+	public void moveTo(char token,final String unit,Double offset){		
+		moveTo(unit,prepare_double_array(offset,token));
 	}
 	
 	/**
-	 * Stage will make a relative move.<p> 
-	 * @param offset - relative [X,Y,Z,A] value/step
-	 */
-	public void moveTo(Double... offset){		
-		moveTo(
-			PULSE_UNIT,
-			offset
-		);
-	}
-
-	/**
-	 * Stage will make a relative move.<p> 	 
-	 * @param offset- relative [X,Y,Z,A] value/step.<p>
+	 * Stage will make a relative move.<p>
 	 * @param token - the sign for [X,Y,Z,A].<p>
+	 * @param offset- relative [X,Y,Z,A] value/step.<p>
 	 */
-	public void moveTo(Double offset,char token){		
-		moveTo(
-			PULSE_UNIT,
-			prepare_double_array(offset,token)
-		);
+	public void moveTo(char token,Double offset){		
+		moveTo(PULSE_UNIT,prepare_double_array(offset,token));
 	}
 
 	

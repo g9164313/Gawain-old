@@ -135,6 +135,13 @@ public abstract class TskAction implements EventHandler<ActionEvent> {
 	
 	@Override
 	public void handle(ActionEvent event) {
+		if(task!=null){
+			if(task.isDone()==false){
+				task.cancel();
+				Misc.logv("取消任務中...");
+				return;
+			}			
+		}
 		start();
 	}
 	//---------------------------------//
@@ -213,10 +220,10 @@ public abstract class TskAction implements EventHandler<ActionEvent> {
 						fltr.handle(event);
 						return;
 					}
-					if(fltr.isIdle()==false){
+					if(fltr.isIdle.get()==false){
 						return;//we are still waiting~~~~
 					}
-					fltr.isTrigger = false;
+					fltr.isTrigger = false;//for next turn~~~~
 					
 				}else if(obj instanceof EventHandler<?>){
 					((EventHandler<ActionEvent>)obj).handle(event);
@@ -229,7 +236,7 @@ public abstract class TskAction implements EventHandler<ActionEvent> {
 				idx = 0; //reset index~~~
 				if(timer!=null){					
 					reset();
-					Misc.logv("停止動作...");
+					Misc.logv("取消任務中...");
 					return;
 				}				
 				timer = new Timeline();

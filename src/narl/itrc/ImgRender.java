@@ -2,7 +2,6 @@ package narl.itrc;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.sun.glass.ui.Application;
@@ -31,6 +30,7 @@ public class ImgRender implements Gawain.EventHook {
 	}
 	
 	private ImgFilter fltr = null;
+	//private ArrayBlockingQueue<ImgFilter> lstFilter = new ArrayBlockingQueue<ImgFilter>(100);
 	//I don't know how to use ArrayBlockingQueue with JavaFx-Task.
 	//The fatal error are below lines
 	//J 2543  com.sun.prism.es2.GLContext.nDrawIndexedQuads(JI[F[B)V (0 bytes) @ 0x00007fe7857c00ec [0x00007fe7857c0080+0x6c]
@@ -42,8 +42,7 @@ public class ImgRender implements Gawain.EventHook {
 	//		j  java.util.concurrent.Executors$RunnableAdapter.call()Ljava/lang/Object;+4
 	//		j  java.util.concurrent.FutureTask.runAndReset()Z+47
 	//		j  com.sun.javafx.tk.RenderJob.run()V+1
-			
-	//private ArrayBlockingQueue<ImgFilter> lstFilter = new ArrayBlockingQueue<ImgFilter>(100);
+	
 	
 	private ArrayList<ImgPreview> lstPreview = new ArrayList<ImgPreview>();
 
@@ -61,60 +60,53 @@ public class ImgRender implements Gawain.EventHook {
 		}
 	}
 
+	/**
+	 * main body, repeatedly, fetch picture and render it~~~
+	 */
 	private void loopBody(){		
 		for(ImgPreview prv:lstPreview){
 			prv.fetchBuff();
 		}
-		//for(ImgFilter flt:lstFilter){			
-			//flt.cookData(lstPreview);
-			//flt.state.set(ImgFilter.STA_COOK);
-		//}
-		if(fltr!=null){
-			fltr.cookData(lstPreview);
-			fltr.state.set(ImgFilter.STA_COOK);
+		cook_data();
+		Application.invokeAndWait(eventRender);	
+	}
+	private void cook_data(){
+		if(fltr==null){
+			return;
 		}
+		if(fltr.asynDone!=null){
+			if(fltr.asynDone.get()==false){
+				return;
+			}
+			fltr.asynDone = null;//reset this flag for next turn~~
+		}
+		fltr.cookData(lstPreview);
 		for(ImgPreview prv:lstPreview){
 			prv.fetchInfo();
 		}
-		Application.invokeAndWait(eventRender);		
-		//for(ImgFilter flt:lstFilter){			
-		//	if(flt.state.get()==ImgFilter.STA_SHOW){
-		//		lstFilter.remove(flt);
-		//	}
-		//}		
 	}
-
 	private final Runnable eventRender = new Runnable(){
 		@Override
 		public void run() {
 			for(ImgPreview prv:lstPreview){
 				prv.rendering();//Here!! we update pictures
 			}
-			//for(ImgFilter flt:lstFilter){
-			//	if(flt.isCooked()==false){
-			//		continue;//it is still RAW!!!!
-			//	}
-				//First, always set this because 
-				//blocking queue not remove object immediately	
-				//'showData' decides whether we should remove this filter~~~
-			//	if(flt.showData(lstPreview)==true){
-			//		flt.state.set(ImgFilter.STA_SHOW);
-			//	}else{
-			//		flt.state.set(ImgFilter.STA_IDLE);
-			//	}
-			//}
-			if(fltr!=null){
-				if(fltr.isCooked()==true){
-					if(fltr.showData(lstPreview)==true){
-						fltr.state.set(ImgFilter.STA_SHOW);
-						fltr = null;//reset it!!!!
-					}else{
-						fltr.state.set(ImgFilter.STA_IDLE);
-					}
-				}
+			show_data();
+		}
+		private void show_data(){
+			if(fltr==null){
+				return;
+			}
+			if(fltr.asynDone!=null){
+				return;
+			}
+			if(fltr.showData(lstPreview)==true){
+				fltr.isIdle.set(false);
+				fltr = null;//reset it!!!!
 			}
 		}
 	};
+	
 	/**
 	 * start to play video stream 
 	 * @return self
@@ -195,21 +187,18 @@ public class ImgRender implements Gawain.EventHook {
 	public int getSize(){
 		return lstPreview.size();
 	}
-	
 	public ImgRender addPreview(CamBundle... list){
 		for(CamBundle bnd:list){			
 			lstPreview.add(new ImgPreview(this,bnd));
 		}
 		return this;
 	}
-	
 	public CamBundle getBundle(int idx){
 		if(idx>=lstPreview.size()){
 			return null;
 		}
 		return lstPreview.get(idx).bundle;
 	}
-	
 	public ImgPreview getPreview(int idx){
 		if(idx>=lstPreview.size()){
 			return null;
@@ -219,10 +208,6 @@ public class ImgRender implements Gawain.EventHook {
 	//--------------------------------------------//
 	
 	public ImgRender snap(String name){
-		//if(lstFilter.contains(fltrSnap)==true){
-		//	PanBase.msgBox.notifyInfo("Render","忙碌中");
-		//	return this;
-		//}
 		if(fltr!=null){
 			PanBase.msgBox.notifyInfo("Render","忙碌中");
 			return this;
@@ -246,10 +231,6 @@ public class ImgRender implements Gawain.EventHook {
 	}
 	
 	public ImgRender execIJ(ImgPreview pv){
-		//if(lstFilter.contains(fltrExecIJ)==true){
-		//	PanBase.msgBox.notifyInfo("Render","忙碌中");
-		//	return this;
-		//}
 		if(fltr!=null){
 			PanBase.msgBox.notifyInfo("Render","忙碌中");
 			return this;
@@ -259,12 +240,7 @@ public class ImgRender implements Gawain.EventHook {
 	}
 	
 	public ImgRender attach(ImgFilter filter){
-		//They are attached by GUI-event
-		//for(ImgFilter fltr:list){
-		//	if(lstFilter.contains(fltr)==false){
-		//		lstFilter.add(fltr);
-		//	}
-		//}
+		fltr.isIdle.set(false);
 		fltr = filter;
 		return this;
 	}

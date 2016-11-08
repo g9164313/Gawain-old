@@ -38,7 +38,7 @@ public class TskGoHome extends TskAction {
 		jog_to_limit(tkn, 4000.);
 		int pos = Entry.stg0.getPulse(tkn);
 		pos = pos / (2*50);//why????
-		Entry.stg0.moveTo((double)pos,tkn);
+		Entry.stg0.moveTo(tkn,(double)pos);
 	}
 	
 	@Override

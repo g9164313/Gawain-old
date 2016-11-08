@@ -82,36 +82,33 @@ public class WidAoiViews extends BorderPane {
 	class FilterAlign extends ImgFilter {
 		public FilterAlign() {
 		}
-		private final double biasDivStep = 10.;//effect~~~
+		private final double biasDivStep = 2.;//effect~~~
 		private final double biasTheta= 100.;//This is experiment value~~~
 		private int[][] vec;
 		@Override
-		public void cookData(ArrayList<ImgPreview> list) {			
-			filterMarkRect.cookData(list);//update all location~~~
+		public void cookData(ArrayList<ImgPreview> list) {
+			//update all location~~~
+			filterMarkRect.cookData(list);
 			vec = get_vector();
-			//TODO:how to check valid vector??
-			int th = vec[2][0]-vec[2][1];
+			refreshData(list);
+			//kick motion stage~~~
+			int th = vec[2][0] - vec[2][1];
 			if(Math.abs(th)>10){
-				if(th>0){
-					Entry.stg0.moveTo(biasTheta,'a');
-				}else{
-					Entry.stg0.moveTo(-biasTheta,'a');
-				}
+				double val = biasTheta*(th/th);//trick~~~
+				//Entry.stg0.moveTo('a',val);
+				asynDone = Entry.stg0.asyncMoveTo('a',val);
 			}else{
 				int dx = Math.min(vec[0][0],vec[1][0]);
 				int dy = Math.min(vec[0][1],vec[1][1]);
 				if(Math.abs(dx)>10 || Math.abs(dy)>10){
-					double stp_x = dx / biasDivStep;
-					//Entry.stg0.moveTo(stp_x,'x');
-					double stp_y = -dy / biasDivStep;
-					//Entry.stg0.moveTo(stp_y,'y');
-					Entry.stg0.moveTo(stp_x,stp_y);
+					//double stp_x = dx / biasDivStep;
+					//double stp_y =-dy / biasDivStep;
+					//Entry.stg0.moveTo(stp_x,stp_y);
+					double stp_x = dx;
+					double stp_y =-dy;
+					asynDone = Entry.stg0.asyncMoveTo(stp_x,stp_y);
 				}
 			}
-			//reload information again!!!
-			refreshData(list);
-			filterMarkRect.cookData(list);
-			vec = get_vector();
 		}
 		@Override
 		public boolean showData(ArrayList<ImgPreview> list) {
