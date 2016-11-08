@@ -36,9 +36,11 @@ public class TskGoHome extends TskAction {
 		jog_to_limit(tkn,-4000.);
 		Entry.stg0.setValue(0,tkn);
 		jog_to_limit(tkn, 4000.);
+		Misc.logv("到達正極限");
 		int pos = Entry.stg0.getPulse(tkn);
 		pos = pos / (2*50);//why????
 		Entry.stg0.moveTo(tkn,(double)pos);
+		Misc.logv("到達負極限");
 	}
 	
 	@Override

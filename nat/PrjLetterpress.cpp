@@ -65,13 +65,13 @@ extern "C" JNIEXPORT void JNICALL Java_prj_letterpress_WidAoiViews_implInitEnvir
 	char name[500];
 	if(jname0!=NULL){
 		jstrcpy(env,jname0,name);
-		grndImage[0].release();
-		grndImage[0] = imread(name,IMREAD_GRAYSCALE);
+		Mat tmp = imread(name,IMREAD_GRAYSCALE);
+		tmp.copyTo(grndImage[0]);
 	}
 	if(jname1!=NULL){
 		jstrcpy(env,jname1,name);
-		grndImage[1].release();
-		grndImage[1] = imread(name,IMREAD_GRAYSCALE);
+		Mat tmp = imread(name,IMREAD_GRAYSCALE);
+		tmp.copyTo(grndImage[1]);
 	}
 }
 
@@ -140,16 +140,6 @@ static float findShape(
 			continue;//noise???
 		}
 		RotatedRect rect = minAreaRect(approx);
-		//if(checkRect==true){
-		//	double bound = rect.size.width * rect.size.height;
-		//	double ratio = min(area,bound)/max(area,bound);
-		//	if(ratio<0.8){
-		//		continue;
-		//	}
-		//}
-		//if(isContourConvex(approx)==checkConvex){
-		//	continue;
-		//}
 		double score_shp = matchShapes(
 			shape,approx,
 			CV_CONTOURS_MATCH_I3,0
@@ -268,7 +258,20 @@ extern "C" JNIEXPORT jfloat JNICALL Java_prj_letterpress_WidAoiViews_implFindRec
 	Mat img = checkMono(src);
 	Mat ova = Mat::zeros(src.size(),CV_8UC4);
 
-	img = img - grndImage[idx];
+	if(param[0]==1){
+		char name[500];
+		sprintf(name,"cc.1.%d.png",idx);
+		imwrite(name,img);
+		sprintf(name,"cc.2.%d.png",idx);
+		imwrite(name,grndImage[idx]);
+		img = img - grndImage[idx];
+		sprintf(name,"cc.3.%d.png",idx);
+		imwrite(name,img);
+		return -1.f;
+	}else{
+		img = img - grndImage[idx];
+	}
+
 	equalizeHist(img,img);
 	threshold(img,img,param[9],255,THRESH_BINARY);
 	Mat kern = getStructuringElement(
@@ -278,6 +281,12 @@ extern "C" JNIEXPORT jfloat JNICALL Java_prj_letterpress_WidAoiViews_implFindRec
 	);
 	erode(img,img,kern);
 	dilate(img,img,kern);
+	if(param[0]==2){
+		char name[500];
+		sprintf(name,"hist%02d.png",idx);
+		imwrite(name,img);
+		return -1.f;
+	}
 
 	Mat ex_img;
 	copyMakeBorder(

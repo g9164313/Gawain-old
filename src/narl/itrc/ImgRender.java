@@ -68,7 +68,10 @@ public class ImgRender implements Gawain.EventHook {
 			prv.fetchBuff();
 		}
 		cook_data();
-		Application.invokeAndWait(eventRender);	
+		for(ImgPreview prv:lstPreview){
+			prv.fetchInfo();
+		}
+		Application.invokeAndWait(eventRender);
 	}
 	private void cook_data(){
 		if(fltr==null){
@@ -80,10 +83,10 @@ public class ImgRender implements Gawain.EventHook {
 			}
 			fltr.asynDone = null;//reset this flag for next turn~~
 		}
-		fltr.cookData(lstPreview);
-		for(ImgPreview prv:lstPreview){
-			prv.fetchInfo();
+		if(fltr.isIdle.get()==true){
+			return;
 		}
+		fltr.cookData(lstPreview);
 	}
 	private final Runnable eventRender = new Runnable(){
 		@Override
@@ -100,9 +103,11 @@ public class ImgRender implements Gawain.EventHook {
 			if(fltr.asynDone!=null){
 				return;
 			}
+			if(fltr.isIdle.get()==true){
+				return;
+			}
 			if(fltr.showData(lstPreview)==true){
-				fltr.isIdle.set(false);
-				fltr = null;//reset it!!!!
+				fltr.isIdle.set(true);
 			}
 		}
 	};
@@ -240,8 +245,8 @@ public class ImgRender implements Gawain.EventHook {
 	}
 	
 	public ImgRender attach(ImgFilter filter){
-		fltr.isIdle.set(false);
 		fltr = filter;
+		fltr.isIdle.set(false);
 		return this;
 	}
 	//--------------------------------------------//

@@ -125,7 +125,7 @@ public class PanHelpful extends PanDecorate {
 		boxExpose.setDisable(false);		
 	}
 	
-	private int valLight = 45;
+	private static int valLight = 45;
 	
 	private Node layoutOption3(){
 		GridPane lay = new GridPane();
@@ -355,7 +355,7 @@ public class PanHelpful extends PanDecorate {
 		}
 				
 		private void moving(int val){
-			Misc.logv("move %c%c (%d)",dir,tkn,val);
+			//Misc.logv("move %c%c (%d)",dir,tkn,val);
 			switch(tkn){
 			case 'x':
 			case 'X':
@@ -366,7 +366,7 @@ public class PanHelpful extends PanDecorate {
 				Entry.stg0.asyncMoveTo(DevMotion.PULSE_UNIT,null,(double)val);
 				break;
 			case '@':
-				Entry.stg0.asyncMoveTo(DevMotion.PULSE_UNIT,null,null,(double)val);
+				Entry.stg0.asyncMoveTo(DevMotion.PULSE_UNIT,null,null,null,(double)val);
 				break;				
 			}
 		}		

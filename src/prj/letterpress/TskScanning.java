@@ -29,9 +29,6 @@ public class TskScanning extends TskAction {
 		if(map==null){
 			return -2;
 		}
-		Misc.logv("--------重設原點--------");
-		Entry.stg0.exec("DE 0,0,0,0;DP 0,0,0,0;\r\n"); 
-		Entry.stg0.exec_TP();
 		
 		long tick = System.currentTimeMillis();
 		float tsec;

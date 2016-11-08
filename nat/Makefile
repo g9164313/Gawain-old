@@ -105,6 +105,7 @@ $(TARGET_SO): utils_jni.cpp utils_cv.cpp CamBundle.cpp DevTTY.cpp $(IMG_FILTER) 
 	$(CC) $(CC_FLAG)  -fPIC -shared -o $@ $^ $(LD_LIBS)
 	cp -rf $@ ../bin/narl/itrc/nat
 	cp -rf $@ ../src/narl/itrc/nat
+	cp -rf $@ /home/qq/.local/bin/gawain
 ifeq ($(CHECK_EXEC),)
 	@echo "no process, so we ovewrite it~~"
 	cp -rf $@ ../gawain/$@

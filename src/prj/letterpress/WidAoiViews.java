@@ -83,8 +83,8 @@ public class WidAoiViews extends BorderPane {
 		public FilterAlign() {
 		}
 		private final double biasDivStep = 2.;//effect~~~
-		private final double biasTheta= 100.;//This is experiment value~~~
-		private int[][] vec;
+		private final double biasTheta= 50.;//This is experiment value~~~
+		private int[][] vec = null;
 		@Override
 		public void cookData(ArrayList<ImgPreview> list) {
 			//update all location~~~
@@ -93,10 +93,12 @@ public class WidAoiViews extends BorderPane {
 			refreshData(list);
 			//kick motion stage~~~
 			int th = vec[2][0] - vec[2][1];
-			if(Math.abs(th)>10){
-				double val = biasTheta*(th/th);//trick~~~
-				//Entry.stg0.moveTo('a',val);
-				asynDone = Entry.stg0.asyncMoveTo('a',val);
+			if(Math.abs(th)>=20){
+				if(th>0){
+					asynDone = Entry.stg0.asyncMoveTo('a',biasTheta);
+				}else{
+					asynDone = Entry.stg0.asyncMoveTo('a',-biasTheta);
+				}
 			}else{
 				int dx = Math.min(vec[0][0],vec[1][0]);
 				int dy = Math.min(vec[0][1],vec[1][1]);
@@ -109,12 +111,20 @@ public class WidAoiViews extends BorderPane {
 					asynDone = Entry.stg0.asyncMoveTo(stp_x,stp_y);
 				}
 			}
+			//refreshData(list);
 		}
 		@Override
 		public boolean showData(ArrayList<ImgPreview> list) {
+			if(vec==null){
+				System.out.println("something is wrong!!!");
+				return false;//???why???
+			}
 			txtLocaRect();
 			int hypth = Math.min(vec[2][0],vec[2][1]);
 			if(Math.abs(hypth)<20){
+				Misc.logv("--------重設原點--------");
+				Entry.stg0.exec("DE 0,0,0,0;DP 0,0,0,0;\r\n"); 
+				Entry.stg0.exec_TP();
 				return true;//we success!!!!!
 			}		
 			return false;
@@ -175,7 +185,7 @@ public class WidAoiViews extends BorderPane {
 	};
 	
 	private float[] scoreCross = {0,0};//left, right
-	private int[][] locaCross = {{271,560},{527,565}};
+	private int[][] locaCross = {{300,539},{486,540}};
 
 	private double[] scoreRect = {0,0};//left, right
 	private int[][] locaRect = {{-1,-1},{-1,-1}};
