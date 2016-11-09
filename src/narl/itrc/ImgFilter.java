@@ -2,6 +2,7 @@ package narl.itrc;
 
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.sun.glass.ui.Application;
 
@@ -15,17 +16,18 @@ public abstract class ImgFilter implements
 	 * This function is same as TskAction.isTrigger.<p>
 	 */
 	public boolean isTrigger = false;
-	
-	/**
-	 * ImgRender will set this variable to indicate whether thid filter is hook.<p>
-	 */
-	public AtomicBoolean isIdle = new AtomicBoolean(true);
-	
+
 	/**
 	 * This variable will be provided by other thread or task.<p>
 	 * When this object is builded, render will only show image, but not cook data.<p>
 	 */
-	public AtomicBoolean asynDone = null;
+	public AtomicBoolean asyncDone = null;
+	
+	public static final int STA_IDLE = 0;
+	public static final int STA_REDY = 1;
+	public static final int STA_COOK = 2;
+	
+	public AtomicInteger state = new AtomicInteger(STA_IDLE);
 	
 	protected void refreshData(final ArrayList<ImgPreview> list){
 		

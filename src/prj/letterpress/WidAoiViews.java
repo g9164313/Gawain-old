@@ -82,7 +82,7 @@ public class WidAoiViews extends BorderPane {
 	class FilterAlign extends ImgFilter {
 		public FilterAlign() {
 		}
-		private final double biasDivStep = 2.;//effect~~~
+		//private final double biasDivStep = 2.;//effect~~~
 		private final double biasTheta= 50.;//This is experiment value~~~
 		private int[][] vec = null;
 		@Override
@@ -94,11 +94,13 @@ public class WidAoiViews extends BorderPane {
 			//kick motion stage~~~
 			int th = vec[2][0] - vec[2][1];
 			if(Math.abs(th)>=20){
-				if(th>0){
-					asynDone = Entry.stg0.asyncMoveTo('a',biasTheta);
-				}else{
-					asynDone = Entry.stg0.asyncMoveTo('a',-biasTheta);
-				}
+				//if(th>0){
+				//	asyncDone = Entry.stg0.asyncMoveTo('a',biasTheta);
+				//}else{
+				//	asyncDone = Entry.stg0.asyncMoveTo('a',-biasTheta);
+				//}
+				double thea = biasTheta * (th/Math.abs(th));
+				asyncDone = Entry.stg0.asyncMoveTo('a',thea);
 			}else{
 				int dx = Math.min(vec[0][0],vec[1][0]);
 				int dy = Math.min(vec[0][1],vec[1][1]);
@@ -108,7 +110,7 @@ public class WidAoiViews extends BorderPane {
 					//Entry.stg0.moveTo(stp_x,stp_y);
 					double stp_x = dx;
 					double stp_y =-dy;
-					asynDone = Entry.stg0.asyncMoveTo(stp_x,stp_y);
+					asyncDone = Entry.stg0.asyncMoveTo(stp_x,stp_y);
 				}
 			}
 			//refreshData(list);

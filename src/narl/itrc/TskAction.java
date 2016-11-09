@@ -220,7 +220,7 @@ public abstract class TskAction implements EventHandler<ActionEvent> {
 						fltr.handle(event);
 						return;
 					}
-					if(fltr.isIdle.get()==false){
+					if(fltr.state.get()!=ImgFilter.STA_IDLE){
 						return;//we are still waiting~~~~
 					}
 					fltr.isTrigger = false;//for next turn~~~~

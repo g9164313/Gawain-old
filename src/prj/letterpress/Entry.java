@@ -69,7 +69,8 @@ public class Entry extends PanBase {
 				"DC 10000,10000,50000,10000;"+
 			    "TP\r\n"
 			);
-		}		
+		}
+		PanHelpful.enableAOI(true);
 	}
 	
 	@Override

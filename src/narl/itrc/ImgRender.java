@@ -67,26 +67,26 @@ public class ImgRender implements Gawain.EventHook {
 		for(ImgPreview prv:lstPreview){
 			prv.fetchBuff();
 		}
-		cook_data();
+		if(fltr!=null){
+			cook_data();
+		}
 		for(ImgPreview prv:lstPreview){
 			prv.fetchInfo();
 		}
 		Application.invokeAndWait(eventRender);
 	}
-	private void cook_data(){
-		if(fltr==null){
-			return;
-		}
-		if(fltr.asynDone!=null){
-			if(fltr.asynDone.get()==false){
+	private synchronized void cook_data(){		
+		if(fltr.asyncDone!=null){
+			if(fltr.asyncDone.get()==false){
 				return;
 			}
-			fltr.asynDone = null;//reset this flag for next turn~~
+			fltr.asyncDone = null;//reset this flag for next turn~~
 		}
-		if(fltr.isIdle.get()==true){
+		if(fltr.state.get()==ImgFilter.STA_IDLE){
 			return;
 		}
 		fltr.cookData(lstPreview);
+		fltr.state.set(ImgFilter.STA_COOK);
 	}
 	private final Runnable eventRender = new Runnable(){
 		@Override
@@ -94,20 +94,18 @@ public class ImgRender implements Gawain.EventHook {
 			for(ImgPreview prv:lstPreview){
 				prv.rendering();//Here!! we update pictures
 			}
-			show_data();
+			if(fltr!=null){
+				show_data();
+			}			
 		}
-		private void show_data(){
-			if(fltr==null){
+		private synchronized void show_data(){
+			if(fltr.asyncDone!=null){
 				return;
 			}
-			if(fltr.asynDone!=null){
-				return;
-			}
-			if(fltr.isIdle.get()==true){
-				return;
-			}
-			if(fltr.showData(lstPreview)==true){
-				fltr.isIdle.set(true);
+			if(fltr.state.get()==ImgFilter.STA_COOK){
+				if(fltr.showData(lstPreview)==true){
+					fltr.state.set(ImgFilter.STA_IDLE);
+				}
 			}
 		}
 	};
@@ -245,8 +243,12 @@ public class ImgRender implements Gawain.EventHook {
 	}
 	
 	public ImgRender attach(ImgFilter filter){
-		fltr = filter;
-		fltr.isIdle.set(false);
+		synchronized(filter){
+			fltr = filter;
+			if(fltr!=null){
+				fltr.state.set(ImgFilter.STA_REDY);
+			}			
+		}
 		return this;
 	}
 	//--------------------------------------------//

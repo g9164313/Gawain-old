@@ -124,7 +124,28 @@ public class PanHelpful extends PanDecorate {
 		btnExpose.setUserData(false);
 		boxExpose.setDisable(false);		
 	}
-	
+
+	public static void enableAOI(boolean flag){
+		//this function is hard code!!!!
+		if(flag==true){
+			//put down mirror
+			Entry.stg2.writeTxt('C');
+			//open upper-LED
+			Entry.stg1.writeTxt("1,45\r\n",20);
+			Entry.stg1.writeTxt("2,46\r\n",20);
+			//open bottom-LED
+			Entry.stg0.exec("OB 3,1\r\n");
+		}else{
+			//raise up mirror
+			Entry.stg2.writeTxt('C');
+			//close upper-LED
+			Entry.stg1.writeTxt("1,0\r\n",20);
+			Entry.stg1.writeTxt("2,0\r\n",20);
+			//open bottom-LED
+			Entry.stg0.exec("OB 3,0\r\n");
+		}
+	}
+		
 	private static int valLight = 45;
 	
 	private Node layoutOption3(){
@@ -185,10 +206,10 @@ public class PanHelpful extends PanDecorate {
 	}
 
 	private Node layoutOption4(){
-		HBox lay = new HBox();
-		lay.getStyleClass().add("hbox-one-line");
+		GridPane lay = new GridPane();
+		lay.getStyleClass().add("grid-small");
 		
-		final CheckBox chkPump = new CheckBox("幫浦開關");
+		final CheckBox chkPump = new CheckBox("幫浦");
 		chkPump.setIndeterminate(false);
 		chkPump.setOnAction(event->{
 			//get state from device
@@ -199,7 +220,7 @@ public class PanHelpful extends PanDecorate {
 			}
 		});
 		
-		final CheckBox chkMirror = new CheckBox("反射鏡開關");
+		final CheckBox chkMirror = new CheckBox("反射鏡");
 		chkMirror.setIndeterminate(false);
 		chkMirror.setOnAction(event->{
 			//get state from device
@@ -210,7 +231,18 @@ public class PanHelpful extends PanDecorate {
 			}
 		});
 		
-		lay.getChildren().addAll(chkPump,chkMirror);
+		final CheckBox chkLED = new CheckBox("底部光源");
+		chkLED.setIndeterminate(false);
+		chkLED.setOnAction(event->{
+			//get state from device
+			if(chkMirror.isSelected()){
+				Entry.stg0.exec("OB 3,1\r\n");
+			}else{
+				Entry.stg0.exec("OB 3,0\r\n");
+			}
+		});
+		
+		lay.addRow(0, chkPump,chkMirror,chkLED);
 		return lay;
 	}
 
@@ -236,22 +268,12 @@ public class PanHelpful extends PanDecorate {
 		btnGoing.setOnAction(TskAction.createKeyframe(
 			Entry.inst.prvw.filterAlign,
 			event->{
-				//switch mirror
-				//close upper-LED
-				Entry.stg1.writeTxt("1,0\r\n",20);
-				Entry.stg1.writeTxt("2,0\r\n",20);
-				//close bottom-LED
-				//switch tab-pager
+				enableAOI(false);
 				Entry.pager.getSelectionModel().select(1);
 			},
 			tsk_scanning,
 			event->{
-				//switch mirror
-				//open upper-LED
-				Entry.stg1.writeTxt("1,"+valLight+"\r\n",20);
-				Entry.stg1.writeTxt("2,"+valLight+"\r\n",20);
-				//open bottom-LED
-				//switch tab-pager
+				enableAOI(true);
 				Entry.pager.getSelectionModel().select(0);
 			}
 		));

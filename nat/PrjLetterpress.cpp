@@ -258,18 +258,11 @@ extern "C" JNIEXPORT jfloat JNICALL Java_prj_letterpress_WidAoiViews_implFindRec
 	Mat img = checkMono(src);
 	Mat ova = Mat::zeros(src.size(),CV_8UC4);
 
+	img = img - grndImage[idx];
 	if(param[0]==1){
-		char name[500];
-		sprintf(name,"cc.1.%d.png",idx);
-		imwrite(name,img);
-		sprintf(name,"cc.2.%d.png",idx);
-		imwrite(name,grndImage[idx]);
-		img = img - grndImage[idx];
-		sprintf(name,"cc.3.%d.png",idx);
-		imwrite(name,img);
-		return -1.f;
-	}else{
-		img = img - grndImage[idx];
+		drawEdgeMap(ova,img);//for edge mapping~~
+		MACRO_SET_IMG_INFO(ova);
+		return -1.;
 	}
 
 	equalizeHist(img,img);
@@ -282,10 +275,9 @@ extern "C" JNIEXPORT jfloat JNICALL Java_prj_letterpress_WidAoiViews_implFindRec
 	erode(img,img,kern);
 	dilate(img,img,kern);
 	if(param[0]==2){
-		char name[500];
-		sprintf(name,"hist%02d.png",idx);
-		imwrite(name,img);
-		return -1.f;
+		drawEdgeMap(ova,img);//for edge mapping~~
+		MACRO_SET_IMG_INFO(ova);
+		return -1.;
 	}
 
 	Mat ex_img;
