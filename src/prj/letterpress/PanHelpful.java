@@ -129,15 +129,15 @@ public class PanHelpful extends PanDecorate {
 		//this function is hard code!!!!
 		if(flag==true){
 			//put down mirror
-			Entry.stg2.writeTxt('C');
+			Entry.stg2.writeTxt('F');
 			//open upper-LED
-			Entry.stg1.writeTxt("1,45\r\n",20);
-			Entry.stg1.writeTxt("2,46\r\n",20);
+			Entry.stg1.writeTxt("1,44\r\n",20);
+			Entry.stg1.writeTxt("2,45\r\n",20);
 			//open bottom-LED
 			Entry.stg0.exec("OB 3,1\r\n");
 		}else{
 			//raise up mirror
-			Entry.stg2.writeTxt('C');
+			Entry.stg2.writeTxt('R');
 			//close upper-LED
 			Entry.stg1.writeTxt("1,0\r\n",20);
 			Entry.stg1.writeTxt("2,0\r\n",20);
@@ -212,7 +212,6 @@ public class PanHelpful extends PanDecorate {
 		final CheckBox chkPump = new CheckBox("幫浦");
 		chkPump.setIndeterminate(false);
 		chkPump.setOnAction(event->{
-			//get state from device
 			if(chkPump.isSelected()){
 				Entry.stg0.exec("OB 1,1\r\n");
 			}else{
@@ -221,21 +220,19 @@ public class PanHelpful extends PanDecorate {
 		});
 		
 		final CheckBox chkMirror = new CheckBox("反射鏡");
-		chkMirror.setIndeterminate(false);
+		chkMirror.setIndeterminate(true);
 		chkMirror.setOnAction(event->{
-			//get state from device
 			if(chkMirror.isSelected()){
-				Entry.stg2.writeTxt('C');
+				Entry.stg2.writeTxt('F');
 			}else{
-				Entry.stg2.writeTxt('K');
+				Entry.stg2.writeTxt('R');
 			}
 		});
 		
 		final CheckBox chkLED = new CheckBox("底部光源");
 		chkLED.setIndeterminate(false);
 		chkLED.setOnAction(event->{
-			//get state from device
-			if(chkMirror.isSelected()){
+			if(chkLED.isSelected()){
 				Entry.stg0.exec("OB 3,1\r\n");
 			}else{
 				Entry.stg0.exec("OB 3,0\r\n");
