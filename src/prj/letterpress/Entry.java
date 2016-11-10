@@ -27,8 +27,7 @@ public class Entry extends PanBase {
 	public static Entry inst = null;
 	
 	//public static CamVidcap cam0 = new CamVidcap("0");
-	//public static ImgRender rndr = new ImgRender(cam0);//for test
-	
+	//public static CamVidcap cam1 = new CamVidcap("1");
 	public static CamFlyCapture cam0 = new CamFlyCapture("s:16025855");
 	public static CamFlyCapture cam1 = new CamFlyCapture("s:16138125");
 	public static ImgRender rndr = new ImgRender(cam0,cam1);
@@ -48,13 +47,13 @@ public class Entry extends PanBase {
 	/**
 	 * this flag means that we don't enable motion stage
 	 */
-	private boolean stgEnable = true;
+	private boolean stgEnable = false;
 
 	@Override
 	protected void eventShown(WindowEvent e){
 		if(camEnable==true){
-			cam0.setROI( 546, 651, 800, 800);
-			cam1.setROI(1176, 810, 800, 800);			
+			//cam0.setROI( 546, 651, 800, 800);
+			//cam1.setROI(1176, 810, 800, 800);			
 			rndr.play();
 		}
 		if(stgEnable==true){
@@ -69,8 +68,8 @@ public class Entry extends PanBase {
 				"DC 10000,10000,50000,10000;"+
 			    "TP\r\n"
 			);
-		}
-		PanHelpful.enableAOI(true);
+			PanHelpful.enableAOI(true);
+		}		
 	}
 	
 	@Override

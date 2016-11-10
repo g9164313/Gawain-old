@@ -210,7 +210,7 @@ public class PanHelpful extends PanDecorate {
 		lay.getStyleClass().add("grid-small");
 		
 		final CheckBox chkPump = new CheckBox("幫浦");
-		chkPump.setIndeterminate(false);
+		chkPump.setIndeterminate(true);
 		chkPump.setOnAction(event->{
 			if(chkPump.isSelected()){
 				Entry.stg0.exec("OB 1,1\r\n");
@@ -230,7 +230,7 @@ public class PanHelpful extends PanDecorate {
 		});
 		
 		final CheckBox chkLED = new CheckBox("底部光源");
-		chkLED.setIndeterminate(false);
+		chkLED.setIndeterminate(true);
 		chkLED.setOnAction(event->{
 			if(chkLED.isSelected()){
 				Entry.stg0.exec("OB 3,1\r\n");
