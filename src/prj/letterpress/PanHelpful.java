@@ -128,14 +128,16 @@ public class PanHelpful extends PanDecorate {
 	public static void enableAOI(boolean flag){
 		//this function is hard code!!!!
 		if(flag==true){
+			Entry.stg0.exec("OB 1,1\r\n");
 			//put down mirror
 			Entry.stg2.writeTxt('F');
 			//open upper-LED
-			Entry.stg1.writeTxt("1,44\r\n",20);
+			Entry.stg1.writeTxt("1,45\r\n",20);
 			Entry.stg1.writeTxt("2,45\r\n",20);
 			//open bottom-LED
 			Entry.stg0.exec("OB 3,1\r\n");
 		}else{
+			Entry.stg0.exec("OB 1,0\r\n");
 			//raise up mirror
 			Entry.stg2.writeTxt('R');
 			//close upper-LED

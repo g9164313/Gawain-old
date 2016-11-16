@@ -314,7 +314,7 @@ extern "C" JNIEXPORT jfloat JNICALL Java_prj_letterpress_WidAoiViews_implFindRec
 	if(jlocaCross!=NULL){
 		_loca = env->GetIntArrayElements(jlocaCross,NULL);
 		Point locaCross(_loca[0],_loca[1]);
-		drawCrossT(ova,locaCross,30,Scalar(0,255,255),3);
+		drawCrossT(ova,locaCross,30,Scalar(0,10,255),3);
 		env->ReleaseIntArrayElements(jlocaCross,_loca,0);
 	}
 	drawRectangle(ova,locaRect,30,30,Scalar(255,0,0),3);

@@ -187,7 +187,8 @@ public class WidAoiViews extends BorderPane {
 	};
 	
 	private float[] scoreCross = {0,0};//left, right
-	private int[][] locaCross = {{300,539},{486,540}};
+	//private int[][] locaCross = {{300,539},{486,540}};
+	private int[][] locaCross = {{251,609},{546,590}};
 
 	private double[] scoreRect = {0,0};//left, right
 	private int[][] locaRect = {{-1,-1},{-1,-1}};

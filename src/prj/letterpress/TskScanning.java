@@ -40,7 +40,9 @@ public class TskScanning extends TskAction {
 			Entry.stg0.anchorTo("mm",pos);
 			//start to exposure
 			Misc.logv("照射中...");
+			Entry.stg0.exec("OB 2,1\r\n");
 			Misc.delay(1000);
+			Entry.stg0.exec("OB 2,0\r\n");
 			if(tsk.isCancelled()==true){
 				//user break-down this routine~~~~
 				tick = System.currentTimeMillis() - tick;
