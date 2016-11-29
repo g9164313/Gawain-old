@@ -227,11 +227,48 @@ public abstract class PanBase {
 		scene.getStylesheets().add(Gawain.class.getResource("res/styles.css").toExternalForm());
 		scene.setUserData(PanBase.this);
 	}
-
-	public static final Notification.Notifier msgBox = NotifierBuilder.create()
+	//------------------------//
+	
+	//this message may have some bug, workaround is stopping it periodically
+	private static final Notification.Notifier msgBox =
+		NotifierBuilder.create()
 		.popupLocation(Pos.CENTER)
 		.popupLifeTime(Duration.millis(1500))
 		.build();
+	
+	private static Timeline msgEvent = null;
+	
+	private static void event_stop_msgBox(){
+		msgEvent = new Timeline(new KeyFrame(
+			Duration.millis(2000),
+			event->msgBox.stop()
+		));
+		msgEvent.play();
+	}
+	
+	public static void notifyInfo(String title,String message){
+		if(msgEvent!=null){
+			msgEvent.pause();
+		}
+		msgBox.notifyInfo(title, message);
+		event_stop_msgBox();
+	}
+	
+	public static void notifyWarning(String title,String message){
+		if(msgEvent!=null){
+			msgEvent.pause();
+		}
+		msgBox.notifyWarning(title, message);
+		event_stop_msgBox();
+	}
+	
+	public static void notifyError(String title,String message){
+		if(msgEvent!=null){
+			msgEvent.pause();
+		}
+		msgBox.notifyError(title, message);
+		event_stop_msgBox();
+	}
 	//------------------------//
 	
 	public interface EventHook{
@@ -418,28 +455,28 @@ public abstract class PanBase {
 		final String title,
 		final String iconName
 	){
-		return genButton(title,iconName,"btn-raised1");
+		return genButton(title,iconName,"btn-raised-1");
 	}
 	
 	public static Button genButton2(
 		final String title,
 		final String iconName
 	){
-		return genButton(title,iconName,"btn-raised2");
+		return genButton(title,iconName,"btn-raised-2");
 	}
 	
 	public static Button genButton3(
 		final String title,
 		final String iconName
 	){
-		return genButton(title,iconName,"btn-raised3");
+		return genButton(title,iconName,"btn-raised-3");
 	}
 	
 	public static Button genButton4(
 		final String title,
 		final String iconName
 	){
-		return genButton(title,iconName,"btn-raised4");
+		return genButton(title,iconName,"btn-raised-4");
 	}
 	
 	private static Button genButton(

@@ -6,30 +6,36 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import com.sun.glass.ui.Application;
 
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.concurrent.Task;
 
 public class ImgRender implements Gawain.EventHook {
-	
-	public ImgRender(){
-		Gawain.hook(this);
-	}
 	
 	public ImgRender(CamBundle... list){		
 		this();
 		addPreview(list);		
 	}
 
+	public ImgRender(){
+		Gawain.hook(this);
+	}
+	
 	@Override
 	public void release() {
+		//finally, jump out the main looper ~~~
 		stop();
 	}
 
 	@Override
 	public void shutdown() {
 		//camera will be released in this stage~~~~
+		for(ImgPreview prv:lstPreview){
+			prv.bundle.close();
+		}				
 	}
+	//--------------------------------------------//
 	
-	private ImgFilter fltr = null;//Don't know why synchronized statement has problems
+	private ImgFilter fltr = null;
 	
 	private ArrayList<ImgPreview> lstPreview = new ArrayList<ImgPreview>();
 
@@ -37,13 +43,11 @@ public class ImgRender implements Gawain.EventHook {
 
 	private void loopInit(){
 		for(ImgPreview prv:lstPreview){
-			if(prv.bundle==null){
-				continue;
+			if(prv.bundle!=null){
+				if(prv.bundle.isReady()==false){
+					prv.bundle.setup();
+				}
 			}
-			if(prv.bundle.isReady()==true){
-				continue;
-			}
-			prv.bundle.setup();
 		}
 	}
 
@@ -62,7 +66,7 @@ public class ImgRender implements Gawain.EventHook {
 		}
 		Application.invokeAndWait(eventShowData);
 	}
-	private void cook_data(){		
+	private void cook_data(){
 		if(fltr.asyncDone!=null){
 			if(fltr.asyncDone.get()==false){
 				return;
@@ -92,34 +96,26 @@ public class ImgRender implements Gawain.EventHook {
 			if(fltr.state.get()==ImgFilter.STA_COOK){
 				if(fltr.showData(lstPreview)==true){
 					fltr.state.set(ImgFilter.STA_IDLE);
+					fltr = null;//reset it!!!!
 				}
 			}
 		}
 	};
 	
-	/**
-	 * start to play video stream 
-	 * @return self
-	 */
-	public ImgRender play(){
-		if(looper!=null){
-			if(looper.isDone()==false){
-				return this;
-			}
-		}		
+	private void create_looper(){
 		looper = new Task<Integer>(){
 			@Override
 			protected Integer call() throws Exception {
 				loopInit();
 				while(
 					looper.isCancelled()==false &&
-					Application.GetApplication()!=null
+					Gawain.flgStop.get()==false
 				){	
 					//long diff = System.currentTimeMillis();
 					loopBody();
-					if(Gawain.flgStop.get()==true){
-						break;//check application is valid
-					}
+					//if(Gawain.flgStop.get()==true){
+					//	break;//check application is valid
+					//}
 					//diff = System.currentTimeMillis() - diff;
 					//Misc.logv("tick=%d",diff);
 				}
@@ -127,11 +123,27 @@ public class ImgRender implements Gawain.EventHook {
 			}
 		};
 		new Thread(looper,"Image-Render").start();
-		return this;
 	}
+	//--------------------------------------------//
 	
 	/**
-	 * Stop looper.This is a blocking method.<p>
+	 * start to play video stream.It must be called by GUI-event.<p>
+	 * @return self
+	 */
+	public ImgRender play(){
+		if(looper!=null){
+			if(looper.isDone()==false){
+				return this;
+			}
+		}
+		create_looper();
+		flagPlaying.set(true);
+		return this;
+	}
+
+	/**
+	 * Stop looper.This is a blocking method.
+	 * It must be called by GUI-event, and it is a blocking function.<p>
 	 * @return self
 	 */
 	public ImgRender stop(){	
@@ -145,14 +157,15 @@ public class ImgRender implements Gawain.EventHook {
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}			
-		}		
+		}
+		flagPlaying.set(false);
 		return this;
 	}
 	
 	/**
 	 * If render is running, stop it.<p>
 	 * If render is done, play it again.<p>
-	 * This method is blocking~~~
+	 * It must be called by GUI-event, and it is a blocking function.<p>
 	 * @return self
 	 */
 	public ImgRender pause(){	
@@ -163,7 +176,11 @@ public class ImgRender implements Gawain.EventHook {
 		}
 		return play();
 	}
-	
+
+	/**
+	 * Check whether main looper is running.<p>
+	 * @return true - it is running
+	 */
 	public boolean isPlaying(){
 		if(looper!=null){
 			if(looper.isDone()==false){
@@ -171,6 +188,20 @@ public class ImgRender implements Gawain.EventHook {
 			}
 		}
 		return false;
+	}
+	
+	public SimpleBooleanProperty flagPlaying = new SimpleBooleanProperty(false);
+	
+	public final boolean getFlagPlaying(){
+		flagPlaying.set(isPlaying());
+		return flagPlaying.get();
+	}
+	public final void setFlagPlaying(boolean flag){
+		if(flag==true){
+			play();
+		}else{
+			pause();
+		}
 	}
 	//--------------------------------------------//
 
@@ -198,10 +229,6 @@ public class ImgRender implements Gawain.EventHook {
 	//--------------------------------------------//
 	
 	public ImgRender snap(String name){
-		if(fltr!=null){
-			PanBase.msgBox.notifyInfo("Render","忙碌中");
-			return this;
-		}
 		int pos = name.lastIndexOf(File.separatorChar);
 		if(pos<0){
 			//set default path~~~
@@ -221,11 +248,7 @@ public class ImgRender implements Gawain.EventHook {
 	}
 	
 	public ImgRender execIJ(ImgPreview pv){
-		if(fltr!=null){
-			PanBase.msgBox.notifyInfo("Render","忙碌中");
-			return this;
-		}
-		fltrExecIJ.prvIdx = lstPreview.indexOf(pv);
+		fltrExecIJ.prvIndex = lstPreview.indexOf(pv);
 		return attach(fltrExecIJ);
 	}
 	
@@ -242,7 +265,7 @@ public class ImgRender implements Gawain.EventHook {
 		@Override
 		public void cookData(ArrayList<ImgPreview> list) {
 			String name = Misc.fsPathTemp+File.separator+"temp.png";
-			ImgPreview prv = list.get(prvIdx);
+			ImgPreview prv = list.get(prvIndex);
 			CamBundle bnd = prv.bundle;
 			bnd.saveImage(name);
 			Misc.execIJ(name);
@@ -252,8 +275,8 @@ public class ImgRender implements Gawain.EventHook {
 			return true;
 		}
 	}	
-	
 	private static FilterExecIJ fltrExecIJ = new FilterExecIJ();
+	//--------------------------------------------//
 	
 	private static class FilterSnap extends ImgFilter {
 		/**
@@ -293,7 +316,7 @@ public class ImgRender implements Gawain.EventHook {
 		}
 		@Override
 		public boolean showData(ArrayList<ImgPreview> list) {
-			PanBase.msgBox.notifyInfo("Render",
+			PanBase.notifyInfo("Render",
 			String.format(
 				"儲存影像(%d) %s",
 				snapIndx.get(),
@@ -302,6 +325,5 @@ public class ImgRender implements Gawain.EventHook {
 			return true;
 		}
 	}
-
 	private static FilterSnap fltrSnap = new FilterSnap();
 }

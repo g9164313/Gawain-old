@@ -6,24 +6,13 @@ import javafx.scene.Parent;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 
-public abstract class CamBundle implements Gawain.EventHook {
+public abstract class CamBundle {
 
 	public CamBundle(){
-		Gawain.hook(this);
 	}
 	
 	public CamBundle(String txt){
-		Gawain.hook(this);
 		txtConfig= txt;		
-	}
-	
-	@Override
-	public void release() {
-	}
-	
-	@Override
-	public void shutdown() {
-		close();
 	}	
 	//-------------------------//
 	

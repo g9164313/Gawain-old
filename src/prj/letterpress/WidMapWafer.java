@@ -163,31 +163,6 @@ public class WidMapWafer extends WidMapBase {
 		double diw = boxDieW.getValue()+gap;
 		double dih = boxDieH.getValue()+gap;
 		
-		/*int[] cnt = {
-			(int)(Math.floor(dia/diw)),
-			(int)(Math.floor(dia/dih))
-		};
-		double[] org = {
-			0-diw*cnt[0],
-			0-dih*cnt[1],
-		};
-		double[] size = {diw/2., dih/2.};
-
-		//test the location from top of wafer
-		for(int j=0; j<cnt[1]; j++){
-			double[] vtx = {0,0};
-			//test the length of each row~~~
-			for(int i=0; i<(cnt[1]*2-1); i++){
-				boolean flag = isValidDie(
-					vtx[0],vtx[1],
-					diw,dih,rad
-				);
-				if(flag==true){
-					lstDie.add(new Die().setLfBm(vtx[0],vtx[1]));
-				}
-			}
-		}*/
-		
 		//list all possibility
 		double pos[][]={
 			{0     ,0     },
@@ -211,37 +186,12 @@ public class WidMapWafer extends WidMapBase {
 		}		
 		calculate_valid_grid(
 			pos[idx][0],pos[idx][1],
-			diw,dih,rad,
+			diw,dih,
+			rad,
 			lstDie
 		);
-		calculate_interleave_path();
-		//This is 'hard code'
-		//switch(chkWafSeq.getSelectionModel().getSelectedIndex()){
-		//case 0://交錯式 - 最長路徑優先
-		//	break;
-		//case 1://中心擴散
-		//	break;
-		//}
-	}
-	
-	private boolean isValidDie(
-		double left,double top,
-		double dieWidth,double dieHeight,
-		double wafRadius
-	){
-		double[][] vtx={
-			{left,top},
-			{left+dieWidth, top},
-			{left,top+dieHeight},
-			{left+dieWidth,top+dieHeight},
-		};
-		for(int k=0; k<4; k++){
-			double dist = Math.hypot(vtx[k][0],vtx[k][1]);
-			if(dist>wafRadius){
-				return false;
-			}
-		}
-		return true;
+		//calculate_interleave_path();
+		calculate_hardcode_path();
 	}
 	
 	private int calculate_valid_grid(
@@ -287,7 +237,20 @@ public class WidMapWafer extends WidMapBase {
 		return count;
 	}
 	
-	private void calculate_interleave_path(){
+	public void calculate_hardcode_path(){
+		lstDie.get(0).key = 1;
+		lstDie.get(2).key = 2;
+		lstDie.get(4).key = 3;
+		lstDie.get(6).key = 4;
+		lstDie.get(8).key = 5;
+		lstDie.get(9).key = 6;
+		lstDie.get(7).key = 7;
+		lstDie.get(5).key = 8;
+		lstDie.get(3).key = 9;
+		lstDie.get(1).key = 10;
+	}
+	
+	public void calculate_interleave_path(){
 		
 		//the sequence is dependent on "calculate_valid_grid()"
 		int cnt = lstDie.size() - 1;

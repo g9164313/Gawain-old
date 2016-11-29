@@ -157,12 +157,12 @@ public class CamVFiles extends CamBundle {
 				}
 			}
 		});		
-		btnFile.getStyleClass().add("btn-raised");
+		btnFile.getStyleClass().add("btn-raised-1");
 		btnFile.setMaxWidth(Double.MAX_VALUE);
 		btnFile.setText("選取檔案");
 		
 		final JFXButton btnPrev = new JFXButton();
-		btnPrev.getStyleClass().add("btn-raised");
+		btnPrev.getStyleClass().add("btn-raised-1");
 		btnPrev.setMaxWidth(Double.MAX_VALUE);
 		//btnPrev.prefWidthProperty().bind(btnFile.prefWidthProperty().divide(2));
 		btnPrev.setText("上一張");
@@ -176,7 +176,7 @@ public class CamVFiles extends CamBundle {
 		});
 		
 		final JFXButton btnNext = new JFXButton();
-		btnNext.getStyleClass().add("btn-raised");
+		btnNext.getStyleClass().add("btn-raised-1");
 		btnNext.setMaxWidth(Double.MAX_VALUE);
 		//btnNext.prefWidthProperty().bind(btnFile.prefWidthProperty().divide(2));
 		btnNext.setText("下一張");

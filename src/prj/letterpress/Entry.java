@@ -42,12 +42,12 @@ public class Entry extends PanBase {
 	/**
 	 * this flag means that we don't enable camera (render stage)
 	 */
-	private boolean camEnable = true;
+	private boolean camEnable = false;
 	
 	/**
 	 * this flag means that we don't enable motion stage
 	 */
-	private boolean stgEnable = true;
+	private boolean stgEnable = false;
 
 	@Override
 	protected void eventShown(WindowEvent e){
@@ -63,9 +63,9 @@ public class Entry extends PanBase {
 			stg0.setRoutine('B','A','D','C');
 			stg0.exec("RS\r\n");//this command must be executed independently.
 			stg0.exec(
-				"SP 10000,10000,50000,10000;"+
-			    "AC 10000,10000,50000,10000;"+
-				"DC 10000,10000,50000,10000;"+
+				"SP 10000,10000,10000,10000;"+
+			    "AC 10000,10000,10000,10000;"+
+				"DC 10000,10000,10000,10000;"+
 			    "TP\r\n"
 			);
 			PanHelpful.enableAOI(true);
@@ -90,6 +90,7 @@ public class Entry extends PanBase {
 		stp2.setContent(wmap);		
 		pager.getTabs().addAll(stp1,stp2);
 		pager.getSelectionModel().select(0);
+		//pager.getSelectionModel().select(1);
 		
 		//----operation & logger----
 		Node nod1 = new BoxLogger(100);

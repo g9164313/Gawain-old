@@ -56,7 +56,7 @@ public abstract class ImgFilter implements
 	 * The meaning of this variable is dependent on filter.
 	 * But this number presents the index of 'ImgPreview' list.
 	 */
-	public int prvIdx = -1;
+	public int prvIndex = -1;
 	
 	/**
 	 * this invoked by working-thread.<p>

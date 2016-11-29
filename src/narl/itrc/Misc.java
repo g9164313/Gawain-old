@@ -724,7 +724,7 @@ public class Misc {
 	
 	private static Process procIJ = null;
 	
-	public static void execIJ(String full_name){
+	public static void execIJ(String img_name){
 		if(procIJ!=null){
 			//just only execute one instance~~~
 			if(procIJ.isAlive()==true){
@@ -735,35 +735,35 @@ public class Misc {
 		}
 		String ij_path = Gawain.prop.getProperty("IJ_PATH","");		
 		if(ij_path.length()==0){
-			PanBase.msgBox.notifyError(
+			PanBase.notifyError(
 				"內部資訊",
 				"請在 conf.properties 設定 ImageJ 執行路徑"
 			);
 			return;
 		}
-		if(new File(ij_path).exists()==false){
-			PanBase.msgBox.notifyError(
-				"內部資訊",
-				"在 "+ij_path+" 找不到 ij.jar"
-			);
-			return;
-		}
+		File fs = new File(ij_path);
 		try {			
 			//How to find 'java' from M$ Windows OS ? 
-			ProcessBuilder pb = new ProcessBuilder(
-				"/usr/bin/java",
-				"-Xmx1024m",
-				"-jar",
-				ij_path,
-				full_name
-			);
+			ProcessBuilder pb = null;
+			if(fs.isDirectory()==true){
+				//execute ImageJ from jar file
+				pb = new ProcessBuilder(
+					"/usr/bin/java","-Xmx1024m","-jar",
+					ij_path, img_name
+				);
+			}else{
+				//it is a executed file
+				pb = new ProcessBuilder(ij_path,img_name);
+			}
 			pb.directory(Misc.fsPathTemp);
 			procIJ = pb.start();
 		} catch (Exception e) {
-			Misc.loge(e.getMessage());
+			PanBase.notifyError(
+				"內部資訊",
+				e.getMessage()
+			);
 		}
 	} 
-	
 	//--------------------------//
 
 	//Do we need this ???

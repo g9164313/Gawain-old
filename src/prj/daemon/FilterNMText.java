@@ -39,7 +39,7 @@ public class FilterNMText extends ImgFilter {
 
 	public Control getControl(final ImgRender rndr){		
 		JFXButton btn = new JFXButton("偵測字元");
-		btn.getStyleClass().add("btn-raised1");
+		btn.getStyleClass().add("btn-raised-2");
 		btn.setMaxWidth(Double.MAX_VALUE);
 		btn.setOnAction(event->{
 			rndr.attach(FilterNMText.this);

@@ -134,7 +134,7 @@ public class WidAoiViews extends BorderPane {
 		@Override
 		public void handle(ActionEvent event) {
 			if(locaCross[0][0]<0 || locaCross[1][0]<0){
-				PanBase.msgBox.notifyWarning("注意","必須先決定十字標靶位置");
+				PanBase.notifyWarning("注意","必須先決定十字標靶位置");
 				return;
 			}
 			Entry.rndr.attach(filterAlign);

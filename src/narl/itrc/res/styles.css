@@ -1,5 +1,5 @@
 
-.btn-raised1{
+.btn-raised-1{
 	-fx-padding: 0.7em 0.57em;
 	-fx-font-size: 14px;
 	-fx-button-type: RAISED;
@@ -7,21 +7,21 @@
 	-fx-text-fill: WHITE;
 }
 
-.btn-raised2{
+.btn-raised-2{
 	-fx-padding: 0.7em 0.57em;
 	-fx-font-size: 14px;
 	-fx-button-type: RAISED;
 	-fx-background-color: #00796b;
 	-fx-text-fill: WHITE;
 }
-.btn-raised3{
+.btn-raised-3{
 	-fx-padding: 0.7em 0.57em;
 	-fx-font-size: 14px;
 	-fx-button-type: RAISED;
 	-fx-background-color: #fbc02d;
 	-fx-text-fill: WHITE;
 }
-.btn-raised4{
+.btn-raised-4{
 	-fx-padding: 0.7em 0.57em;
 	-fx-font-size: 14px;
 	-fx-button-type: RAISED;
@@ -115,8 +115,8 @@
 .swt-raise {
 	-switch-color         : rgb(77, 102, 204);
     -thumb-color          : rgb(77, 102, 204);
-    -text-color-selected  :  rgb(77, 102, 204);
-    -text-color-deselected:  rgb(77, 102, 204);
+    -text-color-selected  : rgb(77, 102, 204);
+    -text-color-deselected: rgb(77, 102, 204);
 }
 
 .flipper-front {

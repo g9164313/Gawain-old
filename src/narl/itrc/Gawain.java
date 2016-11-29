@@ -292,8 +292,8 @@ public class Gawain extends Application {
 	@Override
 	public void stop() throws Exception {
 		//Do we need to close render looper???
-		flgStop.set(true);
-		PanBase.msgBox.stop();
+
+		flgStop.set(true);		
 	}
 	
 	private static boolean optUnpack = false;
@@ -308,7 +308,7 @@ public class Gawain extends Application {
 			}
 		}
 		//liceBind();//check dark license~~~
-		launch(argv);
+		launch(argv);		
 		propSave();
 		hookShutdown();
 	}

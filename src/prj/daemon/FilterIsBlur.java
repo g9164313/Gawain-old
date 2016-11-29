@@ -42,7 +42,7 @@ public class FilterIsBlur extends ImgFilter {
 		lay0.getStyleClass().add("grid-small");
 		
 		JFXButton btn = new JFXButton("分析清晰度");
-		btn.getStyleClass().add("btn-raised1");
+		btn.getStyleClass().add("btn-raised-2");
 		btn.setMaxWidth(Double.MAX_VALUE);
 		btn.setOnAction(event->{
 			rndr.attach(FilterIsBlur.this);

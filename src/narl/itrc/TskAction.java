@@ -22,7 +22,7 @@ public abstract class TskAction implements EventHandler<ActionEvent> {
 	public int result = 0;
 
 	/**
-	 * Special variable.When user create key-frames，we don't know whether action is starting.<p>
+	 * Special variable. When user create key-frames，we don't know whether action is starting.<p>
 	 * So, set this variable TRUE to indicate this action is starting!!!.<p> 
 	 */
 	public boolean isTrigger = false;
