@@ -1,11 +1,11 @@
 #include <global.hpp>
 
-void setJdouble(JNIEnv *env,jobject thiz,const char* name,double val){
+void setJDouble(JNIEnv *env,jobject thiz,const char* name,double val){
 	jclass _clazz = env->GetObjectClass(thiz);
 	jfieldID id = env->GetFieldID(_clazz,name,"D");
 	env->SetDoubleField(thiz,id,val);
 }
-double getJdouble(JNIEnv *env,jobject thiz,const char* name){
+double getJDouble(JNIEnv *env,jobject thiz,const char* name){
 	jclass _clazz = env->GetObjectClass(thiz);
 	jfieldID id = env->GetFieldID(_clazz,name,"D");
 	return env->GetDoubleField(thiz,id);
@@ -22,23 +22,23 @@ float getFloat(JNIEnv *env,jobject thiz,const char* name){
 	return env->GetFloatField(thiz,id);
 }
 
-void setJlong(JNIEnv *env,jobject thiz,const char* name,long val){
+void setJLong(JNIEnv *env,jobject thiz,const char* name,long val){
 	jclass _clazz = env->GetObjectClass(thiz);
 	jfieldID id = env->GetFieldID(_clazz,name,"J");
 	env->SetLongField(thiz,id,val);
 }
-long getJlong(JNIEnv *env,jobject thiz,const char* name){
+long getJLong(JNIEnv *env,jobject thiz,const char* name){
 	jclass _clazz = env->GetObjectClass(thiz);
 	jfieldID id = env->GetFieldID(_clazz,name,"J");
 	return env->GetLongField(thiz,id);
 }
 
-void setJint(JNIEnv *env,jobject thiz,const char* name,int val){
+void setJInt(JNIEnv *env,jobject thiz,const char* name,int val){
 	jclass _clazz = env->GetObjectClass(thiz);
 	jfieldID id = env->GetFieldID(_clazz,name,"I");
 	env->SetIntField(thiz,id,val);
 }
-int getJint(JNIEnv *env,jobject thiz,const char* name){
+int getJInt(JNIEnv *env,jobject thiz,const char* name){
 	jclass _clazz = env->GetObjectClass(thiz);
 	jfieldID id = env->GetFieldID(_clazz,name,"I");
 	return env->GetIntField(thiz,id);
@@ -66,23 +66,23 @@ uint8_t getJuint8_t(JNIEnv *env,jobject thiz,const char* name){
 	return env->GetByteField(thiz,id);
 }*/
 
-void setJchar(JNIEnv *env,jobject thiz,const char* name,char val){
+void setJChar(JNIEnv *env,jobject thiz,const char* name,char val){
 	jclass _clazz = env->GetObjectClass(thiz);
 	jfieldID id = env->GetFieldID(_clazz,name,"C");
 	env->SetCharField(thiz,id,val);
 }
-char getJchar(JNIEnv *env,jobject thiz,const char* name){
+char getJChar(JNIEnv *env,jobject thiz,const char* name){
 	jclass _clazz = env->GetObjectClass(thiz);
 	jfieldID id = env->GetFieldID(_clazz,name,"C");
 	return env->GetCharField(thiz,id);
 }
 
-void setJbool(JNIEnv *env,jobject thiz,const char* name,bool val){
+void setJBool(JNIEnv *env,jobject thiz,const char* name,bool val){
 	jclass _clazz = env->GetObjectClass(thiz);
 	jfieldID id = env->GetFieldID(_clazz,name,"Z");
 	env->SetBooleanField(thiz,id,val);
 }
-bool getJbool(JNIEnv *env,jobject thiz,const char* name){
+bool getJBool(JNIEnv *env,jobject thiz,const char* name){
 	jclass _clazz = env->GetObjectClass(thiz);
 	jfieldID id = env->GetFieldID(_clazz,name,"Z");
 	return env->GetBooleanField(thiz,id);
@@ -171,6 +171,33 @@ jdouble* doubleArray2Ptr(JNIEnv* env,jclass _clazz,jobject thiz,const char* name
 	obj=env->GetObjectField(thiz,id);
 	arr=*(reinterpret_cast<jdoubleArray*>(&obj));
 	return env->GetDoubleArrayElements(arr,NULL);
+}
+//--------------------------------//
+
+void setIntArray(
+	JNIEnv* env,
+	jobject thiz,
+	const char* name,
+	int* val, size_t len
+){
+	jclass _clazz = env->GetObjectClass(thiz);
+	jfieldID id = env->GetFieldID(_clazz,name,"[I");
+	jintArray arry = env->NewIntArray(len);
+	env->SetIntArrayRegion(arry, 0, len, val);
+	env->SetObjectField(thiz,id,arry);
+}
+
+void setDoubleArray(
+	JNIEnv* env,
+	jobject thiz,
+	const char* name,
+	double* val, size_t len
+){
+	jclass _clazz = env->GetObjectClass(thiz);
+	jfieldID id = env->GetFieldID(_clazz,name,"[D");
+	jdoubleArray arry = env->NewDoubleArray(len);
+	env->SetDoubleArrayRegion(arry, 0, len, val);
+	env->SetObjectField(thiz,id,arry);
 }
 //--------------------------------//
 

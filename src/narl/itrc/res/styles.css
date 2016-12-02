@@ -77,6 +77,12 @@
     -fx-vgap: 7px;
 }
 
+.grid-large{
+    -fx-padding: 13px  13px 13px 13px;
+    -fx-hgap: 13px;
+    -fx-vgap: 13px;
+}
+
 .anchor-small {
 	-fx-padding: 7 7 7 7;
 }

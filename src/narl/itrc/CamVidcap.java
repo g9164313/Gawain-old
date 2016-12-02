@@ -39,7 +39,7 @@ public class CamVidcap extends CamBundle {
 	private int name2value(String name){
 		int val = CAP_ANY;//default domain~~
 		if (
-			name.equalsIgnoreCase("IMAGE") == true ||
+			name.equalsIgnoreCase("IMAGES") == true ||
 			name.equalsIgnoreCase("FILE") == true
 		) {
 			val = CAP_IMAGES;//image sequence~~~~

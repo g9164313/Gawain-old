@@ -77,10 +77,10 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implOpen(
 #else
 	int fd = open(name, O_RDWR|O_NOCTTY);
 	if(fd<0){
-		setJlong(env,thiz,NAME_HANDLE,0);//reset handle!!!!
+		setJLong(env,thiz,NAME_HANDLE,0);//reset handle!!!!
 		return;
 	}
-	setJlong(env,thiz,NAME_HANDLE,fd);
+	setJLong(env,thiz,NAME_HANDLE,fd);
 
 	//cout<<"open file:"<<name<<" fid="<<fd<<endl;
 
@@ -169,7 +169,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implOpen(
 
 	//TODO:how to set flow-control
 	//block or not~~~
-	jboolean sync0 = getJbool(env,thiz,NAME_SYNC0);
+	jboolean sync0 = getJBool(env,thiz,NAME_SYNC0);
 	if(sync0==JNI_TRUE){
 		fcntl(fd,F_SETFL,0);//Synchronized mode - This will block thread!!!
 	}else{
@@ -183,8 +183,8 @@ extern "C" JNIEXPORT jbyteArray JNICALL Java_narl_itrc_DevTTY_implRead(
 	JNIEnv * env,
 	jobject thiz
 ) {
-	jboolean sync0 = getJbool(env,thiz,NAME_SYNC0);
-	jboolean sync1 = getJbool(env,thiz,NAME_SYNC1);
+	jboolean sync0 = getJBool(env,thiz,NAME_SYNC0);
+	jboolean sync1 = getJBool(env,thiz,NAME_SYNC1);
 #if defined _MSC_VER
 	jlong hand = getJlong(env,thiz,NAME_HANDLE);
 	if(hand!=0L){
@@ -206,7 +206,7 @@ extern "C" JNIEXPORT jbyteArray JNICALL Java_narl_itrc_DevTTY_implRead(
 	}
 	return NULL;
 #else
-	int fd = getJlong(env,thiz,NAME_HANDLE);
+	int fd = getJLong(env,thiz,NAME_HANDLE);
 	//Do we need block mode?,This is tri_state variable
 	if(sync0!=sync1){
 		if(sync0==JNI_TRUE){
@@ -214,7 +214,7 @@ extern "C" JNIEXPORT jbyteArray JNICALL Java_narl_itrc_DevTTY_implRead(
 		}else{
 			fcntl(fd,F_SETFL,FNDELAY);
 		}
-		setJbool(env,thiz,NAME_SYNC1,sync0);
+		setJBool(env,thiz,NAME_SYNC1,sync0);
 	}
 
 	jbyte buf[1024];
@@ -253,7 +253,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implWrite(
 		if(n<0){ cout<<"fail to write"<<endl; }
 	}
 #else
-	int fd = getJlong(env,thiz,NAME_HANDLE);
+	int fd = getJLong(env,thiz,NAME_HANDLE);
 	if(fd!=0){
 		ssize_t res;
 		jbyte* ptr = buf;
@@ -278,12 +278,12 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implClose(
 	jobject thiz
 ) {
 #if defined _MSC_VER
-	Handle hand = (Handle)getJlong(env,thiz,NAME_HANDLE);
+	Handle hand = (Handle)getJLong(env,thiz,NAME_HANDLE);
 	CloseHandle(hand);
 #else
-	close(getJlong(env,thiz,NAME_HANDLE));
+	close(getJLong(env,thiz,NAME_HANDLE));
 #endif//_MSC_VER
-	setJlong(env,thiz,NAME_HANDLE,0);//reset handle!!!!
+	setJLong(env,thiz,NAME_HANDLE,0);//reset handle!!!!
 }
 
 

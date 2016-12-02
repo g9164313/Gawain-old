@@ -243,10 +243,10 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamFlyCapture_implClose(
 		cam->Disconnect();
 		delete cam;
 	}
-	CameraControlDlg* dlg = (CameraControlDlg*)(getJlong(env,thiz,"ptrDlgCtrl"));
+	CameraControlDlg* dlg = (CameraControlDlg*)(getJLong(env,thiz,"ptrDlgCtrl"));
 	if(dlg!=NULL){
 		delete dlg;
-		setJlong(env,thiz,"ptrDlgCtrl",0);
+		setJLong(env,thiz,"ptrDlgCtrl",0);
 	}
 	MACRO_CLOSE_END
 }
@@ -261,12 +261,12 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamFlyCapture_implShowCtrl(
 		return;
 	}
 	Camera* cam = (Camera*)cntx;
-	CameraControlDlg* dlg = (CameraControlDlg*)(getJlong(env,thiz,"ptrDlgCtrl"));
+	CameraControlDlg* dlg = (CameraControlDlg*)(getJLong(env,thiz,"ptrDlgCtrl"));
 	if(dlg==NULL){
 		dlg = new CameraControlDlg();
 		dlg->Connect(cam);
 		dlg->SetTitle(">_<");
-		setJlong(env,thiz,"ptrDlgCtrl",(jlong)dlg);
+		setJLong(env,thiz,"ptrDlgCtrl",(jlong)dlg);
 	}
 	if(dlg->IsVisible()==false){
 		dlg->ShowModal();

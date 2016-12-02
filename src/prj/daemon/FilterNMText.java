@@ -31,7 +31,7 @@ public class FilterNMText extends ImgFilter {
 		
 	@Override
 	public boolean showData(ArrayList<ImgPreview> list) {
-		ImgPreview prv = list.get(0);
+		//ImgPreview prv = list.get(0);
 		//prv.clearAll();
 		//prv.drawRect(rect);
 		return true;//we done~~~~

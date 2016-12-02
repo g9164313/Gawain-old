@@ -29,6 +29,23 @@ public abstract class ImgFilter implements
 	
 	public AtomicInteger state = new AtomicInteger(STA_IDLE);
 	
+	protected ImgRender rndr = null;
+	
+	public ImgFilter(){		
+	}
+	
+	public ImgFilter(ImgRender render){
+		rndr = render;
+	}
+	
+	@Override
+	public void handle(ActionEvent event) {
+		//user can override this function
+		if(rndr!=null){
+			rndr.attach(this);
+		}
+	}
+	
 	protected void refreshData(final ArrayList<ImgPreview> list){
 		
 		if(Application.isEventThread()==true){			
@@ -73,11 +90,6 @@ public abstract class ImgFilter implements
 	 * @param list - the list of preview
 	 * @return true - we done, take off.<p> false- keep this in queue.<p>
 	 */
-	public abstract boolean showData(ArrayList<ImgPreview> list);//this invoked by GUI thread
-
-	@Override
-	public void handle(ActionEvent event) {
-		//user can override this function
-	}	
+	public abstract boolean showData(ArrayList<ImgPreview> list);//this invoked by GUI thread	
 };
 

@@ -3,8 +3,99 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <global.hpp>
-#include <utils_ipc.hpp>
 #include <algorithm>
+#include "../util_ipc.hpp"
+
+
+//--------------------------------------//
+
+extern short sfrProc(
+	double *farea, unsigned short size_x, int *nrows,
+	double **freq,
+	double **sfr,
+	int *len,
+	double *slope, int *numcycles,
+	int *pcnt2,
+	double *off,
+	double *R2,
+	int version,
+	int iterate,
+	int user_angle
+);
+
+int main(int argc, char* argv[]) {
+
+	Mat edg = imread("./aaa.pgm",IMREAD_GRAYSCALE);
+
+	Mat dat;
+	edg.convertTo(dat,CV_64FC1);
+
+	double *gray_v;
+	int size_x, size_y;
+
+	double *Freq = NULL;
+	double *Disp = NULL;
+	int bin_len;
+	double slope;
+	int numcycles = 0;
+	int center;
+	double off, R2;
+	int g_version = 0;
+
+	gray_v = (double*)dat.ptr();
+	size_x = dat.cols;
+	size_y = dat.rows;
+
+	short err = sfrProc(
+		gray_v, size_x, &size_y,
+		&Freq,
+		&Disp,
+		&bin_len,
+		&slope, &numcycles,
+		&center,
+		&off,
+		&R2,
+		g_version,
+		0,
+		0
+	);
+
+
+	double scale = 200;// pixel per mm
+
+	for(int i = 0; i<bin_len/2; i++) {
+		double frq, sfr;
+		double freq, fd_scale;
+
+		freq = M_PI * Freq[i];
+
+		if (g_version & 4){
+			freq /= 2.0; /* [-1 0 1] */
+		}else{
+			freq /= 4.0; /* [-1 1] */
+		}
+
+		if (freq == 0.0){
+			fd_scale = 1.0;
+		}else{
+			fd_scale = freq / sin(freq);
+		}
+
+		frq = Freq[i] * scale;
+		sfr = Disp[i] * fd_scale;
+
+		printf("%9.6f   \t%f\n", frq, sfr);
+
+		if(Freq[i] > 0.5){
+			break;
+		}
+	}
+
+	free(Freq);
+	free(Disp);
+	return 0;
+}
+//--------------------------------------//
 
 /**
  * Parameter for AOI. Their meanings are : <p>
@@ -15,7 +106,7 @@
  * 4: Dilate Size.<p>
  * 5: Approximates Epsilon.<p>
  */
-#define PARAM_SIZE 6
+/*#define PARAM_SIZE 6
 static int param[PARAM_SIZE] = {
 	100,
 	300,50,5,

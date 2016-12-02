@@ -4,8 +4,8 @@
 #include <sys/types.h>
 #include <global.hpp>
 #include <grabber.hpp>
-#include <utils_ipc.hpp>
 #include <algorithm>
+#include "../util_ipc.hpp"
 
 extern Mat cutOutBounding(Mat& img,Mat& msk,int width,int height);
 

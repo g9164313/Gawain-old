@@ -102,6 +102,7 @@ unsigned short check_slope(double, unsigned short *, int *, double, int);
    numcycles = number of full periods included in SFR
    pcnt2  = location of edge mid-point in oversample space
    off    = shift to center edge in original rows
+   R2     = linear edge fit
    version = 0 = default ([-1 1] deriv, no rounding, no peak)
              1 = add rounding
              2 = add peak
@@ -116,10 +117,10 @@ unsigned short check_slope(double, unsigned short *, int *, double, int);
  */
 /*****************************************************************************/
 short sfrProc(
+	double *farea, unsigned short size_x, int *nrows,
 	double **freq,
 	double **sfr,
 	int *len,
-	double *farea, unsigned short size_x, int *nrows,
 	double *slope, int *numcycles,
 	int *pcnt2,
 	double *off,
@@ -178,8 +179,9 @@ short sfrProc(
 			return 3;
 		}
 
-		if (version)
+		if (version){
 			MTFPRINT4("\nLinear Fit:  R2 = %.3f SE_intercept = %.2f  SE_angle = %.3f\n",*R2, avar, atan(bvar)*(double)(180.0/M_PI))
+		}
 	}
 
 	/* Check slope is OK, and set size_y to be full multiple of cycles */
@@ -202,8 +204,8 @@ short sfrProc(
 		offset += 0.125;
 	}
 
-	if (err != 0) { /* Slopes are bad.  But send back enough
-	 data, so a diagnostic image has a chance. */
+	if (err != 0) {
+		/* Slopes are bad.  But send back enough data, so a diagnostic image has a chance. */
 		*pcnt2 = 2 * size_x; /* Ignore derivative peak */
 		return 4;
 	}
@@ -339,11 +341,10 @@ unsigned short locate_centroids(
 	/* Compute the first difference on each line. Interpolate to find the
 	 centroid of the first derivatives. */
 	for (j = 0; j < size_y; j++) {
-		dt = 0.0;
-		dt1 = 0.0;
+		dt = 0.;
+		dt1 = 0.;
 		for (i = 0; i < size_x - 1; i++) {
-			dt2 = farea[(j * (long) size_x) + (i + 1)]
-					- farea[(j * (long) size_x) + i];
+			dt2 = farea[(j * (long) size_x) + (i + 1)] - farea[(j * (long) size_x) + i];
 			dt += dt2 * (double) i;
 			dt1 += dt2;
 		}
@@ -356,13 +357,11 @@ unsigned short locate_centroids(
 	 display an error message (the same one as if there were not a difference
 	 between the left and right sides of the box ) */
 	if (shifts[size_y - 1] < 2 || size_x - shifts[size_y - 1] < 2) {
-		fprintf(stderr,
-				"** WARNING: Edge comes too close to the ROI corners.\n");
+		fprintf(stderr,"** WARNING: Edge comes too close to the ROI corners.\n");
 		return 5;
 	}
 	if (shifts[0] < 2 || size_x - shifts[0] < 2) {
-		fprintf(stderr,
-				"** WARNING: Edge comes too close to the ROI corners.\n");
+		fprintf(stderr,"** WARNING: Edge comes too close to the ROI corners.\n");
 		return 5;
 	}
 

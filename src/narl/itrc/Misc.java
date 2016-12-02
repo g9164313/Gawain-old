@@ -11,11 +11,14 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
 import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
+import javafx.scene.Node;
 import javafx.scene.control.ComboBox;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
+import javafx.stage.Window;
 
 public class Misc {
 
@@ -313,7 +316,7 @@ public class Misc {
 	
 	public static final String pathRoot = check_root();
 	
-	public static final String pathTemp = check_tmp();
+	public static final String pathTemp = check_temp();
 	
 	public static final String fileJar = check_jar();
 	
@@ -405,7 +408,7 @@ public class Misc {
 		return url;
 	}
 	
-	private static String check_tmp(){
+	private static String check_temp(){
 		String url = Misc.pathRoot+"gawain"+File.separator;
 		File dir = new File(url);
 		if(dir.exists()==false){
@@ -521,6 +524,11 @@ public class Misc {
 		chs.setInitialDirectory(fsPathTemp);
 		return chs;
 	}
+	
+	public static Window getParent(ActionEvent event){
+		return ((Node)event.getTarget()).getScene().getWindow();
+	}
+	
 	//----------------------------------------//
 
 	public static String hex2txt(byte[] hex){
@@ -755,7 +763,7 @@ public class Misc {
 				//it is a executed file
 				pb = new ProcessBuilder(ij_path,img_name);
 			}
-			pb.directory(Misc.fsPathTemp);
+			pb.directory(fsPathTemp);
 			procIJ = pb.start();
 		} catch (Exception e) {
 			PanBase.notifyError(

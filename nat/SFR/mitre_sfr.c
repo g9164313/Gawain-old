@@ -285,13 +285,11 @@ int main(int argc, char **argv) {
 
 	/* calculate the sfr on this area */
 	err = sfrProc(
+		farea, (unsigned short) size_x, &size_y,
 		&Freq,
-		&disp, &bin_len,
-		farea,
-		(unsigned short) size_x,
-		&size_y,
-		&slope,
-		&numcycles,
+		&disp,
+		&bin_len,
+		&slope, &numcycles,
 		&center,
 		&off,
 		&R2,
@@ -363,27 +361,30 @@ int main(int argc, char **argv) {
 		double f, sfr;
 		double freq, fd_scale;
 		freq = M_PI * Freq[i];
+
 		/* [-1 0 0 0 1]  freq /= 1.0; */
-		if (g_version & 4) /* [-1 0 1] */
-			freq /= 2.0;
-		else
+		if (g_version & 4){
+			freq /= 2.0; /* [-1 0 1] */
+		}else{
 			freq /= 4.0; /* [-1 1] */
-		if (freq == 0.0)
+		}
+
+		if (freq == 0.0){
 			fd_scale = 1.0;
-		else
+		}else{
 			fd_scale = freq / sin(freq);
+		}
 
 		f = Freq[i] * scale;
 		sfr = disp[i] * fd_scale;
 
 		MTFPRINT3("%9.6f   \t%f ", f, sfr)
 
-		if (Freq[i] > 0.5)
+		if (Freq[i] > 0.5){
 			MTFPRINT("\t#\n")
-		/* Mark frequencies above Nyquist */
-		else {
-			double lower = 1.02829 - 1.67473e-1 * f + 1.06255e-2 * f * f
-					- 2.80874e-4 * f * f * f;
+			/* Mark frequencies above Nyquist */
+		} else {
+			double lower = 1.02829 - 1.67473e-1 * f + 1.06255e-2 * f * f - 2.80874e-4 * f * f * f;
 			double upper = 1.12;
 			if ((f <= 10 && f >= 0.998) && (sfr < lower || sfr > upper)) {
 				if (g_nocompare)
@@ -393,9 +394,11 @@ int main(int argc, char **argv) {
 					MTFPRINT("\t*\n")
 					/* Mark out of PIV spec values */
 				}
-				sprintf(problem_string,
-						"Computed SFR at %.3f cy/mm is outside PIV spec range of %.3f - %.2f\n",
-						f, lower, upper);
+				sprintf(
+					problem_string,
+					"Computed SFR at %.3f cy/mm is outside PIV spec range of %.3f - %.2f\n",
+					f, lower, upper
+				);
 				put_problem(problem_string, IQS);
 			} else
 				MTFPRINT("\n")
@@ -403,9 +406,9 @@ int main(int argc, char **argv) {
 	}
 
 	MTFPRINT("\n#  Frequencies above Nyquist\n")
-	if (piv_err)
-		MTFPRINT(
-				"\n*  SFR is outside PIV spec.  See problem report for details.\n")
+	if (piv_err){
+		MTFPRINT("\n*  SFR is outside PIV spec.  See problem report for details.\n")
+	}
 	first = reverse_lut(ref_lut, farea[0], lowest_val, highest_val);
 	last = reverse_lut(ref_lut, farea[4 * size_x - 1], lowest_val, highest_val);
 	if (rotation == RIGHT) {
@@ -472,18 +475,15 @@ int main(int argc, char **argv) {
 		else
 			MTFPRINT("(with -0.125 offset)\n")
 
-		for (i = begin, j = begin - offset; i < 0; j++, i++)
-			MTFPRINT3("% .2f \t\t% f\n", (i - center) / 4.0,
-					farea[4 * size_x + j] / max_edge)
-
-		for (; i < end && i < size_x * 4; j++, i++) {
-			MTFPRINT4("% .2f \t\t% f \t% f\n", (i - center) / 4.0,
-					farea[4 * size_x + j] / max_edge, farea[i])
+		for (i = begin, j = begin - offset; i < 0; j++, i++){
+			MTFPRINT3("% .2f \t\t% f\n", (i - center) / 4.0,farea[4 * size_x + j] / max_edge)
 		}
-		for (; i < end; j++, i++)
-			MTFPRINT3("% .2f \t\t% f\n", (i - center) / 4.0,
-					farea[4 * size_x + j] / max_edge)
-
+		for (; i < end && i < size_x * 4; j++, i++) {
+			MTFPRINT4("% .2f \t\t% f \t% f\n", (i - center) / 4.0, farea[4 * size_x + j] / max_edge, farea[i])
+		}
+		for (; i < end; j++, i++){
+			MTFPRINT3("% .2f \t\t% f\n", (i - center) / 4.0, farea[4 * size_x + j] / max_edge)
+		}
 		MTFPRINT("\n")
 
 		MTFPRINT("+ Pixel values are centered on the computed line fit\n")
@@ -1144,8 +1144,12 @@ void read_scan_line(TIFF *tif, unsigned char *buf, short line_num) {
 /*****************************************************************************/
 
 /* Read in a bit from the 4 corners of the ROI to determine orientation */
-void input_area(TIFF *tif, unsigned char *rotation, int rstart, int rend,
-		int cstart, int cend) {
+void input_area(
+	TIFF *tif,
+	unsigned char *rotation,
+	int rstart, int rend,
+	int cstart, int cend
+) {
 	short j;
 	unsigned char *buf;
 	double ave[4];

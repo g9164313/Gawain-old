@@ -87,6 +87,10 @@ LD_LIBS += $(LIB_FLYCAPTURE)
 #LD_LIBS += $(LIB_PYLON)
 ########################
 
+UTIL_FILE = util_cv.cpp util_jni.cpp
+
+LIB_SFRISO = ./SFR/FltrSlangEdge.cpp ./SFR/sfr_iso.c 
+
 #SFR_MITRE =  ./SFR/sfr_iso.c ./SFR/find_area.c
 IMG_FILTER = 
 
@@ -101,7 +105,7 @@ OBJECTS = $(SOURCES:.cpp=.o)
 
 CHECK_EXEC := $(word 2,$(shell pgrep -f "narl.itrc.Gawain"))
 
-$(TARGET_SO): utils_jni.cpp utils_cv.cpp CamBundle.cpp DevTTY.cpp $(IMG_FILTER) $(DEV_CAMERA) $(PRJ_CUSTOM)
+$(TARGET_SO): $(UTIL_FILE) CamBundle.cpp DevTTY.cpp $(IMG_FILTER) $(DEV_CAMERA) $(PRJ_CUSTOM) $(LIB_SFRISO)
 	$(CC) $(CC_FLAG)  -fPIC -shared -o $@ $^ $(LD_LIBS)
 	cp -rf $@ ../bin/narl/itrc/nat
 	cp -rf $@ ../src/narl/itrc/nat
@@ -114,12 +118,9 @@ else
 endif
 	
 
-$(TARGET_EXE):  ./wrap-unix/main_xx.cpp PrjLetterpress.cpp CamBundle.cpp utils_cv.cpp utils_jni.cpp
+$(TARGET_EXE):  ./wrap-unix/main_xx.cpp $(UTIL_FILE) $(LIB_SFRISO)
 #$(TARGET_EXE):  ./wrap-unix/FlyCap2.cpp
 	$(CC) $(CC_FLAG) -o $@ $^ $(LD_LIBS)
-
-#$(TARGET_EXE):  /home/qq/labor/opencv-3.1/contrib/modules/text/samples/character_recognition.cpp
-#	$(CC) $(CC_FLAG) -o $@ $^ $(LD_LIBS)
 
 all: $(TARGET_SO)
 #all: $(TARGET_EXE)

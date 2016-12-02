@@ -1,6 +1,8 @@
 package narl.itrc;
 
 import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -13,7 +15,10 @@ import com.sun.glass.ui.Application;
 import javafx.collections.ObservableList;
 import javafx.scene.Node;
 import javafx.scene.Parent;
+import javafx.scene.control.ContextMenu;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.TextArea;
+import javafx.stage.FileChooser;
 
 /**
  * Show text message, just like stdout screen~~~
@@ -39,7 +44,8 @@ public class BoxLogger extends PanDecorate {
 	
 	public void prepare() {
 		lstBox.add(this);
-		box.setEditable(false);
+		box.setEditable(false);		
+		init_menu();		
 		if(logFile!=null){
 			return;
 		}
@@ -53,6 +59,37 @@ public class BoxLogger extends PanDecorate {
 			logFile = null;
 			e.printStackTrace();
 		}		
+	}
+	
+	private void init_menu(){
+		ContextMenu menu = new ContextMenu();
+		MenuItem itm1 = new MenuItem("清除");
+		itm1.setOnAction(event->{
+			box.setText("");
+		});
+		MenuItem itm2 = new MenuItem("另存");
+		itm2.setOnAction(event->{
+			FileChooser chs = new FileChooser();
+            chs.setTitle("另存新檔");
+            chs.setInitialDirectory(Misc.fsPathRoot);
+            File fs = chs.showSaveDialog(Misc.getParent(event));
+            if(fs!=null){
+            	save_box(fs);
+            }
+		});
+		menu.getItems().addAll(itm1,itm2);
+		box.setContextMenu(menu);
+	}
+	
+	private void save_box(File fs){
+		try {
+			PrintWriter out = new PrintWriter(fs);
+			out.write(box.getText());
+			out.close();
+		} catch (FileNotFoundException e) {
+			//e.printStackTrace();
+			printf(e.getMessage());
+		}
 	}
 	
 	@Override
@@ -73,7 +110,8 @@ public class BoxLogger extends PanDecorate {
 			}
 		}
 	}
-
+	//----------------------------------------//
+	
 	private static PrintWriter logFile = null;
 	
 	private static ArrayList<BoxLogger> lstBox = new ArrayList<BoxLogger>();
