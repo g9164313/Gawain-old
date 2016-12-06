@@ -41,7 +41,7 @@ public abstract class PanBase {
 	 * After closing this panel, the widget will be enabled again~~~.<p>
 	 */
 	private Control trigger = null;
-	
+		
 	protected static final int FIRST_NONE = 0;
 	protected static final int FIRST_FULLSCREEN = 1;
 	protected static final int FIRST_MAXIMIZED = 2;
@@ -73,7 +73,7 @@ public abstract class PanBase {
 		return root;
 	}
 	
-	public Scene getScene(){ 
+	public Scene getScene(){
 		return scene;
 	}
 	
@@ -126,7 +126,7 @@ public abstract class PanBase {
 		doFirstAction();
 		stage.showAndWait();
 	}
-	
+
 	private void doFirstAction(){
 		switch(firstAction){
 		case FIRST_FULLSCREEN:
@@ -271,7 +271,7 @@ public abstract class PanBase {
 	}
 	//------------------------//
 	
-	public interface EventHook{
+	public interface EventHook {
 		void eventShowing(WindowEvent e);
 		void eventShown(WindowEvent e);
 		void eventWatch(int cnt);
@@ -301,15 +301,24 @@ public abstract class PanBase {
 		}
 	}
 	
+	private boolean flagPresent = false;
+	
+	public boolean isPresent(){
+		return  flagPresent;
+	}
+	
 	private EventHandler<WindowEvent> eventWindow = new EventHandler<WindowEvent>(){
 		@Override
 		public void handle(WindowEvent event) {
 			//if stage have no handle, direct event to here!!!
-			if(WindowEvent.WINDOW_SHOWING==event.getEventType()){				
+			if(WindowEvent.WINDOW_SHOWING==event.getEventType()){
+				flagPresent = false;
 				eventShowing(event);
 			}else if(WindowEvent.WINDOW_SHOWN==event.getEventType()){
+				flagPresent = true;
 				eventShown(event);
 			}else if(WindowEvent.WINDOW_HIDING==event.getEventType()){
+				flagPresent = false;
 				if(trigger!=null){
 					trigger.setDisable(false);
 				}

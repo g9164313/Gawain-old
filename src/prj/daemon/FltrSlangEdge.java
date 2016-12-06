@@ -1,8 +1,11 @@
 package prj.daemon;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 
-import javafx.collections.ObservableList;
+import com.jfoenix.controls.JFXTextField;
+
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.chart.LineChart;
@@ -16,6 +19,7 @@ import narl.itrc.CamBundle;
 import narl.itrc.ImgFilter;
 import narl.itrc.ImgPreview;
 import narl.itrc.ImgRender;
+import narl.itrc.Misc;
 import narl.itrc.PanBase;
 import narl.itrc.PanDecorate;
 
@@ -53,14 +57,14 @@ public class FltrSlangEdge extends ImgFilter {
 	@Override
 	public boolean showData(ArrayList<ImgPreview> list) {
 		if(frq!=null && sfr!=null){
-			info.setSeries(frq,sfr);
+			ctrl.setSeries(frq,sfr);
 		}else{
 			PanBase.notifyError("FltrSlangEdge", "內部錯誤");
 		}
 		return true;
 	}
 	
-	public class PanInfo extends PanBase {
+	public class PanCtrl extends PanBase {
 		
 		private LineChart<Number,Number> chart;
 		
@@ -71,7 +75,6 @@ public class FltrSlangEdge extends ImgFilter {
 			
 			XYChart.Series ss1 = new XYChart.Series();
 			ss1.setName("Freq<");
-			
 			XYChart.Series ss2 = new XYChart.Series();
 			ss2.setName("<Freq");
 
@@ -93,9 +96,10 @@ public class FltrSlangEdge extends ImgFilter {
 			ss3.getData().add(new XYChart.Data(xx[idxSfrLess],1));
 			
 			chart.getData().addAll(ss1,ss2,ss3);
-			
 			show_result();
 		}
+
+		private JFXTextField txtPixSize;
 		
 		private Label[] txtInfo = {
 			new Label(),new Label(),new Label(),
@@ -112,6 +116,25 @@ public class FltrSlangEdge extends ImgFilter {
 			txtInfo[5].setText(String.format("%.1f cy/mm",_v));
 		}
 
+		private void export_sheet(){
+			try {
+				FileWriter fs = new FileWriter(Misc.pathRoot+"SFR.txt");
+				fs.write("cy/mm \tSFR \t edge\n");
+				for(int i=0; i<frq.length; i++){
+					fs.write(String.format("%3.3f\t%.3f \t",frq[i],sfr[i]));
+					if(i>=idxFrqOver){
+						fs.write("#\n");
+					}else{
+						fs.write("\n");
+					}
+				}
+				fs.close();
+				PanBase.notifyInfo("Slang Edge","輸出至 SFR.txt");
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		
 		private Node layoutChart(){
 			final NumberAxis x_axis = new NumberAxis();
 	        final NumberAxis y_axis = new NumberAxis(0.,1.,0.1);
@@ -129,23 +152,36 @@ public class FltrSlangEdge extends ImgFilter {
 			
 			final Button btnCalculate = PanBase.genButton1("演算",null);
 			btnCalculate.setOnAction(event->{
+				String txt = txtPixSize.getText();
+				if(Misc.isValidPhy(txt)==true){
+					double pix = Misc.phyConvert(txt, "mm");
+					pix_mm = 1./pix;
+				}else{
+					//something wrong, just reset it~~
+					txtPixSize.setText("5 um");
+					pix_mm = 200.;
+				}
 				rndr.attach(FltrSlangEdge.this);
 			});
 			btnCalculate.setPrefWidth(100.);
 			
 			final Button btnExport = PanBase.genButton1("匯出",null);
 			btnExport.setOnAction(event->{
-				
+				export_sheet();
 			});
 			
-			lay.add(btnCalculate, 0,0, 2, 1);
-			lay.add(btnExport, 0,1, 2, 1);
-			lay.addRow(2,new Label("Slope ："),txtInfo[0]);
-			lay.addRow(3,new Label("Cycles："),txtInfo[1]);
-			lay.addRow(4,new Label("Left  ："),txtInfo[2]);
-			lay.addRow(5,new Label("Right："),txtInfo[3]);
-			lay.addRow(6,new Label("R² fit："),txtInfo[4]);
-			lay.addRow(7,new Label("half-freq："),txtInfo[5]);
+			txtPixSize = new JFXTextField("5 um");                    
+			txtPixSize.setPromptText("pixel size");
+			
+			lay.add(btnCalculate,0, 0, 2, 1);
+			lay.add(btnExport,   0, 1, 2, 1);
+			lay.add(txtPixSize,  0, 2, 2, 1);
+			lay.addRow(3,new Label("Slope ："),txtInfo[0]);
+			lay.addRow(4,new Label("Cycles："),txtInfo[1]);
+			lay.addRow(5,new Label("Left  ："),txtInfo[2]);
+			lay.addRow(6,new Label("Right："),txtInfo[3]);
+			lay.addRow(7,new Label("R² fit："),txtInfo[4]);
+			lay.addRow(8,new Label("half-SRF："),txtInfo[5]);
 			return PanDecorate.group(lay);
 		}
 				
@@ -158,5 +194,5 @@ public class FltrSlangEdge extends ImgFilter {
 		}
 	};
 	
-	public PanInfo info = new PanInfo();
+	public PanCtrl ctrl = new PanCtrl();
 }

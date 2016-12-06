@@ -88,8 +88,7 @@ public class CamFlyCapture extends CamBundle {
 	private native void implShowCtrl(CamBundle cam);
 	
 	@Override
-	public Parent genPanelSetting(PanBase pan) {
+	public void showSetting(ImgPreview prv) {
 		implShowCtrl(this);
-		return null;
 	}
 }

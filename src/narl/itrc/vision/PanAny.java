@@ -1,4 +1,4 @@
-package narl.itrc.camsetting;
+package narl.itrc.vision;
 
 import com.jfoenix.controls.JFXTextField;
 
@@ -19,8 +19,7 @@ import javafx.stage.WindowEvent;
  */
 public class PanAny extends ScrollPane implements PanBase.EventHook {
 
-	public PanAny(PanBase pan,CamVidcap device){		
-		pan.hook = this;
+	public PanAny(CamVidcap device){		
 		dev = device;
 		initLayout();
 	}

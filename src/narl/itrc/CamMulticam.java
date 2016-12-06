@@ -79,8 +79,7 @@ public class CamMulticam extends CamBundle {
 	}
 
 	@Override
-	public Parent genPanelSetting(PanBase pan) {
-		return null;
+	public void showSetting(ImgPreview prv) {
 	}	
 	//----------------------------------------//
 	

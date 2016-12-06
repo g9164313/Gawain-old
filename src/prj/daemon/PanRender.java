@@ -6,6 +6,7 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.WindowEvent;
+import narl.itrc.CamDummy;
 import narl.itrc.CamVidcap;
 import narl.itrc.ImgRender;
 import narl.itrc.Misc;
@@ -20,8 +21,9 @@ public class PanRender extends PanBase {
 
 	public PanRender(){
 		//final String testFile = ":/home/qq/labor/opencv-3.1/contrib/modules/text/samples/scenetext_segmented_word%02d.jpg";
-		final String testFile = "/home/qq/labor/bang/aaa_%02d.pgm";
-		rndr = new ImgRender(new CamVidcap("FILE:0:"+testFile));
+		final String testFile = "/home/qq/labor/bang/edge.pgm";
+		rndr = new ImgRender(new CamDummy(testFile));
+		//rndr = new ImgRender(new CamVidcap("FILE:0:"+testFile));
 		//rndr = new ImgRender(new CamVidcap("0"));
 		//rndr = new ImgRender(new CamVidcap("VFW:0"));
 		//rndr = new ImgRender(new CamMulticam("ral12288-FULL"));
@@ -61,14 +63,14 @@ public class PanRender extends PanBase {
 		
 		final Button btnSetting = PanBase.genButton1("設定","wrench.png");
 		btnSetting.setOnAction(event->{
-			rndr.getBundle(0).showPanel();
+			//TODO: how to show settting panel
 		});
 		
 		final FltrSlangEdge fltr = new FltrSlangEdge(rndr);
 		
 		final Button btnProbe = PanBase.genButton2("測試","walk.png");
 		btnProbe.setOnAction(event->{
-			fltr.info.appear();
+			fltr.ctrl.appear();
 		});
 		
 		final Button btnClose = PanBase.genButton1("離開","close.png");	

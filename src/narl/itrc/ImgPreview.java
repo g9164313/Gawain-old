@@ -2,6 +2,7 @@ package narl.itrc;
 
 import com.sun.glass.ui.Application;
 
+import javafx.scene.Parent;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
@@ -15,7 +16,7 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 
 public class ImgPreview extends BorderPane {
-		
+	
 	public CamBundle bundle = null;
 	public ImgRender render = null;
 	
@@ -235,8 +236,8 @@ public class ImgPreview extends BorderPane {
 		//root.getItems().add(itm);
 		
 		itm = new MenuItem("設定相機");
-		itm.setOnAction(event->{
-			bundle.genPanelSetting(null);
+		itm.setOnAction(event->{			
+			bundle.showSetting(this);
 		});
 		root.getItems().add(itm);
 		

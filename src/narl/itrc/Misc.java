@@ -123,7 +123,7 @@ public class Misc {
 	}
 	//----------------------------------------//
 	
-	private static final double l0_254 = 1./25.4;
+	//private static final double l0_254 = 1./25.4;
 	private static final double l1_254 = 10./25.4;
 	private static final double l3_254 = 1000./25.4;
 	private static final double l4_254 = 1e4/25.4;
@@ -208,21 +208,44 @@ public class Misc {
 		}
 		return 0.;//??? what is going on ???
 	}
-	
+
 	public static String[] phySplit(String txt){
-		txt = txt.replaceAll("\\s+", "");
-		String[] seg = {"",""};
-		char[] cc = txt.toCharArray();
+		txt = txt.replaceAll("\\s+", "");		
 		int i = 0;
-		while(('0'<=cc[i] && cc[i]<='9') || cc[i]=='.'){
-			seg[0] = seg[0] + cc[i];
-			i++;
+		for(i=0; i<txt.length(); i++){
+			char cc = txt.charAt(i);
+			if( !(('0'<=cc && cc<='9') || cc=='.') ){
+				break;
+			}
 		}
-		while(i<txt.length()){
-			seg[1] = seg[1] + cc[i];
-			i++;
+		String[] arg = new String[2];
+		arg[0] = txt.substring(0, i);
+		arg[1] = txt.substring(i);
+		return arg;
+	}
+	
+	/**
+	 * check the statement is a valid physical value.<p>
+	 * A valid physical is composed of numeral and SI unit.
+	 * @param txt - text statement
+	 * @return true - a valid physical value.<p>
+	 *         false- no numeral or invalid SI unit
+	 */
+	public static boolean isValidPhy(String txt){		
+		String[] arg = phySplit(txt);
+		//check numeral
+		if(arg[0].length()==0){
+			return false;
 		}
-		return seg;
+		//check SI unit
+		for(int j=0; j<unitAll.length; j++){
+			for(int i=0; i<unitAll[j].length; i++){
+				if(arg[1].contains(unitAll[j][i])==true){
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 	
 	public static double phyConvert(
@@ -444,6 +467,15 @@ public class Misc {
 		return null;
 	}
 
+	public static String checkSeparator(String txt){
+		int len = txt.length();
+		if(txt.charAt(len-1)==File.separatorChar){
+			return txt;
+		}
+		return txt + File.separatorChar;
+	}
+	//------------------------------------------------//
+	
 	private static int    chkSerialIndx = 0;
 	private static String chkSerialName = "";
 	public static String checkSerial(String fullName){
@@ -688,6 +720,14 @@ public class Misc {
 		}
 		return txt.substring(0,pos);
 	}
+	
+	public static String trimSeparator(String txt){
+		int len = txt.length();
+		if(txt.charAt(len-1)==File.separatorChar){
+			txt = txt.substring(0,len-1);
+		}
+		return txt;
+	}
 	//--------------------------//
 	
 	/**
@@ -772,41 +812,6 @@ public class Misc {
 			);
 		}
 	} 
-	//--------------------------//
-
-	//Do we need this ???
-	public static native void namedWindow(String name);
-	
-	public static native void renderWindow(String name,long ptr);
-	
-	public static native void destroyWindow(String name);
-	
-	public static native void imWrite(String name,long ptr);//Should we move this to 'CamBundle' ???
-	
-	public static native void imWriteRoi(String name,long ptr,int[] roi);
-	
-	public static String imWriteX(String fullName,long ptr){		
-		fullName = checkSerial(fullName);
-		imWriteX(fullName,ptr,null);
-		return fullName;
-	}
-	
-	public static String imWriteX(String fullName,long ptr,int[] roi){		
-		fullName = checkSerial(fullName);
-		if(roi==null){
-			imWrite(fullName,ptr);
-		}else{
-			imWriteRoi(fullName,ptr,roi);
-		}
-		return fullName;
-	}
-
-	public static native long imRead(String name,int flags);
-	
-	public static native void imRelease(long ptr);//just release Mat pointer
-
-	public static native long imCreate(int width,int height,int type);//just release Mat pointer
-	
 	//--------------------------//
 	//I don't know how to set up category for below lines
 	

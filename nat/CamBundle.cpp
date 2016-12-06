@@ -240,5 +240,20 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamBundle_saveImageROI(
 	env->ReleaseIntArrayElements(jroi,roi,0);
 }
 
-
+extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamBundle_loadImage(
+	JNIEnv * env,
+	jobject bundle,
+	jstring jname,
+	int flag
+){
+	MACRO_READY
+	char name[500];
+	jstrcpy(env,jname,name);
+	Mat img = imread(name,flag);
+	if(img.empty()==true){
+		return;
+	}
+	MACRO_RESET_FIELD(0L,img.cols,img.rows,img.type())
+	set_img_array(env,bundle,idImgBuff,img,"imgBuff",".png");
+}
 

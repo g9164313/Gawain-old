@@ -1,8 +1,8 @@
 package narl.itrc;
 
-import narl.itrc.camsetting.PanAny;
-import narl.itrc.camsetting.PanVFW;
 import javafx.scene.Parent;
+import narl.itrc.vision.PanAny;
+import narl.itrc.vision.PanVFW;
 
 public class CamVidcap extends CamBundle {
 
@@ -132,53 +132,14 @@ public class CamVidcap extends CamBundle {
 	public void close() {
 		implClose(this);
 	}
-	// -----------------------//
-
-	/*private Parent getPanel0() {
-		GridPane root = new GridPane();
-		root.getStyleClass().add("grid-small");
-		
-		final int[] opt = {
-			CAP_PROP_FRAME_WIDTH,
-			CAP_PROP_FRAME_HEIGHT,
-			CAP_PROP_EXPOSURE,
-			CAP_PROP_FORMAT
-		};
-		final String[] txt = {
-			"影像寬",
-			"影像高",
-			"曝光值"
-		};
-		final BoxIntValue[] box = {
-			new BoxIntValue(txt[0]),
-			new BoxIntValue(txt[1]),
-			new BoxIntValue(txt[2])
-		};
-		
-		for(int i=0; i<opt.length; i++){
-			int val = (int)getProp(CamVidcap.this,opt[i]);
-			box[i].setInteger(val);
-			box[i].setEvent(event->{
-				setProp(
-					CamVidcap.this,
-					opt[0],
-					box[0].propValue.get()
-				);
-			});
-		}
-
-		root.addRow(0,new Label(txt[0]), box[0]);
-		root.addRow(1,new Label(txt[1]), box[1]);
-		root.addRow(2,new Label(txt[2]), box[2]);
-		return root;
-	}*/
-
+	
 	@Override
-	public Parent genPanelSetting(PanBase pan) {
+	public void showSetting(ImgPreview prv) {
 		switch (capDomain) {
 		default:
-		case CAP_ANY: return new PanAny(pan,this);
-		case CAP_VFW: return new PanVFW(pan,this);			
+		case CAP_ANY: new PanAny(this);
+		case CAP_VFW: new PanVFW(this);			
 		}
 	}
+	// -----------------------//
 }

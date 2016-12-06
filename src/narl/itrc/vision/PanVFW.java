@@ -1,4 +1,4 @@
-package narl.itrc.camsetting;
+package narl.itrc.vision;
 
 import java.util.ArrayList;
 
@@ -29,8 +29,7 @@ public class PanVFW extends ScrollPane implements PanBase.EventHook {
 	
 	private String ARG_NAME = "";
 	
-	public PanVFW(PanBase pan,CamVidcap device){
-		pan.hook = this;
+	public PanVFW(CamVidcap device){
 		dev = device;
 		initLayout();
 	}
@@ -74,7 +73,7 @@ public class PanVFW extends ScrollPane implements PanBase.EventHook {
 				ctrl = new Label("no support-->"+type); 
 			}
 		}
-		public int min,max,stp,def,val;
+		public int min,max,stp,val;
 		public Label name,indi;
 		public Control ctrl;
 		public CheckBox flag = null;
@@ -151,7 +150,7 @@ public class PanVFW extends ScrollPane implements PanBase.EventHook {
 				}else if(v.contains("step")==true){
 					stp = getValue(v);
 				}else if(v.contains("default")==true){
-					def = getValue(v);
+					//def = getValue(v);
 				}else if(v.contains("value")==true){
 					val = getValue(v);
 				}else if(v.contains("flags")==true){

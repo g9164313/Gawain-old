@@ -2,8 +2,6 @@ package narl.itrc;
 
 import java.io.ByteArrayInputStream;
 
-import javafx.scene.Parent;
-import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 
 public abstract class CamBundle {
@@ -91,15 +89,30 @@ public abstract class CamBundle {
 	public abstract void close();
 	
 	/**
-	 * generate a panel to control camera options
+	 * generate a panel to set camera options
 	 * @return a panel, it will be the part of control layout
 	 */
-	public abstract Parent genPanelSetting(PanBase pan);
+	public abstract void showSetting(ImgPreview prv);
 
+	public native void saveImage(String name);
+	
+	public native void saveImageROI(String name,int[] roi);
+	
+	public native void loadImage(String name,int flag);
+	//-----------------------------//
+	
+	/**
+	 * image is encoded by compressor.<p>
+	 * @return  javaFX image
+	 */
 	public Image getImgBuff(){ 
 		return get_image(imgBuff); 
 	}
 	
+	/**
+	 * overlay image.<p>
+	 * @return  javaFX image
+	 */
 	public Image getImgInfo(){
 		return get_image(imgInfo); 
 	}
@@ -111,27 +124,17 @@ public abstract class CamBundle {
 		return new Image(new ByteArrayInputStream(arr));
 	}
 	
+	/**
+	 * clear overlay information
+	 */
 	public void clearImgInfo(){		
 		imgInfo = null;
 	}
 	
-	public void showPanel(){		
-		new PanBase("相機設定"){
-			@Override
-			public Parent layout() {
-				Parent root = genPanelSetting(this);
-				if(root==null){
-					return new Label("不支援");
-				}
-				return root;
-			}
-		}.appear();
-	}
-	
-	public void syncSetup(){
-		setup(txtConfig);
-	}
-	
+	/**
+	 * some setup procedure takes too long time like GigE-Vision.<p>
+	 * So, we need thread to setup camera.
+	 */
 	private Thread thdSetup;
 	public void asynSetup(String txtConfig){
 		if(thdSetup!=null){
@@ -151,9 +154,12 @@ public abstract class CamBundle {
 		return (ptrCntx==0)?(false):(true);
 	}
 	
-	public native void saveImage(String name);
-	
-	public native void saveImageROI(String name,int[] roi);
+	protected boolean isFilled(){
+		if(imgBuff==null){
+			return false;
+		}
+		return true;
+	}
 }
 
 
