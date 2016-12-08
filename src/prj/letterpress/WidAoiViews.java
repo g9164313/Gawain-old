@@ -123,9 +123,9 @@ public class WidAoiViews extends BorderPane {
 				return false;//???why???
 			}
 			txtLocaRect();
-			int hypth = Math.min(vec[2][0],vec[2][1]);
-			if(Math.abs(hypth)<20){
-				Misc.logv("--------重設原點--------");
+			//int hypth = Math.min(vec[2][0],vec[2][1]);
+			if(vec[2][0]<10 && vec[2][1]<10){
+				Misc.logv("--------Aligment--------");
 				Entry.stg0.exec("DE 0,0,0,0;DP 0,0,0,0;\r\n"); 
 				Entry.stg0.exec_TP();
 				return true;//we success!!!!!
@@ -173,22 +173,22 @@ public class WidAoiViews extends BorderPane {
 
 	/**
 	 * 0 - debug mode
-	 * 1 - Binary-Threshold for Cross-T
+	 * 1 - Binary-Threshold for Cross-T.right
 	 * 2 - Morphology-kernel for Cross-T
 	 * 3 - Epsilon for Cross-T
 	 * 
 	 * 9 - Binary-Threshold for Rectangle
 	 * 10- Morphology-kernel for Rectangle
 	 */
-	private int[] param = {0,
+	private int[] param = {
+		0,
 		125,5,7,0,
 		0,0,0,0,
-		128,5,0,0,
+		100,5,0,0,
 		0,0,0,0
 	};
 	
 	private float[] scoreCross = {0,0};//left, right
-	//private int[][] locaCross = {{300,539},{486,540}};
 	private int[][] locaCross = {{251,609},{546,590}};
 
 	private double[] scoreRect = {0,0};//left, right
@@ -245,8 +245,7 @@ public class WidAoiViews extends BorderPane {
 		
 		lay2.addRow(1,new Label("Cross - Thres："),genBoxValue(1));
 		lay2.addRow(2,new Label("Cross - Struct：") ,genCmbRange(2));
-		lay2.addRow(3,new Label("Cross - Epsilon："),genCmbRange(3));
-	
+		lay2.addRow(3,new Label("Cross - Epsilon："),genCmbRange(3));		
 		lay2.addRow(4,new Label("Rect - Thres："),genBoxValue(9));
 		lay2.addRow(5,new Label("Rect - Struct：") ,genCmbRange(10));
 

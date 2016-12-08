@@ -171,6 +171,14 @@ public abstract class TskAction implements EventHandler<ActionEvent> {
 	@SuppressWarnings("unchecked") 
 	public static EventHandler<ActionEvent> createKeyframe(
 		final EventHandler<ActionEvent>... lst
+	){
+		return createKeyframe(false,lst);
+	}
+	
+	@SuppressWarnings("unchecked") 
+	public static EventHandler<ActionEvent> createKeyframe(
+		final boolean isRepeat, 
+		final EventHandler<ActionEvent>... lst
 	){		
 		final EventHandler<ActionEvent> act_keyframe = 
 			new EventHandler<ActionEvent>()
@@ -184,7 +192,7 @@ public abstract class TskAction implements EventHandler<ActionEvent> {
 				timer = null;//reset this				
 				for(Object obj:lst){
 					if(obj instanceof TskAction){
-						((TskAction)obj).isTrigger=false;//reset it for next turn~~~~
+						((TskAction)obj).isTrigger = false;//reset it for next turn~~~~
 					}else if(obj instanceof ImgFilter){
 						((ImgFilter)obj).isTrigger = false;//reset it for next turn~~~~
 					}
@@ -193,9 +201,13 @@ public abstract class TskAction implements EventHandler<ActionEvent> {
 			
 			private KeyFrame looper = new KeyFrame(Duration.millis(250), event->{
 				if(idx>=lst.length){
-					reset();//we done!!!
-					Misc.logv("任務完成...");
-					return;
+					if(isRepeat==true){
+						idx = 0;//reset index~~~~
+					}else{
+						reset();//we done!!!
+						Misc.logv("任務完成...");
+						return;
+					}					
 				}
 				Object obj = lst[idx];
 				//how do we trigger???
@@ -238,7 +250,7 @@ public abstract class TskAction implements EventHandler<ActionEvent> {
 					reset();
 					Misc.logv("取消任務中...");
 					return;
-				}				
+				}
 				timer = new Timeline();
 				timer.setCycleCount(Timeline.INDEFINITE);
 				timer.getKeyFrames().add(looper);

@@ -95,7 +95,7 @@ public class Entry extends PanBase {
 		//pager.getSelectionModel().select(1);
 		
 		//---main function and shortcut---//
-		Node nod1 = new BoxLogger(200,100);		
+		Node nod1 = new BoxLogger(100);		
 		Node nod2 = new PanMotion1();
 		Node nod3 = new PanOption();
 		Node nod4 = new PanHelpful();
