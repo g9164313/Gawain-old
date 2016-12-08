@@ -23,6 +23,7 @@ import narl.itrc.ImgPreview;
 import narl.itrc.ImgRender;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
+import narl.itrc.PanDecorate;
 
 /**
  * AXIS-A : 10pps <==> 50um
@@ -180,7 +181,7 @@ public class WidAoiViews extends BorderPane {
 	 * 10- Morphology-kernel for Rectangle
 	 */
 	private int[] param = {0,
-		150,5,7,0,
+		125,5,7,0,
 		0,0,0,0,
 		128,5,0,0,
 		0,0,0,0
@@ -212,7 +213,6 @@ public class WidAoiViews extends BorderPane {
 		}else{
 			implInitEnviroment(null,null);
 		}
-
 		setCenter(layoutViews());
 		setRight(layoutOption());		
 		txtLocaCross();
@@ -269,25 +269,26 @@ public class WidAoiViews extends BorderPane {
 			txtTarget[6],new Label(SPACE),txtTarget[7]
 		);
 		//----actions----
-		Button btnMarkCros = PanBase.genButton1("標定十字",null);
+		Button btnMarkCros = PanBase.genButton0("標定十字",null);
 		btnMarkCros.setOnAction(event->{
 			resetLocaCross();
 			resetLocaRect();
 			Entry.rndr.attach(filterCalibrate);
 		});
 		
-		Button btnMarkRect = PanBase.genButton1("標定口型",null);
+		Button btnMarkRect = PanBase.genButton0("標定口型",null);
 		btnMarkRect.setOnAction(event->{
 			resetLocaRect();			
 			Entry.rndr.attach(filterMarkRect);
 		});
 
-		Button btnMarkAlign = PanBase.genButton1("標靶對位",null);
+		Button btnMarkAlign = PanBase.genButton0("標靶對位",null);
 		btnMarkAlign.setOnAction(filterAlign);
 		
 		//----combine them all----
-		VBox lay1 = new VBox();
+		VBox lay1 = new VBox();		
 		lay1.getStyleClass().add("vbox-small");
+		lay1.setStyle("-fx-background-color: rgb(253,253,253)");//trick!!!!
 		lay1.getChildren().addAll(
 			btnMarkCros,
 			btnMarkRect,
@@ -299,7 +300,7 @@ public class WidAoiViews extends BorderPane {
 		);
 		ScrollPane root = new ScrollPane();
 		root.setContent(lay1);
-		return root;
+		return PanDecorate.group("MVS Status",root);
 	}
 
 	private Node genBoxValue(final int idx){

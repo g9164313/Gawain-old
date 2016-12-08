@@ -1,11 +1,10 @@
 package prj.letterpress;
 
-import com.jfoenix.controls.JFXTabPane;
-
 import javafx.geometry.Side;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
 import javafx.scene.control.TabPane.TabClosingPolicy;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
@@ -16,11 +15,14 @@ import narl.itrc.CamFlyCapture;
 import narl.itrc.DevTTY;
 import narl.itrc.ImgRender;
 import narl.itrc.PanBase;
+import narl.itrc.PanDecorate;
 
 public class Entry extends PanBase {
 
 	public Entry(){
-		firstAction = FIRST_MAXIMIZED;
+		//firstAction = FIRST_MAXIMIZED;
+		customStyle = Entry.class.getResource("style.css");
+		PanDecorate.STYLE = PanDecorate.STYLE_BORDER1;
 		inst = this;
 	}
 
@@ -58,17 +60,17 @@ public class Entry extends PanBase {
 		}
 		if(stgEnable==true){
 			//1pps <==> 5um
-			stg0.setFactor(200,200,200,200);
+			stg0.setFactor(100,100,100,100);
 			stg0.setTokenBase('A');
 			stg0.setRoutine('B','A','D','C');
 			stg0.exec("RS\r\n");//this command must be executed independently.
 			stg0.exec(
-				"SP 10000,10000,10000,10000;"+
-			    "AC 10000,10000,10000,10000;"+
-				"DC 10000,10000,10000,10000;"+
+				"SP 20000,20000,10000,10000;"+
+			    "AC 20000,20000,10000,10000;"+
+				"DC 20000,20000,10000,10000;"+
 			    "TP\r\n"
 			);
-			PanHelpful.enableAOI(true);
+			PanOption.enableAOI(true);
 		}		
 	}
 	
@@ -76,7 +78,7 @@ public class Entry extends PanBase {
 	protected void eventClose(WindowEvent e){
 	}
 	
-	public static JFXTabPane pager = new JFXTabPane();
+	public static TabPane pager = new TabPane();
 	
 	@Override
 	public Parent layout() {
@@ -92,17 +94,23 @@ public class Entry extends PanBase {
 		pager.getSelectionModel().select(0);
 		//pager.getSelectionModel().select(1);
 		
-		//----operation & logger----
-		Node nod1 = new BoxLogger(100);
-		Node nod2 = new PanHelpful();
+		//---main function and shortcut---//
+		Node nod1 = new BoxLogger(200,100);		
+		Node nod2 = new PanMotion1();
+		Node nod3 = new PanOption();
+		Node nod4 = new PanHelpful();
+		
 		HBox lay2 = new HBox();
-		lay2.getChildren().addAll(nod1,nod2);
+		lay2.getStyleClass().add("hbox-medium");
+		lay2.getChildren().addAll(nod1,nod2,nod3,nod4);
 		HBox.setHgrow(nod1,Priority.ALWAYS);
 		HBox.setHgrow(nod2,Priority.ALWAYS);
-
+		HBox.setHgrow(nod3,Priority.ALWAYS);
+		HBox.setHgrow(nod4,Priority.ALWAYS);
+		
 		//combine them all~~~
 		BorderPane lay1 = new BorderPane();
-		lay1.setCenter(pager);
+		lay1.setCenter(pager);		
 		lay1.setBottom(lay2);
 		return lay1;
 	}

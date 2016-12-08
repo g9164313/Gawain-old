@@ -40,6 +40,12 @@ public class BoxLogger extends PanDecorate {
 		box.setPrefHeight(height);
 	}
 	
+	public BoxLogger(int width,int height){
+		this();
+		box.setPrefWidth(width);
+		box.setPrefHeight(height);
+	}
+	
 	private static SimpleDateFormat logTime = new SimpleDateFormat("[yyyy/MM/dd HH:mm:ss]");
 	
 	public void prepare() {

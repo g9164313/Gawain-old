@@ -49,6 +49,8 @@ public abstract class PanBase {
 
 	private Scene scene=null;
 	private Stage stage=null;
+		
+	protected java.net.URL customStyle = null;
 	
 	public abstract Parent layout();
 	
@@ -225,6 +227,9 @@ public abstract class PanBase {
 		root = layout();		
 		scene = new Scene(new StackPane(root,spin));
 		scene.getStylesheets().add(Gawain.class.getResource("res/styles.css").toExternalForm());
+		if(customStyle!=null){
+			scene.getStylesheets().add(customStyle.toExternalForm());
+		}
 		scene.setUserData(PanBase.this);
 	}
 	//------------------------//
@@ -458,6 +463,27 @@ public abstract class PanBase {
 			lay.getChildren().add(ctl);
 		}
 		return lay;
+	}
+	
+	public static Button genButton0(
+		final String title,
+		final String iconName
+	){
+		return gen_def_button(title,iconName);
+	}
+	
+	private static Button gen_def_button(
+		final String title,
+		final String iconName
+	){
+		Button btn = new Button(title);
+		if(iconName!=null){
+			if(iconName.length()!=0){
+				btn.setGraphic(Misc.getIcon(iconName));
+			}
+		}		
+		btn.setMaxWidth(Double.MAX_VALUE);
+		return btn;
 	}
 	
 	public static Button genButton1(

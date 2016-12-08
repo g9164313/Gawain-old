@@ -21,11 +21,12 @@ import javafx.scene.image.WritableImage;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.transform.Affine;
 import javafx.stage.FileChooser;
 
-public abstract class WidMapBase extends PanDecorate {
+public abstract class WidMapBase extends StackPane {
 
 	private static final SnapshotParameters parm = new SnapshotParameters();
 	
@@ -45,8 +46,8 @@ public abstract class WidMapBase extends PanDecorate {
 	}
 	
 	public WidMapBase(String title){
-		super(title);
 		init();
+		this.getChildren().add(layoutBody());
 	}
 
 	private void init(){
@@ -647,9 +648,8 @@ public abstract class WidMapBase extends PanDecorate {
 	
 	public static Side dir = Side.LEFT;//Should we let user modify this ???
 	
-	@Override
 	public Node layoutBody() {
-				
+		
 		ScrollPane lay2 = new ScrollPane();		
 		mapScreen = new Canvas();//this is dummy~~~
 		lay2.setContent(mapScreen);

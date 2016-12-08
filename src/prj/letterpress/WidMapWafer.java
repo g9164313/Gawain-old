@@ -16,6 +16,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.ArcType;
 import narl.itrc.BoxPhyValue;
 import narl.itrc.PanBase;
+import narl.itrc.PanDecorate;
 import narl.itrc.WidMapBase;
 
 import com.jfoenix.controls.JFXComboBox;
@@ -29,7 +30,6 @@ public class WidMapWafer extends WidMapBase {
 	private BoxPhyValue boxLane;
 
 	public WidMapWafer(){
-		super("顆粒配置圖");
 		setMapSize(getDiameter());
 		setDieSize(
 			boxDieW.getValue(),
@@ -121,7 +121,7 @@ public class WidMapWafer extends WidMapBase {
 		lay1.add(new Label("ZOOM"), 0, 6, 1, 1);
 		lay1.add(PanBase.fillHBox(btnInc,btnDec), 1, 6, 2, 1);
 
-		return lay1;
+		return PanDecorate.group("WAS Status",lay1);
 	}
 	
 	@Override
@@ -248,6 +248,9 @@ public class WidMapWafer extends WidMapBase {
 		lstDie.get(5).key = 8;
 		lstDie.get(3).key = 9;
 		lstDie.get(1).key = 10;
+		for(Die dd:lstDie){
+			lstSeq.put(dd.key, dd);
+		}
 	}
 	
 	public void calculate_interleave_path(){
