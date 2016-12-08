@@ -30,47 +30,46 @@ public class PanHelpful extends PanDecorate {
 		btnScan.setOnAction(tsk_scanning);
 
 		Button btnGoing = PanBase.genButton0("快速執行","run.png");		
-		btnGoing.setOnAction(TskAction.createKeyframe(true,
+		btnGoing.setOnAction(TskAction.createKeyframe(false,
 			Entry.inst.prvw.filterAlign,
-			event->{
-				PanOption.enableAOI(false);
-				Entry.pager.getSelectionModel().select(1);
-			},
+			event->PanOption.enableAOI(false),
 			tsk_scanning,
-			event->{
-				PanOption.enableAOI(true);
-				Entry.pager.getSelectionModel().select(0);
-			}
+			event->PanOption.enableAOI(true)
 		));
 		
-		Button btnDemo1 = PanBase.genButton0("demo-1","bike.png");
-		
-		Button btnDemo2 = PanBase.genButton0("demo-2","bike.png");
-		btnDemo2.setOnAction(TskAction.createKeyframe(true,			
+		Button btnDemo1 = PanBase.genButton0("demo-expo","bike.png");
+		btnDemo1.setOnAction(TskAction.createKeyframe(true,
+			event->PanOption.enableAOI(false),
 			tsk_scanning,
-			tsk_holder,
-			event->{
-				PanOption.enableAOI(true);
-				Entry.pager.getSelectionModel().select(0);
-			},
-			tsk_holder,
-			event->{
-				PanOption.enableAOI(false);
-				Entry.pager.getSelectionModel().select(1);
-			}
+			event->PanOption.enableAOI(true),
+			tsk_gohome
 		));
 		
-		Button btnHome = PanBase.genButton0("校正原點","arrow-compress-all.png");
-		btnHome.setOnAction(tsk_gohome);
+		Button btnDemo2 = PanBase.genButton0("demo-full","bike.png");
+		btnDemo2.setOnAction(TskAction.createKeyframe(true,
+			Entry.inst.prvw.filterAlign,
+			event->PanOption.enableAOI(false),
+			tsk_scanning,
+			event->PanOption.enableAOI(true),
+			tsk_gohome
+		));
 
-		Button btnHold = PanBase.genButton0("進/退片","coffee-to-go.png");
-		btnHold.setOnAction(tsk_holder);
+		Button btnOrigin = PanBase.genButton0("校正原點","arrow-compress-all.png");
+		btnOrigin.setOnAction(tsk_gohome);
+
+		Button btnHolder = PanBase.genButton0("進/退片","coffee-to-go.png");
+		btnHolder.setOnAction(tsk_holder);
 		
 		Button btnClose = PanBase.genButton0("關閉程式","close.png");	
 		btnClose.setOnAction(event->Entry.inst.dismiss());
 		
-		lay.addRow(0, btnAlign, btnScan, btnGoing, btnDemo1);
-		lay.addRow(2, btnHome, btnHold, btnClose, btnDemo2);
+		Button btnDummy1 = PanBase.genButton0("----",null);
+		btnDummy1.setPrefHeight(43);
+		Button btnDummy2 = PanBase.genButton0("----",null);
+		btnDummy2.setPrefHeight(43);
+		
+		lay.addRow(0, btnOrigin, btnAlign, btnScan, btnGoing, btnDummy1);
+		lay.addRow(2, btnHolder, btnDummy2, btnDemo1,btnDemo2,btnClose);
 		return lay;
 	}
 

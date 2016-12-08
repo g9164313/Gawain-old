@@ -123,8 +123,8 @@ public class WidAoiViews extends BorderPane {
 				return false;//???why???
 			}
 			txtLocaRect();
-			//int hypth = Math.min(vec[2][0],vec[2][1]);
-			if(vec[2][0]<10 && vec[2][1]<10){
+			int hypth = Math.min(vec[2][0],vec[2][1]);
+			if(hypth<=20){
 				Misc.logv("--------Aligment--------");
 				Entry.stg0.exec("DE 0,0,0,0;DP 0,0,0,0;\r\n"); 
 				Entry.stg0.exec_TP();
@@ -182,14 +182,14 @@ public class WidAoiViews extends BorderPane {
 	 */
 	private int[] param = {
 		0,
-		125,5,7,0,
+		150,5,7,0,
 		0,0,0,0,
 		100,5,0,0,
 		0,0,0,0
 	};
 	
 	private float[] scoreCross = {0,0};//left, right
-	private int[][] locaCross = {{251,609},{546,590}};
+	private int[][] locaCross = {{316,595},{592,606}};
 
 	private double[] scoreRect = {0,0};//left, right
 	private int[][] locaRect = {{-1,-1},{-1,-1}};

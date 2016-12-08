@@ -15,14 +15,13 @@ import narl.itrc.CamFlyCapture;
 import narl.itrc.DevTTY;
 import narl.itrc.ImgRender;
 import narl.itrc.PanBase;
-import narl.itrc.PanDecorate;
 
 public class Entry extends PanBase {
 
 	public Entry(){
-		//firstAction = FIRST_MAXIMIZED;
+		firstAction = FIRST_MAXIMIZED;
 		customStyle = Entry.class.getResource("style.css");
-		PanDecorate.STYLE = PanDecorate.STYLE_BORDER1;
+		//PanDecorate.STYLE = PanDecorate.STYLE_BORDER1;
 		inst = this;
 	}
 
@@ -44,12 +43,12 @@ public class Entry extends PanBase {
 	/**
 	 * this flag means that we don't enable camera (render stage)
 	 */
-	private boolean camEnable = false;
+	private boolean camEnable = true;
 	
 	/**
 	 * this flag means that we don't enable motion stage
 	 */
-	private boolean stgEnable = false;
+	private boolean stgEnable = true;
 
 	@Override
 	protected void eventShown(WindowEvent e){
@@ -76,6 +75,7 @@ public class Entry extends PanBase {
 	
 	@Override
 	protected void eventClose(WindowEvent e){
+		PanOption.enableAOI(false);
 	}
 	
 	public static TabPane pager = new TabPane();

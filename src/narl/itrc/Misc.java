@@ -789,11 +789,10 @@ public class Misc {
 			);
 			return;
 		}
-		File fs = new File(ij_path);
 		try {			
 			//How to find 'java' from M$ Windows OS ? 
 			ProcessBuilder pb = null;
-			if(fs.isDirectory()==true){
+			if(ij_path.contains(".jar")){
 				//execute ImageJ from jar file
 				pb = new ProcessBuilder(
 					"/usr/bin/java","-Xmx1024m","-jar",

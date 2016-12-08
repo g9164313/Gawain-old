@@ -50,6 +50,7 @@ public class PanOption extends PanDecorate {
 			Entry.stg1.writeTxt("2,45\r\n",20);
 			//open bottom-LED
 			Entry.stg0.exec("OB 3,1\r\n");
+			Entry.pager.getSelectionModel().select(0);
 		}else{
 			Entry.stg0.exec("OB 1,0\r\n");
 			//raise up mirror
@@ -59,6 +60,7 @@ public class PanOption extends PanDecorate {
 			Entry.stg1.writeTxt("2,0\r\n",20);
 			//open bottom-LED
 			Entry.stg0.exec("OB 3,0\r\n");
+			Entry.pager.getSelectionModel().select(1);
 		}
 	}
 		
@@ -126,7 +128,7 @@ public class PanOption extends PanDecorate {
 		lay.getStyleClass().add("grid-small");
 		
 		final CheckBox chkPump = new CheckBox("幫浦");
-		chkPump.setIndeterminate(true);
+		//chkPump.setIndeterminate(true);
 		chkPump.setOnAction(event->{
 			if(chkPump.isSelected()){
 				Entry.stg0.exec("OB 1,1\r\n");
@@ -136,7 +138,7 @@ public class PanOption extends PanDecorate {
 		});
 		
 		final CheckBox chkMirror = new CheckBox("反射鏡");
-		chkMirror.setIndeterminate(true);
+		//chkMirror.setIndeterminate(true);
 		chkMirror.setOnAction(event->{
 			if(chkMirror.isSelected()){
 				Entry.stg2.writeTxt('F');
@@ -146,7 +148,7 @@ public class PanOption extends PanDecorate {
 		});
 		
 		final CheckBox chkLED = new CheckBox("底部光源");
-		chkLED.setIndeterminate(true);
+		//chkLED.setIndeterminate(true);
 		chkLED.setOnAction(event->{
 			if(chkLED.isSelected()){
 				Entry.stg0.exec("OB 3,1\r\n");

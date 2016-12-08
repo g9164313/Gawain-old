@@ -109,7 +109,7 @@ $(TARGET_SO): $(UTIL_FILE) CamBundle.cpp DevTTY.cpp $(IMG_FILTER) $(DEV_CAMERA) 
 	$(CC) $(CC_FLAG)  -fPIC -shared -o $@ $^ $(LD_LIBS)
 	cp -rf $@ ../bin/narl/itrc/nat
 	cp -rf $@ ../src/narl/itrc/nat
-	#cp -rf $@ /home/qq/.local/bin/gawain
+	cp -rf $@ /home/qq/.local/bin/gawain
 ifeq ($(CHECK_EXEC),)
 	@echo "no process, so we ovewrite it~~"
 	cp -rf $@ ../gawain/$@
