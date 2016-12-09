@@ -41,12 +41,12 @@ public class Entry extends PanBase {
 	/**
 	 * this flag means that we don't enable camera (render stage)
 	 */
-	private boolean camEnable = false;
+	private boolean camEnable = true;
 	
 	/**
 	 * this flag means that we don't enable motion stage
 	 */
-	private boolean stgEnable = false;
+	private boolean stgEnable = true;
 
 	@Override
 	protected void eventShown(WindowEvent e){

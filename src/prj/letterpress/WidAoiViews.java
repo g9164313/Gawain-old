@@ -52,8 +52,8 @@ public class WidAoiViews extends BorderPane {
 				Misc.logv("收集影像(%d)",i+1);
 			}
 			implTrainDone(backName0,backName1,10);
-			scoreCross[0] = implFindCross(bnd0,0,paramRH,locaCross[0]);
-			scoreCross[1] = implFindCross(bnd1,1,paramLF,locaCross[1]);
+			scoreCross[0] = implFindCross(bnd0,0,paramLF,locaCross[0]);
+			scoreCross[1] = implFindCross(bnd1,1,paramRH,locaCross[1]);
 		}
 		@Override
 		public boolean showData(ArrayList<ImgPreview> list) {
@@ -70,8 +70,8 @@ public class WidAoiViews extends BorderPane {
 		public void cookData(ArrayList<ImgPreview> list) {
 			CamBundle bnd0 = list.get(0).bundle;
 			CamBundle bnd1 = list.get(1).bundle;
-			scoreRect[0] = implFindRect(bnd0,0,paramRH,locaRect[0],locaCross[0]);
-			scoreRect[1] = implFindRect(bnd1,1,paramLF,locaRect[1],locaCross[1]);
+			scoreRect[0] = implFindRect(bnd0,0,paramLF,locaRect[0],locaCross[0]);
+			scoreRect[1] = implFindRect(bnd1,1,paramRH,locaRect[1],locaCross[1]);
 		}
 		@Override
 		public boolean showData(ArrayList<ImgPreview> list) {
@@ -183,23 +183,23 @@ public class WidAoiViews extends BorderPane {
 	 * 9 - Binary-Threshold for Rectangle
 	 * 10- Morphology-kernel for Rectangle
 	 */
-	private int[] paramRH = {
-		0,
-		150,5,7,0,
-		0,0,0,0,
-		100,5,0,0,
-		0,0,0,0
-	};
 	private int[] paramLF = {
 		0,
-		150,5,7,0,
+		200,5,7,0,
 		0,0,0,0,
-		100,5,0,0,
+		150,5,0,0,
+		0,0,0,0
+	};
+	private int[] paramRH = {
+		0,
+		130,5,7,0,
+		0,0,0,0,
+		110,5,0,0,
 		0,0,0,0
 	};
 	
 	private float[] scoreCross = {0,0};//left, right
-	private int[][] locaCross = {{316,595},{592,606}};
+	private int[][] locaCross = {{313,599},{595,609}};
 
 	private double[] scoreRect = {0,0};//left, right
 	private int[][] locaRect = {{-1,-1},{-1,-1}};
@@ -262,7 +262,7 @@ public class WidAoiViews extends BorderPane {
 		lay.addRow(4,new Label("相似度.2："),txtTarget[6],txtTarget[7]);
 
 		//----actions----
-		Button btnMarkCros = PanBase.genButton0("標定十字",null);
+		Button btnMarkCros = PanBase.genButton0("訓練模式",null);
 		btnMarkCros.setOnAction(event->{
 			resetLocaCross();
 			resetLocaRect();
@@ -307,17 +307,17 @@ public class WidAoiViews extends BorderPane {
 		lay.add(new Label("□ Thres  ："), 0,9 );
 		lay.add(new Label("□ Struct ："), 0,10);
 		
-		lay.add(genBoxValue(1 ,paramRH), 1,6 ,2,1);
-		lay.add(genCmbRange(2 ,paramRH), 1,7 ,2,1);
-		lay.add(genCmbRange(3 ,paramRH), 1,8 ,2,1);		
-		lay.add(genBoxValue(9 ,paramRH), 1,9 ,2,1);
-		lay.add(genCmbRange(10,paramRH), 1,10,2,1);
+		lay.add(genBoxValue(1 ,paramLF), 1,6 ,2,1);
+		lay.add(genCmbRange(2 ,paramLF), 1,7 ,2,1);
+		lay.add(genCmbRange(3 ,paramLF), 1,8 ,2,1);		
+		lay.add(genBoxValue(9 ,paramLF), 1,9 ,2,1);
+		lay.add(genCmbRange(10,paramLF), 1,10,2,1);
 
-		lay.add(genBoxValue(1 ,paramLF), 4,6 ,2,1);
-		lay.add(genCmbRange(2 ,paramLF), 4,7 ,2,1);
-		lay.add(genCmbRange(3 ,paramLF), 4,8 ,2,1);		
-		lay.add(genBoxValue(9 ,paramLF), 4,9 ,2,1);
-		lay.add(genCmbRange(10,paramLF), 4,10,2,1);
+		lay.add(genBoxValue(1 ,paramRH), 4,6 ,2,1);
+		lay.add(genCmbRange(2 ,paramRH), 4,7 ,2,1);
+		lay.add(genCmbRange(3 ,paramRH), 4,8 ,2,1);		
+		lay.add(genBoxValue(9 ,paramRH), 4,9 ,2,1);
+		lay.add(genCmbRange(10,paramRH), 4,10,2,1);
 		
 		lay.add(new Separator(Orientation.VERTICAL  ), 3,0, 1,5);		
 		lay.add(new Separator(Orientation.HORIZONTAL), 0,5, 7,1);
