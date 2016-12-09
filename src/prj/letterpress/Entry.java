@@ -15,13 +15,14 @@ import narl.itrc.CamFlyCapture;
 import narl.itrc.DevTTY;
 import narl.itrc.ImgRender;
 import narl.itrc.PanBase;
+import narl.itrc.PanDecorate;
 
 public class Entry extends PanBase {
 
 	public Entry(){
 		firstAction = FIRST_MAXIMIZED;
 		customStyle = Entry.class.getResource("style.css");
-		//PanDecorate.STYLE = PanDecorate.STYLE_BORDER1;
+		PanDecorate.STYLE = PanDecorate.STYLE_BORDER1;
 		inst = this;
 	}
 
@@ -36,19 +37,16 @@ public class Entry extends PanBase {
 	public static DevB140M stg0 = new DevB140M("/dev/ttyS0,115200,8n1");
 	public static DevTTY   stg1 = new DevTTY("/dev/ttyS1,9600,8n1");//this connect to light controller
 	public static DevTTY   stg2 = new DevTTY("/dev/ttyACM0,9600,8n1");//this connect to ATmega controller  
-	
-	public WidMapWafer wmap = new WidMapWafer();
-	public WidAoiViews prvw = new WidAoiViews(rndr);
-
+		
 	/**
 	 * this flag means that we don't enable camera (render stage)
 	 */
-	private boolean camEnable = true;
+	private boolean camEnable = false;
 	
 	/**
 	 * this flag means that we don't enable motion stage
 	 */
-	private boolean stgEnable = true;
+	private boolean stgEnable = false;
 
 	@Override
 	protected void eventShown(WindowEvent e){
@@ -75,15 +73,21 @@ public class Entry extends PanBase {
 	
 	@Override
 	protected void eventClose(WindowEvent e){
-		PanOption.enableAOI(false);
+		if(stgEnable==true){
+			PanOption.enableAOI(false);
+		}
 	}
-	
-	public static TabPane pager = new TabPane();
+	public WidMapWafer wmap;
+	public WidAoiViews prvw;
+	public TabPane pager;
 	
 	@Override
 	public Parent layout() {
+		wmap = new WidMapWafer();
+		prvw = new WidAoiViews(rndr);
 		
 		//----perspective view----
+		pager = new TabPane();
 		pager.setSide(Side.LEFT);
 		pager.setTabClosingPolicy(TabClosingPolicy.UNAVAILABLE);
 		Tab stp1 = new Tab("AOI");

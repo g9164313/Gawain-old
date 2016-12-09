@@ -12,7 +12,7 @@ public abstract class PanDecorate extends StackPane {
 	public static final int STYLE_DEFAULT = 0;
 	public static final int STYLE_BORDER1 = 1;
 	
-	public static int STYLE = STYLE_BORDER1;//TODO: how to set a global flag??
+	public static int STYLE = STYLE_DEFAULT;//TODO: how to set a global flag??
 	
 	private Label _name = null;
 	private Node  _body = null;

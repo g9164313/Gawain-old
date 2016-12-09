@@ -7,6 +7,8 @@ import com.jfoenix.controls.JFXComboBox;
 import com.jfoenix.controls.JFXTextField;
 
 import javafx.event.ActionEvent;
+import javafx.geometry.HPos;
+import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -16,6 +18,7 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import narl.itrc.CamBundle;
 import narl.itrc.ImgFilter;
@@ -49,8 +52,8 @@ public class WidAoiViews extends BorderPane {
 				Misc.logv("收集影像(%d)",i+1);
 			}
 			implTrainDone(backName0,backName1,10);
-			scoreCross[0] = implFindCross(bnd0,0,param,locaCross[0]);
-			scoreCross[1] = implFindCross(bnd1,1,param,locaCross[1]);
+			scoreCross[0] = implFindCross(bnd0,0,paramRH,locaCross[0]);
+			scoreCross[1] = implFindCross(bnd1,1,paramLF,locaCross[1]);
 		}
 		@Override
 		public boolean showData(ArrayList<ImgPreview> list) {
@@ -67,8 +70,8 @@ public class WidAoiViews extends BorderPane {
 		public void cookData(ArrayList<ImgPreview> list) {
 			CamBundle bnd0 = list.get(0).bundle;
 			CamBundle bnd1 = list.get(1).bundle;
-			scoreRect[0] = implFindRect(bnd0,0,param,locaRect[0],locaCross[0]);
-			scoreRect[1] = implFindRect(bnd1,1,param,locaRect[1],locaCross[1]);
+			scoreRect[0] = implFindRect(bnd0,0,paramRH,locaRect[0],locaCross[0]);
+			scoreRect[1] = implFindRect(bnd1,1,paramLF,locaRect[1],locaCross[1]);
 		}
 		@Override
 		public boolean showData(ArrayList<ImgPreview> list) {
@@ -180,7 +183,14 @@ public class WidAoiViews extends BorderPane {
 	 * 9 - Binary-Threshold for Rectangle
 	 * 10- Morphology-kernel for Rectangle
 	 */
-	private int[] param = {
+	private int[] paramRH = {
+		0,
+		150,5,7,0,
+		0,0,0,0,
+		100,5,0,0,
+		0,0,0,0
+	};
+	private int[] paramLF = {
 		0,
 		150,5,7,0,
 		0,0,0,0,
@@ -230,43 +240,27 @@ public class WidAoiViews extends BorderPane {
 	}
 	
 	private Node layoutOption(){
-				
-		//----parameter----
-		final JFXComboBox<Integer> dbg_mode = new JFXComboBox<Integer>();		
-		dbg_mode.getItems().addAll(0,1,2,3);
-		dbg_mode.getSelectionModel().select(param[0]);
-		dbg_mode.setOnAction(event->{ param[0] = dbg_mode.getValue(); });
-		dbg_mode.setMaxWidth(Double.MAX_VALUE);
-		GridPane.setFillWidth(dbg_mode,true);
-		
-		GridPane lay2 = new GridPane();
-		lay2.getStyleClass().add("grid-small");
-		lay2.addRow(0,new Label("Debug Mode："),dbg_mode);
-		
-		lay2.addRow(1,new Label("Cross - Thres："),genBoxValue(1));
-		lay2.addRow(2,new Label("Cross - Struct：") ,genCmbRange(2));
-		lay2.addRow(3,new Label("Cross - Epsilon："),genCmbRange(3));		
-		lay2.addRow(4,new Label("Rect - Thres："),genBoxValue(9));
-		lay2.addRow(5,new Label("Rect - Struct：") ,genCmbRange(10));
-
+		final GridPane lay = new GridPane();
+		lay.getStyleClass().add("grid-medium");
+		lay.add(layoutParam(), 0, 0, 2, 1);
+		lay.add(new WidLight(), 1, 1);
+		lay.add(new WidTheta(), 1, 2);
+		lay.add(new WidMovement(), 0, 1, 1, 2);
+		return lay;
+	}
+	
+	private Node layoutParam(){
 		//----information----
-		final String SPACE="  ";
-		GridPane lay3 = new GridPane();
-		lay3.getStyleClass().add("grid-small");
-		lay3.add(new Label("[左視角]"),1,0,1,1);
-		lay3.add(new Label("[右視角]"),3,0,1,1);
-		lay3.addRow(1,new Label("十字位置："),
-			txtTarget[0],new Label(SPACE),txtTarget[1]
-		);		
-		lay3.addRow(2,new Label("口型位置："),
-			txtTarget[4],new Label(SPACE),txtTarget[5]
-		);
-		lay3.addRow(3,new Label("相似度.1："),
-			txtTarget[2],new Label(SPACE),txtTarget[3]
-		);
-		lay3.addRow(4,new Label("相似度.2："),
-			txtTarget[6],new Label(SPACE),txtTarget[7]
-		);
+		GridPane lay = new GridPane();
+		lay.getStyleClass().add("grid-small");
+		
+		lay.add(new Label("[左視角]"),1,0,1,1);
+		lay.add(new Label("[右視角]"),2,0,1,1);
+		lay.addRow(1,new Label("十字位置："),txtTarget[0],txtTarget[1]);		
+		lay.addRow(2,new Label("口型位置："),txtTarget[4],txtTarget[5]);
+		lay.addRow(3,new Label("相似度.1："),txtTarget[2],txtTarget[3]);
+		lay.addRow(4,new Label("相似度.2："),txtTarget[6],txtTarget[7]);
+
 		//----actions----
 		Button btnMarkCros = PanBase.genButton0("標定十字",null);
 		btnMarkCros.setOnAction(event->{
@@ -274,35 +268,64 @@ public class WidAoiViews extends BorderPane {
 			resetLocaRect();
 			Entry.rndr.attach(filterCalibrate);
 		});
-		
+				
 		Button btnMarkRect = PanBase.genButton0("標定口型",null);
 		btnMarkRect.setOnAction(event->{
 			resetLocaRect();			
 			Entry.rndr.attach(filterMarkRect);
 		});
-
+		
 		Button btnMarkAlign = PanBase.genButton0("標靶對位",null);
 		btnMarkAlign.setOnAction(filterAlign);
 		
-		//----combine them all----
-		VBox lay1 = new VBox();		
-		lay1.getStyleClass().add("vbox-small");
-		lay1.setStyle("-fx-background-color: rgb(253,253,253)");//trick!!!!
-		lay1.getChildren().addAll(
-			btnMarkCros,
-			btnMarkRect,
-			btnMarkAlign,
-			new Separator(),
-			lay3,
-			new Separator(),
-			lay2			
-		);
-		ScrollPane root = new ScrollPane();
-		root.setContent(lay1);
-		return PanDecorate.group("MVS Status",root);
+		JFXComboBox<Integer> cmbDebug = new JFXComboBox<Integer>();		
+		cmbDebug.getItems().addAll(0,1,2,3);
+		cmbDebug.getSelectionModel().select(paramRH[0]);
+		cmbDebug.setOnAction(event->{ 
+			paramRH[0] = cmbDebug.getValue();
+			paramLF[0] = cmbDebug.getValue(); 
+		});
+		cmbDebug.setMaxWidth(Double.MAX_VALUE);
+		GridPane.setFillWidth(cmbDebug,true);
+		
+		Label txt1 = new Label("Action");
+		GridPane.setHalignment(txt1, HPos.CENTER);
+		
+		Label txt2 = new Label("Debug：");
+		
+		lay.add(txt1,4,0, 2,1);
+		lay.add(btnMarkCros ,4,1, 2,1);
+		lay.add(btnMarkRect ,4,2, 2,1);
+		lay.add(btnMarkAlign,4,3, 2,1);
+		lay.add(txt2        ,4,4, 1,1);
+		lay.add(cmbDebug    ,5,4, 1,1);
+
+		//----parameter----
+		lay.add(new Label("＋Thres  ："), 0,6 );
+		lay.add(new Label("＋Struct ："), 0,7 );
+		lay.add(new Label("＋Epsilon："), 0,8 );		
+		lay.add(new Label("□ Thres  ："), 0,9 );
+		lay.add(new Label("□ Struct ："), 0,10);
+		
+		lay.add(genBoxValue(1 ,paramRH), 1,6 ,2,1);
+		lay.add(genCmbRange(2 ,paramRH), 1,7 ,2,1);
+		lay.add(genCmbRange(3 ,paramRH), 1,8 ,2,1);		
+		lay.add(genBoxValue(9 ,paramRH), 1,9 ,2,1);
+		lay.add(genCmbRange(10,paramRH), 1,10,2,1);
+
+		lay.add(genBoxValue(1 ,paramLF), 4,6 ,2,1);
+		lay.add(genCmbRange(2 ,paramLF), 4,7 ,2,1);
+		lay.add(genCmbRange(3 ,paramLF), 4,8 ,2,1);		
+		lay.add(genBoxValue(9 ,paramLF), 4,9 ,2,1);
+		lay.add(genCmbRange(10,paramLF), 4,10,2,1);
+		
+		lay.add(new Separator(Orientation.VERTICAL  ), 3,0, 1,5);		
+		lay.add(new Separator(Orientation.HORIZONTAL), 0,5, 7,1);
+		lay.add(new Separator(Orientation.VERTICAL  ), 3,6, 1,5);
+		return PanDecorate.group("MVS Status",lay);
 	}
 
-	private Node genBoxValue(final int idx){
+	private Node genBoxValue(final int idx,final int[] param){
 		final JFXTextField box = new JFXTextField();
 		box.setPrefWidth(100);
 		box.setText(""+param[idx]);
@@ -317,7 +340,7 @@ public class WidAoiViews extends BorderPane {
 		return box;
 	}
 	
-	private Node genCmbRange(final int idx){
+	private Node genCmbRange(final int idx,final int[] param){
 		final JFXComboBox<String> cmb = new JFXComboBox<String>();
 		cmb.getItems().addAll(
 			"1","3","5","7","9",
