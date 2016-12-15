@@ -1,7 +1,5 @@
 package narl.itrc;
 
-import javafx.scene.Parent;
-
 public class CamPylon extends CamBundle {
 
 	public CamPylon(){
@@ -19,10 +17,7 @@ public class CamPylon extends CamBundle {
 	
 	@Override
 	public void setup() {
-		implSetup(
-			CamPylon.this,
-			txtConfig
-		);
+		implSetup(CamPylon.this,txtConfig);
 	}
 
 	@Override

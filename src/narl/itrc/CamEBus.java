@@ -1,7 +1,5 @@
 package narl.itrc;
 
-import javafx.scene.Parent;
-
 public class CamEBus extends CamBundle {
 
 	public CamEBus(){

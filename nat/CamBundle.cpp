@@ -211,7 +211,6 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamBundle_saveImage(
 		return;
 	}
 	Mat img(height,width,type,buff);
-
 	char name[500];
 	jstrcpy(env,jname,name);
 	imwrite(name,img);
@@ -228,7 +227,6 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamBundle_saveImageROI(
 		return;
 	}
 	Mat img(height,width,type,buff);
-
 	jint* roi = env->GetIntArrayElements(jroi,NULL);
 	Mat _img = img(Rect(
 		roi[0],roi[1],

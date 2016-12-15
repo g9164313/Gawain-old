@@ -2,31 +2,45 @@ package narl.itrc;
 
 import com.sun.glass.ui.Application;
 
-import javafx.scene.Parent;
 import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.ContextMenu;
+import javafx.scene.control.Menu;
 import javafx.scene.control.MenuItem;
+import javafx.scene.control.RadioMenuItem;
 import javafx.scene.control.ScrollPane;
-import javafx.scene.control.Toggle;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.MouseButton;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.ArcType;
 
 public class ImgPreview extends BorderPane {
 	
 	public CamBundle bundle = null;
 	public ImgRender render = null;
 	
-	private Image[] imdata = {null, null};
+	/**
+	 * This image data came from camera-bundle.<p>
+	 * It means data is created and acquired by camera.<p>
+	 * The first is original image, and the second is augment data.<p>
+	 */
+	private Image[] imdata = { null, null };
 	
-	private ImageView[] screen ={
-		new ImageView(),//show grabbed image
-		new ImageView(),//show augment image(edge, point, and mask etc...)
-	};
-	private Canvas overlay = new Canvas();//show ROI
+	/**
+	 * Viewer object for 'imdata'.<p>
+	 * The first is grabbed image.<p>
+	 * The second is augment image(edge, point, and mask etc...).<p>
+	 */
+	private ImageView[] screen = { new ImageView(), new ImageView() };
+	
+	/**
+	 * It is still a viewer object, but specially for GUI-thread.<p>
+	 */
+	private Canvas board = new Canvas();//show ROI
 	
 	public ImgPreview(ImgRender rnd,CamBundle bnd){
 		render = rnd;
@@ -61,287 +75,354 @@ public class ImgPreview extends BorderPane {
 			//check overlay dimension,always~~~
 			int sw = (int)imdata[0].getWidth();
 			int sh = (int)imdata[0].getHeight();
-			int dw = (int)overlay.getWidth();
-			int dh = (int)overlay.getHeight();
+			int dw = (int)board.getWidth();
+			int dh = (int)board.getHeight();
 			if(sw!=dw||sh!=dh){			
-				overlay.setWidth(sw); 
-				overlay.setHeight(sh);
+				board.setWidth(sw); 
+				board.setHeight(sh);
 			}
 		}
+		//show some marks when mouse is dragging!!!!		
 	}
 	//--------------------------//
 
-	public static final String[] markTypeName = {
-		"單點",
-		"矩形"
-	};
-	public static final int MARK_NONE =-1;
-	public static final int MARK_PONT = 0;//it is according to name sequence
-	public static final int MARK_RECT = 1;//it is according to name sequence!!!
+	private void init_layout(){
+		board.setOnMouseMoved(event->{
+			if(markIndx<0){
+				return;
+			}
+			GraphicsContext gc = board.getGraphicsContext2D();
+			double mx = event.getX();
+			double my = event.getY();			
+			clearAll(gc);
+			drawCross(gc,mx,my);
+		});
+		board.setOnMousePressed(event->{
+			if(event.getButton()!=MouseButton.PRIMARY){
+				return;
+			}
+			if(markIndx<0){
+				return;
+			}
+			GraphicsContext gc = board.getGraphicsContext2D();
+			double mx = event.getX();
+			double my = event.getY();						
+			drawNailPoint1(gc,mx,my);
+			//keep the first nail point!!!
+			markList[markIndx].pts1[0] = markList[markIndx].pts2[0] = (int)mx;
+			markList[markIndx].pts1[1] = markList[markIndx].pts2[1] = (int)my;
+		});
+		board.setOnMouseDragged(event->{
+			if(event.getButton()!=MouseButton.PRIMARY){
+				return;
+			}
+			if(markIndx<0){
+				return;
+			}
+			drawNailPoint2(
+				board.getGraphicsContext2D(),
+				event.getX(),
+				event.getY()
+			);
+		});
+		board.setOnMouseReleased(event->{
+			if(event.getButton()!=MouseButton.PRIMARY){
+				return;
+			}
+			if(markIndx<0){
+				return;
+			}
+			if(markList[markIndx].type!=MARK_PONT){			
+				markList[markIndx].pts2[0] = (int)event.getX();
+				markList[markIndx].pts2[1] = (int)event.getY();
+			} 			
+			markIndx = MARK_NONE;//reset state for next turn~~~
+			drawAllMark();
+		});
+		
+		StackPane lay0 = new StackPane();
+		lay0.getChildren().addAll(
+			screen[0],
+			screen[1],
+			board
+		);
+		ScrollPane lay1 = new ScrollPane();
+		lay1.setMinSize(640,480);		
+		lay1.setContent(lay0);
+		lay1.setContextMenu(prepare_menu());
+		setCenter(lay1);
+	}
 	
-	public static class Mark {
-		private Color clr = Color.YELLOW;
+	private ContextMenu prepare_menu(){
+		
+		final ContextMenu root = new ContextMenu();
+		
+		Menu men;
+		MenuItem itm;
+		
+		men = new Menu("Mark");
+		prepare_mark_menu(0,men);
+		prepare_mark_menu(1,men);
+		prepare_mark_menu(2,men);
+		prepare_mark_menu(3,men);
+		root.getItems().add(men);
+		
+		itm = new MenuItem("Save");
+		itm.setOnAction(event->{
+			render.snap("snap.png");
+		});
+		root.getItems().add(itm);
+		
+		itm = new MenuItem("ImageJ");
+		itm.setOnAction(event->{
+			render.execIJ(this);
+		});
+		root.getItems().add(itm);
+		
+		itm = new MenuItem("Clear");
+		itm.setOnAction(event->{
+			bundle.clearImgInfo();
+		});
+		root.getItems().add(itm);
+		
+		itm = new MenuItem("Camera");
+		itm.setOnAction(event->{			
+			bundle.showSetting(this);
+		});
+		root.getItems().add(itm);
+		return root;
+	}
+
+	private void prepare_mark_menu(final int idx,Menu root){
+		Menu sub = new Menu(String.format("%d",idx+1));
+		ToggleGroup grp = new ToggleGroup();
+		sub.getItems().addAll(
+			prepare_mark_radio(grp,idx,MARK_PONT),
+			prepare_mark_radio(grp,idx,MARK_LINE),
+			prepare_mark_radio(grp,idx,MARK_RECT),
+			prepare_mark_radio(grp,idx,MARK_CIRC),
+			prepare_mark_radio(grp,idx,MARK_NONE)
+		);
+		root.getItems().add(sub);
+	}
+	
+	private MenuItem prepare_mark_radio(ToggleGroup grp,final int idx,final int type){
+		final RadioMenuItem itm = new RadioMenuItem();
+		itm.setOnAction(event->{
+			if(type==MARK_NONE){				
+				markIndx = -1;				
+			}else{
+				markIndx = idx;
+			}			
+			markList[idx].type = type;
+			drawAllMark();
+		});
+		itm.setToggleGroup(grp);
+		switch(type){
+		case MARK_PONT:
+			itm.setText("Point");
+			break;
+		case MARK_LINE:
+			itm.setText("Line");
+			break;
+		case MARK_RECT:
+			itm.setText("Rectangle");
+			break;
+		case MARK_CIRC:
+			itm.setText("Circle");
+			break;
+		case MARK_NONE:
+			itm.setText("取消");
+			break;
+		}
+		if(markList[idx].type==type){
+			itm.setSelected(true);
+		}
+		return itm;
+	}
+	//--------------------------//
+	
+	public static final int MARK_NONE =-1;
+	public static final int MARK_PONT = 0;
+	public static final int MARK_LINE = 1;
+	public static final int MARK_RECT = 2;
+	public static final int MARK_CIRC = 3;
+	
+	private static class Mark {
+		
+		public Color clr = Color.YELLOW;
+		
 		public int type = MARK_NONE;
-		public int[] loca = {0,0};
-		public int[] size = {0,0};//width, height or radius		
+		
+		/**
+		 * The first nail point when user press button.<p>
+		 * This location is relative to viewer.The Scale is 1:1<p>
+		 */
+		public int[] pts1 = {-1,-1};//start point
+		
+		/**
+		 * The final nail point when user.<p>
+		 * This location is relative to viewer.The Scale is 1:1<p>
+		 */
+		public int[] pts2 = {-1,-1};//end point
+		
 		public Mark(Color clr){
 			this.clr = clr;
-		}
-		private int[] roi = {0,0,0,0};
+		}		
+		
 		public int[] getROI(){
-			if(type==MARK_NONE||type==MARK_PONT){
-				return null;
+			final int[] roi = {0,0,0,0};//X-value, Y-value, width,height
+			if(type==MARK_NONE){
+				roi[0] = roi[1] = roi[2] = roi[3] = 0; 
+				return roi;
 			}
-			roi[0] = loca[0];//location-x
-			roi[1] = loca[1];//location-y
-			roi[2] = size[0];//width
-			roi[3] = size[1];//height
+			switch(type){
+			case MARK_PONT:
+				roi[0] = pts1[0];
+				roi[1] = pts1[1];
+				roi[2] = 1;
+				roi[3] = 1;
+				break;
+			case MARK_LINE:
+			case MARK_RECT:
+				roi[0] = Math.min(pts1[0], pts2[0]);
+				roi[1] = Math.min(pts1[1], pts2[1]);
+				roi[2] = Math.abs(pts1[0] - pts2[0]) + 1;
+				roi[3] = Math.abs(pts1[1] - pts2[1]) + 1;
+				break;
+			case MARK_CIRC:				
+				double hx = Math.abs(pts1[0] - pts2[0]) + 1;
+				double hy = Math.abs(pts1[1] - pts2[1]) + 1;
+				double hypt = Math.sqrt(hx*hx + hy*hy);
+				roi[0] = pts1[0] - (int)hypt;
+				roi[1] = pts1[1] - (int)hypt;
+				roi[2] = roi[3] = (int)(2.*hypt);
+				break;
+			}
 			return roi;
-		}
-		private void nail(int[] val){
-			if(val[0]<=val[2]){
-				loca[0] = val[0];
-				size[0] = val[2] - val[0];
-			}else{
-				loca[0] = val[2];
-				size[0] = val[0] - val[2];
-			}
-			if(val[1]<=val[3]){
-				loca[1] = val[1];
-				size[1] = val[3] - val[1];
-			}else{
-				loca[1] = val[3];
-				size[1] = val[1] - val[3];
-			}
 		}
 	};
 	
-	public Mark mark[] = {
+	/**
+	 * Storage mark information, we support 4 mark to indicate data.<p>
+	 */
+	private Mark markList[] = {
 		new Mark(Color.TOMATO),
 		new Mark(Color.CHOCOLATE),
 		new Mark(Color.AQUA),
 		new Mark(Color.DARKVIOLET)
 	};
 
-	private Mark getCurrentMark(){
-		Toggle itm = roiType.getSelectedToggle();
-		if(itm==null){
-			return null;
-		}
-		int key = (int)itm.getUserData();
-		int idx = (key&0xFF00)>>8;
-		return mark[idx];
-	}
-		
-	private void clearMark(int idx){
-		if(idx<0 || idx>=mark.length){
-			for(int i=0; i<mark.length; i++){
-				mark[i].type = MARK_NONE;
-			}
-		}else{
-			mark[idx].type = MARK_NONE;
-		}
+	/**
+	 * Which mark structure is assigned.<p>
+	 * The negative index means no mark assigned.<p>  
+	 */
+	private int markIndx = MARK_NONE;
+
+	private void clearAll(GraphicsContext gc){
+		gc.clearRect(
+			0., 0., 
+			board.getWidth(), board.getHeight()
+		);
 	}
 	
-	private int pinVal[] = {0,0,0,0};//the first and second pin point
+	private final double nailHalfSize = 10.;
 	
-	private void drawPinPoint(){
-		/*GraphicsContext gc = overlay2.getGraphicsContext2D();
-		int ww = (int)overlay2.getWidth();
-		int hh = (int)overlay2.getHeight();
-		gc.clearRect(0,0,ww,hh);		
-		gc.setLineWidth(1);	
-		gc.setStroke(Color.YELLOW);
+	private void drawCross(GraphicsContext gc,double mx,double my){
+		gc.setStroke(Color.RED);
 		gc.strokeLine(
-			pinVal[0], pinVal[1], 
-			pinVal[2], pinVal[3]
+			mx-nailHalfSize, my, 
+			mx+nailHalfSize, my
 		);
-		gc.strokeArc(
-			pinVal[2]-10, pinVal[3]-10, 
-			20, 20, 
-			0., 360.,
-			ArcType.OPEN
-		);*/
+		gc.strokeLine(
+			mx, my-nailHalfSize, 
+			mx, my+nailHalfSize
+		);
 	}
 
-	private void refreshMark(){
-		/*GraphicsContext gc = overlay2.getGraphicsContext2D();
-		int ww = (int)overlay2.getWidth();
-		int hh = (int)overlay2.getHeight();
-		gc.clearRect(0,0,ww,hh);
-		gc.setLineWidth(1);		
-		for(int i=0; i<mark.length; i++){
-			Mark m = mark[i];
-			gc.setStroke(m.clr);
-			switch(m.type){
-			case MARK_PONT:
-				gc.strokeArc(
-					m.loca[0]-2,m.loca[1]-2, 
-					5, 5, 
-					0., 360., 
-					ArcType.OPEN
-				);
-				break;
-			case MARK_RECT:
-				gc.strokeRect(
-					m.loca[0],m.loca[1],
-					m.size[0],m.size[1]
-				);
-				break;
-			}
-		}*/
-	}
-	
-	private final ToggleGroup roiType = new ToggleGroup();
-	
-	private ContextMenu prpare_mouse_context(){		
-		final ContextMenu root = new ContextMenu();
-		/*for(int i=0; i<mark.length; i++){			
-			Menu subs = new Menu("標記 "+i);
-			for(int j=0; j<markTypeName.length; j++){
-				RadioMenuItem chk = new RadioMenuItem(markTypeName[j]);
-				chk.setToggleGroup(roiType);
-				chk.setUserData((int)((i<<8)+j));
-				chk.setOnAction(event->{
-					MenuItem itm = (MenuItem)event.getSource();
-					int key = (int)itm.getUserData();
-					int idx = (key&0xFF00)>>8;
-					int typ = (key&0x00FF);
-					mark[idx].type = typ;
-				});
-				subs.getItems().add(chk);
-			}
-			root.getItems().add(subs);
-		}*/
-		
-		MenuItem itm;
-		
-		itm = new MenuItem("拍照儲存");
-		itm.setOnAction(event->{
-			render.snap("snap.png");
-		});
-		root.getItems().add(itm);
-		
-		itm = new MenuItem("執行 ImageJ");
-		itm.setOnAction(event->{
-			render.execIJ(this);
-		});
-		root.getItems().add(itm);
-		
-		//itm = new MenuItem("取消標記");
-		//itm.setOnAction(event->{
-		//	clearMark(-1);//clear all mark~~~~
-		//	roiType.selectToggle(null);
-		//});
-		//root.getItems().add(itm);
-		
-		itm = new MenuItem("設定相機");
-		itm.setOnAction(event->{			
-			bundle.showSetting(this);
-		});
-		root.getItems().add(itm);
-		
-		itm = new MenuItem("清除畫面");
-		itm.setOnAction(event->{
-			bundle.clearImgInfo();
-		});
-		root.getItems().add(itm);
-		return root;
-	}
-
-	//protected static final Color clrGround = Color.web("#b0bec5");
-	/*public void clearAll(){
-		overlay1.getGraphicsContext2D().clearRect(
-			0, 0, 
-			overlay1.getWidth(), overlay1.getHeight()
+	private void drawNailPoint1(GraphicsContext gc,double mx,double my){
+		gc.clearRect(
+			0., 0., 
+			board.getWidth(), board.getHeight()
 		);
-	}*/
-	//--------------------------//
-
-	private void init_layout(){
-		StackPane lay0 = new StackPane();
-		lay0.getChildren().addAll(
-			screen[0],
-			screen[1],
-			overlay
+		gc.setStroke(Color.YELLOW);
+		gc.strokeRect(
+			mx-nailHalfSize, my-nailHalfSize, 
+			2*nailHalfSize , 2*nailHalfSize
 		);
-		ScrollPane lay1 = new ScrollPane();
-		lay1.setMinSize(640,480);		
-		lay1.setContent(lay0);
-		lay1.setContextMenu(prpare_mouse_context());
-		setCenter(lay1);
 	}
 	
-	/*public Pane genBoard(String title,int width,int height){		
-	if(board!=null){
-		//if we have already create board, just pass it~~~
-		return board;
-	}
-	overlay2.setOnMousePressed(event->{
-		Mark mk = getCurrentMark();
-		if(mk==null){ return; }
-		if(event.getButton()!=MouseButton.PRIMARY){
-			return;
+	private void drawNailPoint2(GraphicsContext gc,double mx,double my){
+		double _mx = (double)markList[markIndx].pts1[0];
+		double _my = (double)markList[markIndx].pts1[1];
+		drawNailPoint1(gc,_mx,_my);
+		gc.strokeLine(_mx, _my,	mx, my);
+		if(markList[markIndx].type==MARK_CIRC){
+			gc.setLineDashes(25d, 10d);
+			double hx = Math.abs(mx - _mx) + 1;
+			double hy = Math.abs(my - _my) + 1;
+			double hypt = Math.sqrt(hx*hx+hy*hy);
+			gc.strokeArc(
+				_mx - hypt, _my - hypt, 
+				2*hypt , 2*hypt,
+				0., 360.,
+				ArcType.OPEN
+			);
+			gc.setLineDashes(null);
+		}else{			
+			gc.strokeArc(
+				mx-nailHalfSize, my-nailHalfSize, 
+				2*nailHalfSize , 2*nailHalfSize,
+				0., 360.,
+				ArcType.OPEN
+			);
 		}
-		pinVal[0] = pinVal[2] = (int)event.getX();
-		pinVal[1] = pinVal[3] = (int)event.getY();
-	});
-	overlay2.setOnMouseDragged(event->{
-		Mark mk = getCurrentMark();
-		if(mk==null){ return; }//Do we need this??
-		int mx = (int)event.getX();
-		int my = (int)event.getY();
-		switch(mk.type){
+	}
+	
+	private void drawAllMark(){
+		GraphicsContext gc = board.getGraphicsContext2D();
+		clearAll(gc);
+		for(Mark mm:markList){
+			drawMarkShape(gc,mm);
+		}
+	}
+	
+	private void drawMarkShape(GraphicsContext gc,Mark mm){
+		final int[] roi = mm.getROI();
+		gc.setStroke(mm.clr);
+		switch(mm.type){
 		case MARK_PONT:
-			pinVal[0] = pinVal[2] = mx;
-			pinVal[1] = pinVal[3] = my;
+			gc.strokeLine(
+				mm.pts1[0]-nailHalfSize, mm.pts1[1]-nailHalfSize, 
+				mm.pts1[0]+nailHalfSize, mm.pts1[1]+nailHalfSize
+			);
+			gc.strokeLine(
+				mm.pts1[0]-nailHalfSize, mm.pts1[1]+nailHalfSize, 
+				mm.pts1[0]+nailHalfSize, mm.pts1[1]-nailHalfSize
+			);
+			break;
+		case MARK_LINE:
+			gc.strokeLine(
+				mm.pts1[0], mm.pts1[1], 
+				mm.pts2[0], mm.pts2[1]
+			);
 			break;
 		case MARK_RECT:
-			pinVal[2] = mx;
-			pinVal[3] = my;				
+			gc.strokeRect(
+				roi[0], roi[1], 
+				roi[2], roi[3]
+			);
+			break;
+		case MARK_CIRC:
+			gc.strokeArc(
+				roi[0], roi[1],
+				roi[2], roi[3],
+				0., 360., 
+				ArcType.OPEN
+			);
 			break;
 		}
-		drawPinPoint();
-	});
-	overlay2.setOnMouseReleased(event->{
-		Mark mk = getCurrentMark();
-		if(mk==null){ return; }//Do we need this??
-		if(event.getButton()!=MouseButton.PRIMARY){
-			return;
-		}
-		int mx = (int)event.getX();
-		int my = (int)event.getY();
-		switch(mk.type){
-		case MARK_PONT:
-			pinVal[0] = pinVal[2] = mx;
-			pinVal[1] = pinVal[3] = my;
-			break;
-		case MARK_RECT:
-			pinVal[2] = mx;
-			pinVal[3] = my;				
-			break;
-		}
-		mk.nail(pinVal);
-		refreshMark();
-	});
-
-	StackPane grp = new StackPane();
-	grp.getChildren().addAll(
-		screen[0]
-	);
-	
-	ScrollPane pan = new ScrollPane();
-	pan.setMinSize(width+13,height+13);		
-	pan.setContent(grp);
-	pan.setContextMenu(create_menu());
-	//pan.setFitToWidth(true);
-	//pan.setFitToHeight(true);
-	//HBox.setHgrow(lay2,Priority.ALWAYS);
-	
-	board = new BorderPane();
-	board.setCenter(pan);		
-	return board;		
-	}*/
+	}
 };
 
 

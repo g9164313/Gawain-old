@@ -105,6 +105,11 @@ extern void drawPolyline(
 	env->SetIntField (bundle,idSizeW,(jint )(width)); \
 	env->SetIntField (bundle,idType ,(jint )(type));
 
+#define MACRO_PREPARE_CNTX \
+	jclass b_clzz=env->GetObjectClass(bundle); \
+	jfieldID idCntx = env->GetFieldID(b_clzz,"ptrCntx" ,"J"); \
+	void* cntx = (void*)(env->GetLongField(bundle,idCntx));
+
 //--------------------------------------------//
 
 #define MACRO_SETUP_BEG MACRO_READY
@@ -118,6 +123,8 @@ extern void drawPolyline(
 #define MACRO_SETUP_END1(cntx) MACRO_SETUP_END(cntx,0,0,0,0)
 
 #define MACRO_SETUP_END2(cntx,type) MACRO_SETUP_END(cntx,0,0,0,type)
+
+#define MACRO_SETUP_END3(cntx,width,height,type) MACRO_SETUP_END(cntx,0,width,height,type)
 
 //--------------------------------------------//
 

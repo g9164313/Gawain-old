@@ -2,12 +2,13 @@ package narl.itrc;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import com.sun.glass.ui.Application;
 
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.concurrent.Task;
+import narl.itrc.vision.FilterExecIJ;
+import narl.itrc.vision.FilterSnap;
 
 public class ImgRender implements Gawain.EventHook {
 	
@@ -227,6 +228,26 @@ public class ImgRender implements Gawain.EventHook {
 		return lstPreview.get(idx);
 	}
 	//--------------------------------------------//
+	public boolean isFiltering(){
+		if(fltr==null){
+			return false;
+		}
+		return true;
+	}
+	
+	public ImgRender attach(ImgFilter filter){
+		if(fltr!=null){
+			//if we already had filter, just reset it again!!!
+			fltr = null;
+			return this;
+		}
+		fltr = filter;
+		if(filter!=null){
+			filter.state.set(ImgFilter.STA_REDY);
+		}			
+		return this;
+	}
+	//--------------------------------------------//
 	
 	public ImgRender snap(String name){
 		int pos = name.lastIndexOf(File.separatorChar);
@@ -252,78 +273,7 @@ public class ImgRender implements Gawain.EventHook {
 		return attach(fltrExecIJ);
 	}
 	
-	public ImgRender attach(ImgFilter filter){
-		fltr = filter;
-		if(fltr!=null){
-			fltr.state.set(ImgFilter.STA_REDY);
-		}			
-		return this;
-	}
-	//--------------------------------------------//
-	
-	private static class FilterExecIJ extends ImgFilter {
-		@Override
-		public void cookData(ArrayList<ImgPreview> list) {
-			String name = Misc.fsPathTemp+File.separator+"temp.png";
-			ImgPreview prv = list.get(prvIndex);
-			CamBundle bnd = prv.bundle;
-			bnd.saveImage(name);
-			Misc.execIJ(name);
-		}
-		@Override
-		public boolean showData(ArrayList<ImgPreview> list) {
-			return true;
-		}
-	}	
 	private static FilterExecIJ fltrExecIJ = new FilterExecIJ();
-	//--------------------------------------------//
-	
-	private static class FilterSnap extends ImgFilter {
-		/**
-		 * This is file name for filter 'snap'.<p> 
-		 * It means "path", "prefix" and "postfix"(.jpg, .png, .gif, etc).<p>
-		 */
-		public String[] snapName = {"","",""};
-		public AtomicInteger snapIndx = new AtomicInteger(0);
-		@Override
-		public void cookData(ArrayList<ImgPreview> list) {
-			int idx = snapIndx.incrementAndGet();
-			for(int i=0; i<list.size(); i++){
-				//first save the entire image
-				ImgPreview prv = list.get(i);
-				CamBundle bnd = prv.bundle;
-				bnd.saveImage(String.format(
-					"%s%s%d_%03d%s",
-					snapName[0],snapName[1],(i+1),
-					idx,
-					snapName[2]
-				));
-				//second save all ROI inside image
-				
-				for(int j=0; j<prv.mark.length; j++){
-					int[] roi = prv.mark[j].getROI();
-					if(roi==null){
-						continue;
-					}
-					bnd.saveImageROI(String.format(
-						"%sroi_%s%d_%03d%s",
-						snapName[0],snapName[1],(i+1),
-						idx,
-						snapName[2]
-					), roi);
-				}
-			}	
-		}
-		@Override
-		public boolean showData(ArrayList<ImgPreview> list) {
-			PanBase.notifyInfo("Render",
-			String.format(
-				"儲存影像(%d) %s",
-				snapIndx.get(),
-				snapName[1]
-			));
-			return true;
-		}
-	}
+
 	private static FilterSnap fltrSnap = new FilterSnap();
 }

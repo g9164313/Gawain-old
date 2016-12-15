@@ -35,33 +35,40 @@ INC_FLYCAPTURE:=-I/usr/include/flycapture
 
 LIB_FLYCAPTURE:=-L/usr/lib -lflycapture -lflycapturegui
 
+#### XIMEA ####
+
+ROOT_XIMEA:=/opt/XIMEA
+
+INC_XIMEA:=-I$(ROOT_XIMEA)/include
+
+LIB_XIMEA:=-I$(ROOT_XIMEA)/lib -lm3api
+
 #### Basler Pylon ####
 
 ROOT_PYLON :=  /home/lib/pylon
-GENICAM_ROOT := $(ROOT_PYLON)/genicam
+ROOT_GENICAM := $(ROOT_PYLON)/genicam
 
 INC_PYLON := -I$(ROOT_PYLON)/include \
-	-I$(GENICAM_ROOT)/library/CPP/include \
+	-I$(ROOT_GENICAM)/library/CPP/include \
 	-DUSE_GIGE 
 
 LIB_PYLON :=  -L$(ROOT_PYLON)/lib64 \
-	-L$(GENICAM_ROOT)/bin/Linux64_x64 \
-	-L$(GENICAM_ROOT)/bin/Linux64_x64/GenApi/Generic \
+	-L$(ROOT_GENICAM)/bin/Linux64_x64 \
+	-L$(ROOT_GENICAM)/bin/Linux64_x64/GenApi/Generic \
 	-L$(ROOT_PYLON)/lib32 \
-	-L$(GENICAM_ROOT)/bin/Linux32_i86 \
-	-L$(GENICAM_ROOT)/bin/Linux32_i86/GenApi/Generic \
+	-L$(ROOT_GENICAM)/bin/Linux32_i86 \
+	-L$(ROOT_GENICAM)/bin/Linux32_i86/GenApi/Generic \
 	-lpylonbase -lpylonutility \
 	-lGenApi_gcc40_v2_3 -lGCBase_gcc40_v2_3 -lLog_gcc40_v2_3 -lMathParser_gcc40_v2_3 -lXerces-C_gcc40_v2_7_1 -llog4cpp_gcc40_v2_3 \
 	-Wl,-E
-	
+
 #### Euresys Multicam ####
 
-ROOT_MULTICAM:=/opt/euresys/multicam
+ROOT_MULTICAM := /opt/euresys/multicam
 
-INC_MULTICAM:=-I$(ROOT_MULTICAM)/include
+INC_MULTICAM := -I$(ROOT_MULTICAM)/include
 
-LIB_MULTICAM:=-L$(ROOT_MULTICAM) -lMultiCam 
-
+LIB_MULTICAM := -L$(ROOT_MULTICAM) -lMultiCam 
 
 ########################
 ###  configuration  ####
@@ -75,16 +82,19 @@ CC_FLAG += -DVISION $(shell pkg-config --cflags opencv)
 #CC_FLAG += $(shell pkg-config --cflags qt5) 
 #CC_FLAG += $(INC_EBUS)
 CC_FLAG += $(INC_FLYCAPTURE)
-#CC_FLAG += $(INC_MULTICAM)
+CC_FLAG += $(INC_XIMEA)
 #CC_FLAG += $(INC_PYLON)
+#CC_FLAG += $(INC_MULTICAM)
 
 LD_LIBS = $(shell pkg-config --libs opencv) 
 #LD_LIBS += $(shell pkg-config --libs libmodbus) 
 #LD_LIBS += $(shell pkg-config --libs Qt5Core Qt5Gui Qt5Widgets Qt5Test)
 #LD_LIBS += $(LIB_EBUS)
 LD_LIBS += $(LIB_FLYCAPTURE)
-#LD_LIBS += $(LIB_MULTICAM)
+LD_LIBS += $(LIB_XIMEA)
 #LD_LIBS += $(LIB_PYLON)
+#LD_LIBS += $(LIB_MULTICAM)
+
 ########################
 
 UTIL_FILE = util_cv.cpp util_jni.cpp
@@ -94,9 +104,10 @@ LIB_SFRISO = ./SFR/FltrSlangEdge.cpp ./SFR/sfr_iso.c
 #SFR_MITRE =  ./SFR/sfr_iso.c ./SFR/find_area.c
 IMG_FILTER = 
 
-#DEV_CAMERA = CamVidcap.cpp 
-#DEV_CAMERA = CamVidcap.cpp CamMulticam.cpp 
-DEV_CAMERA = CamVidcap.cpp CamFlyCapture.cpp
+DEV_CAMERA = CamVidcap.cpp 
+#DEV_CAMERA += CamMulticam.cpp 
+DEV_CAMERA += CamFlyCapture.cpp
+DEV_CAMERA += CamXIMEA.cpp
 
 PRJ_CUSTOM = PrjLetterpress.cpp
 ########################
@@ -109,7 +120,7 @@ $(TARGET_SO): $(UTIL_FILE) CamBundle.cpp DevTTY.cpp $(IMG_FILTER) $(DEV_CAMERA) 
 	$(CC) $(CC_FLAG)  -fPIC -shared -o $@ $^ $(LD_LIBS)
 	cp -rf $@ ../bin/narl/itrc/nat
 	cp -rf $@ ../src/narl/itrc/nat
-	cp -rf $@ /home/qq/.local/bin/gawain
+	#cp -rf $@ /home/qq/.local/bin/gawain
 ifeq ($(CHECK_EXEC),)
 	@echo "no process, so we ovewrite it~~"
 	cp -rf $@ ../gawain/$@

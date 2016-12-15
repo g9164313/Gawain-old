@@ -1,6 +1,5 @@
 package narl.itrc;
 
-import javafx.scene.Parent;
 import narl.itrc.vision.PanAny;
 import narl.itrc.vision.PanVFW;
 

@@ -11,12 +11,14 @@ import narl.itrc.CamVidcap;
 import narl.itrc.ImgRender;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
+import narl.itrc.vision.CamXIMEA;
 
 /**
  * Test camera bundle and represent as template
  * @author qq
  *
  */
+@SuppressWarnings("unused")
 public class PanRender extends PanBase {
 
 	public PanRender(){
@@ -28,9 +30,10 @@ public class PanRender extends PanBase {
 		//rndr = new ImgRender(new CamVidcap("VFW:0"));
 		//rndr = new ImgRender(new CamMulticam("ral12288-FULL"));
 		//rndr = new ImgRender(new CamFlyCapture());
+		//rndr = new ImgRender(new CamXIMEA());
 	}
 	
-	protected ImgRender rndr = null;
+	protected ImgRender rndr;//don't assign object. Let inheritance object create instance~~
 	
 	@Override
 	protected void eventShown(WindowEvent e){
@@ -87,13 +90,11 @@ public class PanRender extends PanBase {
 	
 	@Override
 	public Parent layout() {
-		
 		HBox lay0 = new HBox();
 		lay0.getStyleClass().add("vbox-small");
 		lay0.getChildren().addAll(
 			rndr.getPreview(0)
 		);
-		
 		BorderPane lay1 = new BorderPane();			
 		lay1.setCenter(lay0);
 		lay1.setRight(layoutCtrl());
