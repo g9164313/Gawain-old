@@ -27,6 +27,7 @@ public abstract class CamBundle {
 	private long ptrCntx = 0;
 	
 	/**
+	 * 
 	 * The pointer to memory buffer created by malloc().<p>
 	 * This pointer can be zero, it is dependent on device.<p>
 	 */

@@ -244,14 +244,15 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamBundle_loadImage(
 	jstring jname,
 	int flag
 ){
-	MACRO_READY
+	MACRO_PREPARE
 	char name[500];
 	jstrcpy(env,jname,name);
 	Mat img = imread(name,flag);
 	if(img.empty()==true){
 		return;
 	}
-	MACRO_RESET_FIELD(0L,img.cols,img.rows,img.type())
-	set_img_array(env,bundle,idImgBuff,img,"imgBuff",".png");
+	MACRO_FETCH_COPY(img)
+	//MACRO_RESET_FIELD(0L,img.cols,img.rows,img.type())
+	//set_img_array(env,bundle,idImgBuff,img,"imgBuff",".png");
 }
 

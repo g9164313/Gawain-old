@@ -144,11 +144,11 @@ extern void drawPolyline(
 	if(buff==NULL || width!=_src.cols || height!=_src.rows){ \
 		MACRO_FETCH_REMAP(_src) \
 		MACRO_RESET_FIELD(buff,width,height,type) \
-		set_img_array(env,bundle,idImgBuff,_dst,"imgBuff",".jpg");\
+		set_img_array(env,bundle,idImgBuff,_dst,"imgBuff",".png");\
 	}else{ \
 		Mat _dst(height,width,type,buff); \
 		_src.copyTo(_dst); \
-		set_img_array(env,bundle,idImgBuff,_dst,"imgBuff",".jpg");\
+		set_img_array(env,bundle,idImgBuff,_dst,"imgBuff",".png");\
 	}
 
 //--------------------------------------------//

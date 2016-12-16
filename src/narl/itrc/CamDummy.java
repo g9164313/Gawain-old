@@ -49,10 +49,11 @@ public class CamDummy extends CamBundle {
 	
 	private double frameRate = 10.; 
 	
+	//TODO:we can't save image, why ???
 	@Override
 	public void setup() {
 		//it always should be success :-)
-		//prepare image list for showing~~~
+		//prepare image list for showing~~~		
 		if(txtConfig.length()==0){
 			return;
 		}

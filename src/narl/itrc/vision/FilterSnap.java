@@ -29,19 +29,19 @@ public class FilterSnap extends ImgFilter {
 				snapName[2]
 			));
 			//second save all ROI inside image
-			//how to check ROI???
-			/*for(int j=0; j<prv.mark.length; j++){
-				int[] roi = prv.mark[j].getROI();
+			for(int j=0; j<4; j++){
+				int[] roi = prv.getMark(j);
 				if(roi==null){
 					continue;
 				}
 				bnd.saveImageROI(String.format(
 					"%sroi_%s%d_%03d%s",
-					snapName[0],snapName[1],(i+1),
+					snapName[0],snapName[1],(j+1),
 					idx,
 					snapName[2]
-				), roi);
-			}*/
+					), roi
+				);
+			}
 		}	
 	}
 	@Override

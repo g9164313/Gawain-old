@@ -215,6 +215,7 @@ public class ImgPreview extends BorderPane {
 				markIndx = idx;
 			}			
 			markList[idx].type = type;
+			Misc.logv("set ROI(%d), type(%d)",idx,type);
 			drawAllMark();
 		});
 		itm.setToggleGroup(grp);
@@ -272,9 +273,8 @@ public class ImgPreview extends BorderPane {
 		
 		public int[] getROI(){
 			final int[] roi = {0,0,0,0};//X-value, Y-value, width,height
-			if(type==MARK_NONE){
-				roi[0] = roi[1] = roi[2] = roi[3] = 0; 
-				return roi;
+			if(type==MARK_NONE){ 
+				return null;
 			}
 			switch(type){
 			case MARK_PONT:
@@ -302,7 +302,7 @@ public class ImgPreview extends BorderPane {
 			return roi;
 		}
 	};
-	
+		
 	/**
 	 * Storage mark information, we support 4 mark to indicate data.<p>
 	 */
@@ -319,6 +319,10 @@ public class ImgPreview extends BorderPane {
 	 */
 	private int markIndx = MARK_NONE;
 
+	public int[] getMark(int i){
+		return markList[i].getROI();
+	}
+		
 	private void clearAll(GraphicsContext gc){
 		gc.clearRect(
 			0., 0., 
@@ -326,7 +330,7 @@ public class ImgPreview extends BorderPane {
 		);
 	}
 	
-	private final double nailHalfSize = 10.;
+	private final double nailHalfSize = 5.;
 	
 	private void drawCross(GraphicsContext gc,double mx,double my){
 		gc.setStroke(Color.RED);
@@ -355,10 +359,39 @@ public class ImgPreview extends BorderPane {
 	private void drawNailPoint2(GraphicsContext gc,double mx,double my){
 		double _mx = (double)markList[markIndx].pts1[0];
 		double _my = (double)markList[markIndx].pts1[1];
-		drawNailPoint1(gc,_mx,_my);
-		gc.strokeLine(_mx, _my,	mx, my);
-		if(markList[markIndx].type==MARK_CIRC){
+		gc.clearRect(
+			0., 0., 
+			board.getWidth(), board.getHeight()
+		);
+		gc.setStroke(Color.YELLOW);
+		switch(markList[markIndx].type){
+		case MARK_PONT:
+		case MARK_LINE:
+			gc.strokeRect(
+				_mx-nailHalfSize, _my-nailHalfSize, 
+				2*nailHalfSize , 2*nailHalfSize
+			);
+			gc.strokeLine(_mx, _my,	mx, my);
+			gc.strokeArc(
+				mx-nailHalfSize, my-nailHalfSize, 
+				2*nailHalfSize , 2*nailHalfSize,
+				0., 360.,
+				ArcType.OPEN
+			);
+			break;
+		case MARK_RECT:
+			double xx = Math.min(_mx,mx);
+			double yy = Math.min(_my,my);
+			double ww = Math.abs(_mx-mx) + 1;
+			double hh = Math.abs(_my-my) + 1;
+			gc.strokeRect(xx, yy, ww, hh);
+			break;
+		case MARK_CIRC:			
 			gc.setLineDashes(25d, 10d);
+			gc.strokeRect(
+				_mx-nailHalfSize, _my-nailHalfSize, 
+				2*nailHalfSize , 2*nailHalfSize
+			);
 			double hx = Math.abs(mx - _mx) + 1;
 			double hy = Math.abs(my - _my) + 1;
 			double hypt = Math.sqrt(hx*hx+hy*hy);
@@ -369,13 +402,7 @@ public class ImgPreview extends BorderPane {
 				ArcType.OPEN
 			);
 			gc.setLineDashes(null);
-		}else{			
-			gc.strokeArc(
-				mx-nailHalfSize, my-nailHalfSize, 
-				2*nailHalfSize , 2*nailHalfSize,
-				0., 360.,
-				ArcType.OPEN
-			);
+			break;
 		}
 	}
 	
