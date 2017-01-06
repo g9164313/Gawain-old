@@ -11,11 +11,11 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.stage.WindowEvent;
 import narl.itrc.BoxLogger;
-import narl.itrc.CamFlyCapture;
 import narl.itrc.DevTTY;
-import narl.itrc.ImgRender;
 import narl.itrc.PanBase;
 import narl.itrc.PanDecorate;
+import narl.itrc.vision.CamFlyCapture;
+import narl.itrc.vision.ImgRender;
 
 public class Entry extends PanBase {
 

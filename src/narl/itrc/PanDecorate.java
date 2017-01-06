@@ -43,18 +43,19 @@ public abstract class PanDecorate extends StackPane {
 	private void init_default(String name,Node body){
 		if(name!=null){
 			_name = new Label(" "+name);
-			_name.getStyleClass().add("group0-title");			
+			_name.getStyleClass().add("group0-title");
+			getChildren().add(_name);
+			StackPane.setAlignment(_name,Pos.TOP_LEFT);
 		}
 		if(body!=null){
 			_body = body;
+			
 		}else{
 			_body = layoutBody();
 			_body.getStyleClass().add("group0-content");
 		}
-		getChildren().add(_name);
-		getChildren().add(_body);
-		getStyleClass().add("group0-border");
-		StackPane.setAlignment(_name,Pos.TOP_LEFT);		
+		getChildren().add(_body);		
+		getStyleClass().add("group0-border");				
 		StackPane.setAlignment(_body,Pos.BOTTOM_LEFT);
 		
 	}

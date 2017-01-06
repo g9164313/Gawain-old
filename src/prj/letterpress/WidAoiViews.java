@@ -17,13 +17,13 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
-import narl.itrc.CamBundle;
-import narl.itrc.ImgFilter;
-import narl.itrc.ImgPreview;
-import narl.itrc.ImgRender;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
 import narl.itrc.PanDecorate;
+import narl.itrc.vision.CamBundle;
+import narl.itrc.vision.ImgFilter;
+import narl.itrc.vision.ImgPreview;
+import narl.itrc.vision.ImgRender;
 
 /**
  * AXIS-A : 10pps <==> 50um

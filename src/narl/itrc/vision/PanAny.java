@@ -2,7 +2,6 @@ package narl.itrc.vision;
 
 import com.jfoenix.controls.JFXTextField;
 
-import narl.itrc.CamVidcap;
 import narl.itrc.PanBase;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;

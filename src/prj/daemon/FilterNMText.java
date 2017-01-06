@@ -6,10 +6,10 @@ import javafx.scene.control.Control;
 
 import com.jfoenix.controls.JFXButton;
 
-import narl.itrc.ImgRender;
-import narl.itrc.ImgFilter;
-import narl.itrc.ImgPreview;
 import narl.itrc.Misc;
+import narl.itrc.vision.ImgFilter;
+import narl.itrc.vision.ImgPreview;
+import narl.itrc.vision.ImgRender;
 
 public class FilterNMText extends ImgFilter {
 

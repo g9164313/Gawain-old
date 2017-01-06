@@ -5,7 +5,7 @@
  *      Author: qq
  */
 #include <global.hpp>
-#include <CamBundle.hpp>
+#include "../vision/CamBundle.hpp"
 
 /**
 * Data passed to this function is assumed to be radiometrically corrected,
@@ -58,14 +58,13 @@ FILE *g_mtfout = NULL;//just for logger file~~
 extern "C" JNIEXPORT void JNICALL Java_prj_daemon_FltrSlangEdge_implSfrProc(
 	JNIEnv* env,
 	jobject thiz,
-	jobject bundle
+	jobject bundle,
+	jintArray mark
 ){
 	MACRO_PREPARE
-	if(cntx==NULL){
-		return;
-	}
+
 	Mat src(height,width,type,buff);
-	Mat img = checkMono(src);
+	Mat img = checkMono(env,mark,src);
 
 	Mat dat;
 	img.convertTo(dat,CV_64FC1);

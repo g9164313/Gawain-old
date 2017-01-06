@@ -1,4 +1,4 @@
-package narl.itrc;
+package narl.itrc.vision;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -8,7 +8,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import com.sun.glass.ui.Application;
 
-import narl.itrc.vision.PanDummy;
+import narl.itrc.Misc;
 
 /**
  * Create a dummy camera, just for simulation.<p>
@@ -76,6 +76,7 @@ public class CamDummy extends CamBundle {
 			frameStep.set(0);//reset this~~
 			//support regular-expression?			
 		}
+		setContext(-1);
 	}
 
 	@Override
@@ -113,7 +114,7 @@ public class CamDummy extends CamBundle {
 
 	@Override
 	public void close() {
-		//it always should be success :-)
+		setContext(0);//it always should be success :-)		
 	}
 	
 	private PanDummy pan = new PanDummy(this);//setting panel

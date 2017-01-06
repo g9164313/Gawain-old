@@ -7,9 +7,9 @@ import com.jfoenix.controls.JFXButton;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
-import narl.itrc.ImgRender;
-import narl.itrc.ImgFilter;
-import narl.itrc.ImgPreview;
+import narl.itrc.vision.ImgFilter;
+import narl.itrc.vision.ImgPreview;
+import narl.itrc.vision.ImgRender;
 
 public class FilterIsBlur extends ImgFilter {
 

@@ -5,8 +5,8 @@
  *      Author: qq
  */
 #include <global.hpp>
-#include <CamBundle.hpp>
 #include "multicam.h"
+#include "vision/CamBundle.hpp"
 
 struct MC_TOKEN {
 	bool signal;
@@ -17,7 +17,7 @@ typedef struct MC_TOKEN McToken;
 
 static void McCallback(PMCCALLBACKINFO info);
 
-extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamMulticam_implSetup(
+extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_CamMulticam_implSetup(
 	JNIEnv* env,
 	jobject thiz,
 	jobject bundle,
@@ -172,7 +172,7 @@ void McCallback(PMCCALLBACKINFO info){
 	token->signal = true;
 }
 
-extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamMulticam_implFetch(
+extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_CamMulticam_implFetch(
 	JNIEnv* env,
 	jobject thiz,
 	jobject bundle
@@ -206,7 +206,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamMulticam_implFetch(
 	setJbool(env,thiz,"staOK",false);
 }
 
-extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamMulticam_implClose(
+extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_CamMulticam_implClose(
 	JNIEnv* env,
 	jobject thiz,
 	jobject bundle

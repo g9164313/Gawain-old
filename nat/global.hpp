@@ -44,7 +44,7 @@ inline void msleep(int msec){
 #include <string>
 #include <vector>
 #ifdef VISION
-#include <vision.hpp>
+#include "vision/vision.hpp"
 #endif
 
 using namespace std;

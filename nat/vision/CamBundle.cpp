@@ -4,8 +4,9 @@
  *  Created on: 2016年5月2日
  *      Author: qq
  */
+#include "vision/CamBundle.hpp"
+
 #include <global.hpp>
-#include <CamBundle.hpp>
 #ifndef VISION
 #define VISION
 #endif
@@ -201,7 +202,7 @@ void drawPolyline(
 }
 //----------------------------//
 
-extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamBundle_saveImage(
+extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_CamBundle_saveImage(
 	JNIEnv * env,
 	jobject bundle,
 	jstring jname
@@ -216,7 +217,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamBundle_saveImage(
 	imwrite(name,img);
 }
 
-extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamBundle_saveImageROI(
+extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_CamBundle_saveImageROI(
 	JNIEnv * env,
 	jobject bundle,
 	jstring jname,
@@ -238,7 +239,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamBundle_saveImageROI(
 	env->ReleaseIntArrayElements(jroi,roi,0);
 }
 
-extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamBundle_loadImage(
+extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_CamBundle_loadImage(
 	JNIEnv * env,
 	jobject bundle,
 	jstring jname,

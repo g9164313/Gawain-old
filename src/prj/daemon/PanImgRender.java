@@ -6,27 +6,28 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.WindowEvent;
-import narl.itrc.CamDummy;
-import narl.itrc.CamVidcap;
-import narl.itrc.ImgRender;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
+import narl.itrc.vision.BlkRender;
+import narl.itrc.vision.CamDummy;
+import narl.itrc.vision.CamVidcap;
 import narl.itrc.vision.CamXIMEA;
+import narl.itrc.vision.ImgRender;
 
 /**
- * Test camera bundle and represent as template
+ * Test camera bundle and represent it as template
  * @author qq
  *
  */
 @SuppressWarnings("unused")
-public class PanRender extends PanBase {
+public class PanImgRender extends PanBase {
 
-	public PanRender(){
+	public PanImgRender(){
 		//final String testFile = ":/home/qq/labor/opencv-3.1/contrib/modules/text/samples/scenetext_segmented_word%02d.jpg";
-		final String testFile = "/home/qq/labor/bang/edge.pgm";
-		rndr = new ImgRender(new CamDummy(testFile));
+		//final String testFile = "/home/qq/labor/bang/edge.pgm";
+		//rndr = new ImgRender(new CamDummy(testFile));
 		//rndr = new ImgRender(new CamVidcap("FILE:0:"+testFile));
-		//rndr = new ImgRender(new CamVidcap("0"));
+		rndr = new ImgRender(new CamVidcap("0"));
 		//rndr = new ImgRender(new CamVidcap("VFW:0"));
 		//rndr = new ImgRender(new CamMulticam("ral12288-FULL"));
 		//rndr = new ImgRender(new CamFlyCapture());
@@ -34,14 +35,10 @@ public class PanRender extends PanBase {
 	}
 	
 	protected ImgRender rndr;//don't assign object. Let inheritance object create instance~~
-	
+
 	@Override
 	protected void eventShown(WindowEvent e){
 		rndr.play();
-	}
-	
-	@Override
-	protected void eventClose(WindowEvent e){
 	}
 	
 	private VBox layoutCtrl(){
@@ -69,15 +66,15 @@ public class PanRender extends PanBase {
 			//TODO: how to show settting panel
 		});
 		
-		final FltrSlangEdge fltr = new FltrSlangEdge(rndr);
+		//final FltrSlangEdge fltr = new FltrSlangEdge(rndr);
 		
 		final Button btnProbe = PanBase.genButton2("測試","walk.png");
 		btnProbe.setOnAction(event->{
-			fltr.ctrl.appear();
+			//fltr.ctrl.appear();
 		});
 		
 		final Button btnClose = PanBase.genButton1("離開","close.png");	
-		btnClose.setOnAction(event->PanRender.this.dismiss());
+		btnClose.setOnAction(event->PanImgRender.this.dismiss());
 				
 		return PanBase.fillVBox(
 			chkPlaying, 

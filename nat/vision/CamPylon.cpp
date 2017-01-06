@@ -1,6 +1,6 @@
 #include <global.hpp>
-#include <CamBundle.hpp>
 #include <pylon/PylonIncludes.h>
+#include "vision/CamBundle.hpp"
 
 #if defined ( USE_GIGE )
 // Settings for Basler GigE Vision cameras
@@ -101,7 +101,7 @@ private:
 };
 
 
-extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamPylon_implSetup(
+extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_CamPylon_implSetup(
 	JNIEnv* env,
 	jobject thiz,
 	jobject bundle,
@@ -143,7 +143,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamPylon_implSetup(
 	}
 }
 
-extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamPylon_implFetch(
+extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_CamPylon_implFetch(
 	JNIEnv* env,
 	jobject thiz,
 	jobject bundle,
@@ -169,7 +169,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamPylon_implFetch(
 	}
 }
 
-extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamPylon_implClose(
+extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_CamPylon_implClose(
 	JNIEnv* env,
 	jobject thiz,
 	jobject bundle
@@ -183,7 +183,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamPylon_implClose(
 	delete cam;
 }
 
-extern "C" JNIEXPORT jlong JNICALL Java_narl_itrc_CamPylon_getExposure(
+extern "C" JNIEXPORT jlong JNICALL Java_narl_itrc_vision_CamPylon_getExposure(
 	JNIEnv* env,
 	jobject thiz,
 	jobject bundle,
@@ -208,7 +208,7 @@ extern "C" JNIEXPORT jlong JNICALL Java_narl_itrc_CamPylon_getExposure(
 	return _v;
 }
 
-extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamPylon_setExposure(
+extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_CamPylon_setExposure(
 	JNIEnv* env,
 	jobject thiz,
 	jobject bundle,
@@ -221,7 +221,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamPylon_setExposure(
 	bnd.dev.ExposureTimeRaw.SetValue(val);
 }
 
-extern "C" JNIEXPORT jlong JNICALL Java_narl_itrc_CamPylon_getGain(
+extern "C" JNIEXPORT jlong JNICALL Java_narl_itrc_vision_CamPylon_getGain(
 	JNIEnv* env,
 	jobject thiz,
 	jobject bundle,
@@ -245,7 +245,7 @@ extern "C" JNIEXPORT jlong JNICALL Java_narl_itrc_CamPylon_getGain(
 	return _v;
 }
 
-extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamPylon_setGain(
+extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_CamPylon_setGain(
 	JNIEnv* env,
 	jobject thiz,
 	jobject bundle,

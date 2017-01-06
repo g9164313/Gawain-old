@@ -1,4 +1,4 @@
-package narl.itrc;
+package narl.itrc.vision;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -7,8 +7,7 @@ import com.sun.glass.ui.Application;
 
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.concurrent.Task;
-import narl.itrc.vision.FilterExecIJ;
-import narl.itrc.vision.FilterSnap;
+import narl.itrc.Gawain;
 
 public class ImgRender implements Gawain.EventHook {
 	
@@ -59,15 +58,16 @@ public class ImgRender implements Gawain.EventHook {
 		for(ImgPreview prv:lstPreview){
 			prv.fetchBuff();
 		}
-		if(fltr!=null){
-			cook_data();
-		}
+		cook_data();
 		for(ImgPreview prv:lstPreview){
 			prv.fetchInfo();
 		}
 		Application.invokeAndWait(eventShowData);
 	}
-	private void cook_data(){
+	private synchronized void cook_data(){
+		if(fltr==null){
+			return;
+		}
 		if(fltr.asyncDone!=null){
 			if(fltr.asyncDone.get()==false){
 				return;
@@ -80,6 +80,7 @@ public class ImgRender implements Gawain.EventHook {
 		fltr.cookData(lstPreview);
 		fltr.state.set(ImgFilter.STA_COOK);
 	}
+	
 	private final Runnable eventShowData = new Runnable(){
 		@Override
 		public void run() {
@@ -211,7 +212,7 @@ public class ImgRender implements Gawain.EventHook {
 	}
 	public ImgRender addPreview(CamBundle... list){
 		for(CamBundle bnd:list){			
-			lstPreview.add(new ImgPreview(this,bnd));
+			lstPreview.add(new ImgPreview(bnd,this));
 		}
 		return this;
 	}

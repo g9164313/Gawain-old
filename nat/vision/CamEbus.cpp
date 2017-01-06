@@ -6,8 +6,6 @@
  */
 #include <global.hpp>
 #include <grabber.hpp>
-#include <CamBundle.hpp>
-
 #include <PvTypes.h>
 #include <PvSystem.h>
 #include <PvInterface.h>
@@ -19,6 +17,7 @@
 #include <PvDeviceFinderWnd.h>
 #include <PvConfigurationWriter.h>
 #include <PvConfigurationReader.h>
+#include "vision/CamBundle.hpp"
 
 class EBusBundle {
 public:
@@ -200,7 +199,7 @@ void EBusBundle::fetchImage(){
 }
 //------------------------------------------//
 
-extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamEBus_implSetup(
+extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_CamEBus_implSetup(
 	JNIEnv* env,
 	jobject thiz,
 	jobject bundle,
@@ -224,7 +223,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamEBus_implSetup(
 	}
 }
 
-extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamEBus_implFetch(
+extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_CamEBus_implFetch(
 	JNIEnv* env,
 	jobject thiz,
 	jobject bundle,
@@ -236,7 +235,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamEBus_implFetch(
 	bnd.fetchImage();
 }
 
-extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamEBus_implClose(
+extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_CamEBus_implClose(
 	JNIEnv* env,
 	jobject thiz,
 	jobject bundle

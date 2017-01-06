@@ -5,7 +5,7 @@
  *      Author: qq
  */
 #include <global.hpp>
-#include <CamBundle.hpp>
+#include <vision/CamBundle.hpp>
 
 static Mat grndImage[2], grndAccum[2];
 
@@ -196,7 +196,7 @@ extern "C" JNIEXPORT jfloat JNICALL Java_prj_letterpress_WidAoiViews_implFindCro
 	env->GetIntArrayRegion(jparam,0,17,param);
 
 	Mat src(height,width,type,buff);
-	Mat img = checkMono(src);
+	Mat img = checkMono(src,NULL);
 	Mat ova = Mat::zeros(src.size(),CV_8UC4);
 
 	Mat nod1;
@@ -255,7 +255,7 @@ extern "C" JNIEXPORT jfloat JNICALL Java_prj_letterpress_WidAoiViews_implFindRec
 	env->GetIntArrayRegion(jparam,0,17,param);
 
 	Mat src(height,width,type,buff);
-	Mat img = checkMono(src);
+	Mat img = checkMono(src,NULL);
 	Mat ova = Mat::zeros(src.size(),CV_8UC4);
 
 	img = img - grndImage[idx];

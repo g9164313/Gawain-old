@@ -5,7 +5,7 @@
  *      Author: qq
  */
 #include <global.hpp>
-#include <CamBundle.hpp>
+#include "vision/CamBundle.hpp"
 #include "FlyCapture2.h"
 #include "FlyCapture2GUI.h"
 
@@ -161,7 +161,7 @@ static void checkProperty(
 	}
 }
 
-extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamFlyCapture_implSetup(
+extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_CamFlyCapture_implSetup(
 	JNIEnv* env,
 	jobject thiz,
 	jobject bundle,
@@ -202,7 +202,7 @@ EXIT_SETUP:
 	MACRO_SETUP_END2(cam,type)
 }
 
-extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamFlyCapture_implFetch(
+extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_CamFlyCapture_implFetch(
 	JNIEnv* env,
 	jobject thiz,
 	jobject bundle
@@ -231,7 +231,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamFlyCapture_implFetch(
 	MACRO_FETCH_COPY(src)
 }
 
-extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamFlyCapture_implClose(
+extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_CamFlyCapture_implClose(
 	JNIEnv* env,
 	jobject thiz,
 	jobject bundle
@@ -251,7 +251,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamFlyCapture_implClose(
 	MACRO_CLOSE_END
 }
 
-extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamFlyCapture_implShowCtrl(
+extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_CamFlyCapture_implShowCtrl(
 	JNIEnv* env,
 	jobject thiz,
 	jobject bundle

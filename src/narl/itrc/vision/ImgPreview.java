@@ -1,4 +1,4 @@
-package narl.itrc;
+package narl.itrc.vision;
 
 import com.sun.glass.ui.Application;
 
@@ -17,6 +17,7 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.ArcType;
+import narl.itrc.Misc;
 
 public class ImgPreview extends BorderPane {
 	
@@ -35,16 +36,19 @@ public class ImgPreview extends BorderPane {
 	 * The first is grabbed image.<p>
 	 * The second is augment image(edge, point, and mask etc...).<p>
 	 */
-	private ImageView[] screen = { new ImageView(), new ImageView() };
+	private ImageView[] screen = { 
+		new ImageView(), 
+		new ImageView()
+	};
 	
 	/**
 	 * It is still a viewer object, but specially for GUI-thread.<p>
 	 */
 	private Canvas board = new Canvas();//show ROI
 	
-	public ImgPreview(ImgRender rnd,CamBundle bnd){
-		render = rnd;
+	public ImgPreview(CamBundle bnd,ImgRender rnd){
 		bundle = bnd;
+		render = rnd;		
 		init_layout();
 	}
 	
@@ -185,11 +189,18 @@ public class ImgPreview extends BorderPane {
 		});
 		root.getItems().add(itm);
 		
-		itm = new MenuItem("Camera");
+		itm = new MenuItem("Bulk");
+		itm.setOnAction(event->{			
+			
+		});
+		root.getItems().add(itm);
+				
+		itm = new MenuItem("Setting");
 		itm.setOnAction(event->{			
 			bundle.showSetting(this);
 		});
 		root.getItems().add(itm);
+		
 		return root;
 	}
 
@@ -320,6 +331,12 @@ public class ImgPreview extends BorderPane {
 	private int markIndx = MARK_NONE;
 
 	public int[] getMark(int i){
+		if(i<0 || markList.length<=i){
+			return null;
+		}
+		if(markList[i].type==MARK_NONE){
+			return null;
+		}
 		return markList[i].getROI();
 	}
 		

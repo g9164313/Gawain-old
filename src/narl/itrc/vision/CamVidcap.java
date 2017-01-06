@@ -1,7 +1,6 @@
-package narl.itrc;
+package narl.itrc.vision;
 
-import narl.itrc.vision.PanAny;
-import narl.itrc.vision.PanVFW;
+import narl.itrc.Misc;
 
 public class CamVidcap extends CamBundle {
 

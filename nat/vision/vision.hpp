@@ -28,19 +28,49 @@ extern Mat filterVariance(
 	double* max=NULL
 );
 
-inline Mat checkMono(Mat& src){
+inline Mat checkMono(Mat& src,int* _r){
+	Mat dst;
+
 	int typ =src.type();
 	if(typ==CV_8UC1){
-		return src;
+		dst = src;
 	}else if(typ==CV_8UC3){
-		Mat dst(src.size(),CV_8UC3);
-		cvtColor(src,dst,COLOR_BGR2GRAY);
-		return dst;
+		Mat tmp(src.size(),CV_8UC3);
+		cvtColor(src,tmp,COLOR_BGR2GRAY);
+		dst = tmp;
+	}else{
+		cerr<<"no support convert"<<endl;
+		dst = src;
 	}
-	cerr<<"no support convert"<<endl;
-	return Mat::zeros(src.size(),CV_8UC3);
+
+	if(_r!=NULL){
+		cout<<"roi=["<<_r[0]<<","<<_r[1]<<"="<<_r[2]<<"x"<<_r[3]<<"]"<<endl;
+		Rect roi(_r[0],_r[1],_r[2],_r[3]);
+		return dst(roi);
+	}
+	return dst;
 }
 
+inline Mat checkMono(JNIEnv* env,jintArray roi,Mat& src){
+	jint _roi[10];
+	env->GetIntArrayRegion(roi,0,4,_roi);
+	return checkMono(src,_roi);
+}
+
+inline Mat checkROI(Mat& src,int* _r){
+	if(_r==NULL){
+		return src;
+	}
+	Rect roi(_r[0],_r[1],_r[2],_r[3]);
+	cout<<"roi=["<<_r[0]<<","<<_r[1]<<"="<<_r[2]<<"x"<<_r[3]<<"]"<<endl;
+	return src(roi);
+}
+
+inline Mat checkROI(JNIEnv* env,jintArray roi,Mat& src){
+	jint _roi[10];
+	env->GetIntArrayRegion(roi,0,4,_roi);
+	return checkROI(src,_roi);
+}
 
 #define TICK_BEG \
 	{int64 __tick=getTickCount();

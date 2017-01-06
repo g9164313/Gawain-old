@@ -1,4 +1,4 @@
-package narl.itrc;
+package narl.itrc.vision;
 
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;

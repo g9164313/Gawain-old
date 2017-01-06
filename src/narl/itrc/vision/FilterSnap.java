@@ -3,9 +3,6 @@ package narl.itrc.vision;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import narl.itrc.CamBundle;
-import narl.itrc.ImgFilter;
-import narl.itrc.ImgPreview;
 import narl.itrc.PanBase;
 
 public class FilterSnap extends ImgFilter {

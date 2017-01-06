@@ -15,13 +15,13 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
-import narl.itrc.CamBundle;
-import narl.itrc.ImgFilter;
-import narl.itrc.ImgPreview;
-import narl.itrc.ImgRender;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
 import narl.itrc.PanDecorate;
+import narl.itrc.vision.CamBundle;
+import narl.itrc.vision.ImgFilter;
+import narl.itrc.vision.ImgPreview;
+import narl.itrc.vision.ImgRender;
 
 public class FltrSlangEdge extends ImgFilter {
 
@@ -29,7 +29,7 @@ public class FltrSlangEdge extends ImgFilter {
 		super(render);
 	}
 		
-	private native void implSfrProc(CamBundle bnd);
+	private native void implSfrProc(CamBundle bnd,int[] roi);
 	
 	/**
 	 * Pixel Per Millimeter
@@ -51,7 +51,11 @@ public class FltrSlangEdge extends ImgFilter {
 	@Override
 	public void cookData(ArrayList<ImgPreview> list) {
 		frq = sfr = null;//clear these variables~~~
-		implSfrProc(list.get(0).bundle);
+		ImgPreview prv = list.get(0);
+		int[] roi = prv.getMark(0);
+		roi[2] = roi[2] - roi[2]%2;//even width
+		roi[3] = roi[3] - roi[3]%2;//even height
+		implSfrProc(prv.bundle,roi);
 	}
 
 	@Override
@@ -74,19 +78,19 @@ public class FltrSlangEdge extends ImgFilter {
 			chart.getData().clear();			
 			
 			XYChart.Series ss1 = new XYChart.Series();
-			ss1.setName("Freq<");
+			ss1.setName("Freq.1");
 			XYChart.Series ss2 = new XYChart.Series();
-			ss2.setName("<Freq");
+			ss2.setName("Freq.2");
 
 			for(int i=0; i<xx.length; i++){
 				XYChart.Data dat = new XYChart.Data(xx[i],yy[i]);
 				if(idxFrqOver<i){
-					ss1.getData().add(dat);					
+					ss2.getData().add(dat);					
 				}else if(i==idxFrqOver){
 					ss1.getData().add(dat);
 					ss2.getData().add(dat);		
 				}else{
-					ss2.getData().add(dat);
+					ss1.getData().add(dat);
 				}
 			}
 			
@@ -103,7 +107,8 @@ public class FltrSlangEdge extends ImgFilter {
 		
 		private Label[] txtInfo = {
 			new Label(),new Label(),new Label(),
-			new Label(),new Label(),new Label()
+			new Label(),new Label(),new Label(),
+			new Label()
 		};
 		
 		private void show_result(){
@@ -114,6 +119,8 @@ public class FltrSlangEdge extends ImgFilter {
 			txtInfo[4].setText(String.format("%.3f",fitRatio));
 			double _v = frq[idxSfrLess];
 			txtInfo[5].setText(String.format("%.1f cy/mm",_v));
+			_v = 1e-3/_v;//it is already millimeter
+			txtInfo[6].setText(String.format("%sm",Misc.num2prefix(_v,1)));
 		}
 
 		private void export_sheet(){
@@ -182,6 +189,7 @@ public class FltrSlangEdge extends ImgFilter {
 			lay.addRow(6,new Label("Right："),txtInfo[3]);
 			lay.addRow(7,new Label("R² fit："),txtInfo[4]);
 			lay.addRow(8,new Label("half-SRF："),txtInfo[5]);
+			lay.addRow(9,new Label("half-Res："),txtInfo[6]);
 			return PanDecorate.group(lay);
 		}
 				

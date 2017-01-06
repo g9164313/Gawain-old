@@ -5,9 +5,9 @@
  *      Author: qq
  */
 #include <global.hpp>
-#include <CamBundle.hpp>
+#include <vision/CamBundle.hpp>
 
-extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamVidcap_implSetup(
+extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_CamVidcap_implSetup(
 	JNIEnv* env,
 	jobject thiz,
 	jobject bundle
@@ -48,7 +48,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamVidcap_implSetup(
 	MACRO_SETUP_END(vid,0,0,0,0)
 }
 
-extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamVidcap_implFetch(
+extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_CamVidcap_implFetch(
 	JNIEnv* env,
 	jobject thiz,
 	jobject bundle
@@ -65,7 +65,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamVidcap_implFetch(
 	MACRO_FETCH_COPY(tmp)
 }
 
-extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamVidcap_implClose(
+extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_CamVidcap_implClose(
 	JNIEnv* env,
 	jobject thiz,
 	jobject bundle
@@ -79,7 +79,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_CamVidcap_implClose(
 	MACRO_CLOSE_END
 }
 
-extern "C" JNIEXPORT jboolean JNICALL Java_narl_itrc_CamVidcap_setProp(
+extern "C" JNIEXPORT jboolean JNICALL Java_narl_itrc_vision_CamVidcap_setProp(
 	JNIEnv* env,
 	jobject thiz,
 	jobject bundle,
@@ -95,7 +95,7 @@ extern "C" JNIEXPORT jboolean JNICALL Java_narl_itrc_CamVidcap_setProp(
 	return (flag==true)?(JNI_TRUE):(JNI_FALSE);
 }
 
-extern "C" JNIEXPORT jdouble JNICALL Java_narl_itrc_CamVidcap_getProp(
+extern "C" JNIEXPORT jdouble JNICALL Java_narl_itrc_vision_CamVidcap_getProp(
 	JNIEnv* env,
 	jobject thiz,
 	jobject bundle,

@@ -5,9 +5,9 @@
  *      Author: qq
  */
 #include <global.hpp>
-#include <CamBundle.hpp>
 #include <m3api/xiApi.h> // Linux, OSX
 #include <memory.h>
+#include "vision/CamBundle.hpp"
 
 #define HandleResult(env,res,place) \
 	if (res!=XI_OK) { \

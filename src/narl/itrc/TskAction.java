@@ -8,6 +8,7 @@ import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.util.Duration;
+import narl.itrc.vision.ImgFilter;
 
 public abstract class TskAction implements EventHandler<ActionEvent> {
 

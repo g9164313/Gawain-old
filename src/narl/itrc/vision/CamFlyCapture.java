@@ -1,4 +1,4 @@
-package narl.itrc;
+package narl.itrc.vision;
 
 public class CamFlyCapture extends CamBundle {
 

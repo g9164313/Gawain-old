@@ -9,7 +9,6 @@ import javafx.scene.Parent;
 import javafx.scene.control.Button;
 import javafx.scene.layout.GridPane;
 import javafx.stage.WindowEvent;
-import narl.itrc.CamDummy;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
 

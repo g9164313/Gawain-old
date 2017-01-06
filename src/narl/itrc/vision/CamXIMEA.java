@@ -1,8 +1,5 @@
 package narl.itrc.vision;
 
-import narl.itrc.CamBundle;
-import narl.itrc.ImgPreview;
-
 public class CamXIMEA extends CamBundle {
 
 	public CamXIMEA(){		

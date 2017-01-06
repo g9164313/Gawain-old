@@ -465,13 +465,6 @@ public abstract class PanBase {
 		return lay;
 	}
 	
-	public static Button genButton0(
-		final String title,
-		final String iconName
-	){
-		return gen_def_button(title,iconName);
-	}
-	
 	private static Button gen_def_button(
 		final String title,
 		final String iconName
@@ -486,6 +479,13 @@ public abstract class PanBase {
 		return btn;
 	}
 	
+	public static Button genButton0(
+		final String title,
+		final String iconName
+	){
+		return gen_def_button(title,iconName);
+	}
+		
 	public static Button genButton1(
 		final String title,
 		final String iconName
@@ -529,6 +529,13 @@ public abstract class PanBase {
 		btn.setMaxWidth(Double.MAX_VALUE);
 		return btn;
 	}
+	
+	public static class FlatIcon extends Button {
+		
+		public FlatIcon(String name){
+			setGraphic(Misc.getIcon(name));
+		}		
+	};
 	
 	/**
 	 * Decorate control item with a table grid.<p>

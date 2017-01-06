@@ -4,10 +4,6 @@ DIR_JNI=/home/qq/.local/jdk8/include
 TARGET_EXE=gawain
 
 TARGET_SO=libspringboard.so
-
-#### COMMON ####
-
-INC_JNI := -I$(DIR_JNI) -I$(DIR_JNI)/linux
 	
 #### Pleora eBus ####
 
@@ -70,21 +66,21 @@ INC_MULTICAM := -I$(ROOT_MULTICAM)/include
 
 LIB_MULTICAM := -L$(ROOT_MULTICAM) -lMultiCam 
 
-########################
-###  configuration  ####
-########################
+#########################
+####  configuration  ####
+#########################
 
 CC=g++
 
-CC_FLAG = -g -I. $(INC_JNI)
+CC_FLAG = -g -I. -I./vision -I$(DIR_JNI) -I$(DIR_JNI)/linux
 CC_FLAG += -DVISION $(shell pkg-config --cflags opencv) 
 #CC_FLAG += $(shell pkg-config --cflags libmodbus) 
 #CC_FLAG += $(shell pkg-config --cflags qt5) 
-#CC_FLAG += $(INC_EBUS)
+CC_FLAG += $(INC_EBUS)
 CC_FLAG += $(INC_FLYCAPTURE)
 CC_FLAG += $(INC_XIMEA)
-#CC_FLAG += $(INC_PYLON)
-#CC_FLAG += $(INC_MULTICAM)
+CC_FLAG += $(INC_PYLON)
+CC_FLAG += $(INC_MULTICAM)
 
 LD_LIBS = $(shell pkg-config --libs opencv) 
 #LD_LIBS += $(shell pkg-config --libs libmodbus) 
@@ -99,15 +95,17 @@ LD_LIBS += $(LIB_XIMEA)
 
 UTIL_FILE = util_cv.cpp util_jni.cpp
 
+BASIC_DEVICE = ./vision/CamBundle.cpp DevTTY.cpp
+
 LIB_SFRISO = ./SFR/FltrSlangEdge.cpp ./SFR/sfr_iso.c 
 
 #SFR_MITRE =  ./SFR/sfr_iso.c ./SFR/find_area.c
 IMG_FILTER = 
 
-DEV_CAMERA = CamVidcap.cpp 
-#DEV_CAMERA += CamMulticam.cpp 
-DEV_CAMERA += CamFlyCapture.cpp
-DEV_CAMERA += CamXIMEA.cpp
+DEV_CAMERA = ./vision/CamVidcap.cpp 
+#DEV_CAMERA += ./vision/CamMulticam.cpp 
+DEV_CAMERA += ./vision/CamFlyCapture.cpp
+DEV_CAMERA += ./vision/CamXIMEA.cpp
 
 PRJ_CUSTOM = PrjLetterpress.cpp
 ########################
@@ -116,7 +114,7 @@ OBJECTS = $(SOURCES:.cpp=.o)
 
 CHECK_EXEC := $(word 2,$(shell pgrep -f "narl.itrc.Gawain"))
 
-$(TARGET_SO): $(UTIL_FILE) CamBundle.cpp DevTTY.cpp $(IMG_FILTER) $(DEV_CAMERA) $(PRJ_CUSTOM) $(LIB_SFRISO)
+$(TARGET_SO): $(UTIL_FILE) $(BASIC_DEVICE) $(IMG_FILTER) $(DEV_CAMERA) $(PRJ_CUSTOM) $(LIB_SFRISO)
 	$(CC) $(CC_FLAG)  -fPIC -shared -o $@ $^ $(LD_LIBS)
 	cp -rf $@ ../bin/narl/itrc/nat
 	cp -rf $@ ../src/narl/itrc/nat

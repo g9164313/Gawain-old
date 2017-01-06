@@ -1,4 +1,4 @@
-package narl.itrc;
+package narl.itrc.vision;
 
 import java.io.ByteArrayInputStream;
 
@@ -30,6 +30,7 @@ public abstract class CamBundle {
 	 * 
 	 * The pointer to memory buffer created by malloc().<p>
 	 * This pointer can be zero, it is dependent on device.<p>
+	 * Do we use this for memory-mapping? <p> 
 	 */
 	private long ptrBuff = 0;
 	
@@ -101,6 +102,10 @@ public abstract class CamBundle {
 	
 	public native void loadImage(String name,int flag);
 	//-----------------------------//
+	
+	protected void setContext(long val){
+		ptrCntx = val;
+	}
 	
 	/**
 	 * image is encoded by compressor.<p>

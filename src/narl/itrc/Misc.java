@@ -321,6 +321,40 @@ public class Misc {
 		return txt.substring(0,pos)+scaleSig[idx];
 	}	
 	
+	public static String num2prefix(double num){
+		return num2prefix(num,2);
+	}
+	
+	public static String num2prefix(double num,int pow){
+		
+		String[] txt = String.format("%E",num).split("E");
+		
+		double val = Double.valueOf(txt[0]);
+		
+		int prx = Integer.valueOf(txt[1]);
+		
+		int cnt = Math.abs(prx);
+		
+		if(cnt==0){			
+			return String.format("%."+pow+"f",val);//special case~~~
+		}
+
+		int scale = (cnt-1) / 3;
+
+		final char[] p_prefix = {'k','M','G','T','P','E'};	
+		final char[] n_prefix = {'m','μ','n','p','f','a'};
+		char mtrx = ' ';
+		if(prx>=0){
+			mtrx = p_prefix[scale];			
+		}else{				
+			mtrx = n_prefix[scale];
+		}
+		
+		val = num * Math.pow(10.,(scale+1)*3);	
+		
+		return String.format("%."+pow+"f%c",val,mtrx);
+	}
+	
 	public static String insertAdjunct(String txt,char tkn,String adj){
 		int pos = txt.lastIndexOf(tkn);
 		if(pos<0){
@@ -768,49 +802,7 @@ public class Misc {
 			txt = "[ERROR]: "+e.getMessage();
 		}		
 		return txt;
-	}
-	
-	private static Process procIJ = null;
-	
-	public static void execIJ(String img_name){
-		if(procIJ!=null){
-			//just only execute one instance~~~
-			if(procIJ.isAlive()==true){
-				procIJ.destroy();
-				procIJ = null;//for next turn~~~~
-				return;
-			}			
-		}
-		String ij_path = Gawain.prop.getProperty("IJ_PATH","");		
-		if(ij_path.length()==0){
-			PanBase.notifyError(
-				"內部資訊",
-				"請在 conf.properties 設定 ImageJ 執行路徑"
-			);
-			return;
-		}
-		try {			
-			//How to find 'java' from M$ Windows OS ? 
-			ProcessBuilder pb = null;
-			if(ij_path.contains(".jar")){
-				//execute ImageJ from jar file
-				pb = new ProcessBuilder(
-					"/usr/bin/java","-Xmx1024m","-jar",
-					ij_path, img_name
-				);
-			}else{
-				//it is a executed file
-				pb = new ProcessBuilder(ij_path,img_name);
-			}
-			pb.directory(fsPathTemp);
-			procIJ = pb.start();
-		} catch (Exception e) {
-			PanBase.notifyError(
-				"內部資訊",
-				e.getMessage()
-			);
-		}
-	} 
+	}	
 	//--------------------------//
 	//I don't know how to set up category for below lines
 	
