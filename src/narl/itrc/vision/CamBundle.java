@@ -85,6 +85,13 @@ public abstract class CamBundle {
 	public abstract void fetch();
 	
 	/**
+	 * special feature,just transfer data, but no decode.<p>
+	 * @param addr - memory pool address
+	 * @return the next memory address
+	 */
+	public abstract long bulk(long addr);
+	
+	/**
 	 * close camera and release everything.<p>
 	 * remember 'ptrCntx' will be overwrite.<p>
 	 */

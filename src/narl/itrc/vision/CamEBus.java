@@ -27,6 +27,12 @@ public class CamEBus extends CamBundle {
 	}
 
 	@Override
+	public long bulk(long addr) {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+	
+	@Override
 	public void close() {
 		implClose(this);
 	}

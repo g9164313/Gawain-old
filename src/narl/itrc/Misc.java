@@ -339,20 +339,49 @@ public class Misc {
 			return String.format("%."+pow+"f",val);//special case~~~
 		}
 
-		int scale = (cnt-1) / 3;
-
-		final char[] p_prefix = {'k','M','G','T','P','E'};	
-		final char[] n_prefix = {'m','μ','n','p','f','a'};
+		final char[] p_prefix = {' ','k','M','G','T','P','E'};	
+		final char[] n_prefix = {' ','m','μ','n','p','f','a'};
 		char mtrx = ' ';
 		if(prx>=0){
-			mtrx = p_prefix[scale];			
-		}else{				
+			mtrx = p_prefix[cnt/3];
+			val = val * Math.pow(10.,(cnt%3));
+		}else{
+			int scale = 1+(cnt-1)/3;
 			mtrx = n_prefix[scale];
+			val = num * Math.pow(10.,scale*3);
 		}
-		
-		val = num * Math.pow(10.,(scale+1)*3);	
-		
-		return String.format("%."+pow+"f%c",val,mtrx);
+		if(mtrx!=' '){
+			return String.format("%."+pow+"f%c",val,mtrx);
+		}
+		return String.format("%."+pow+"f",val);
+	}
+	
+	/**
+	 * 
+	 * @param ms - millsecond
+	 * @return
+	 */
+	public static String num2time(long ms){		
+		long ss = ms / 1000L;
+		if(ss!=0){
+			ms = ms % 1000L;
+		}
+		long mm = ss / 60L;
+		if(mm!=0){
+			ss = ss % 60L;
+		}
+		long hh = mm / 60L;
+		if(hh!=0L){
+			mm = mm % 60L;
+		}
+		if(hh!=0){
+			return String.format("%d:%d:%d.%dsec",hh,mm,ss,ms);
+		}else if(mm!=0){
+			return String.format("%d:%d.%dsec",mm,ss,ms);
+		}else if(ss!=0){
+			return String.format("%d.%dsec",ss,ms);
+		}
+		return String.format("%dms",ms);
 	}
 	
 	public static String insertAdjunct(String txt,char tkn,String adj){
@@ -653,34 +682,7 @@ public class Misc {
 		return res;
 	}
 	//----------------------------------------//
-	
-	private static long tick1, tick2;//the unit is millisecond~~
-	public static void setTick1(){
-		tick1 = System.currentTimeMillis();
-	}
-	public static void setTick2(){
-		tick2 = System.currentTimeMillis();
-	}
-	public static String getTickTxt(){
-		long ms = tick2 - tick1;
-		if(ms<0L){
-			return "????";
-		}
-		long ss = ms / 1000L;
-		if(ss!=0){
-			ms = ms % 1000L;
-		}
-		long mm = ss / 60L;
-		if(mm!=0){
-			ms = ms % 60L;
-		}
-		long hh = mm / 60L;
-		if(hh!=0L){
-			mm = mm % 60L;
-		}
-		return String.format("%d:%02d:%02d.%03d",hh,mm,ss,ms);
-	}
-	
+		
 	private static SimpleDateFormat fmtTime = new SimpleDateFormat ("hh:mm:ss");	
 	public static String getTimeTxt(){
 		return fmtTime.format(new Date(System.currentTimeMillis()));

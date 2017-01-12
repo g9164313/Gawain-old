@@ -113,6 +113,12 @@ public class CamDummy extends CamBundle {
 	}
 
 	@Override
+	public long bulk(long addr) {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
 	public void close() {
 		setContext(0);//it always should be success :-)		
 	}
@@ -199,5 +205,4 @@ public class CamDummy extends CamBundle {
 		}
 		return false;
 	}
-
 }

@@ -86,6 +86,7 @@ public class CamVidcap extends CamBundle {
 		
 	private native void implSetup(CamBundle cam);
 	private native void implFetch(CamBundle cam);
+	private native long implBulk(CamBundle cam,long addr);
 	private native void implClose(CamBundle cam);
 
 	public native boolean setProp(CamBundle cam,int id, double val);
@@ -124,6 +125,11 @@ public class CamVidcap extends CamBundle {
 	@Override
 	public void fetch() {
 		implFetch(this);
+	}
+	
+	@Override
+	public long bulk(long addr) {
+		return implBulk(this,addr);
 	}
 
 	@Override

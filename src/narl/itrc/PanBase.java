@@ -17,6 +17,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Control;
 import javafx.scene.control.Label;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
@@ -467,9 +468,16 @@ public abstract class PanBase {
 	
 	private static Button gen_def_button(
 		final String title,
-		final String iconName
+		final String iconName,
+		final String styleName
 	){
-		Button btn = new Button(title);
+		Button btn = new Button();
+		if(title.length()!=0){
+			btn.setText(title);
+		}
+		if(styleName.length()!=0){
+			btn.getStyleClass().add(styleName);
+		}
 		if(iconName!=null){
 			if(iconName.length()!=0){
 				btn.setGraphic(Misc.getIcon(iconName));
@@ -479,42 +487,35 @@ public abstract class PanBase {
 		return btn;
 	}
 	
+	public static Button genButtonFlat(
+		final String title,
+		final String iconName
+	){		
+		final double def_size = 25.;
+		Button btn = new Button();
+		btn.getStyleClass().add("btn-flat");
+		btn.setMaxWidth(def_size);
+		btn.setPrefHeight(def_size);
+		if(title.length()!=0){
+			btn.setText(title);
+		}
+		if(iconName.length()!=0){
+			ImageView img = Misc.getIcon(iconName);
+			img.setFitWidth(def_size);
+			img.setFitHeight(def_size);
+			btn.setGraphic(img);
+		}		
+		return btn;
+	}
+	
 	public static Button genButton0(
 		final String title,
 		final String iconName
 	){
-		return gen_def_button(title,iconName);
-	}
-		
-	public static Button genButton1(
-		final String title,
-		final String iconName
-	){
-		return genButton(title,iconName,"btn-raised-1");
+		return gen_def_button(title,iconName,"");
 	}
 	
-	public static Button genButton2(
-		final String title,
-		final String iconName
-	){
-		return genButton(title,iconName,"btn-raised-2");
-	}
-	
-	public static Button genButton3(
-		final String title,
-		final String iconName
-	){
-		return genButton(title,iconName,"btn-raised-3");
-	}
-	
-	public static Button genButton4(
-		final String title,
-		final String iconName
-	){
-		return genButton(title,iconName,"btn-raised-4");
-	}
-	
-	private static Button genButton(
+	private static Button gen_fx_button(
 		final String title,
 		final String iconName,
 		final String styleName
@@ -530,13 +531,34 @@ public abstract class PanBase {
 		return btn;
 	}
 	
-	public static class FlatIcon extends Button {
-		
-		public FlatIcon(String name){
-			setGraphic(Misc.getIcon(name));
-		}		
-	};
+	public static Button genButton1(
+		final String title,
+		final String iconName
+	){
+		return gen_fx_button(title,iconName,"btn-raised-1");
+	}
 	
+	public static Button genButton2(
+		final String title,
+		final String iconName
+	){
+		return gen_fx_button(title,iconName,"btn-raised-2");
+	}
+	
+	public static Button genButton3(
+		final String title,
+		final String iconName
+	){
+		return gen_fx_button(title,iconName,"btn-raised-3");
+	}
+	
+	public static Button genButton4(
+		final String title,
+		final String iconName
+	){
+		return gen_fx_button(title,iconName,"btn-raised-4");
+	}
+
 	/**
 	 * Decorate control item with a table grid.<p>
 	 * User must pay attention to argument sequence.Column symbol will be added automatically.<p> 

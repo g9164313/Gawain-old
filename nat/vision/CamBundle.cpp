@@ -257,3 +257,106 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_CamBundle_loadImage(
 	//set_img_array(env,bundle,idImgBuff,img,"imgBuff",".png");
 }
 
+extern "C" JNIEXPORT jlong JNICALL Java_narl_itrc_vision_BlkRender_blkAllocate(
+	JNIEnv* env,
+	jobject thiz,
+	jobject bundle
+){
+	jclass b_clzz = env->GetObjectClass(bundle);
+	jint format = env->GetIntField(
+		bundle,
+		env->GetFieldID(b_clzz,"bufType" ,"I")
+	);
+	uint32_t width = env->GetIntField(
+		bundle,
+		env->GetFieldID(b_clzz,"bufSizeW","I")
+	);
+	uint32_t height = env->GetIntField(
+		bundle,
+		env->GetFieldID(b_clzz,"bufSizeH","I")
+	);
+
+	uint32_t chan = CV_MAT_CN(format);
+	uint32_t type;
+	switch(format){
+	default:
+	case CV_8U:
+	case CV_8S:
+		type = 1;//byte
+		break;
+	case CV_16U:
+	case CV_16S:
+		type = 2;//byte
+		break;
+	case CV_32S:
+	case CV_32F:
+		type = 4;//byte
+		break;
+	case CV_64F:
+		type = 8;//byte
+		break;
+	}
+
+	jclass o_clzz = env->GetObjectClass(thiz);
+	jfieldID idAddress = env->GetFieldID(o_clzz,"blkAddress" ,"J");
+	jfieldID idAllSize = env->GetFieldID(o_clzz,"blkAllSize" ,"J");
+
+	void* buf = (void*) env->GetLongField(thiz,idAddress);
+
+	uint32_t cnt = (uint32_t) env->GetLongField(
+		thiz,
+		env->GetFieldID(o_clzz,"blkCounter" ,"J")
+	);
+	size_t len = 128 + cnt * width * height * chan * type;
+
+	buf = realloc(buf,len);
+	if(buf==NULL){
+		return 0;
+	}
+	env->SetLongField(thiz,idAddress,(jlong)buf);
+	env->SetLongField(thiz,idAllSize,(jlong)len);
+
+	/* prepare header, the size is 128byte and this will be 32 slots, each slot is 32-bit */
+	memset(buf,0,128);
+	uint32_t* head = (uint32_t*)buf;
+	head[0] = 0x4B4C5542;//signature
+	head[1] = width;//image width
+	head[2] = height;//image width
+	head[3] = format;//image format, it is just CV_TYPE
+	//printf("realloc=%p @ %ld # cnt=%d, %dx%d, chan=%d, %dbyte",buf,len,cnt,width,height,chan,type);
+	//cout<<endl;
+	return (jlong)buf;
+}
+
+extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_BlkRender_blkFree(
+	JNIEnv* env,
+	jobject thiz
+){
+	jclass o_clzz = env->GetObjectClass(thiz);
+	jfieldID idAddress = env->GetFieldID(o_clzz,"blkAddress" ,"J");
+	free((void*)env->GetLongField(thiz,idAddress));
+	env->SetLongField(thiz,idAddress,0);
+}
+
+extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_BlkRender_blkFlush(
+	JNIEnv* env,
+	jobject thiz,
+	jstring jname
+){
+	jclass o_clzz = env->GetObjectClass(thiz);
+	void* buf = (void*)env->GetLongField(
+		thiz,
+		env->GetFieldID(o_clzz,"blkAddress","J")
+	);
+	size_t len = env->GetLongField(
+		thiz,
+		env->GetFieldID(o_clzz,"blkAllSize","J")
+	);
+
+	char name[500];
+	jstrcpy(env,jname,name);
+	FILE* fs = fopen(name,"wb");
+	fwrite(buf, sizeof(uint8_t), len, fs);
+	fclose(fs);
+}
+
