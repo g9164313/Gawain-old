@@ -97,35 +97,45 @@ public class BlkRender extends BorderPane implements Gawain.EventHook {
 	}
 	//--------------------------------------------//
 	
-	private final int HEAD_SIZE = 128;
-	
-	private final int MODE_MEM_DISK = 0;
-	private final int MODE_MEM_ZIP = 1;
-	private final int MODE_MAPPING = 2;
-	
-	private int blkMode = MODE_MEM_DISK;
-	
-	/**
-	 * 
-	 */
-	private long blkAddress = 0L;//memory address
+	private final int HEAD_SIZE = 128;//the structure must refer to native code~~~ 
 		
+	private final int MODE_MEM_DISK= 0x001;
+	private final int MODE_MEM_ZIP = 0x002;
+	private final int MODE_MEM_PNG = 0x010;
+	private final int MODE_MEM_TIF = 0x020;
+	private final int MODE_MEM_JPG = 0x030;
+	private final int MODE_MAPPING = 0x100;//??? it is not special efficient ???
+	
+	private int blkMode = MODE_MEM_TIF;
+	
 	/**
 	 * This value presents how many blocks will be transfer.<p>
 	 * This is a user defined value.<p>
 	 * In native code, the type is 'unit32_t'
 	 */
-	private long blkCounter = 500;
+	private long blkCounter = 5500;
+
+	/**
+	 * This variable keep the file descriptor.<p>
+	 * It is only used by 'MODE_MAPPING'.<p>
+	 */
+	private int blkFileDesc = 0;
+	
+	/**
+	 * 
+	 */
+	private long blkAddress = 0L;//memory address
 	
 	/**
 	 * The transfer size is 'header + blkCounter × width × height'.<p>
 	 * Header size is 128 byte.<p>
+	 * This value is calculated by native code.<p>
 	 */
-	private long blkAllSize = 0L;//total size, this value is provided by native code
+	private long blkAllSize = 0L;
 	
 	private String txtAllSize = "";
 	
-	private String blkFileName = "video.raw";
+	private String blkFileName = "stream.raw";
 	
 	private Task<Integer> looper = null;
 
@@ -140,7 +150,7 @@ public class BlkRender extends BorderPane implements Gawain.EventHook {
 	 * @param bnd - it will provide camera information 
 	 * @return the current memory address (pointer)
 	 */
-	private native long blkAllocate(CamBundle bnd);
+	private native long blkAllocate(String name,CamBundle bnd);
 	
 	/**
 	 * Flush data in memory to hard-disk.<p>
@@ -165,12 +175,13 @@ public class BlkRender extends BorderPane implements Gawain.EventHook {
 			updateMessage("準備中...");
 			//TODO: Here, do we need hook-event to setup size???
 			
-			blkCurPtr = blkAllocate(bundle);//prepare data and memory mapping~~~
+			blkCurPtr = blkAllocate(blkFileName,bundle);//prepare data and memory mapping~~~
 			if(blkCurPtr==0){
+				updateProgress(0,0);
 				updateMessage("配置記憶體失敗");
-				return -1;
+				throw new RuntimeException();
 			}
-			blkCurPtr += HEAD_SIZE;//add head offset~~~~
+			blkCurPtr += HEAD_SIZE;//add head offset, header structure must refer to native code.
 			
 			txtAllSize = Misc.num2prefix(blkAllSize)+"B";
 			updateMessage(String.format(
@@ -180,7 +191,10 @@ public class BlkRender extends BorderPane implements Gawain.EventHook {
 			
 			//just transfer data as soon as possible~~~
 			for(int i=0; i<blkCounter; i++){
-				blkCurPtr = bundle.bulk(blkCurPtr);
+				if(isCancelled()==true){
+					return -2;
+				}
+				blkCurPtr = bundle.bulk(blkCurPtr);//this method will offset pointer~~
 				updateProgress(++blkIndex, blkCounter);
 				updateMessage(String.format(
 					"資料傳輸（%s/%s）",
@@ -224,8 +238,12 @@ public class BlkRender extends BorderPane implements Gawain.EventHook {
 		}
 
 		looper = new TskBulk();
-		looper.setOnSucceeded(event->{
+		looper.setOnFailed(event->{
+			//this event happened when task throw a exception!!!
+			actMessage.textProperty().unbind();
 			doStart();
+		});
+		looper.setOnSucceeded(event->{			
 			actMessage.textProperty().unbind();
 			if(tick2==0L){
 				actMessage.setText(String.format(
@@ -239,6 +257,7 @@ public class BlkRender extends BorderPane implements Gawain.EventHook {
 					Misc.num2time(tick1),Misc.num2time(tick2)
 				));
 			}
+			doStart();
 		});
 		looper.setOnCancelled(event->{
 			tick1 = System.currentTimeMillis() - tick0;//calculate tick again!!!

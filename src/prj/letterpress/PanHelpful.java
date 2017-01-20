@@ -3,6 +3,7 @@ package prj.letterpress;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.layout.GridPane;
+import narl.itrc.Misc;
 import narl.itrc.PanBase;
 import narl.itrc.PanDecorate;
 import narl.itrc.TskAction;
@@ -49,11 +50,17 @@ public class PanHelpful extends PanDecorate {
 		btnDemo2.setOnAction(TskAction.createKeyframe(true,
 			Entry.inst.prvw.filterAlign,
 			event->PanOption.enableAOI(false),
-			tsk_scanning,
-			event->PanOption.enableAOI(true),
-			tsk_gohome
+			tsk_scanning,						
+			tsk_holder,
+			event->PanOption.enableAOI(true),			
+			tsk_holder,
+			event->{
+				Misc.delay(500);
+				Misc.logv("開始對位程序");
+			}
 		));
-
+		//tsk_gohome,
+		
 		Button btnOrigin = PanBase.genButton0("校正原點","arrow-compress-all.png");
 		btnOrigin.setOnAction(tsk_gohome);
 

@@ -127,12 +127,12 @@ else
 endif
 	
 
-$(TARGET_EXE):  ./wrap-unix/main_xx.cpp $(UTIL_FILE) $(LIB_SFRISO)
+$(TARGET_EXE):  ./wrap-unix/main2.cpp $(UTIL_FILE) $(LIB_SFRISO)
 #$(TARGET_EXE):  ./wrap-unix/FlyCap2.cpp
 	$(CC) $(CC_FLAG) -o $@ $^ $(LD_LIBS)
 
-all: $(TARGET_SO)
-#all: $(TARGET_EXE)
+#all: $(TARGET_SO)
+all: $(TARGET_EXE)
 #all: $(TARGET_EXE) $(TARGET_SO) 
 
 clean:

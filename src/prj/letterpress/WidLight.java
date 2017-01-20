@@ -24,13 +24,20 @@ public class WidLight extends PanDecorate {
 		ToggleButton tb0 = new ToggleButton("OFF");
 		tb0.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
 		tb0.setOnAction(event->{
-			
+			//Entry.stg2.writeTxt('R');
+			//Entry.stg1.writeTxt("1,0\r\n",20);
+			//Entry.stg1.writeTxt("2,0\r\n",20);
+			PanOption.enableAOI(false);
 		});
 		
 		ToggleButton tb1 = new ToggleButton("ON");
 		tb1.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
 		tb1.setSelected(true);
 		tb1.setOnAction(event->{
+			//Entry.stg2.writeTxt('F');
+			//Entry.stg1.writeTxt("1,45\r\n",20);
+			//Entry.stg1.writeTxt("2,45\r\n",20);
+			PanOption.enableAOI(true);
 		});
 		
 		final ImageView img0 = Misc.getIcon("lightbulb.png");		

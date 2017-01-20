@@ -5,8 +5,10 @@ import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
+import narl.itrc.DevMotion;
 import narl.itrc.PanBase;
 import narl.itrc.PanDecorate;
 
@@ -40,6 +42,33 @@ public class WidMovement extends PanDecorate {
 			GridPane.setHgrow(btn[i], Priority.ALWAYS);
 		}
 
+		final double speed = 2000.;
+		btn[0].addEventFilter(MouseEvent.MOUSE_PRESSED,event->{
+			Entry.stg0.joggingTo(true,DevMotion.PULSE_UNIT, null, -speed);
+		});
+		btn[0].addEventFilter(MouseEvent.MOUSE_RELEASED,event->{
+			Entry.stg0.joggingTo(false,DevMotion.PULSE_UNIT, null, -speed);
+		});
+		btn[2].addEventFilter(MouseEvent.MOUSE_PRESSED,event->{
+			Entry.stg0.joggingTo(true,DevMotion.PULSE_UNIT, null, speed);
+		});
+		btn[2].addEventFilter(MouseEvent.MOUSE_RELEASED,event->{
+			Entry.stg0.joggingTo(false,DevMotion.PULSE_UNIT, null, speed);
+		});
+		
+		btn[1].addEventFilter(MouseEvent.MOUSE_PRESSED,event->{
+			Entry.stg0.joggingTo(true,DevMotion.PULSE_UNIT, -speed);
+		});
+		btn[1].addEventFilter(MouseEvent.MOUSE_RELEASED,event->{
+			Entry.stg0.joggingTo(false,DevMotion.PULSE_UNIT, -speed);
+		});
+		btn[3].addEventFilter(MouseEvent.MOUSE_PRESSED,event->{
+			Entry.stg0.joggingTo(true,DevMotion.PULSE_UNIT, speed);
+		});
+		btn[3].addEventFilter(MouseEvent.MOUSE_RELEASED,event->{
+			Entry.stg0.joggingTo(false,DevMotion.PULSE_UNIT, speed);
+		});
+		
 		GridPane.setHalignment(txt[0], HPos.CENTER);
 		
 		GridPane.setHalignment(txt[1], HPos.CENTER);

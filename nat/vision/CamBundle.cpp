@@ -5,7 +5,9 @@
  *      Author: qq
  */
 #include "vision/CamBundle.hpp"
-
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
 #include <global.hpp>
 #ifndef VISION
 #define VISION
@@ -256,10 +258,53 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_CamBundle_loadImage(
 	//MACRO_RESET_FIELD(0L,img.cols,img.rows,img.type())
 	//set_img_array(env,bundle,idImgBuff,img,"imgBuff",".png");
 }
+//----------------------------------------//
+
+#define MODE_MEM_DISK 0x001
+#define MODE_MEM_ZIP  0x002
+#define MODE_MEM_PNG  0x010
+#define MODE_MEM_TIF  0x020
+#define MODE_MEM_JPG  0x030
+#define MODE_MAPPING  0x100
+
+static int prepare_file(
+	JNIEnv* env,
+	jobject thiz,
+	jclass o_clzz,
+	jstring jname,
+	size_t len
+){
+	char tmp_buff[4096];
+	jstrcpy(env,jname,tmp_buff);
+
+	int fd = open(
+		tmp_buff,
+		O_RDWR | O_CREAT | O_TRUNC,
+		(mode_t)0666
+	);
+
+	if(fd!=-1){
+		//how to keep the previous file size???
+		size_t cnt = len / sizeof(tmp_buff);
+		for(;cnt!=0;){
+			write(fd,tmp_buff,sizeof(tmp_buff));//Just put dummy data
+			cnt--;
+		}
+		write(fd,tmp_buff,len % sizeof(tmp_buff));
+	}
+
+	env->SetIntField(
+		thiz,
+		env->GetFieldID(o_clzz,"blkFileDesc","I"),
+		(jint)fd
+	);
+	return fd;
+}
 
 extern "C" JNIEXPORT jlong JNICALL Java_narl_itrc_vision_BlkRender_blkAllocate(
 	JNIEnv* env,
 	jobject thiz,
+	jstring jname,
 	jobject bundle
 ){
 	jclass b_clzz = env->GetObjectClass(bundle);
@@ -277,41 +322,69 @@ extern "C" JNIEXPORT jlong JNICALL Java_narl_itrc_vision_BlkRender_blkAllocate(
 	);
 
 	uint32_t chan = CV_MAT_CN(format);
-	uint32_t type;
+	uint32_t bits;
 	switch(format){
 	default:
 	case CV_8U:
 	case CV_8S:
-		type = 1;//byte
+		bits = 1;//byte
 		break;
 	case CV_16U:
 	case CV_16S:
-		type = 2;//byte
+		bits = 2;//byte
 		break;
 	case CV_32S:
 	case CV_32F:
-		type = 4;//byte
+		bits = 4;//byte
 		break;
 	case CV_64F:
-		type = 8;//byte
+		bits = 8;//byte
 		break;
 	}
 
 	jclass o_clzz = env->GetObjectClass(thiz);
-	jfieldID idAddress = env->GetFieldID(o_clzz,"blkAddress" ,"J");
-	jfieldID idAllSize = env->GetFieldID(o_clzz,"blkAllSize" ,"J");
+	jfieldID idAddress = env->GetFieldID(o_clzz,"blkAddress","J");
+	jfieldID idAllSize = env->GetFieldID(o_clzz,"blkAllSize","J");
+
+	jint mod = env->GetIntField(
+		thiz,
+		env->GetFieldID(o_clzz,"blkMode","I")
+	);//Mode type can be referenced in Java File
 
 	void* buf = (void*) env->GetLongField(thiz,idAddress);
 
-	uint32_t cnt = (uint32_t) env->GetLongField(
+	size_t count = (size_t) env->GetLongField(
 		thiz,
-		env->GetFieldID(o_clzz,"blkCounter" ,"J")
+		env->GetFieldID(o_clzz,"blkCounter","J")
 	);
-	size_t len = 128 + cnt * width * height * chan * type;
+	size_t len = 128 + count * width * height * chan * bits;
 
-	buf = realloc(buf,len);
-	if(buf==NULL){
-		return 0;
+	switch(mod){
+	default:
+	case MODE_MEM_DISK:
+	case MODE_MEM_ZIP:
+	case MODE_MEM_PNG:
+	case MODE_MEM_TIF:
+	case MODE_MEM_JPG:
+		buf = realloc(buf,len);
+		if(buf==NULL){
+			return 0;
+		}
+		break;
+	case MODE_MAPPING:
+		//this is special case, we must create a file then mapping it to memory....
+		int fd = prepare_file(env,thiz,o_clzz,jname,len);
+		buf = mmap(
+			NULL,len,
+			PROT_READ|PROT_WRITE,
+			MAP_SHARED,
+			fd,	0
+		);
+		if(buf==MAP_FAILED){
+			close(fd);
+			return 0L;
+		}
+		break;
 	}
 	env->SetLongField(thiz,idAddress,(jlong)buf);
 	env->SetLongField(thiz,idAllSize,(jlong)len);
@@ -320,22 +393,33 @@ extern "C" JNIEXPORT jlong JNICALL Java_narl_itrc_vision_BlkRender_blkAllocate(
 	memset(buf,0,128);
 	uint32_t* head = (uint32_t*)buf;
 	head[0] = 0x4B4C5542;//signature
-	head[1] = width;//image width
-	head[2] = height;//image width
-	head[3] = format;//image format, it is just CV_TYPE
+	head[1] = count; //the number of images
+	head[2] = width; //image width
+	head[3] = height;//image height
+	head[4] = format;//image format, it is just CV_TYPE
 	//printf("realloc=%p @ %ld # cnt=%d, %dx%d, chan=%d, %dbyte",buf,len,cnt,width,height,chan,type);
 	//cout<<endl;
 	return (jlong)buf;
 }
 
-extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_BlkRender_blkFree(
-	JNIEnv* env,
-	jobject thiz
-){
-	jclass o_clzz = env->GetObjectClass(thiz);
-	jfieldID idAddress = env->GetFieldID(o_clzz,"blkAddress" ,"J");
-	free((void*)env->GetLongField(thiz,idAddress));
-	env->SetLongField(thiz,idAddress,0);
+static void flush2image(void* buf,size_t len,char* target,const char* extension){
+
+	uint32_t* head = (uint32_t*)buf;
+	uint32_t cnt = head[1];//the number of images
+	uint32_t ww  = head[2];//image width
+	uint32_t hh  = head[3];//image height
+	uint32_t fmt = head[4];//image format, it is just CV_TYPE
+
+	uint8_t* ptr = (uint8_t*)buf;
+
+	ptr+=128;//skip header~~~
+
+	char name[100]={0};
+	strcat(name,target);
+	strcat(name,extension);
+
+	Mat img(hh*cnt,ww,fmt,ptr);
+	imwrite(name,img);
 }
 
 extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_BlkRender_blkFlush(
@@ -344,19 +428,85 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_BlkRender_blkFlush(
 	jstring jname
 ){
 	jclass o_clzz = env->GetObjectClass(thiz);
+
+	jint mod = env->GetIntField(
+		thiz,
+		env->GetFieldID(o_clzz,"blkMode","I")
+	);//Mode type can be referenced in Java File
+
 	void* buf = (void*)env->GetLongField(
 		thiz,
 		env->GetFieldID(o_clzz,"blkAddress","J")
 	);
+
 	size_t len = env->GetLongField(
 		thiz,
 		env->GetFieldID(o_clzz,"blkAllSize","J")
 	);
 
+	FILE* fs;
 	char name[500];
 	jstrcpy(env,jname,name);
-	FILE* fs = fopen(name,"wb");
-	fwrite(buf, sizeof(uint8_t), len, fs);
-	fclose(fs);
+
+	switch(mod){
+	case MODE_MEM_DISK:
+		fs = fopen(name,"wb");
+		fwrite(buf, sizeof(uint8_t), len, fs);
+		fclose(fs);
+		break;
+	case MODE_MEM_ZIP:
+		break;
+	case MODE_MEM_PNG:
+		flush2image(buf,len,name,".png");
+		break;
+	case MODE_MEM_TIF:
+		flush2image(buf,len,name,".tif");
+		break;
+	case MODE_MEM_JPG:
+		flush2image(buf,len,name,".jpg");
+		break;
+	case MODE_MAPPING:
+		if(msync(buf,len,MS_SYNC)==-1){
+			cerr<<"fail to sync memory!!!"<<endl;
+		}
+		if(munmap(buf,len)==-1){
+			cerr<<"fail to unmap memory!!!"<<endl;
+		}
+		close(env->GetIntField(
+			thiz,
+			env->GetFieldID(o_clzz,"blkFileDesc","I")
+		));
+		break;
+	}
 }
+
+extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_BlkRender_blkFree(
+	JNIEnv* env,
+	jobject thiz
+){
+	jclass o_clzz = env->GetObjectClass(thiz);
+	jfieldID idAddress = env->GetFieldID(o_clzz,"blkAddress" ,"J");
+
+	jint mod = env->GetIntField(
+		thiz,
+		env->GetFieldID(o_clzz,"blkMode","I")
+	);//Mode type can be referenced in Java File
+
+	void* buf = (void*)env->GetLongField(thiz,idAddress);
+
+	switch(mod){
+	case MODE_MEM_DISK:
+	case MODE_MEM_ZIP:
+	case MODE_MEM_PNG:
+		free(buf);
+		break;
+	case MODE_MAPPING:
+		//memory is mapping to disk, so we don't release any thing~~~
+		break;
+	}
+
+	env->SetLongField(thiz,idAddress,0);
+}
+
+
 

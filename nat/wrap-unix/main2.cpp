@@ -3,9 +3,132 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <global.hpp>
-#include <grabber.hpp>
 #include <algorithm>
 #include "../util_ipc.hpp"
+
+int main(int argc, char* argv[]) {
+
+	Mat src = imread("./wiggle/snap-02.png",IMREAD_GRAYSCALE);
+
+	Mat dst = Mat::zeros(src.size(),CV_8UC1);
+
+	//decide the first base-line~~~
+	int baseLine,baseEdge;
+	double maxVal,pixVal;
+	Mat prevLine;
+	for(
+		baseLine=0, maxVal=0.;
+		baseLine<src.rows/3 && maxVal<200;
+		baseLine++
+	){
+		prevLine =src.row(baseLine);
+		prevLine.copyTo(dst.row(baseLine));
+		minMaxLoc(prevLine,NULL,&maxVal);
+	}
+	prevLine.copyTo(dst.row(baseLine));
+
+	//decide the first edge from left to right
+	prevLine =src.row(baseLine);
+	maxVal = maxVal / 10.;
+	for(
+		baseEdge=0, pixVal=0.f;
+		baseEdge<src.cols && pixVal<maxVal;
+		baseEdge++
+	){
+
+		pixVal = prevLine.at<uint8_t>(0,baseEdge);
+	}
+
+
+	const int segRadius = 3;
+
+	//for(int i=baseLine+1; i<src.rows; i++){
+	for(int i=baseLine+1; i<baseLine+100; i++){
+
+		Mat prvSegment= prevLine.colRange(baseEdge-segRadius, baseEdge+segRadius+1);
+		//cout<<"prvSegment = "<<prvSegment<<endl<<endl;
+
+		Mat curLine =src.row(i);
+		//cout<<"curLine = "<<prevLine<<endl;
+
+		vector<double> difValue;
+
+		for(
+			float stp= baseEdge - 1.f;
+			stp <= baseEdge + 1.f;
+			stp = stp + 0.1f
+		){
+
+			Mat difSegment;
+
+			getRectSubPix(
+				curLine,
+				Size(segRadius*2+1,1),
+				Point2f(stp,0.f),
+				difSegment
+			);
+
+			Mat dif;
+
+			absdiff(prvSegment,difSegment,dif);
+
+			Scalar val = sum(dif);
+
+			//cout<<"difSegment = "<<difSegment<<", ("<<val[0]<<endl;
+
+			difValue.push_back(val[0]);
+		}
+
+		int idx = min_element(difValue.begin(), difValue.end()) - difValue.begin();
+
+		cout<<"check-"<<idx<<endl;
+		cout<<endl;
+
+		getRectSubPix(
+			curLine,
+			Size(curLine.cols,1),
+			Point2f(curLine.cols/2-1.f+0.1*((float)idx),0.f),
+			prevLine
+		);
+
+		//cout<<"prvLine = "<<prevLine<<endl;
+		prevLine.copyTo(dst.row(i));
+	}
+
+
+	imwrite("./wiggle/cc1.png",dst);
+
+	return 0;
+}
+
+int main3(int argc, char* argv[]) {
+
+	Mat aa(3,3,CV_8UC1);
+
+	aa.at<uint8_t>(0,0) = 10;
+	aa.at<uint8_t>(0,1) = 70;
+	aa.at<uint8_t>(0,2) = 33;
+
+	aa.at<uint8_t>(1,0) = 33;
+	aa.at<uint8_t>(1,1) = 173;
+	aa.at<uint8_t>(1,2) = 50;
+
+	aa.at<uint8_t>(2,0) = 67;
+	aa.at<uint8_t>(2,1) = 33;
+	aa.at<uint8_t>(2,2) = 200;
+
+	cout<<"src="<<endl<<aa<<endl<<endl;
+
+	Mat bb;
+
+	getRectSubPix(aa,Size(5,5),Point2f(0.2f,0.2f),bb);
+
+	cout<<"dst="<<endl<<bb<<endl;
+
+	return 0;
+}
+
+/*
 
 extern Mat cutOutBounding(Mat& img,Mat& msk,int width,int height);
 
@@ -13,7 +136,7 @@ extern void removeNoise(Mat& msk,int* board);
 
 extern void list_dir(string path,vector<string>& lst,string prex);
 
-int main(int argc, char* argv[]) {
+int main2(int argc, char* argv[]) {
 	const int VAR_BACK = 16;
 	const int VAR_FORE = 200;
 
@@ -135,7 +258,7 @@ int main(int argc, char* argv[]) {
 			r_name = "rst-"+lstMeas[i];
 			imwrite(pathMeas+"/"+r_name,obj);
 		}
-		/*string o_name = "obj"+lstMeas[i].erase(0,3);
+		/tring o_name = "obj"+lstMeas[i].erase(0,3);
 		imwrite(pathMeas+"/"+o_name,obj);
 		string r_name = "res"+lstMeas[i];
 		Mat res;
@@ -143,10 +266,10 @@ int main(int argc, char* argv[]) {
 		imwrite(pathMeas+"/"+r_name,res);
 		cout<<"@"<<o_name<<"-->"<<r_name<<endl;
 		int cnt=countNonZero(msk2);
-		cout<<"measure:"<<name<<", cnt="<<cnt;*/
+		cout<<"measure:"<<name<<", cnt="<<cnt;
 		cout<<endl;
 	}
 
 	return 0;
 }
-
+*/

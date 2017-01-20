@@ -375,11 +375,11 @@ public class Misc {
 			mm = mm % 60L;
 		}
 		if(hh!=0){
-			return String.format("%d:%d:%d.%dsec",hh,mm,ss,ms);
+			return String.format("%d:%d:%d.%d",hh,mm,ss,ms/100L);
 		}else if(mm!=0){
-			return String.format("%d:%d.%dsec",mm,ss,ms);
+			return String.format("%d:%d.%d",mm,ss,ms/100L);
 		}else if(ss!=0){
-			return String.format("%d.%dsec",ss,ms);
+			return String.format("%d.%dsec",ss,ms/10L);
 		}
 		return String.format("%dms",ms);
 	}

@@ -6,11 +6,30 @@
 #include <termios.h> /* POSIX terminal control definitions */
 #include <iostream>
 #include <fstream>
+#include <global.hpp>
 
 using namespace std;
 
 //some experiments
-int main(int argc, char* argv[]) {
+int main2(int argc, char* argv[]) {
+
+	size_t ww = 640;
+	size_t hh = 480*5000;
+
+	void* buf = malloc(hh*ww*3);
+
+	Mat img(hh,ww,CV_8UC3,buf);
+
+	//randu(img,Scalar(0),Scalar(255));
+
+	imwrite("test.tif",img);
+
+	free(buf);
+
+	return 0;
+}
+
+int main_1(int argc, char* argv[]) {
 
 	int fd = open("/dev/ttyS0", O_RDWR | O_NOCTTY);
 

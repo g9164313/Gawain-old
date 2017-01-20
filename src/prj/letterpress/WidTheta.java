@@ -4,8 +4,10 @@ import javafx.geometry.HPos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
+import narl.itrc.DevMotion;
 import narl.itrc.PanBase;
 import narl.itrc.PanDecorate;
 
@@ -25,6 +27,21 @@ public class WidTheta extends PanDecorate {
 
 		Button btn_ccw = PanBase.genButton0("", "clock-ccw.png");
 		Button btn_cw = PanBase.genButton0("", "clock-cw.png");
+		
+		final double speed = 20000.;
+		btn_ccw.addEventFilter(MouseEvent.MOUSE_PRESSED,event->{
+			Entry.stg0.joggingTo(true,DevMotion.PULSE_UNIT, null, null, null, speed);
+		});
+		btn_ccw.addEventFilter(MouseEvent.MOUSE_RELEASED,event->{
+			Entry.stg0.joggingTo(false,DevMotion.PULSE_UNIT, null, null, null, speed);
+		});
+		
+		btn_cw.addEventFilter(MouseEvent.MOUSE_PRESSED,event->{
+			Entry.stg0.joggingTo(true,DevMotion.PULSE_UNIT, null, null, null, -speed);
+		});
+		btn_cw.addEventFilter(MouseEvent.MOUSE_RELEASED,event->{
+			Entry.stg0.joggingTo(false,DevMotion.PULSE_UNIT, null, null, null, -speed);
+		});
 		
 		GridPane.setHalignment(txt_ccw, HPos.CENTER);
 		GridPane.setHalignment(txt_cw,HPos.CENTER);

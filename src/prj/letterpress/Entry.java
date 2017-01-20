@@ -41,13 +41,22 @@ public class Entry extends PanBase {
 	/**
 	 * this flag means that we don't enable camera (render stage)
 	 */
-	private boolean camEnable = false;
+	private boolean camEnable = true;
 	
 	/**
 	 * this flag means that we don't enable motion stage
 	 */
-	private boolean stgEnable = false;
+	private boolean stgEnable = true;
 
+	public static void resetDefSpeed(){
+		stg0.exec(
+			"SP 20000,20000,10000,10000;"+
+			"AC 10000,10000,10000,10000;"+
+			"DC 10000,10000,10000,10000;"+
+			"TP\r\n"
+		);
+	}
+	
 	@Override
 	protected void eventShown(WindowEvent e){
 		if(camEnable==true){
@@ -61,12 +70,7 @@ public class Entry extends PanBase {
 			stg0.setTokenBase('A');
 			stg0.setRoutine('B','A','D','C');
 			stg0.exec("RS\r\n");//this command must be executed independently.
-			stg0.exec(
-				"SP 20000,20000,10000,10000;"+
-			    "AC 20000,20000,10000,10000;"+
-				"DC 20000,20000,10000,10000;"+
-			    "TP\r\n"
-			);
+			resetDefSpeed();
 			PanOption.enableAOI(true);
 		}		
 	}

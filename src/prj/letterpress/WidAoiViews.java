@@ -12,11 +12,14 @@ import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Separator;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.VBox;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
 import narl.itrc.PanDecorate;
@@ -182,9 +185,9 @@ public class WidAoiViews extends BorderPane {
 	 */
 	private int[] paramLF = {
 		0,
-		200,5,7,0,
+		150,5,7,0,
 		0,0,0,0,
-		150,5,0,0,
+		130,5,0,0,
 		0,0,0,0
 	};
 	private int[] paramRH = {
@@ -196,7 +199,7 @@ public class WidAoiViews extends BorderPane {
 	};
 	
 	private float[] scoreCross = {0,0};//left, right
-	private int[][] locaCross = {{313,599},{595,609}};
+	private int[][] locaCross = {{313,597},{592,607}};
 
 	private double[] scoreRect = {0,0};//left, right
 	private int[][] locaRect = {{-1,-1},{-1,-1}};
