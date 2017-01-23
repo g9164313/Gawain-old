@@ -4,9 +4,159 @@
 #include <sys/types.h>
 #include <global.hpp>
 #include <algorithm>
+#include <opencv2/face.hpp>
 #include "../util_ipc.hpp"
 
-int main(int argc, char* argv[]) {
+using namespace cv;
+using namespace face;
+
+int main5(int argc, char* argv[]){
+
+	Ptr<LBPHFaceRecognizer> mod = createLBPHFaceRecognizer();
+
+	return 0;
+}
+//--------------------------------------------//
+
+Mat reduce_dark(Mat& src){
+
+	Mat msk = Mat::ones(src.size(),CV_8UC1);
+
+	int bnd = (std::min(src.cols,src.rows)*10)/100;
+
+	msk(Rect(bnd,bnd,src.cols-2*bnd,src.rows-2*bnd)) = 0;
+
+	double max;
+	minMaxIdx(src, NULL, &max, NULL, NULL, msk);
+
+	Scalar avg,dev;
+	meanStdDev(src,avg,dev,msk);
+
+	Mat edg;
+	threshold(src,edg,max+dev[0],0.,THRESH_TOZERO);
+
+	return edg;
+}
+
+Mat bound_nonzero(Mat& src){
+	int i,cnt;
+
+	int top = 0;
+	for(i=top; i<src.rows/2-1; i++){
+		cnt = countNonZero(src.row(i));
+		if(cnt!=0){
+			top = i;
+			break;
+		}
+	}
+
+	int bottom = src.rows-1;
+	for(i=bottom; i>src.rows/2+1; --i){
+		cnt = countNonZero(src.row(i));
+		if(cnt!=0){
+			bottom = i;
+			break;
+		}
+	}
+
+	int left = 0;
+	for(i=left; i<src.cols/2-1; i++){
+		cnt = countNonZero(src.col(i));
+		if(cnt!=0){
+			left = i;
+			break;
+		}
+	}
+
+	int right = src.cols - 1;
+	for(i=right; i>src.cols/2+1; --i){
+		cnt = countNonZero(src.col(i));
+		if(cnt!=0){
+			right = i;
+			break;
+		}
+	}
+
+	Rect roi(left,top,right-left,bottom-top);
+
+	Mat res;
+
+	src(roi).copyTo(res);
+
+	return res;
+}
+
+
+Mat align_center(Mat& Src){
+
+	Mat src;
+
+	const int BORD = 4;
+
+	copyMakeBorder(
+		Src,src,
+		0,0,
+		BORD,BORD,
+		BORDER_CONSTANT,
+		Scalar(0,0,0)
+	);
+
+	Mat res = Mat::zeros(Src.size(),src.type());
+
+	for(int i=0; i<src.rows; i++){
+
+		Mat _src = src.row(i);
+
+		Moments mm = moments(_src,true);
+
+		float cx = mm.m10 / mm.m00;
+
+		Mat _dst;
+
+		getRectSubPix(
+			_src,
+			Size(_src.cols-BORD*2,1),Point2f(cx,0),
+			_dst
+		);
+
+		//printf("%03d) mx = %.2f\n",i,cx);
+
+		_dst.copyTo(res.row(i));
+	}
+
+	//cout<<endl;
+	return res;
+}
+
+int main(int argc, char* argv[]){
+
+	Mat src = imread("./wiggle/snap-10.tif",IMREAD_GRAYSCALE);
+
+	Rect roi;
+
+	TICK_BEG
+
+	src = reduce_dark(src);
+
+	src = bound_nonzero(src);
+
+	src = align_center(src);
+
+	TICK_END("thres")
+
+	//Rect rect(bord,bord,src.cols-bord*2,src.rows-bord*2);
+	//TICK_BEG
+	//grabCut( src, msk, rect, bgd, fgd, 1, GC_INIT_WITH_RECT);
+	//msk = 250 * (msk - GC_PR_BGD);
+	//TICK_END("grabcut")
+
+	imwrite("./wiggle/mask.png",src);
+
+	return 0;
+}
+//-------------------------------------------//
+
+int main3(int argc, char* argv[]) {
 
 	Mat src = imread("./wiggle/snap-02.png",IMREAD_GRAYSCALE);
 
@@ -101,7 +251,7 @@ int main(int argc, char* argv[]) {
 	return 0;
 }
 
-int main3(int argc, char* argv[]) {
+int main2(int argc, char* argv[]) {
 
 	Mat aa(3,3,CV_8UC1);
 
@@ -120,7 +270,6 @@ int main3(int argc, char* argv[]) {
 	cout<<"src="<<endl<<aa<<endl<<endl;
 
 	Mat bb;
-
 	getRectSubPix(aa,Size(5,5),Point2f(0.2f,0.2f),bb);
 
 	cout<<"dst="<<endl<<bb<<endl;
@@ -136,7 +285,7 @@ extern void removeNoise(Mat& msk,int* board);
 
 extern void list_dir(string path,vector<string>& lst,string prex);
 
-int main2(int argc, char* argv[]) {
+int main1(int argc, char* argv[]) {
 	const int VAR_BACK = 16;
 	const int VAR_FORE = 200;
 

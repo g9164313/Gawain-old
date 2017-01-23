@@ -70,10 +70,11 @@ LIB_MULTICAM := -L$(ROOT_MULTICAM) -lMultiCam
 ####  configuration  ####
 #########################
 
-CC=g++
+CC=g++ 
 
 CC_FLAG = -g -I. -I./vision -I$(DIR_JNI) -I$(DIR_JNI)/linux
 CC_FLAG += -DVISION $(shell pkg-config --cflags opencv) 
+#CC_FLAG += -march=native ???
 #CC_FLAG += $(shell pkg-config --cflags libmodbus) 
 #CC_FLAG += $(shell pkg-config --cflags qt5) 
 CC_FLAG += $(INC_EBUS)
@@ -127,7 +128,7 @@ else
 endif
 	
 
-$(TARGET_EXE):  ./wrap-unix/main2.cpp $(UTIL_FILE) $(LIB_SFRISO)
+$(TARGET_EXE):  ./wrap-unix/main2.cpp ./wrap-unix/misc.cpp $(UTIL_FILE)
 #$(TARGET_EXE):  ./wrap-unix/FlyCap2.cpp
 	$(CC) $(CC_FLAG) -o $@ $^ $(LD_LIBS)
 
