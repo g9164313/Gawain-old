@@ -112,6 +112,29 @@ inline bool check_roi(Rect& roi,Mat& bound){
 	return true;
 }
 
+inline bool checkDimension(const Mat& src,const Mat& ref){
+	if(src.cols==ref.cols && src.rows==ref.rows){
+		return true;
+	}
+	return false;
+}
+
+inline void check32f(const Mat& src,Mat& dst){
+	if(src.type()==CV_32FC1){
+		dst = src;
+	}else{
+		src.convertTo(dst,CV_32FC1);
+	}
+}
+
+inline void check32f(const Mat& src,Rect& roi,Mat& dst){
+	if(src.type()==CV_32FC1){
+		src(roi).copyTo(dst);
+	}else{
+		src(roi).convertTo(dst,CV_32FC1);
+	}
+}
+
 inline void valid_roi(Rect& roi,const Mat& bound){
 	if(roi.x<0){
 		roi.x = 0;
@@ -138,14 +161,6 @@ inline void extend_roi(Rect& roi,int dw,int dh,Mat& bound){
 inline void shrink2org(Point& p,int xx,int yy){
 	if(xx>0){ p.x=p.x-xx; if(p.x<0){p.x=0;} }
 	if(yy>0){ p.y=p.y-yy; if(p.y<0){p.y=0;} }
-}
-
-inline void check32f(Mat& src,Mat& dst){
-	if(src.type()==CV_32FC1){
-		src.copyTo(dst);
-	}else{
-		src.convertTo(dst,CV_32FC1);
-	}
 }
 
 inline void dump32f(const char* name,Mat& src){

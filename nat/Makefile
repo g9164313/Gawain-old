@@ -72,7 +72,7 @@ LIB_MULTICAM := -L$(ROOT_MULTICAM) -lMultiCam
 
 CC=g++ 
 
-CC_FLAG = -g -I. -I./vision -I$(DIR_JNI) -I$(DIR_JNI)/linux
+CC_FLAG = -g -I. -I./vision -I./SFR -I$(DIR_JNI) -I$(DIR_JNI)/linux
 CC_FLAG += -DVISION $(shell pkg-config --cflags opencv) 
 #CC_FLAG += -march=native ???
 #CC_FLAG += $(shell pkg-config --cflags libmodbus) 
@@ -94,14 +94,13 @@ LD_LIBS += $(LIB_XIMEA)
 
 ########################
 
-UTIL_FILE = util_cv.cpp util_jni.cpp
-
-BASIC_DEVICE = ./vision/CamBundle.cpp DevTTY.cpp
-
-LIB_SFRISO = ./SFR/FltrSlangEdge.cpp ./SFR/sfr_iso.c 
+CORE_FILE = util_cv.cpp util_jni.cpp registration.cpp
 
 #SFR_MITRE =  ./SFR/sfr_iso.c ./SFR/find_area.c
-IMG_FILTER = 
+IMG_FILTER =
+LIB_SFRISO = ./SFR/FltrSlangEdge.cpp ./SFR/sfr_iso.c 
+
+BASIC_DEVICE = ./vision/CamBundle.cpp DevTTY.cpp
 
 DEV_CAMERA = ./vision/CamVidcap.cpp 
 #DEV_CAMERA += ./vision/CamMulticam.cpp 
@@ -115,7 +114,7 @@ OBJECTS = $(SOURCES:.cpp=.o)
 
 CHECK_EXEC := $(word 2,$(shell pgrep -f "narl.itrc.Gawain"))
 
-$(TARGET_SO): $(UTIL_FILE) $(BASIC_DEVICE) $(IMG_FILTER) $(DEV_CAMERA) $(PRJ_CUSTOM) $(LIB_SFRISO)
+$(TARGET_SO): $(CORE_FILE) $(IMG_FILTER) $(LIB_SFRISO) $(BASIC_DEVICE) $(DEV_CAMERA) $(PRJ_CUSTOM) 
 	$(CC) $(CC_FLAG)  -fPIC -shared -o $@ $^ $(LD_LIBS)
 	cp -rf $@ ../bin/narl/itrc/nat
 	cp -rf $@ ../src/narl/itrc/nat
@@ -128,7 +127,8 @@ else
 endif
 	
 
-$(TARGET_EXE):  ./wrap-unix/main2.cpp ./wrap-unix/misc.cpp $(UTIL_FILE)
+$(TARGET_EXE):  ./wrap-unix/main2.cpp ./wrap-unix/misc.cpp $(CORE_FILE)
+#$(TARGET_EXE):  $(wildcard ./traincascade/*.cpp)
 #$(TARGET_EXE):  ./wrap-unix/FlyCap2.cpp
 	$(CC) $(CC_FLAG) -o $@ $^ $(LD_LIBS)
 

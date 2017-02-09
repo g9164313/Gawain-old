@@ -10,10 +10,39 @@
 using namespace cv;
 using namespace face;
 
-int main5(int argc, char* argv[]){
+int main6(int argc, char* argv[]){
 
-	Ptr<LBPHFaceRecognizer> mod = createLBPHFaceRecognizer();
+	//Ptr<LBPHFaceRecognizer> mod = createLBPHFaceRecognizer();
 
+	return 0;
+}
+//--------------------------------------------//
+
+extern void registration(Mat& imgRef,Mat& imgSrc);
+
+int main(int argc, char* argv[]){
+
+	Mat ref = imread("./reg-ref.bmp",IMREAD_GRAYSCALE);
+
+	Mat src1 = imread("./reg-src-a15.bmp",IMREAD_GRAYSCALE);
+	Mat src2 = imread("./reg-src-a30.bmp",IMREAD_GRAYSCALE);
+	Mat src3 = imread("./reg-src-a45.bmp",IMREAD_GRAYSCALE);
+	Mat src4 = imread("./reg-src-a60.bmp",IMREAD_GRAYSCALE);
+
+	Mat src5 = imread("./reg-src-o+13+13.bmp",IMREAD_GRAYSCALE);
+	Mat src6 = imread("./reg-src-o+35+35.bmp",IMREAD_GRAYSCALE);
+
+	Mat src7 = imread("./reg-src-test.bmp",IMREAD_GRAYSCALE);
+
+
+	Mat src = src7;
+
+	registration(ref,src);
+
+	Mat sum;
+	addWeighted( ref, 0.5, src, 0.5, 0.0, sum);
+
+	imwrite("cc4.bmp",sum);
 	return 0;
 }
 //--------------------------------------------//
@@ -77,6 +106,8 @@ Mat bound_nonzero(Mat& src){
 		}
 	}
 
+
+
 	Rect roi(left,top,right-left,bottom-top);
 
 	Mat res;
@@ -128,7 +159,7 @@ Mat align_center(Mat& Src){
 	return res;
 }
 
-int main(int argc, char* argv[]){
+int main4(int argc, char* argv[]){
 
 	Mat src = imread("./wiggle/snap-10.tif",IMREAD_GRAYSCALE);
 
