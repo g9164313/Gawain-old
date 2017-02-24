@@ -369,9 +369,9 @@ public class DevB140M extends DevMotion {
 		
 		final Button btnName = new Button("dev-name");
 		//btnName.setMaxWidth(Double.MAX_VALUE);
-		btnName.textProperty().bind(tty.ctrlName);
-		btnName.setOnAction(event->{
-		});
+		//btnName.textProperty().bind(tty.ctrlName);
+		//btnName.setOnAction(event->{
+		//});
 		//GridPane.setHgrow(btnName,Priority.ALWAYS);
 		
 		final Button btnWatch = new Button("Watch");

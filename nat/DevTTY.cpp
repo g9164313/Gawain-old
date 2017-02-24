@@ -11,8 +11,6 @@
 #endif//_MSC_VER
 
 #define NAME_HANDLE  "handle"
-#define NAME_SYNC0 "sync0"
-#define NAME_SYNC1 "sync1"
 
 extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implOpen(
 	JNIEnv * env,
@@ -169,12 +167,9 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implOpen(
 
 	//TODO:how to set flow-control
 	//block or not~~~
-	jboolean sync0 = getJBool(env,thiz,NAME_SYNC0);
-	if(sync0==JNI_TRUE){
-		fcntl(fd,F_SETFL,0);//Synchronized mode - This will block thread!!!
-	}else{
-		fcntl(fd,F_SETFL,FNDELAY);//Asynchronized mode
-	}
+	//fcntl(fd,F_SETFL,0);//Synchronized mode - This will block thread!!!
+	//fcntl(fd,F_SETFL,FNDELAY);//Asynchronized mode
+
 	tcsetattr(fd,TCSANOW,&options);
 #endif//_MSC_VER
 }
@@ -183,8 +178,6 @@ extern "C" JNIEXPORT jbyteArray JNICALL Java_narl_itrc_DevTTY_implRead(
 	JNIEnv * env,
 	jobject thiz
 ) {
-	jboolean sync0 = getJBool(env,thiz,NAME_SYNC0);
-	jboolean sync1 = getJBool(env,thiz,NAME_SYNC1);
 #if defined _MSC_VER
 	jlong hand = getJlong(env,thiz,NAME_HANDLE);
 	if(hand!=0L){
@@ -208,14 +201,8 @@ extern "C" JNIEXPORT jbyteArray JNICALL Java_narl_itrc_DevTTY_implRead(
 #else
 	int fd = getJLong(env,thiz,NAME_HANDLE);
 	//Do we need block mode?,This is tri_state variable
-	if(sync0!=sync1){
-		if(sync0==JNI_TRUE){
-			fcntl(fd,F_SETFL,0);
-		}else{
-			fcntl(fd,F_SETFL,FNDELAY);
-		}
-		setJBool(env,thiz,NAME_SYNC1,sync0);
-	}
+	//fcntl(fd,F_SETFL,0);
+	//fcntl(fd,F_SETFL,FNDELAY);
 
 	jbyte buf[1024];
 	ssize_t cnt = read(fd,buf,sizeof(buf));

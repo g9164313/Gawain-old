@@ -37,7 +37,9 @@ import narl.itrc.nat.Loader;
 public class Gawain extends Application {
 	
 	public interface EventHook {
-		public void release();
+		/**
+		 * Callback, when pprogram is shutdown.<p>
+		 */
 		public void shutdown();		
 	}
 	
@@ -51,10 +53,6 @@ public class Gawain extends Application {
 	}
 	
 	private static void hookShutdown(){
-		//It is 'multiple-stage'，not sequence~~~
-		for(EventHook h:hook){
-			h.release();
-		}
 		for(EventHook h:hook){
 			h.shutdown();
 		}

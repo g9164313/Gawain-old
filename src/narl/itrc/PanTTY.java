@@ -58,9 +58,7 @@ public class PanTTY extends PanBase {
 	
 	@Override
 	protected void eventShown(WindowEvent e){
-		btnInfomat.textProperty().bind(dev.ctrlName);
 		boxInput.requestFocus();
-		dev.setSync(false);
 		clkSinker.setCycleCount(Timeline.INDEFINITE);
 		clkSinker.play();
 	}
@@ -68,22 +66,20 @@ public class PanTTY extends PanBase {
 	@Override
 	protected void eventClose(WindowEvent e){
 		clkSinker.stop();
-		dev.setSync(true);//this is default~~~
 	}
 	
-	private void listDevice(ComboBox<String> box){
+	public static ComboBox<String> getSupportList(ComboBox<String> box){
 		ObservableList<String> lst = box.getItems();
 		if(Misc.isPOSIX()==true){
 			//how to list device file??
 			File fs = new File("/dev");
 			String[] names = fs.list(new FilenameFilter(){
 				@Override
-				public boolean accept(File dir, String name) {
-					return 
-						(name.matches("ttyUSB\\p{Digit}")) ||
-						(name.matches("ttyACM\\p{Digit}")) ||
-						(name.matches("rfcomm\\p{Digit}")) ||
-						(name.matches("cuau\\p{Digit}"));
+				public boolean accept(File dir, String name) { return 
+					(name.matches("ttyUSB\\p{Digit}")) ||
+					(name.matches("ttyACM\\p{Digit}")) ||
+					(name.matches("rfcomm\\p{Digit}")) ||
+					(name.matches("cuau\\p{Digit}"));
 				}
 			});
 			for(int i=0; i<names.length; i++){
@@ -91,18 +87,19 @@ public class PanTTY extends PanBase {
 			}
 			lst.addAll(names);
 			lst.addAll(
-				"/dev/ttyS0","/dev/ttyS1",
-				"/dev/ttyS2","/dev/ttyS3",
-				"/dev/ttyS4","/dev/ttyS6"
-			);//this is default
-		}else{
-			lst.addAll(
-				"\\\\.\\COM1",  "\\\\.\\COM2",  "\\\\.\\COM3",  "\\\\.\\COM4",
-				"\\\\.\\COM5",  "\\\\.\\COM6",  "\\\\.\\COM7",  "\\\\.\\COM8",
-				"\\\\.\\COM9",  "\\\\.\\COM10", "\\\\.\\COM11", "\\\\.\\COM12",
-				"\\\\.\\COM13", "\\\\.\\COM14", "\\\\.\\COM15", "\\\\.\\COM16"
+				"/dev/ttyS0" ,"/dev/ttyS1" ,"/dev/ttyS2" ,"/dev/ttyS3"
 			);
-		}	
+		}else{
+			//we don't know how to list tty-devices in Windows
+			lst.addAll(
+				"\\\\.\\COM1" ,"\\\\.\\COM2" ,"\\\\.\\COM3" ,"\\\\.\\COM4",
+				"\\\\.\\COM5" ,"\\\\.\\COM6" ,"\\\\.\\COM7" ,"\\\\.\\COM8",
+				"\\\\.\\COM9" ,"\\\\.\\COM10","\\\\.\\COM11","\\\\.\\COM12",
+				"\\\\.\\COM13","\\\\.\\COM14","\\\\.\\COM15","\\\\.\\COM16"
+			);
+		}
+		box.getSelectionModel().select(0);
+		return box;
 	}
 	
 	@Override
@@ -125,7 +122,7 @@ public class PanTTY extends PanBase {
 		final ComboBox<String> cmbPart = new ComboBox<String>();
 		final ComboBox<String> cmbStop = new ComboBox<String>();
 		
-		listDevice(cmbName);
+		getSupportList(cmbName);
 		cmbBaud.getItems().addAll(
 			  "300",  "600", "1200",  "1800",  "2400",  "4800",  "9600",
 			"19200","38400","57600","115200","230400","460800","500000"

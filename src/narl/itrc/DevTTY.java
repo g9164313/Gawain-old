@@ -4,50 +4,41 @@ import java.io.File;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 
-import javafx.beans.property.SimpleStringProperty;
+import javafx.concurrent.Task;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
+import javafx.scene.Node;
 
-public class DevTTY implements Gawain.EventHook {
+public class DevTTY extends DevBase {
 
 	private final String TXT_NONE  = "--------";
 	private final String TXT_UNKNOW= "????";
 	
 	public DevTTY(){
-		Gawain.hook(this);
-		//how to open a default terminal?
 	}
 	
 	public DevTTY(String txt){		
-		Gawain.hook(this);
 		open(txt);
 	}
-	
+
 	@Override
-	public void release() {
+	protected Node eventLayout(){
+		return null;
+	}
+
+	@Override
+	void eventShutdown() {
 		close();
 	}
+	//---------------------//
 	
-	@Override
-	public void shutdown() {
-		close();
-	}
-	
-	private long handle = 0L;
-	private boolean sync0= true;//This is tri_state variable, default is block mode
-	private boolean sync1= true;//This is tri_state variable
-	
-	public SimpleStringProperty ctrlName = new SimpleStringProperty(TXT_NONE);
-	
-	public String getCtrlName(){
-		return ctrlName.get();
-	}
-	
-	public void setName(String txt){
-		open(txt);
-	}
-	
-	public void setSync(boolean flag){
-		sync0 = flag;
-	}
+	/**
+	 * File descriptor or handler to serial-port.<p>
+	 * If the value is zero, it means we got fail~~.<p> 
+	 * In Unix, it is a integer number.<p>
+	 * In fxxking windows, it is pointer(handle).<p>
+	 */
+	private long handle = 0L;//this is provided by native code
 	
 	public boolean isLive(){
 		if(handle==0){
@@ -56,7 +47,7 @@ public class DevTTY implements Gawain.EventHook {
 		return true;
 	}
 	
-	private String infoName=TXT_UNKNOW;
+	private String infoName = TXT_UNKNOW;
 	private int  infoBaud = -1;
 	private char infoData = '?';
 	private char infoPart = '?';
@@ -78,7 +69,6 @@ public class DevTTY implements Gawain.EventHook {
 		return String.valueOf(infoStop);
 	}
 	private void resetInfo(){
-		ctrlName.setValue(TXT_NONE);
 		infoName = TXT_UNKNOW;
 		infoBaud = -1;
 		infoData = '?';
@@ -131,29 +121,36 @@ public class DevTTY implements Gawain.EventHook {
 			infoStop,
 			'?'
 		);		
-		if(handle!=0){ 
-			ctrlName.setValue(txt);//we success!!!
+		if(handle!=0){
 			Misc.logv("connect to "+txt);
 		}
 	}
 
+	/**
+	 * close terminal!!!
+	 */
+	public void close(){
+		if(handle==0L){
+			return;
+		}
+		implClose();
+	}
+	//-----------------------//
+	
+	/**
+	 * Read byte data from terminal-port.<p>
+	 * This is blocking method!!!.<p>
+	 * @return context data
+	 */
 	public byte[] readBuf(){
 		return implRead();
 	}
 	
-	public byte[] readBuf(boolean sync){
-		sync0 = sync;
-		return readBuf();
-	}
-		
-	public void writeBuf(byte[] buf){
-		implWrite(buf);
-	}
-	
 	/**
-	 * Read text from terminal.<p>
+	 * Read text from terminal-port.<p>
+	 * This is blocking method!!!.<p>
 	 * @return NULL - if no data<p>
-	 * Text - what we got.<p>
+	 * Text - what we read.<p>
 	 */
 	public String readTxt(){
 		byte[] buf = readBuf();
@@ -168,11 +165,54 @@ public class DevTTY implements Gawain.EventHook {
 		return null;
 	}
 	
-	public String readTxt(boolean sync){
-		sync0 = sync;
-		return readTxt();
+	/**
+	 * Read text from terminal-port and stopping after encountering tail part.<p>
+	 * This is blocking method!!!.<p>
+	 * @return NULL - if no data<p>
+	 * Text - what we read has tail part.<p>
+	 */
+	public String readTxt(String tail){
+		String txt = "";
+		final int FAIL_MAX = 10;
+		int fail_cnt = FAIL_MAX;
+		for(;fail_cnt>0;){
+			String tmp = readTxt();
+			if(tmp==null){
+				fail_cnt--;				
+				continue;
+			}
+			txt = txt + tmp;
+			fail_cnt = FAIL_MAX;//reset this number~~~
+			if(txt.endsWith(tail)==true){
+				int len = txt.length()-tail.length();
+				txt = txt.substring(0,len);
+				break;
+			}			
+		}
+		return txt;		
 	}
-
+	
+	/**
+	 * Write byate data via terminal-port.<p>
+	 * @param buf - context data
+	 */
+	public void writeBuf(byte[] buf){
+		implWrite(buf);
+	}
+	
+	/**
+	 * Write character data via terminal-port.<p>
+	 * @param buf
+	 */
+	public void writeTxt(char ch){
+		byte[] buf = { (byte)ch };
+		implWrite(buf);
+	}
+	
+	/**
+	 * Write text via terminal-port.<p>
+	 * @param txt - context data
+	 */
 	public void writeTxt(String txt){
 		if(txt.length()==0){
 			return;
@@ -181,55 +221,61 @@ public class DevTTY implements Gawain.EventHook {
 		implWrite(buf);
 	}
 	
+	/**
+	 * write text via terminal-port, then wait.<p>
+	 * @param txt - context
+	 * @param ms - delay millisecond
+	 */
 	public void writeTxt(String txt,int ms){
 		writeTxt(txt);
 		Misc.delay(ms);
 	}
-	
-	public void writeTxt(char txt){
-		byte[] buf = { (byte)txt };
-		implWrite(buf);
-	}
 	//-----------------------//
-	
-	public String fetch(String tail){
-		
-		String txt = "";
-		
-		final int FAIL_MAX = 10;
-		int failCnt = FAIL_MAX;
-		int t_len = tail.length();
-		for(;failCnt>0;){
-			String tmp = readTxt();
-			if(tmp==null){
-				failCnt--;				
-				continue;
-			}
-			txt = txt + tmp;
-			failCnt = FAIL_MAX;//reset this number~~~
-			if(txt.endsWith(tail)==true){
-				int len = txt.length() - t_len;
-				txt = txt.substring(0,len);
-				break;
-			}			
-		}
-		return txt;
-	}
 	
 	public String fetch(String cmd,String tail){
 		writeTxt(cmd);		
-		return fetch(tail);
+		return readTxt(tail);
 	}
 	
-	/**
-	 * Disconnect terminal!!!
-	 */
-	public void close(){
-		if(handle==0L){
-			return;
-		}
-		implClose();
+	private Task<String> tskFetch = null;
+	
+	public void fetch(
+			final String command,
+			final String tail,
+			EventHandler<ActionEvent> value
+	){
+		String[] commands = {command};
+		fetch(commands,tail,value);
 	}
+	
+	public void fetch(
+		final String[] commands,
+		final String tail,
+		EventHandler<ActionEvent> value
+	){
+		if(tskFetch!=null){
+			if(tskFetch.isRunning()==true){
+				Misc.logw("DevTTY-fetch is running");
+				return;
+			}
+		}
+		tskFetch = new Task<String>(){
+			@Override
+			protected String call() throws Exception {
+				String txt = "";
+				for(String cmd:commands){
+					txt = txt + "\t" + fetch(cmd,tail);
+					Misc.delay(10);
+				}
+				return txt.substring(1);
+			}
+		};
+		tskFetch.setOnSucceeded(event->{
+			value.handle(new ActionEvent(tskFetch.valueProperty().get(),null));
+		});
+		new Thread(tskFetch,"DevTTY-fetch").start();
+	}
+	//-----------------------//
 	
 	private native void implOpen(
 		String name,

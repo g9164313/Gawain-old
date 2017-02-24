@@ -50,8 +50,16 @@
     -fx-spacing: 13;
 }
 
+.hbox-small-space, .vbox-small-space{
+    -fx-spacing: 7;
+}
+
+.hbox-medium-space, .vbox-medium-space{
+    -fx-spacing: 13;
+}
+
 .hbox-test, .vbox-test{
-	-fx-border-color: #FF00FF;
+	-fx-border-color: #3375FF;
     -fx-padding: 13;
     -fx-spacing: 13;
 }

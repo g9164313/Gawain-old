@@ -33,7 +33,7 @@ import javafx.util.Duration;
 
 public abstract class PanBase {
 
-	protected String title = "::panel::";
+	protected String title = "";
 	
 	/**
 	 * User may use some control widget to pop a panel.<p>
@@ -48,8 +48,8 @@ public abstract class PanBase {
 	protected static final int FIRST_MAXIMIZED = 2;
 	protected int firstAction = FIRST_NONE;
 
-	private Scene scene=null;
-	private Stage stage=null;
+	private Scene scene = null;
+	private Stage stage = null;
 		
 	protected java.net.URL customStyle = null;
 	
@@ -84,82 +84,35 @@ public abstract class PanBase {
 		return stage;
 	}
 	
-	public void makeDialog(Window parent){
+	/*public void makeDialog(Window parent){
 		stage = new Stage(StageStyle.UNIFIED);		
 		stage.initModality(Modality.WINDOW_MODAL); 
 		stage.initOwner(parent);
 		stage.setResizable(false);
 		stage.centerOnScreen();
 		init_stage(stage);
-	}
-	
-	public void makeStage(Window parent){
-		stage = new Stage(StageStyle.UNIFIED);		
-		stage.initModality(Modality.NONE); 
-		stage.initOwner(parent);
-		stage.centerOnScreen();
-		init_stage(stage);
-	}
-	
-	public void appear(Stage stg){
-		stage = stg;
-		init_stage(stg);		
-		appear();
-	}
-	public void appear(){
-		if(stage==null){
-			makeStage(null);
-		}
-		if(stage.isShowing()==true){
-			return;
-		}
-		doFirstAction();
-		stage.show();
-	}
-	
-	public void standby(Stage stg){
-		stage = stg;
-		init_stage(stg);
-		standby();
-	}
-	public void standby(){
-		if(stage==null){
-			makeStage(null);
-		}
-		doFirstAction();
-		stage.showAndWait();
-	}
-
-	private void doFirstAction(){
-		switch(firstAction){
-		case FIRST_FULLSCREEN:
-			stage.setFullScreen(true);
-			break;
-		case FIRST_MAXIMIZED:
-			stage.setMaximized(true);
-			break;
-		}
-	}
-	
-	/*protected void maximize(){
-		Screen scr = Screen.getPrimary();
-		Rectangle2D bnd = scr.getVisualBounds();
-		stage.setX(bnd.getMinX());
-		stage.setY(bnd.getMinY());
-		stage.setWidth(bnd.getWidth());
-		stage.setHeight(bnd.getHeight());
 	}*/
 	
-	public void dismiss(){		
-		if(stage==null){
-			return;
-		}		
-		stage.close();
-		stage = null;
+	private Stage create_stage(Window parent){
+		if(stage!=null){
+			return stage;
+		}
+		Stage stg = new Stage(StageStyle.UNIFIED);		
+		stg.initModality(Modality.NONE); 
+		stg.initOwner(parent);
+		stg.centerOnScreen();
+		return stg;
 	}
 	
-	private void init_stage(Stage stg){		
+	private void init_stage(Stage stg){	
+		
+		stage = stg;//override global variable, keep it for 'dismiss' command.
+		if(stg.isShowing()==true){
+			return;
+		}
+		
 		init_scene();
+		
 		//check whether we need to hook event~~~
 		if(stg.getOnShowing()==null){
 			stg.setOnShowing(eventWindow);
@@ -168,7 +121,6 @@ public abstract class PanBase {
 			stg.setOnShown(eventWindow);
 		}		
 		if(stg.getOnHiding()==null){
-			//stg.setOnCloseRequest(eventWindow);
 			stg.setOnHiding(eventWindow);
 		}
 		
@@ -177,9 +129,68 @@ public abstract class PanBase {
 		stg.setScene(scene);
 		stg.sizeToScene();
 		stg.setUserData(PanBase.this);
+		
+		switch(firstAction){
+		case FIRST_FULLSCREEN:
+			stg.setFullScreen(true);
+			break;
+		case FIRST_MAXIMIZED:
+			stg.setMaximized(true);
+			break;
+		}
 	}
 	
+	private void init_scene(){
+		if(scene!=null){
+			return;
+		}
+		
+		//first initialization...
+		//require children generate GUI-layout
+		root = layout();
+		
+		spin.setVisible(false);
+		spin.setRadius(64);
+		spin.setOnMouseClicked(EVENT->{
+			spinning(false);
+		});
+		
+		scene = new Scene(new StackPane(root,spin));
+		scene.getStylesheets().add(Gawain.class.getResource("res/styles.css").toExternalForm());
+		if(customStyle!=null){
+			scene.getStylesheets().add(customStyle.toExternalForm());
+		}
+		scene.setUserData(PanBase.this);
+	}
+	//------------------------//
+	
+	public void appear(){
+		appear(create_stage(null));
+	}
+	public void appear(Stage stg){
+		init_stage(stg);		
+		stage.show();
+	}
+	
+	public void standby(){
+		standby(create_stage(null));
+	}
+	public void standby(Stage stg){
+		init_stage(stg);
+		stage.showAndWait();
+	}
+	
+	public void dismiss(){		
+		if(stage==null){
+			return;
+		}		
+		stage.close();
+		stage = null;
+	}
+	//------------------------//
+	
 	private JFXSpinner spin = new JFXSpinner();	
+	
 	private Parent root = null;
 	
 	public void spinning(
@@ -213,25 +224,6 @@ public abstract class PanBase {
 			return;
 		}
 		Application.invokeAndWait(()->spinning(flag,spinTask));
-	}
-	
-	private void init_scene(){
-		if(scene!=null){
-			return;
-		}
-		//first initialization...
-		spin.setVisible(false);
-		spin.setRadius(64);
-		spin.setOnMouseClicked(EVENT->{
-			spinning(false);
-		});
-		root = layout();		
-		scene = new Scene(new StackPane(root,spin));
-		scene.getStylesheets().add(Gawain.class.getResource("res/styles.css").toExternalForm());
-		if(customStyle!=null){
-			scene.getStylesheets().add(customStyle.toExternalForm());
-		}
-		scene.setUserData(PanBase.this);
 	}
 	//------------------------//
 	

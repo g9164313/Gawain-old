@@ -12,14 +12,11 @@ import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Separator;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.VBox;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
 import narl.itrc.PanDecorate;
@@ -98,12 +95,16 @@ public class WidAoiViews extends BorderPane {
 			//kick motion stage~~~
 			int th = vec[2][0] - vec[2][1];
 			if(Math.abs(th)>=20){
-				//if(th>0){
-				//	asyncDone = Entry.stg0.asyncMoveTo('a',biasTheta);
-				//}else{
-				//	asyncDone = Entry.stg0.asyncMoveTo('a',-biasTheta);
-				//}
 				double thea = biasTheta * (th/Math.abs(th));
+				if(vec[0][1]<=0 && vec[1][1]<=0){
+					//keep direction~~~
+				}else if(vec[0][1]>0 && vec[1][1]<=0){
+					//Try it, we don't know real answer
+				}else if(vec[0][1]<=0 && vec[1][1]>0){
+					thea = -1.*thea;//Try it, we don't know real answer
+				}else if(vec[0][1]>0 && vec[1][1]>0){
+					thea = -1.*thea;
+				}
 				asyncDone = Entry.stg0.asyncMoveTo('a',thea);
 			}else{
 				int dx = Math.min(vec[0][0],vec[1][0]);

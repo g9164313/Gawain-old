@@ -33,16 +33,12 @@ public class BlkRender extends BorderPane implements Gawain.EventHook {
 	}
 
 	@Override
-	public void release() {
+	public void shutdown() {
 		if(looper!=null){
 			if(looper.isDone()==false){
 				looper.cancel();
 			}
 		}
-	}
-
-	@Override
-	public void shutdown() {
 		bundle.close();
 		blkFree();
 	}

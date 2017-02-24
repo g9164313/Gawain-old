@@ -20,7 +20,7 @@ int main6(int argc, char* argv[]){
 
 extern void registration(Mat& imgRef,Mat& imgSrc);
 
-int main(int argc, char* argv[]){
+int main5(int argc, char* argv[]){
 
 	Mat ref = imread("./reg-ref.bmp",IMREAD_GRAYSCALE);
 
@@ -159,9 +159,9 @@ Mat align_center(Mat& Src){
 	return res;
 }
 
-int main4(int argc, char* argv[]){
+int main(int argc, char* argv[]){
 
-	Mat src = imread("./wiggle/snap-10.tif",IMREAD_GRAYSCALE);
+	Mat src = imread("./wiggle/snap-04.png",IMREAD_GRAYSCALE);
 
 	Rect roi;
 

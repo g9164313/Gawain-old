@@ -82,7 +82,7 @@ static double regist_data(
 	if(offset_resp>0.9){
 		cout<<"Finally!! offset=("<<offset.x<<","<<offset.y<<")"<<endl;
 		cout<<"Finally!! offset-resp="<<offset_resp<<endl<<endl;
-		trans_offset(img,offset);
+		trans_offset(img,offset);//Finally, meet a good answer,so we change origin image...
 		return offset_resp;
 	}
 
@@ -97,7 +97,7 @@ static double regist_data(
 	if(rotate_resp>0.9){
 		cout<<"Finally!! rotate=("<<rotate.x<<","<<rotate.y<<") @ "<<angle<<endl;
 		cout<<"Finally!! rotate-resp="<<rotate_resp<<endl<<endl;
-		trans_rotate(img,angle);
+		trans_rotate(img,angle);//Finally, meet a good answer,so we change origin image...
 		return rotate_resp;//Good match, we done!!!
 	}
 
@@ -105,7 +105,7 @@ static double regist_data(
 		cout<<"offset=("<<offset.x<<","<<offset.y<<")"<<endl;
 		cout<<"offset-resp="<<offset_resp<<endl<<endl;
 		trans_offset(ref,offset);
-		trans_offset(img,offset);
+		trans_offset(img,offset);//also change origin image~~~
 		int dx = cvRound(offset.x);
 		int dy = cvRound(offset.y);
 		if(dx==0 && dy==0){
@@ -115,7 +115,7 @@ static double regist_data(
 		cout<<"rotate=("<<rotate.x<<","<<rotate.y<<") @ "<<angle<<endl;
 		cout<<"rotate-resp="<<rotate_resp<<endl<<endl;
 		trans_rotate(ref,angle);
-		trans_rotate(img,angle);
+		trans_rotate(img,angle);//also change origin image~~~
 		if(angle==0.){
 			return rotate_resp;//we reach limit!!!
 		}

@@ -21,14 +21,8 @@ public class ImgRender implements Gawain.EventHook {
 	}
 	
 	@Override
-	public void release() {
-		//finally, jump out the main looper ~~~
-		stop();
-	}
-
-	@Override
 	public void shutdown() {
-		//camera will be released in this stage~~~~
+		stop();
 		for(ImgPreview prv:lstPreview){
 			prv.bundle.close();
 		}				
