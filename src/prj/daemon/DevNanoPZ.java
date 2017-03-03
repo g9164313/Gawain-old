@@ -8,23 +8,17 @@ import javafx.beans.property.SimpleFloatProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
-import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
-import javafx.geometry.Orientation;
-import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
-import javafx.scene.control.Separator;
 import javafx.scene.control.TextField;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
-import javafx.scene.layout.TilePane;
 import narl.itrc.DevTTY;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
@@ -64,12 +58,12 @@ public class DevNanoPZ extends DevTTY {
 	public void connect(String port_name){
 		open(port_name+",19200,8n1");
 		get_status(null);
-		isAlive.set(true);
+		Misc.delay(10);
+		writeTxt(String.format("%dMO\r\n", address.get()));//just for convenient~~~		
 	}
 	
 	public void disconnect(){
 		close();
-		isAlive.set(false);
 	}
 
 	private void get_last_error(){
@@ -223,10 +217,8 @@ public class DevNanoPZ extends DevTTY {
 		GridPane.setHgrow(btnPort, Priority.ALWAYS);
 		
 		Label txtAddr =new Label("編號：");
-		txtAddr.disableProperty().bind(isAlive.not());
-		
-		ComboBox<Integer> cmbAddr = new ComboBox<Integer>();
-		cmbAddr.disableProperty().bind(isAlive.not());		
+
+		ComboBox<Integer> cmbAddr = new ComboBox<Integer>();	
 		cmbAddr.setMaxWidth(Double.MAX_VALUE);
 		cmbAddr.getItems().addAll(1,2,3,4,5);
 		cmbAddr.getSelectionModel().select(0);
@@ -297,7 +289,7 @@ public class DevNanoPZ extends DevTTY {
 		cmbStepJog.getSelectionModel().select(0);
 		
 		final String TXT_MODE_REL = "相對模式："; 
-		final String TXT_MODE_JOG = "跑步模式：";		
+		final String TXT_MODE_JOG = "搖桿模式：";		
 		Label txtStepMode =new Label(TXT_MODE_JOG);		
 		txtStepMode.disableProperty().bind(isAlive.not());
 		txtStepMode.setMaxWidth(Double.MAX_VALUE);

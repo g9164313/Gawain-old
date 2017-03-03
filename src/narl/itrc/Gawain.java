@@ -264,7 +264,7 @@ public class Gawain extends Application {
 			System.exit(0);
 			return;
 		}
-		new Loader().stabdby();
+		new Loader().standby();
 		String name = prop.getProperty("LAUNCH","");	
 		try {
 			Object obj = Class.forName(name).newInstance();
@@ -290,7 +290,6 @@ public class Gawain extends Application {
 	@Override
 	public void stop() throws Exception {
 		//Do we need to close render looper???
-
 		flgStop.set(true);		
 	}
 	

@@ -11,19 +11,16 @@ import javafx.scene.Node;
 
 public class DevTTY extends DevBase {
 
-	private final String TXT_NONE  = "--------";
-	private final String TXT_UNKNOW= "????";
-	
 	public DevTTY(){
 	}
 	
-	public DevTTY(String txt){		
-		open(txt);
+	public DevTTY(String path){		
+		open(path);
 	}
 
 	@Override
 	protected Node eventLayout(){
-		return null;
+		return new PanTTY(this);
 	}
 
 	@Override
@@ -40,40 +37,61 @@ public class DevTTY extends DevBase {
 	 */
 	private long handle = 0L;//this is provided by native code
 	
-	public boolean isLive(){
-		if(handle==0){
-			return false;
-		}
-		return true;
+	public long getHandle(){
+		return handle;
 	}
 	
-	private String infoName = TXT_UNKNOW;
+	private final String TXT_UNKNOW_NAME = "?";
+	private final char TXT_UNKNOW_ATTR = '?';
+	
+	private String infoName = TXT_UNKNOW_NAME;
 	private int  infoBaud = -1;
-	private char infoData = '?';
-	private char infoPart = '?';
-	private char infoStop = '?';
+	private char infoData = TXT_UNKNOW_ATTR;
+	private char infoPart = TXT_UNKNOW_ATTR;
+	private char infoStop = TXT_UNKNOW_ATTR;
+	
+	private void resetInfo(){
+		infoName = TXT_UNKNOW_NAME;
+		infoBaud = -1;
+		infoData = TXT_UNKNOW_ATTR;
+		infoPart = TXT_UNKNOW_ATTR;
+		infoStop = TXT_UNKNOW_ATTR;
+	}
 	
 	public String getName(){
 		return infoName;
 	}
+	
 	public String getBaud(){
+		if(infoBaud<=0){
+			return TXT_UNKNOW_NAME;
+		}
 		return String.valueOf(infoBaud);
 	}
-	public String getDataBit(){
+	
+	public String getData(){
+		if(infoData==TXT_UNKNOW_ATTR){
+			return TXT_UNKNOW_NAME;
+		}
 		return String.valueOf(infoData);
 	}
+
 	public String getParity(){
-		return String.valueOf(infoPart);
+		switch(infoPart){
+		case 'n': return "none";
+		case 'o': return "odd";
+		case 'e': return "event";
+		case 'm': return "mark";
+		case 's': return "space";
+		}
+		return TXT_UNKNOW_NAME;
 	}
+	
 	public String getStopBit(){
+		if(infoData==TXT_UNKNOW_ATTR){
+			return TXT_UNKNOW_NAME;
+		}
 		return String.valueOf(infoStop);
-	}
-	private void resetInfo(){
-		infoName = TXT_UNKNOW;
-		infoBaud = -1;
-		infoData = '?';
-		infoPart = '?';
-		infoStop = '?';
 	}
 	
 	/**
@@ -82,22 +100,21 @@ public class DevTTY extends DevBase {
 	 * Parity can be 'n'(none),'o'(odd),'e'(event),'m'(mask) and 's'(space).<p>
 	 * @param txt - control statement.
 	 */
-	public void open(String txt){
-		//reset the previous connection!!!
-		resetInfo();
+	public long open(String txt){
+		//reset the previous connection!!!		
 		close();
 		String[] arg = txt.trim().split(",");
 		//check we have 3 arguments at least
 		if(arg.length<3){
 			Misc.logw("fail to connect "+txt);
-			return;
+			return handle;
 		}
 		//check the fist argument is device name
 		infoName = arg[0];
 		if(Misc.isPOSIX()==true){
 			if(new File(infoName).exists()==false){
 				Misc.logw("No device --> "+txt);
-				return;
+				return handle;
 			}
 		}else{
 			//how to check whether fxxking windows system has terminal
@@ -107,7 +124,7 @@ public class DevTTY extends DevBase {
 			infoBaud = Integer.valueOf(arg[1]);
 		}catch(NumberFormatException e){
 			Misc.loge("error baud : "+arg[1]);
-			return;
+			return handle;
 		}
 		char[] ctrl = arg[2].toCharArray();
 		infoData = ctrl[0];
@@ -123,17 +140,24 @@ public class DevTTY extends DevBase {
 		);		
 		if(handle!=0){
 			Misc.logv("connect to "+txt);
+			isAlive.set(true);
+		}else{
+			Misc.logv("fial to open "+txt);
+			isAlive.set(false);
 		}
+		return handle;
 	}
 
 	/**
 	 * close terminal!!!
 	 */
 	public void close(){
+		resetInfo();
 		if(handle==0L){
 			return;
 		}
 		implClose();
+		isAlive.set(false);
 	}
 	//-----------------------//
 	

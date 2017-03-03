@@ -4,7 +4,7 @@
 }
 
 .btn-raised-1{
-	-fx-padding: 0.7em 0.57em;
+	-fx-padding: 13px 13px;
 	-fx-font-size: 14px;
 	-fx-button-type: RAISED;
 	-fx-background-color: #1976d2;
@@ -20,6 +20,7 @@
 }
 .btn-raised-3{
 	-fx-padding: 0.7em 0.57em;
+
 	-fx-font-size: 14px;
 	-fx-button-type: RAISED;
 	-fx-background-color: #fbc02d;
@@ -33,7 +34,7 @@
 	-fx-text-fill: WHITE;
 }
 
-.btn-flat-tick {
+.btn-flat-tick{
 	-fx-padding: 0.7em 0.57em;
 	-fx-font-size: 7px;
 	-fx-button-type: FLAT;
@@ -45,9 +46,21 @@
     -fx-spacing: 7;
 }
 
+.hbox-small-white, .vbox-small-white{
+    -fx-padding: 7;
+    -fx-spacing: 7;
+    -fx-background-color: #FCFCFC;
+}
+
 .hbox-medium, .vbox-medium{
     -fx-padding: 13;
     -fx-spacing: 13;
+}
+
+.hbox-medium-white, .vbox-medium-white{
+    -fx-padding: 13;
+    -fx-spacing: 13;
+    -fx-background-color: #FCFCFC;
 }
 
 .hbox-small-space, .vbox-small-space{
@@ -69,28 +82,17 @@
     -fx-spacing: 7.0;
 }
 
-.flow-small {
-    -fx-alignment: center-left;
-    -fx-hgap: 13.0px;
-    -fx-vgap: 13.0px;
-}
-
-.hbox-test, .vbox-test{
-	-fx-background-color: #335588;
-    -fx-padding: 7.0;
-    -fx-spacing: 13.0;
-}
-
-.board-center {
-    -fx-hgap: 7.0;
-    -fx-vgap: 7.0;
-    -fx-alignment: baseline-center;
-}
-
 .grid-small{
     -fx-padding: 3px  3px 3px 3px;
     -fx-hgap: 3px;
     -fx-vgap: 3px;
+}
+
+.grid-small-white {
+    -fx-padding: 3px  3px 3px 3px;
+    -fx-hgap: 3px;
+    -fx-vgap: 3px;
+    -fx-background-color: #FCFCFC;
 }
 
 .grid-medium{
@@ -103,6 +105,18 @@
     -fx-padding: 13px  13px 13px 13px;
     -fx-hgap: 13px;
     -fx-vgap: 13px;
+}
+
+.flow-small {
+    -fx-alignment: center-left;
+    -fx-hgap: 13.0px;
+    -fx-vgap: 13.0px;
+}
+
+.board-center {
+    -fx-hgap: 7.0;
+    -fx-vgap: 7.0;
+    -fx-alignment: baseline-center;
 }
 
 .anchor-small {
@@ -119,16 +133,15 @@
     -fx-background-insets: 0, 2;
 }
 
-
-.group0-title {
-  -fx-translate-y: -26;
+.decorate0-title {
+  -fx-translate-y: -20;
 }
-.group0-content {
+.decorate0-content {
   -fx-padding: 7px 7px 7px 7px;
 }
-.group0-border {
+.decorate0-border {
   -fx-content-display: top;
-  -fx-border-insets: 27 8 8 8;
+  -fx-border-insets: 25 8 8 8;
   -fx-border-color: black;
   -fx-border-width: 1;
 }
@@ -145,6 +158,7 @@
   -fx-border-width: 2;  
   -fx-background-color: rgb(253,253,253)
 }
+
 
 .swt-raise {
 	-switch-color         : rgb(77, 102, 204);

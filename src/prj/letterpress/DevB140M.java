@@ -230,7 +230,7 @@ public class DevB140M extends DevMotion {
 	//----------------------------------//
 	
 	public void watch(){
-		if(tty.isLive()==false){
+		if(tty.getHandle()==0){
 			return;
 		}
 		//String txt = exec("MG TIME\r");

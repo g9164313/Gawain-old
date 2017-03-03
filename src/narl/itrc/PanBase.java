@@ -31,48 +31,42 @@ import javafx.stage.Window;
 import javafx.stage.WindowEvent;
 import javafx.util.Duration;
 
-public abstract class PanBase {
-
-	protected String title = "";
+public abstract class PanBase {	
 	
-	/**
-	 * User may use some control widget to pop a panel.<p>
-	 * When this happened,this control widget should be disabled.<p>
-	 * Because the panel should not be created twice.<p>
-	 * After closing this panel, the widget will be enabled again~~~.<p>
-	 */
-	private Control trigger = null;
-		
 	protected static final int FIRST_NONE = 0;
 	protected static final int FIRST_FULLSCREEN = 1;
 	protected static final int FIRST_MAXIMIZED = 2;
+	
 	protected int firstAction = FIRST_NONE;
-
-	private Scene scene = null;
-	private Stage stage = null;
-		
+	
 	protected java.net.URL customStyle = null;
 	
-	public abstract Parent layout();
+	protected String title;
+		
+	private Parent root;
+	
+	private Scene scene;
+	
+	private Stage stage;
 	
 	public PanBase(){
 		this("",null);
 	}
-	
+
 	public PanBase(String title){
 		this(title,null);
 	}
 	
-	public PanBase(Control trigger){
-		this("",trigger);
+	public PanBase(Parent root){
+		this("",root);
 	}
 	
-	public PanBase(String title,Control trigger){
+	public PanBase(String title, Parent root){
 		this.title = title;
-		this.trigger = trigger;
+		this.root = root;
 	}
 	
-	public Node getParent(){ 
+	public Parent getParent(){ 
 		return root;
 	}
 	
@@ -82,6 +76,56 @@ public abstract class PanBase {
 	
 	public Stage getStage(){ 
 		return stage;
+	}
+	//------------------------//
+	
+	public void appear(){
+		appear(create_stage(null));
+	}
+	public void appear(Stage stg){		
+		init_scene();		
+		init_stage(stg);
+		stg.show();
+	}
+	
+	public void standby(){
+		standby(create_stage(null));
+	}
+	public void standby(Stage stg){		
+		init_scene();		
+		init_stage(stg);
+		stg.showAndWait();
+	}
+	
+	public void dismiss(){		
+		if(stage==null){
+			return;
+		}		
+		stage.close();
+		stage = null;
+	}
+	//------------------------//
+		
+	public abstract Parent layout();
+	
+	private void init_scene(){
+
+		//first initialization...
+		//require children generate GUI-layout
+		if(root==null){
+			root = layout();
+		}
+		
+		spin.setVisible(false);
+		spin.setRadius(64);
+		spin.setOnMouseClicked(event->spinning(false));
+		
+		scene = new Scene(new StackPane(root,spin));
+		scene.getStylesheets().add(Gawain.class.getResource("res/styles.css").toExternalForm());
+		if(customStyle!=null){
+			scene.getStylesheets().add(customStyle.toExternalForm());
+		}
+		scene.setUserData(PanBase.this);
 	}
 	
 	/*public void makeDialog(Window parent){
@@ -94,9 +138,6 @@ public abstract class PanBase {
 	}*/
 	
 	private Stage create_stage(Window parent){
-		if(stage!=null){
-			return stage;
-		}
 		Stage stg = new Stage(StageStyle.UNIFIED);		
 		stg.initModality(Modality.NONE); 
 		stg.initOwner(parent);
@@ -110,9 +151,7 @@ public abstract class PanBase {
 		if(stg.isShowing()==true){
 			return;
 		}
-		
-		init_scene();
-		
+
 		//check whether we need to hook event~~~
 		if(stg.getOnShowing()==null){
 			stg.setOnShowing(eventWindow);
@@ -132,67 +171,17 @@ public abstract class PanBase {
 		
 		switch(firstAction){
 		case FIRST_FULLSCREEN:
-			stg.setFullScreen(true);
+			stage.setFullScreen(true);
 			break;
 		case FIRST_MAXIMIZED:
-			stg.setMaximized(true);
+			stage.setMaximized(true);
 			break;
 		}
-	}
-	
-	private void init_scene(){
-		if(scene!=null){
-			return;
-		}
-		
-		//first initialization...
-		//require children generate GUI-layout
-		root = layout();
-		
-		spin.setVisible(false);
-		spin.setRadius(64);
-		spin.setOnMouseClicked(EVENT->{
-			spinning(false);
-		});
-		
-		scene = new Scene(new StackPane(root,spin));
-		scene.getStylesheets().add(Gawain.class.getResource("res/styles.css").toExternalForm());
-		if(customStyle!=null){
-			scene.getStylesheets().add(customStyle.toExternalForm());
-		}
-		scene.setUserData(PanBase.this);
-	}
-	//------------------------//
-	
-	public void appear(){
-		appear(create_stage(null));
-	}
-	public void appear(Stage stg){
-		init_stage(stg);		
-		stage.show();
-	}
-	
-	public void standby(){
-		standby(create_stage(null));
-	}
-	public void standby(Stage stg){
-		init_stage(stg);
-		stage.showAndWait();
-	}
-	
-	public void dismiss(){		
-		if(stage==null){
-			return;
-		}		
-		stage.close();
-		stage = null;
 	}
 	//------------------------//
 	
 	private JFXSpinner spin = new JFXSpinner();	
-	
-	private Parent root = null;
-	
+
 	public void spinning(
 		final boolean flag
 	){
@@ -317,9 +306,6 @@ public abstract class PanBase {
 				eventShown(event);
 			}else if(WindowEvent.WINDOW_HIDING==event.getEventType()){
 				flagPresent = false;
-				if(trigger!=null){
-					trigger.setDisable(false);
-				}
 				watchStop();				
 				eventClose(event);
 				BoxLogger.pruneList(root.getChildrenUnmodifiable());
@@ -407,32 +393,45 @@ public abstract class PanBase {
 	}
 	//------------------------//
 
+	/**
+	 * Decorate root-panel with lines.<p>
+	 * It will generate a new panel 
+	 * @param txt - just show title
+	 * @param cntxt - context-panel or root-panel
+	 * @return a new panel
+	 */
 	public static Pane decorate(String txt,Node cntxt){
 		
-		Label title = new Label(" "+txt);
-		title.getStyleClass().add("group-title");
-		cntxt.getStyleClass().add("group-content");
+		Label title = new Label("[ "+txt+" ]");
+		title.getStyleClass().add("decorate0-title");
+		cntxt.getStyleClass().add("decorate0-content");
 		StackPane.setAlignment(title,Pos.TOP_LEFT);
 		StackPane.setAlignment(cntxt,Pos.BOTTOM_LEFT);
 		
 		StackPane grp = new StackPane();
-		grp.getStyleClass().add("group-border");
+		grp.getStyleClass().add("decorate0-border");
 		grp.getChildren().addAll(title,cntxt);
 		return grp;
 	}
 	
-	public static HBox decorateHBox(Object... args){
-		HBox lay = new HBox();
-		for(int i=0; i<args.length; i+=2){
-			String title = (String)(args[i+0]);
-			Node cntxt = (Node)(args[i+1]);
-			Pane panel = decorate(title,cntxt);
-			HBox.setHgrow(panel,Priority.ALWAYS);
-			lay.getChildren().add(panel);
-		}
-		return lay;
+	/**
+	 * Decorate control item with a table grid.<p>
+	 * User must pay attention to argument sequence.Column symbol will be added automatically.<p> 
+	 * @param arg - the sequence must be Label and Control, etc.
+	 * @return
+	 */
+	public static GridPane decorateGrid(Object... arg){
+		GridPane pan = new GridPane();
+		pan.getStyleClass().add("grid-small");
+		int cnt = arg.length/2;
+		for(int i=0; i<cnt; i++){
+			Label txt = new Label((String)arg[i*2+0]);
+			Node obj = (Node)(arg[i*2+1]);
+			pan.addRow(i,txt,new Label("："),obj);
+		}		
+		return pan;
 	}
-	
+
 	public static HBox fillHBox(Object... args){
 		HBox lay = new HBox();
 		lay.getStyleClass().add("hbox-small");
@@ -457,27 +456,7 @@ public abstract class PanBase {
 		}
 		return lay;
 	}
-	
-	private static Button gen_def_button(
-		final String title,
-		final String iconName,
-		final String styleName
-	){
-		Button btn = new Button();
-		if(title.length()!=0){
-			btn.setText(title);
-		}
-		if(styleName.length()!=0){
-			btn.getStyleClass().add(styleName);
-		}
-		if(iconName!=null){
-			if(iconName.length()!=0){
-				btn.setGraphic(Misc.getIcon(iconName));
-			}
-		}		
-		btn.setMaxWidth(Double.MAX_VALUE);
-		return btn;
-	}
+	//------------------------//
 	
 	public static Button genButtonFlat(
 		final String title,
@@ -500,6 +479,27 @@ public abstract class PanBase {
 		return btn;
 	}
 	
+	private static Button gen_def_button(
+		final String title,
+		final String iconName,
+		final String styleName
+	){
+		Button btn = new Button();
+		if(title.length()!=0){
+			btn.setText(title);
+		}
+		if(styleName.length()!=0){
+			btn.getStyleClass().add(styleName);
+		}
+		if(iconName!=null){
+			if(iconName.length()!=0){
+				btn.setGraphic(Misc.getIcon(iconName));
+			}
+		}		
+		btn.setMaxWidth(Double.MAX_VALUE);
+		return btn;
+	}
+		
 	public static Button genButton0(
 		final String title,
 		final String iconName
@@ -518,8 +518,7 @@ public abstract class PanBase {
 			if(iconName.length()!=0){
 				btn.setGraphic(Misc.getIcon(iconName));
 			}
-		}		
-		btn.setMaxWidth(Double.MAX_VALUE);
+		}
 		return btn;
 	}
 	
@@ -549,24 +548,6 @@ public abstract class PanBase {
 		final String iconName
 	){
 		return gen_fx_button(title,iconName,"btn-raised-4");
-	}
-
-	/**
-	 * Decorate control item with a table grid.<p>
-	 * User must pay attention to argument sequence.Column symbol will be added automatically.<p> 
-	 * @param arg - the sequence must be Label and Control, etc.
-	 * @return
-	 */
-	public static GridPane decorateGrid(Object... arg){
-		GridPane pan = new GridPane();
-		pan.getStyleClass().add("grid-small");
-		int cnt = arg.length/2;
-		for(int i=0; i<cnt; i++){
-			Label txt = new Label((String)arg[i*2+0]);
-			Node obj = (Node)(arg[i*2+1]);
-			pan.addRow(i,txt,new Label("："),obj);
-		}		
-		return pan;
 	}
 }
 

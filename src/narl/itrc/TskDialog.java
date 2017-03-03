@@ -109,7 +109,7 @@ public abstract class TskDialog extends TskAction {
 		workStage.show();	
 	}
 	
-	public void stabdby(){
+	public void standby(){
 		init_dialog();
 		workStage.showAndWait();		
 	}
