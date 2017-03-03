@@ -5,7 +5,7 @@ import com.jfoenix.controls.JFXSlider;
 
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
-import javafx.scene.Parent;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.layout.GridPane;
 import javafx.stage.WindowEvent;
@@ -51,7 +51,7 @@ public class PanDummy extends PanBase {
 	}
 	
 	@Override
-	public Parent layout() {
+	public Node eventLayout() {
 
 		/*final Label txtPath = new Label();
 		if(lstName.isEmpty()==false){

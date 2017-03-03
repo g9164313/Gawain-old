@@ -3,7 +3,7 @@ package narl.itrc.vision;
 import com.jfoenix.controls.JFXCheckBox;
 import com.jfoenix.controls.JFXSlider;
 
-import javafx.scene.Parent;
+import javafx.scene.Node;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
 import javafx.stage.WindowEvent;
@@ -49,7 +49,7 @@ public class PanXIMEA extends PanBase {
 	}
 	
 	@Override
-	public Parent layout() {
+	public Node eventLayout() {
 		
 		chkAE = new JFXCheckBox("Automatic exposure/gain");
 		chkAE.setOnAction(event->{

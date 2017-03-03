@@ -163,7 +163,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implOpen(
 
 	options.c_cflag |= (CLOCAL | CREAD);
 	options.c_cc[VMIN] = 0;//block until n bytes are received
-	options.c_cc[VTIME]= 10;//block until a timer expires (n * 100 mSec.)
+	options.c_cc[VTIME]= 1;//block until a timer expires (n * 100 mSec.)
 
 	//TODO:how to set flow-control
 	//block or not~~~

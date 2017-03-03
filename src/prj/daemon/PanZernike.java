@@ -1,6 +1,6 @@
 package prj.daemon;
 
-import javafx.scene.Parent;
+import javafx.scene.Node;
 import narl.itrc.PanBase;
 
 public class PanZernike extends PanBase {
@@ -10,7 +10,7 @@ public class PanZernike extends PanBase {
 	}
 
 	@Override
-	public Parent layout() {
+	public Node eventLayout() {
 		
 		return null;
 	}

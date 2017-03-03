@@ -39,11 +39,13 @@ public abstract class PanBase {
 	
 	protected int firstAction = FIRST_NONE;
 	
-	protected java.net.URL customStyle = null;
+	protected java.net.URL customCSS = null;
+	
+	protected String customStyle = null;
 	
 	protected String title;
 		
-	private Parent root;
+	private Node root;
 	
 	private Scene scene;
 	
@@ -66,7 +68,7 @@ public abstract class PanBase {
 		this.root = root;
 	}
 	
-	public Parent getParent(){ 
+	public Node getRootNode(){ 
 		return root;
 	}
 	
@@ -79,13 +81,14 @@ public abstract class PanBase {
 	}
 	//------------------------//
 	
-	public void appear(){
-		appear(create_stage(null));
+	public PanBase appear(){
+		return appear(create_stage(null));
 	}
-	public void appear(Stage stg){		
+	public PanBase appear(Stage stg){		
 		init_scene();		
 		init_stage(stg);
 		stg.show();
+		return this;
 	}
 	
 	public void standby(){
@@ -106,26 +109,33 @@ public abstract class PanBase {
 	}
 	//------------------------//
 		
-	public abstract Parent layout();
+	public abstract Node eventLayout();
 	
 	private void init_scene(){
 
 		//first initialization...
 		//require children generate GUI-layout
 		if(root==null){
-			root = layout();
+			root = eventLayout();
 		}
 		
 		spin.setVisible(false);
 		spin.setRadius(64);
 		spin.setOnMouseClicked(event->spinning(false));
 		
-		scene = new Scene(new StackPane(root,spin));
-		scene.getStylesheets().add(Gawain.class.getResource("res/styles.css").toExternalForm());
+		StackPane panBack = new StackPane(root,spin);
 		if(customStyle!=null){
-			scene.getStylesheets().add(customStyle.toExternalForm());
+			panBack.setStyle(customStyle);
 		}
-		scene.setUserData(PanBase.this);
+		
+		scene = new Scene(panBack);
+		//load a default style...
+		scene.getStylesheets().add(Gawain.class.getResource("res/styles.css").toExternalForm());		
+		//if user give us a URL, try to load a custom style file....
+		if(customCSS!=null){			
+			scene.getStylesheets().add(customCSS.toExternalForm());
+		}
+		scene.setUserData(PanBase.this);//do we need this???
 	}
 	
 	/*public void makeDialog(Window parent){
@@ -308,7 +318,7 @@ public abstract class PanBase {
 				flagPresent = false;
 				watchStop();				
 				eventClose(event);
-				BoxLogger.pruneList(root.getChildrenUnmodifiable());
+				//TODO: BoxLogger.pruneList(root);//??? how to refresh message
 			}
 		}
 	};

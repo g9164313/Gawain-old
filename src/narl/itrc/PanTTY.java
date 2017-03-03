@@ -6,7 +6,11 @@ import java.io.FilenameFilter;
 import com.jfoenix.controls.JFXComboBox;
 import com.jfoenix.controls.JFXTextField;
 
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
@@ -16,6 +20,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import javafx.util.Duration;
 
 /**
  * A wrap panel for TTY device.
@@ -28,13 +33,24 @@ public class PanTTY extends Pane {
 	
 	public PanTTY(DevTTY device){
 		dev = device;
+		watch.setCycleCount(Timeline.INDEFINITE);
 		init_layout();
 	}
 	
+	private TextArea boxOutput = new TextArea();
+	
+	private Timeline watch = new Timeline(new KeyFrame(
+		Duration.millis(250),
+		event->{
+			String txt = dev.readTxt();
+			if(txt==null){
+				return;
+			}
+			boxOutput.appendText(txt);
+		}
+	));
+
 	private void init_layout(){
-				
-		final JFXComboBox<String> cmbName = new JFXComboBox<String>();		
-		getSupportList(cmbName).setMaxWidth(Double.MAX_VALUE);
 		
 		final JFXComboBox<String> cmbBaud = new JFXComboBox<String>();
 		cmbBaud.setMaxWidth(Double.MAX_VALUE);
@@ -61,46 +77,35 @@ public class PanTTY extends Pane {
 		cmbStop.getItems().addAll("1","2");
 		cmbSelect(cmbStop,dev.getStopBit(),0);
 
-		final String TXT_OPEN  = "開啟";
-		final String TXT_CLOSE = "關閉";
-		final Button btnEnable = PanBase.genButton1(TXT_OPEN,"");
-		btnEnable.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
-		btnEnable.setOnAction(event->{
-			if(dev.isAlive.get()==true){
-				dev.close();
-				btnEnable.setText(TXT_OPEN);
-			}else{
-				String infoName = "" + 
-					cmbName.getSelectionModel().getSelectedItem() + "," +
+		ComboBox<String> cmbPort = genPortCombo(null,dev);
+		
+		Button btnPort = genPortButton(
+			null,dev,
+			eventOpen->{ watch.pause(); },
+			eventClose->{ watch.play(); },
+			event->{				
+				String path = "" + 
+					cmbPort.getSelectionModel().getSelectedItem() + "," +
 					cmbBaud.getSelectionModel().getSelectedItem() + "," +
 					cmbData.getSelectionModel().getSelectedItem() + 
 					cmbPart.getSelectionModel().getSelectedItem().charAt(0) + 
-					cmbStop.getSelectionModel().getSelectedItem();				
-				if(dev.open(infoName)==0L){
-					btnEnable.setText(TXT_OPEN);					
-				}else{
-					btnEnable.setText(TXT_CLOSE);
-				}
+					cmbStop.getSelectionModel().getSelectedItem();
+				dev.setInfoPath(path);
 			}
-		});
-		if(dev.isAlive.get()==true){
-			btnEnable.setText(TXT_CLOSE);
-		}else{
-			btnEnable.setText(TXT_OPEN);
-		}
+		);		
+		btnPort.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
 		
-		TextArea boxOutput = new TextArea();
-		boxOutput.disableProperty().bind(dev.isAlive.not());
+		boxOutput.disableProperty().bind(dev.isAlive().not());
 		boxOutput.setMaxWidth(Double.MAX_VALUE);
 		boxOutput.setPrefHeight(200);
 				
 		JFXComboBox<String> cmbFeed = new JFXComboBox<String>();
-		cmbFeed.disableProperty().bind(dev.isAlive.not());
+		cmbFeed.disableProperty().bind(dev.isAlive().not());
 		cmbFeed.getItems().addAll("LF","CR","CR,LF","<HEX>");
 		cmbFeed.getSelectionModel().select(0);
 		
 		JFXTextField boxInput = new JFXTextField();
-		boxInput.disableProperty().bind(dev.isAlive.not());
+		boxInput.disableProperty().bind(dev.isAlive().not());
 		boxInput.requestFocus();
 		HBox.setHgrow(boxInput, Priority.ALWAYS);		
 		boxInput.setOnAction(event->{
@@ -119,10 +124,10 @@ public class PanTTY extends Pane {
 		});
 		
 		GridPane lay0 = new GridPane();
-		lay0.disableProperty().bind(dev.isAlive);
+		lay0.disableProperty().bind(dev.isAlive());
 		lay0.getStyleClass().add("grid-small");
 		lay0.addRow(0, 
-			new Label("通訊埠"), new Label("："), cmbName,
+			new Label("通訊埠"), new Label("："), cmbPort,
 			new Label("鮑率")  , new Label("："), cmbBaud
 		);
 		lay0.addRow(1, 
@@ -133,14 +138,14 @@ public class PanTTY extends Pane {
 		
 		HBox lay1 = new HBox();
 		lay1.getStyleClass().add("hbox-medium");
-		lay1.getChildren().addAll(lay0,btnEnable);
+		lay1.getChildren().addAll(lay0,btnPort);
 
 		HBox lay2 = new HBox();
 		lay2.getStyleClass().add("hbox-small");
 		lay2.getChildren().addAll(boxInput,cmbFeed);
 		
 		VBox root = new VBox();
-		root.getStyleClass().add("vbox-small-white");
+		root.getStyleClass().add("vbox-small");
 		root.getChildren().addAll(lay1,boxOutput,lay2);
 		
 		getChildren().add(root);
@@ -161,8 +166,75 @@ public class PanTTY extends Pane {
 		lst.add(val);
 		cmb.getSelectionModel().selectLast();
 	}
+	//---------------------------------//
 	
-	public static ComboBox<String> getSupportList(ComboBox<String> box){
+	private static final String TXT_OPEN  = "開啟";
+	private static final String TXT_CLOSE = "關閉";
+
+	/**
+	 * Automatically generate a default enable-button for TTY device.<p>
+	 * Attention!!, it will only invoke 'open()' and 'close()', so user must check procedure.<p>
+	 * @param btn
+	 * @param dev
+	 * @param eventPortOpen
+	 * @param eventPortClose
+	 * @param eventConnecting
+	 * @return
+	 */
+	public static Button genPortButton(
+		Button btn,
+		final DevTTY dev,
+		final EventHandler<ActionEvent> eventPortOpen,
+		final EventHandler<ActionEvent> eventPortClose,
+		final EventHandler<ActionEvent> eventConnecting
+	){
+		final Button btnTmp = (btn==null)?(PanBase.genButton1(TXT_OPEN, "")):(btn);
+		
+		btnTmp.setOnAction(event->{
+			if(dev.isAlive().get()==true){
+				dev.close();
+				btnTmp.setText(TXT_OPEN);
+				if(eventPortOpen!=null){
+					eventPortOpen.handle(event);
+				}
+			}else{
+				eventConnecting.handle(event);				
+				if(dev.open()==0L){
+					btnTmp.setText(TXT_OPEN);
+					if(eventPortOpen!=null){
+						eventPortOpen.handle(event);
+					}
+				}else{
+					btnTmp.setText(TXT_CLOSE);
+					if(eventPortClose!=null){
+						eventPortClose.handle(event);
+					}
+				}
+			}
+		});
+		if(dev.isAlive().get()==true){
+			btnTmp.setText(TXT_CLOSE);
+			if(eventPortClose!=null){
+				eventPortClose.handle(null);
+			}
+		}else{			
+			btnTmp.setText(TXT_OPEN);
+			if(eventPortOpen!=null){
+				eventPortOpen.handle(null);
+			}
+		}
+		return btnTmp;
+	} 
+
+	public static ComboBox<String> genPortCombo(
+		ComboBox<String> box,
+		final DevTTY dev
+	){
+		if(box==null){
+			box = new JFXComboBox<String>();
+		}
+		box.disableProperty().bind(dev.isAlive());
+		
 		ObservableList<String> lst = box.getItems();
 		if(Misc.isPOSIX()==true){
 			//how to list device file??

@@ -34,8 +34,11 @@ public class DevNanoPZ extends DevTTY {
 	
 	private static final String STA_NULL = "----------";
 	
-	public DevNanoPZ(){
-		
+	public DevNanoPZ(){	
+	}
+	
+	public DevNanoPZ(String path){
+		connect(path+",19200,8n1");
 	}
 	
 	private IntegerProperty location = new SimpleIntegerProperty(0);//μ-step
@@ -58,7 +61,7 @@ public class DevNanoPZ extends DevTTY {
 	public void connect(String port_name){
 		open(port_name+",19200,8n1");
 		get_status(null);
-		Misc.delay(10);
+		Misc.delay(10);//Do we need this???
 		writeTxt(String.format("%dMO\r\n", address.get()));//just for convenient~~~		
 	}
 	
@@ -201,13 +204,12 @@ public class DevNanoPZ extends DevTTY {
 		GridPane root = new GridPane();
 		root.getStyleClass().add("grid-medium");
 		
-		final ComboBox<String> cmbPort = new ComboBox<String>();
+		final ComboBox<String> cmbPort = PanTTY.genPortCombo(null,this);
 		cmbPort.setMaxWidth(Double.MAX_VALUE);
-		PanTTY.getSupportList(cmbPort);
-		
+
 		Button btnPort =new Button("連接埠：");
 		btnPort.setOnAction(event->{
-			if(isAlive.get()==false){
+			if(isAlive().get()==false){
 				connect(cmbPort.getSelectionModel().getSelectedItem());
 			}else{
 				disconnect();
@@ -225,7 +227,7 @@ public class DevNanoPZ extends DevTTY {
 		address.bind(cmbAddr.getSelectionModel().selectedIndexProperty().add(1));
 
 		Label txtStat =new Label("狀態：");
-		txtStat.disableProperty().bind(isAlive.not());
+		txtStat.disableProperty().bind(isAlive().not());
 		txtStat.setMaxWidth(Double.MAX_VALUE);
 		txtStat.setOnMouseClicked(event->{
 			//update device status~~~
@@ -233,37 +235,37 @@ public class DevNanoPZ extends DevTTY {
 		});
 		
 		Label txtInfo1 = new Label();
-		txtInfo1.disableProperty().bind(isAlive.not());
+		txtInfo1.disableProperty().bind(isAlive().not());
 		txtInfo1.setMaxWidth(Double.MAX_VALUE);
 		txtInfo1.textProperty().bind(STA_INFO1);
 		
 		Label txtInfo2 = new Label();
-		txtInfo2.disableProperty().bind(isAlive.not());
+		txtInfo2.disableProperty().bind(isAlive().not());
 		txtInfo2.setMaxWidth(Double.MAX_VALUE);
 		txtInfo2.textProperty().bind(STA_INFO2);
 		
 		Label txtError1 = new Label("Last Error：");
-		txtError1.disableProperty().bind(isAlive.not());
+		txtError1.disableProperty().bind(isAlive().not());
 		txtError1.setMaxWidth(Double.MAX_VALUE);
 		txtError1.setOnMouseClicked(event->{
 			get_last_error();
 		});
 		
 		Label txtError2 = new Label();
-		txtError2.disableProperty().bind(isAlive.not());
+		txtError2.disableProperty().bind(isAlive().not());
 		txtError2.setMaxWidth(Double.MAX_VALUE);
 		txtError2.textProperty().bind(STA_INFO3);
 		//----------------------------//
 		
 		Label txtLoca1 =new Label("μ-step：");
-		txtLoca1.disableProperty().bind(isAlive.not());
+		txtLoca1.disableProperty().bind(isAlive().not());
 		txtLoca1.setMaxWidth(Double.MAX_VALUE);
 		txtLoca1.setOnMouseClicked(event->{
 			//reset position to zero~~~
 		});
 		
 		Label txtLoca2 = new Label(STA_NULL);
-		txtLoca2.disableProperty().bind(isAlive.not());
+		txtLoca2.disableProperty().bind(isAlive().not());
 		txtLoca2.setMaxWidth(Double.MAX_VALUE);
 		txtLoca2.textProperty().bind(location.asString());
 		txtLoca2.setOnMouseClicked(event->{
@@ -271,11 +273,11 @@ public class DevNanoPZ extends DevTTY {
 		});
 
 		TextField boxStepRel = new TextField("1000");
-		boxStepRel.disableProperty().bind(isAlive.not());
+		boxStepRel.disableProperty().bind(isAlive().not());
 		boxStepRel.setMaxWidth(Double.MAX_VALUE);
 		
 		ComboBox<String> cmbStepJog = new ComboBox<String>();
-		cmbStepJog.disableProperty().bind(isAlive.not());		
+		cmbStepJog.disableProperty().bind(isAlive().not());		
 		cmbStepJog.setMaxWidth(Double.MAX_VALUE);
 		cmbStepJog.getItems().addAll(
 			"   3.2 μ-step",
@@ -291,7 +293,7 @@ public class DevNanoPZ extends DevTTY {
 		final String TXT_MODE_REL = "相對模式："; 
 		final String TXT_MODE_JOG = "搖桿模式：";		
 		Label txtStepMode =new Label(TXT_MODE_JOG);		
-		txtStepMode.disableProperty().bind(isAlive.not());
+		txtStepMode.disableProperty().bind(isAlive().not());
 		txtStepMode.setMaxWidth(Double.MAX_VALUE);
 		txtStepMode.setOnMouseClicked(event->{
 			String txt = txtStepMode.getText();
@@ -342,14 +344,14 @@ public class DevNanoPZ extends DevTTY {
 		Button btnDirNeg = PanBase.genButton0("","dir-left.png");
 		btnDirNeg.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
 		btnDirNeg.setUserData('-');
-		btnDirNeg.disableProperty().bind(isAlive.not());
+		btnDirNeg.disableProperty().bind(isAlive().not());
 		btnDirNeg.addEventFilter(MouseEvent.MOUSE_PRESSED,eventPressed);
 		btnDirNeg.addEventFilter(MouseEvent.MOUSE_RELEASED,eventRelease);
 		
 		Button btnDirPos = PanBase.genButton0("","dir-right.png");
 		btnDirPos.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
 		btnDirPos.setUserData('+');
-		btnDirPos.disableProperty().bind(isAlive.not());
+		btnDirPos.disableProperty().bind(isAlive().not());
 		btnDirPos.addEventFilter(MouseEvent.MOUSE_PRESSED,eventPressed);
 		btnDirPos.addEventFilter(MouseEvent.MOUSE_RELEASED,eventRelease);
 		

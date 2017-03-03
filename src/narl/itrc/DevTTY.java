@@ -14,7 +14,7 @@ public class DevTTY extends DevBase {
 	public DevTTY(){
 	}
 	
-	public DevTTY(String path){		
+	public DevTTY(String path){	
 		open(path);
 	}
 
@@ -49,14 +49,6 @@ public class DevTTY extends DevBase {
 	private char infoData = TXT_UNKNOW_ATTR;
 	private char infoPart = TXT_UNKNOW_ATTR;
 	private char infoStop = TXT_UNKNOW_ATTR;
-	
-	private void resetInfo(){
-		infoName = TXT_UNKNOW_NAME;
-		infoBaud = -1;
-		infoData = TXT_UNKNOW_ATTR;
-		infoPart = TXT_UNKNOW_ATTR;
-		infoStop = TXT_UNKNOW_ATTR;
-	}
 	
 	public String getName(){
 		return infoName;
@@ -94,42 +86,78 @@ public class DevTTY extends DevBase {
 		return String.valueOf(infoStop);
 	}
 	
+	private void resetInfoPath(){
+		infoName = TXT_UNKNOW_NAME;
+		infoBaud = -1;
+		infoData = TXT_UNKNOW_ATTR;
+		infoPart = TXT_UNKNOW_ATTR;
+		infoStop = TXT_UNKNOW_ATTR;
+	}
+	
 	/**
 	 * Parse the control statement like "/dev/ttyS0,9600,8n1".<p>
 	 * The control statement is composed of baud-rate,data-bit,parity,stop-bit.<p>
 	 * Parity can be 'n'(none),'o'(odd),'e'(event),'m'(mask) and 's'(space).<p>
-	 * @param txt - control statement.
+	 * @param name - control statement.
+	 * @return TRUE - valid, FALSE - invalid
 	 */
-	public long open(String txt){
-		//reset the previous connection!!!		
-		close();
-		String[] arg = txt.trim().split(",");
+	public boolean setInfoPath(String path){
+		
+		resetInfoPath();
+		
+		String[] arg = path.trim().split(",");
 		//check we have 3 arguments at least
 		if(arg.length<3){
-			Misc.logw("fail to connect "+txt);
-			return handle;
+			Misc.loge("fail to connect "+path);
+			return false;
 		}
-		//check the fist argument is device name
-		infoName = arg[0];
+		
+		//check the fist argument,it is device name		
 		if(Misc.isPOSIX()==true){
-			if(new File(infoName).exists()==false){
-				Misc.logw("No device --> "+txt);
-				return handle;
+			if(new File(arg[0]).exists()==false){
+				Misc.loge("Unknown device --> "+path);
+				return false;
 			}
 		}else{
 			//how to check whether fxxking windows system has terminal
 		}
+		infoName = arg[0];
+		
 		//check the second argument is integer
 		try{
 			infoBaud = Integer.valueOf(arg[1]);
 		}catch(NumberFormatException e){
 			Misc.loge("error baud : "+arg[1]);
-			return handle;
+			return false;
 		}
+		
+		//how to check valid below lines???
 		char[] ctrl = arg[2].toCharArray();
 		infoData = ctrl[0];
 		infoPart = ctrl[1];
 		infoStop = ctrl[2];
+		
+		return true;
+	}
+	//---------------------//
+	
+	/**
+	 * open TTY and start to communication.<p>
+	 * 
+	 * @param path - control statement.
+	 */
+	public long open(String path){
+		if(setInfoPath(path)==false){
+			return -1L;
+		}
+		return open();
+	}
+	
+	/**
+	 * open TTY and start to communication~~~
+	 * @param txt - control statement.
+	 */
+	public long open(){
 		implOpen(
 			infoName,
 			infoBaud,
@@ -139,11 +167,9 @@ public class DevTTY extends DevBase {
 			'?'
 		);		
 		if(handle!=0){
-			Misc.logv("connect to "+txt);
-			isAlive.set(true);
+			setAlive(true);
 		}else{
-			Misc.logv("fial to open "+txt);
-			isAlive.set(false);
+			setAlive(false);
 		}
 		return handle;
 	}
@@ -152,12 +178,11 @@ public class DevTTY extends DevBase {
 	 * close terminal!!!
 	 */
 	public void close(){
-		resetInfo();
 		if(handle==0L){
 			return;
 		}
 		implClose();
-		isAlive.set(false);
+		setAlive(false);
 	}
 	//-----------------------//
 	
@@ -262,16 +287,16 @@ public class DevTTY extends DevBase {
 	}
 	
 	private Task<String> tskFetch = null;
-	
-	public void fetch(
-			final String command,
-			final String tail,
-			EventHandler<ActionEvent> value
-	){
-		String[] commands = {command};
-		fetch(commands,tail,value);
-	}
-	
+		
+	/**
+	 * 
+	 * Write command and read back what the device generated.<p>
+	 * Attention!!, this is a blocking procedure.<p>
+	 * 
+	 * @param command - what we write to TTY device
+	 * @param tail - the tail of text what we read  
+	 * @param value - if it were done, invoke this event.
+	 */
 	public void fetch(
 		final String[] commands,
 		final String tail,
@@ -286,18 +311,39 @@ public class DevTTY extends DevBase {
 		tskFetch = new Task<String>(){
 			@Override
 			protected String call() throws Exception {
-				String txt = "";
+				String result = "";
 				for(String cmd:commands){
-					txt = txt + "\t" + fetch(cmd,tail);
+					String txt = null;
+					while(txt==null){
+						txt = fetch(cmd,tail);
+					}
+					result = result + "\t" + txt;
 					Misc.delay(10);
 				}
-				return txt.substring(1);
+				return result.substring(1);
 			}
 		};
 		tskFetch.setOnSucceeded(event->{
 			value.handle(new ActionEvent(tskFetch.valueProperty().get(),null));
 		});
 		new Thread(tskFetch,"DevTTY-fetch").start();
+	}
+	
+	/**
+	 * Write command and read back what the device generated.<p>
+	 * Attention!!, this is a blocking procedure.<p>
+	 * 
+	 * @param command - what we write to TTY device
+	 * @param tail - the tail of text what we read  
+	 * @param value - if it were done, invoke this event.
+	 */
+	public void fetch(
+		final String command,
+		final String tail,
+		EventHandler<ActionEvent> value
+	){
+		String[] commands = {command};
+		fetch(commands,tail,value);
 	}
 	//-----------------------//
 	

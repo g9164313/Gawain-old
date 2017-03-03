@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import com.jfoenix.controls.JFXTextField;
 
 import javafx.scene.Node;
-import javafx.scene.Parent;
 import javafx.scene.chart.LineChart;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
@@ -194,7 +193,7 @@ public class FltrSlangEdge extends ImgFilter {
 		}
 				
 		@Override
-		public Parent layout() {
+		public Node eventLayout() {
 			BorderPane lay = new BorderPane();
 			lay.setCenter(layoutChart());
 			lay.setRight(layoutCtrl());

@@ -186,7 +186,7 @@ public abstract class TskDialog extends TskAction {
 			workStage.close();
 		}
 		if(root!=null){
-			root.getParent().setDisable(false);
+			root.getRootNode().setDisable(false);
 		}
 	}
 		
@@ -199,7 +199,7 @@ public abstract class TskDialog extends TskAction {
 			return;
 		}
 		if(root!=null){
-			root.getParent().setDisable(true);
+			root.getRootNode().setDisable(true);
 		}
 		appear();
 	}	

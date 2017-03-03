@@ -1,5 +1,6 @@
 package prj.daemon;
 
+import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.Button;
 import javafx.scene.layout.BorderPane;
@@ -86,7 +87,7 @@ public class PanImgRender extends PanBase {
 	}
 	
 	@Override
-	public Parent layout() {
+	public Node eventLayout() {
 		HBox lay0 = new HBox();
 		lay0.getStyleClass().add("vbox-small");
 		lay0.getChildren().addAll(

@@ -1,6 +1,6 @@
 package prj.daemon;
 
-import javafx.scene.Parent;
+import javafx.scene.Node;
 import javafx.stage.WindowEvent;
 import narl.itrc.PanBase;
 import narl.itrc.vision.BlkRender;
@@ -27,7 +27,7 @@ public class PanBlkRender extends PanBase {
 	}
 	
 	@Override
-	public Parent layout() {
+	public Node eventLayout() {
 		return rndr;
 	}
 }

@@ -21,7 +21,7 @@ public class Entry extends PanBase {
 
 	public Entry(){
 		firstAction = FIRST_MAXIMIZED;
-		customStyle = Entry.class.getResource("style.css");
+		customCSS = Entry.class.getResource("style.css");
 		PanDecorate.STYLE = PanDecorate.STYLE_BORDER1;
 		inst = this;
 	}
@@ -86,7 +86,7 @@ public class Entry extends PanBase {
 	public TabPane pager;
 	
 	@Override
-	public Parent layout() {
+	public Node eventLayout() {
 		wmap = new WidMapWafer();
 		prvw = new WidAoiViews(rndr);
 		

@@ -1,15 +1,6 @@
 package prj.daemon;
 
-import com.jfoenix.controls.JFXBadge;
-import com.jfoenix.controls.JFXButton;
-import com.jfoenix.controls.JFXDecorator;
-import com.jfoenix.controls.JFXDrawer;
-import com.jfoenix.controls.JFXSnackbar;
-import com.jfoenix.controls.JFXSnackbar.SnackbarEvent;
-
 import javafx.scene.Node;
-import javafx.scene.Parent;
-import javafx.scene.layout.StackPane;
 import narl.itrc.DevTTY;
 import narl.itrc.PanBase;
 
@@ -21,16 +12,16 @@ import narl.itrc.PanBase;
 public class PanNullView extends PanBase {
 
 	public PanNullView(){
-		
+		//customStyle = "-fx-background-color: #FDFDFD;";
 	}
 	
 	@Override
-	public Parent layout() {
-		//return dev.build("NanoPZ");
-		return dev.build("DevTTY");		
+	public Node eventLayout() {
+		return dev.build("test-panel");		
 	}
 	//-----------------------//
 	
 	//private DevNanoPZ dev = new DevNanoPZ();
-	private DevTTY dev = new DevTTY();
+	//private DevTTY dev = new DevTTY();
+	private DevLK_G5000 dev = new DevLK_G5000("/dev/ttyS0");
 }
