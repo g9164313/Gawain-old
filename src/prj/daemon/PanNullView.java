@@ -1,5 +1,7 @@
 package prj.daemon;
 
+import java.math.BigDecimal;
+
 import javafx.scene.Node;
 import narl.itrc.DevTTY;
 import narl.itrc.PanBase;
@@ -12,7 +14,7 @@ import narl.itrc.PanBase;
 public class PanNullView extends PanBase {
 
 	public PanNullView(){
-		//customStyle = "-fx-background-color: #FDFDFD;";
+		customStyle = "-fx-background-color: #FDFDFD;";
 	}
 	
 	@Override

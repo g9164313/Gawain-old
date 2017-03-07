@@ -18,6 +18,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Control;
 import javafx.scene.control.Label;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
@@ -81,23 +82,55 @@ public abstract class PanBase {
 	}
 	//------------------------//
 	
+	/**
+	 * present a new panel, but no-blocking
+	 * @return self
+	 */
 	public PanBase appear(){
 		return appear(create_stage(null));
 	}
+	
+	/**
+	 * present a new panel, but no-blocking
+	 * @param stg - parent stage
+	 * @return self
+	 */
 	public PanBase appear(Stage stg){		
-		init_scene();		
-		init_stage(stg);
-		stg.show();
+		init_panel();		
+		init_stage(stg).show();
 		return this;
 	}
 	
+	/**
+	 * present a new panel, and blocking for dismissing 
+	 */
 	public void standby(){
 		standby(create_stage(null));
 	}
+	
+	/**
+	 * present a new panel, and blocking for dismissing 
+	 * @param stg - parent stage
+	 */
 	public void standby(Stage stg){		
-		init_scene();		
-		init_stage(stg);
-		stg.showAndWait();
+		init_panel();		
+		init_stage(stg).showAndWait();
+	}
+
+	/**
+	 * present a new 'dialog' with buttons, and blocking for dismissing.<p>
+	 * If user want create buttons, just give a lambda function.<p>
+	 * @param parent - it can be null
+	 * @param eventCancel - when user press cancel button
+	 * @param eventConfirm - when user press confirm button 
+	 */
+	public void popup(
+		Window parent,
+		final EventHandler<ActionEvent> eventCancel,
+		final EventHandler<ActionEvent> eventConfirm
+	){
+		init_dialog(eventCancel,eventConfirm);		
+		init_stage(create_dialog(parent)).showAndWait();
 	}
 	
 	public void dismiss(){		
@@ -111,26 +144,13 @@ public abstract class PanBase {
 		
 	public abstract Node eventLayout();
 	
-	private void init_scene(){
-
-		//first initialization...
-		//require children generate GUI-layout
-		if(root==null){
-			root = eventLayout();
-		}
+	private void init_scene(Parent root){
 		
-		spin.setVisible(false);
-		spin.setRadius(64);
-		spin.setOnMouseClicked(event->spinning(false));
+		scene = new Scene(root);
 		
-		StackPane panBack = new StackPane(root,spin);
-		if(customStyle!=null){
-			panBack.setStyle(customStyle);
-		}
-		
-		scene = new Scene(panBack);
 		//load a default style...
 		scene.getStylesheets().add(Gawain.class.getResource("res/styles.css").toExternalForm());		
+		
 		//if user give us a URL, try to load a custom style file....
 		if(customCSS!=null){			
 			scene.getStylesheets().add(customCSS.toExternalForm());
@@ -138,14 +158,70 @@ public abstract class PanBase {
 		scene.setUserData(PanBase.this);//do we need this???
 	}
 	
-	/*public void makeDialog(Window parent){
-		stage = new Stage(StageStyle.UNIFIED);		
-		stage.initModality(Modality.WINDOW_MODAL); 
-		stage.initOwner(parent);
-		stage.setResizable(false);
-		stage.centerOnScreen();
-		init_stage(stage);
-	}*/
+	private void init_panel(){
+		//first initialization...
+		//require children generate GUI-layout
+		if(root!=null){
+			return;
+		}
+		root = eventLayout();
+
+		spin.setVisible(false);
+		spin.setRadius(64);
+		spin.setOnMouseClicked(event->spinning(false));
+		
+		StackPane _root = new StackPane(root,spin);
+		if(customStyle!=null){
+			_root.setStyle(customStyle);
+		}
+		
+		init_scene(_root);
+	}
+	
+	private void init_dialog(
+		final EventHandler<ActionEvent> eventCancel,
+		final EventHandler<ActionEvent> eventConfirm
+	){		
+		if(root!=null){
+			return;
+		}
+		root = eventLayout();
+		
+		BorderPane _root = new BorderPane();		
+		_root.setCenter(root);
+		
+		Button[] btn = {
+			genButton1("取消",""),
+			genButton2("確認","")
+		};
+		for(Button b:btn){
+			HBox.setHgrow(b, Priority.ALWAYS);
+			b.setVisible(false);
+			b.setPrefHeight(32);
+			b.setMaxWidth(Double.MAX_VALUE);
+		}
+		if(eventCancel!=null){
+			btn[0].setVisible(true);
+			btn[0].setOnAction(eventCancel);
+		}
+		if(eventCancel!=null){
+			btn[1].setVisible(true);
+			btn[1].setOnAction(eventCancel);
+		}
+
+		Button btn1 = genButton2("確認","");
+		HBox.setHgrow(btn1, Priority.ALWAYS);
+		btn1.setPrefHeight(32);
+		btn1.setMaxWidth(Double.MAX_VALUE);
+		
+		HBox lay0 = new HBox();
+		lay0.getStyleClass().add("hobx-medium");		
+		lay0.getChildren().addAll(btn[0],btn[1]);
+
+		_root.setBottom(lay0);
+
+		init_scene(_root);
+	}
 	
 	private Stage create_stage(Window parent){
 		Stage stg = new Stage(StageStyle.UNIFIED);		
@@ -155,11 +231,20 @@ public abstract class PanBase {
 		return stg;
 	}
 	
-	private void init_stage(Stage stg){	
+	private Stage create_dialog(Window parent){
+		Stage stg = new Stage(StageStyle.UNIFIED);		
+		stg.initModality(Modality.WINDOW_MODAL); 
+		stg.initOwner(parent);
+		stg.setResizable(false);
+		stg.centerOnScreen();
+		return stg;
+	}
+	
+	private Stage init_stage(Stage stg){	
 		
 		stage = stg;//override global variable, keep it for 'dismiss' command.
 		if(stg.isShowing()==true){
-			return;
+			return stage;
 		}
 
 		//check whether we need to hook event~~~
@@ -187,6 +272,7 @@ public abstract class PanBase {
 			stage.setMaximized(true);
 			break;
 		}
+		return stage;
 	}
 	//------------------------//
 	

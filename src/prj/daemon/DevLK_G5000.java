@@ -1,19 +1,29 @@
 package prj.daemon;
 
-import com.jfoenix.controls.JFXCheckBox;
+import java.math.BigDecimal;
 
+import com.jfoenix.controls.JFXCheckBox;
+import com.jfoenix.controls.JFXComboBox;
+import com.sun.glass.ui.Application;
+
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
-import javafx.scene.control.ComboBox;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
-import javafx.scene.layout.VBox;
+import javafx.stage.WindowEvent;
+import javafx.util.Duration;
 import narl.itrc.DevTTY;
+import narl.itrc.Misc;
 import narl.itrc.PanBase;
 import narl.itrc.PanTTY;
 
@@ -26,53 +36,305 @@ import narl.itrc.PanTTY;
  */
 public class DevLK_G5000 extends DevTTY {
 
-	private static final String DEFAULT_PORT_ATTR = ",115200,8n1";
+	private static final String DEFAULT_PORT_ATTR = "115200,8n1";
 	
 	public DevLK_G5000(){		
 	}
 	
 	public DevLK_G5000(String path){
-		super(path+DEFAULT_PORT_ATTR);
+		connect(path+","+DEFAULT_PORT_ATTR);
+	}
+
+	public void connect(){
+		if(open()==0L){
+			return;
+		}
+		init_type();
 	}
 	
 	public void connect(String path){
-		if(open(path+DEFAULT_PORT_ATTR)==0L){
+		if(open(path+","+DEFAULT_PORT_ATTR)==0L){
 			return;
 		}
-		init_param();
+		init_type();
 	}
 	
-	private void init_param(){
-		
+	private void init_type(){
+		String resp;
+		resp = exec_cmd("Q0");//switch to the communication mode
+		resp = exec_cmd("DR");//get the index of laser header 
+		if(resp.length()!=0){
+			String[] arg = resp.split(",");
+			for(int i=0; i<2; i++){
+				out[i].setIndex(arg[i]);
+				out[i].getTypeUnit();
+			}
+			//Do we need to generate a sequence index line ???
+		}		
+		resp = exec_cmd("R0");//switch to the general mode
+	}
+	
+	private String exec_cmd(final String cmd){
+		final String tail = "\r";
+		String resp = fetch(cmd+tail,tail);
+		if(resp.startsWith("ER")==true){
+			//show error message~~~
+			Misc.loge("ERROR COMMAND: %s", resp);
+			return "";
+		}else if(resp.startsWith(cmd)==true){
+			resp = resp.substring(cmd.length());
+			if(resp.startsWith(",")==true){
+				resp = resp.substring(1);
+			}
+		}
+		return resp;
+	}
+	
+	/**
+	 * set device value. Negative number is invalid (error happened).<p>
+	 * @param cmd - any command
+	 * @return
+	 */
+	private int exec_get_int(final String cmd){
+		String val = exec_cmd(cmd);
+		if(val.length()==0){
+			return -1;
+		}
+		try{
+			return Integer.valueOf(val);
+		}catch(NumberFormatException e){
+			Misc.loge("ERROR COMMAND:"+val);
+			return -1;
+		}
 	}
 	
 	public void disconnect(){
+		if(Application.isEventThread()==true){
+			watcher.pause();
+		}else{
+			Application.invokeAndWait(()->{watcher.pause();});
+		}
 		close();
+	}
+	
+	/**
+	 * get a physical value (including number and unit).<p>
+	 * @param i - the index of laser header, only 2 header in one controller
+	 * @return the text of physical value
+	 */
+	public String getPhyValue(int i){
+		if(i>=out.length){
+			return "0mm";
+		}		
+		return out[i].value.toString()+out[i].term;
 	}
 	//-----------------------//
 
+	private WidHeader[] out = {
+		new WidHeader(0),
+		new WidHeader(1)
+	};
+	
+	private EventHandler<ActionEvent> eventWatcher = new EventHandler<ActionEvent>(){
+		@Override
+		public void handle(ActionEvent event) {
+			//how to set index number???
+			String val = exec_cmd("MM,110000000000");
+			if(val.length()==0){
+				return;
+			}
+			String[] arg = val.split(",");
+			out[0].setValue(arg[0]);
+			out[1].setValue(arg[1]);
+		}
+	};
+	
+	private Timeline watcher = new Timeline(new KeyFrame(
+		Duration.millis(100),
+		eventWatcher
+	));
+		
+	private JFXCheckBox chkAllOut, chkWatcher;
+	
+	@Override
+	protected Node eventLayout(){
+		
+		GridPane root = new GridPane();
+		root.getStyleClass().add("grid-medium");
+				
+		chkAllOut = new JFXCheckBox("全部");
+		chkAllOut.disableProperty().bind(isAlive().not());
+		
+		chkWatcher = new JFXCheckBox("即時");		
+		chkWatcher.disableProperty().bind(isAlive().not());
+		chkWatcher.setSelected(true);
+		chkWatcher.setOnAction(event->{
+			if(chkWatcher.isSelected()==true){
+				watcher.play();
+			}else{
+				watcher.pause();
+			}
+		});
+				
+		//bind global controller to laser out-header
+		for(int i=0; i<out.length; i++){
+			out[i].disableProperty().bind(isAlive().not());
+			out[i].btnMeasure.disableProperty().bind(chkWatcher.selectedProperty());
+		}
+
+		Button btnComPort = PanBase.genButton0("通訊埠："+getName(),"");
+		btnComPort.setOnAction(event->{
+			root.setDisable(true);
+			setInfoAttr(DEFAULT_PORT_ATTR);
+			PanTTY.showSetting(
+				DevLK_G5000.this,
+				eventOpen->{
+					connect();
+					if(chkWatcher.isSelected()==true){
+						watcher.play();
+					}else{
+						watcher.pause();
+					}					
+					btnComPort.setText("通訊埠："+getName());					
+				},
+				eventClose->{
+					disconnect();
+					watcher.pause();
+					btnComPort.setText("通訊埠：----");
+				}
+			);
+			root.setDisable(false);
+		});
+		
+		root.addRow(1, btnComPort, chkAllOut, chkWatcher);
+		root.add(new Separator(), 0, 2, 6, 1);
+		root.add(out[0], 0, 3, 5, 1);
+		root.add(out[1], 0, 4, 5, 1);
+		
+		//finally check timer is running~~~
+		watcher.setCycleCount(Timeline.INDEFINITE);		
+		if(isAlive().get()==true){
+			watcher.play();
+		}
+		return root;
+	}
+	//-----------------------------------------//
+	
 	/**
 	 * This widget is used for displaying measured value or setting parameter.<p>
 	 * In manual, this widget is actually referenced to "OUT".<p>
 	 * @author qq
 	 *
 	 */
-	private class WidHeader extends GridPane{
+	private class WidHeader extends GridPane {
 		
-		private int index;
+		public int index=0, type=0, unit=0;
 		
-		public WidHeader(int idx){
+		public BigDecimal value = BigDecimal.ZERO; 	
+		public String term = "?";
+		
+		public StringProperty propValue = new SimpleStringProperty("********");		
+				
+		public WidHeader(final int idx){
 			index = idx;
 			init_layout();
 		}
+
+		public void setIndex(String idx){
+			setIndex(Integer.valueOf(idx));
+		}
 		
-		public StringProperty propValue = new SimpleStringProperty("********");
+		public void setIndex(final int idx){
+			index = idx;
+			if(Application.isEventThread()==true){
+				txtIndex.setText("編號："+index);				
+			}else{
+				Application.invokeLater(()->{
+					txtIndex.setText("編號："+index);
+				});
+			}
+		}
+
+		/**
+		 * get the measurement type and unit from laser header
+		 * Attention, this 'unit' means 'digital' <p>
+		 * @param type - <p>
+		 *   0: displacement, 1: velocity, 2: acceleration
+		 * @param unit - <p>
+		 *   displacement - 0: 0.01mm, 1: 0.001mm, 2: 0.0001μm, 3: 0.00001mm,  4: 0.1μm, 5: 0.01μm, 6: 0.001μm <p>
+		 *   velocity - 0: 100mm/s, 1: 10mm/s, 2: 1mm/s, 3: 0.1mm/s, 4: 0.01mm/s, 5: 0.001mm/s, 6: 0.0001mm/s <p>
+		 *   acceleration - 0: 100mm/s², 1: 10mm/s², 2: 1mm/s², 3: 0.1mm/s², 4: 0.01mm/s², 5: 0.001mm/s², 6: 0.0001mm/s² <p>
+		 */
+		public void getTypeUnit(){
+			type = exec_get_int(String.format("SR,OI,%02d", index));
+			unit = exec_get_int(String.format("SR,OG,%02d", index));
+			reset_scale_term();
+		}
+
+		public void setUnit(final int unit){
+			String txt = exec_cmd(String.format("SW,OG,%02d,%d", index, unit));
+			if(txt.length()==0){
+				return;//ignore invalid value
+			}
+			this.unit = unit;//update again~~~~
+			reset_scale_term();
+		}
 		
+		private void reset_scale_term(){
+			switch(type){
+			case 0://displacement
+				if(unit<=3){
+					term="mm";
+				}else{
+					term="μm";
+				}
+				break;
+			case 1://velocity
+				if(unit<=3){
+					term="mm/s";
+				}else{
+					term="μm/s";
+				}
+				break;
+			case 2://acceleration
+				if(unit<=3){
+					term="mm/s²";
+				}else{
+					term="μm/s²";
+				}
+				break;			
+			}
+		}
+		
+		public void setValue(final String txt){
+			value = value.multiply(BigDecimal.ZERO);//reset old value
+			if(txt.contains("FFFF")==true){
+				propValue.set("!! Limit !!");
+				return;
+			}else if(txt.contains("XXXX")==true){
+				propValue.set("--------");
+				return;
+			}
+			value = new BigDecimal(txt);//assign a new number~~~
+			String res = value.toString()+" "+term;
+			if(Application.isEventThread()==true){
+				propValue.set(res);
+			}else{
+				Application.invokeAndWait(()->{ 
+					propValue.set(res); 
+				});
+			}
+		}
+		
+		private Label txtIndex;		
+		public Button btnMeasure;
+
 		private void init_layout(){
 			
 			getStyleClass().add("grid-medium");
 			
-			Label txtIndex = new Label("編號："+index);
+			txtIndex = new Label();
+			txtIndex.setText("編號："+index);
 			
 			Label txtValue = new Label();
 			txtValue.textProperty().bind(propValue);
@@ -87,16 +349,47 @@ public class DevLK_G5000 extends DevTTY {
 			
 			final double btn_size = 87.;
 			
-			Button btnSetting = PanBase.genButton1("設定","");
-			btnSetting.setAlignment(Pos.BASELINE_LEFT);
+			Button btnSetting = PanBase.genButton1("<設定>","");
 			btnSetting.setPrefWidth(btn_size);
-			
-			Button btnMeasure = PanBase.genButton2("測量","");
-			btnMeasure.setPrefWidth(btn_size);
+			btnSetting.setOnAction(event->{
+				watcher.pause();
+				exec_cmd("Q0");
+				new PanSetting(this).popup(null,null,null);				
+				exec_cmd("R0");
+				if(chkWatcher.isSelected()==true){
+					watcher.play();
+				}
+			});
 
+			btnMeasure = PanBase.genButton2("測量","");			
+			btnMeasure.setPrefWidth(btn_size);
+			btnMeasure.setOnAction(event->{
+				String resp;
+				if(chkAllOut.isSelected()==true){
+					eventWatcher.handle(event);//TODO: hard-code
+				}else{
+					resp = exec_cmd(String.format("MS,%02d",index));
+					if(resp.length()==0){
+						return;
+					}					
+					setValue(resp);
+				}
+			});
+			
 			Button btnReset = PanBase.genButton3("重設","");
 			btnReset.setPrefWidth(btn_size);
-
+			btnReset.setOnAction(event->{
+				watcher.pause();
+				if(chkAllOut.isSelected()==true){
+					exec_cmd("DM,110000000000");//TODO: hard-code
+				}else{
+					exec_cmd(String.format("DS,%02d",index));
+				}
+				if(chkWatcher.isSelected()==true){
+					watcher.play();
+				}
+			});
+			
 			JFXCheckBox chkAutoZero = new JFXCheckBox("Auto-Zero");
 			
 			JFXCheckBox chkTiming = new JFXCheckBox("Timing");
@@ -119,56 +412,46 @@ public class DevLK_G5000 extends DevTTY {
 			add(new Separator(), 0, 3, 4, 1);
 		}
 	};
+	//-----------------------------------------//
 	
-	private WidHeader[] out;
-	
-	@Override
-	protected Node eventLayout(){
-		
-		GridPane root = new GridPane();
-		root.getStyleClass().add("grid-medium");
-		
-		final VBox lay0 = new VBox();
-		lay0.disableProperty().bind(isAlive().not());
-		
-		ComboBox<String> cmbPort = PanTTY.genPortCombo(null,this);
-		cmbPort.setMaxSize(Double.MAX_VALUE,Double.MAX_VALUE);
-		
-		Button btnPort = PanTTY.genPortButton(
-			null, this, 
-			event->{ 				
-				lay0.getChildren().clear();
-			}, 
-			event->{
-				init_param();
-				out = new WidHeader[2];
-				for(int i=0; i<out.length; i++){
-					out[i] = new WidHeader(i+1);//one-base number
-				}
-				lay0.getChildren().addAll(out);
-			}, 
-			event->{
-				String path = cmbPort.getSelectionModel().getSelectedItem()+DEFAULT_PORT_ATTR;
-				DevLK_G5000.this.setInfoPath(path);
-			}
-		);
-		
-		JFXCheckBox chkAllOut = new JFXCheckBox("全部");
-		chkAllOut.disableProperty().bind(isAlive().not());
-		
-		JFXCheckBox chkOpt2 = new JFXCheckBox("option2");
-		chkOpt2.disableProperty().bind(isAlive().not());
-		
-		JFXCheckBox chkOpt3 = new JFXCheckBox("option3");
-		chkOpt3.disableProperty().bind(isAlive().not());
-		
+	private class PanSetting extends PanBase {
 
-		root.add(cmbPort, 0, 0, 4, 1);
-		root.add(btnPort, 5, 0, 1, 1);
+		private WidHeader header;
 		
-		root.addRow(1, chkAllOut, chkOpt2, chkOpt3);
-		root.add(new Separator(), 0, 2, 6, 1);
-		root.add(lay0, 0, 4, 6, 1);
-		return root;
+		public PanSetting(WidHeader h){
+			header = h;
+		}
+
+		@Override
+		protected void eventShowing(WindowEvent e){
+			Misc.logv("dialog is showing");
+		}
+		
+		@Override
+		public Node eventLayout() {
+			
+			GridPane root = new GridPane();
+			root.getStyleClass().add("grid-medium");
+
+			JFXComboBox<String> cmbUnit = new JFXComboBox<String>();
+			switch(header.type){
+			case 0://displacement				
+				cmbUnit.getItems().addAll("0.01mm", "0.001mm", "0.0001mm", "0.00001mm",  "0.1μm", "0.01μm", "0.001μm");
+				break;
+			case 1://velocity
+				cmbUnit.getItems().addAll("100mm/s", "10mm/s", "1mm/s", "0.1mm/s", "0.01mm/s", "0.001mm/s", "0.0001mm/s");
+				break;
+			case 2://acceleration
+				cmbUnit.getItems().addAll("100mm/s²", "10mm/s²", "1mm/s²", "0.1mm/s²", "0.01mm/s²", "0.001mm/s²", "0.0001mm/s²");
+				break;
+			}
+			cmbUnit.getSelectionModel().select(header.unit);//update again,At this time, it must be event thread~~~
+			cmbUnit.setOnAction(event->{
+				header.setUnit(cmbUnit.getSelectionModel().getSelectedIndex());
+			});
+
+			root.addRow(0, new Label("位數："), cmbUnit);			
+			return root;
+		}
 	}
 }

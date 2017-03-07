@@ -139,6 +139,27 @@ public class DevTTY extends DevBase {
 		
 		return true;
 	}
+	
+	
+	public boolean setInfoAttr(String attr){
+		
+		String[] arg = attr.trim().split(",");
+		//check the second argument is integer
+		try{
+			infoBaud = Integer.valueOf(arg[0]);
+		}catch(NumberFormatException e){
+			Misc.loge("error baud : "+arg[0]);
+			return false;
+		}
+				
+		//how to check valid below lines???
+		char[] ctrl = arg[1].toCharArray();
+		infoData = ctrl[0];
+		infoPart = ctrl[1];
+		infoStop = ctrl[2];
+				
+		return true;		
+	}	
 	//---------------------//
 	
 	/**
