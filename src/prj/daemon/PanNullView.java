@@ -25,5 +25,5 @@ public class PanNullView extends PanBase {
 	
 	//private DevNanoPZ dev = new DevNanoPZ();
 	//private DevTTY dev = new DevTTY();
-	private DevLK_G5000 dev = new DevLK_G5000("/dev/ttyS0");
+	private DevLK_G5000 dev = new DevLK_G5000();
 }

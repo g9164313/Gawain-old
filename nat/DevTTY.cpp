@@ -176,16 +176,23 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implOpen(
 
 extern "C" JNIEXPORT jbyteArray JNICALL Java_narl_itrc_DevTTY_implRead(
 	JNIEnv * env,
-	jobject thiz
+	jobject thiz,
+	jint len
 ) {
+	const int MAX_LEN = 2048;
+	jbyte buf[MAX_LEN];
+	if(len>=MAX_LEN || len<=0){
+		len = MAX_LEN;
+	}
+
 #if defined _MSC_VER
 	jlong hand = getJlong(env,thiz,NAME_HANDLE);
 	if(hand!=0L){
-		jbyte buf[1024];
+
 		int cnt = 0;
 		ReadFile(
 			(Handle)hand,
-			buf, 1024,
+			buf, len,
 			(LPDWORD)((void *)&cnt),
 			NULL
 		);
@@ -204,8 +211,7 @@ extern "C" JNIEXPORT jbyteArray JNICALL Java_narl_itrc_DevTTY_implRead(
 	//fcntl(fd,F_SETFL,0);
 	//fcntl(fd,F_SETFL,FNDELAY);
 
-	jbyte buf[1024];
-	ssize_t cnt = read(fd,buf,sizeof(buf));
+	ssize_t cnt = read(fd,buf,len);
 	if(cnt==0){
 		return NULL;
 	}else if(cnt<0){

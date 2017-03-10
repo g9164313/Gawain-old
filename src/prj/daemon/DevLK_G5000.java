@@ -15,7 +15,6 @@ import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
-import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
 import javafx.scene.layout.GridPane;
@@ -67,7 +66,7 @@ public class DevLK_G5000 extends DevTTY {
 			String[] arg = resp.split(",");
 			for(int i=0; i<2; i++){
 				out[i].setIndex(arg[i]);
-				out[i].getTypeUnit();
+				out[i].getTypeResolution();
 			}
 			//Do we need to generate a sequence index line ???
 		}		
@@ -265,13 +264,13 @@ public class DevLK_G5000 extends DevTTY {
 		 *   velocity - 0: 100mm/s, 1: 10mm/s, 2: 1mm/s, 3: 0.1mm/s, 4: 0.01mm/s, 5: 0.001mm/s, 6: 0.0001mm/s <p>
 		 *   acceleration - 0: 100mm/s², 1: 10mm/s², 2: 1mm/s², 3: 0.1mm/s², 4: 0.01mm/s², 5: 0.001mm/s², 6: 0.0001mm/s² <p>
 		 */
-		public void getTypeUnit(){
+		public void getTypeResolution(){
 			type = exec_get_int(String.format("SR,OI,%02d", index));
 			unit = exec_get_int(String.format("SR,OG,%02d", index));
 			reset_scale_term();
 		}
 
-		public void setUnit(final int unit){
+		public void setResolution(final int unit){
 			String txt = exec_cmd(String.format("SW,OG,%02d,%d", index, unit));
 			if(txt.length()==0){
 				return;//ignore invalid value
@@ -433,24 +432,24 @@ public class DevLK_G5000 extends DevTTY {
 			GridPane root = new GridPane();
 			root.getStyleClass().add("grid-medium");
 
-			JFXComboBox<String> cmbUnit = new JFXComboBox<String>();
+			JFXComboBox<String> cmbResolution = new JFXComboBox<String>();
 			switch(header.type){
 			case 0://displacement				
-				cmbUnit.getItems().addAll("0.01mm", "0.001mm", "0.0001mm", "0.00001mm",  "0.1μm", "0.01μm", "0.001μm");
+				cmbResolution.getItems().addAll("0.01mm", "0.001mm", "0.0001mm", "0.00001mm",  "0.1μm", "0.01μm", "0.001μm");
 				break;
 			case 1://velocity
-				cmbUnit.getItems().addAll("100mm/s", "10mm/s", "1mm/s", "0.1mm/s", "0.01mm/s", "0.001mm/s", "0.0001mm/s");
+				cmbResolution.getItems().addAll("100mm/s", "10mm/s", "1mm/s", "0.1mm/s", "0.01mm/s", "0.001mm/s", "0.0001mm/s");
 				break;
 			case 2://acceleration
-				cmbUnit.getItems().addAll("100mm/s²", "10mm/s²", "1mm/s²", "0.1mm/s²", "0.01mm/s²", "0.001mm/s²", "0.0001mm/s²");
+				cmbResolution.getItems().addAll("100mm/s²", "10mm/s²", "1mm/s²", "0.1mm/s²", "0.01mm/s²", "0.001mm/s²", "0.0001mm/s²");
 				break;
 			}
-			cmbUnit.getSelectionModel().select(header.unit);//update again,At this time, it must be event thread~~~
-			cmbUnit.setOnAction(event->{
-				header.setUnit(cmbUnit.getSelectionModel().getSelectedIndex());
+			cmbResolution.getSelectionModel().select(header.unit);//update again,At this time, it must be event thread~~~
+			cmbResolution.setOnAction(event->{
+				header.setResolution(cmbResolution.getSelectionModel().getSelectedIndex());
 			});
 
-			root.addRow(0, new Label("位數："), cmbUnit);			
+			root.addRow(0, new Label("位數："), cmbResolution);			
 			return root;
 		}
 	}

@@ -8,6 +8,8 @@ import eu.hansolo.enzo.notification.Notification;
 import eu.hansolo.enzo.notification.NotifierBuilder;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
@@ -32,6 +34,7 @@ import javafx.stage.Window;
 import javafx.stage.WindowEvent;
 import javafx.util.Duration;
 
+
 public abstract class PanBase {	
 	
 	protected static final int FIRST_NONE = 0;
@@ -44,10 +47,10 @@ public abstract class PanBase {
 	
 	protected String customStyle = null;
 	
-	protected String title;
-		
-	private Node root;
+	protected StringProperty propTitle = new SimpleStringProperty();
 	
+	private Node root;
+
 	private Scene scene;
 	
 	private Stage stage;
@@ -65,10 +68,10 @@ public abstract class PanBase {
 	}
 	
 	public PanBase(String title, Parent root){
-		this.title = title;
+		propTitle.set(title);
 		this.root = root;
 	}
-	
+
 	public Node getRootNode(){ 
 		return root;
 	}
@@ -259,7 +262,7 @@ public abstract class PanBase {
 		}
 		
 		//set title and some properties~~~
-		stg.setTitle(title);
+		stg.titleProperty().bind(propTitle);
 		stg.setScene(scene);
 		stg.sizeToScene();
 		stg.setUserData(PanBase.this);

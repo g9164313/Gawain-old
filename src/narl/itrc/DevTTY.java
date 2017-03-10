@@ -208,12 +208,22 @@ public class DevTTY extends DevBase {
 	//-----------------------//
 	
 	/**
+	 * Read just one byte data<p>
+	 * This is blocking method!!!.<p>
+	 * @return response
+	 */
+	public byte readByte(){
+		byte[] buf = implRead(1);
+		return buf[0];
+	}
+	
+	/**
 	 * Read byte data from terminal-port.<p>
 	 * This is blocking method!!!.<p>
 	 * @return context data
 	 */
 	public byte[] readBuf(){
-		return implRead();
+		return implRead(-1);
 	}
 	
 	/**
@@ -377,7 +387,7 @@ public class DevTTY extends DevBase {
 		char flow_mode
 	);
 
-	private native byte[] implRead();
+	private native byte[] implRead(int len);
 	
 	private native void implWrite(byte[] buf);
 	
