@@ -18,12 +18,9 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Control;
-import javafx.scene.control.Label;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -98,7 +95,7 @@ public abstract class PanBase {
 	 * @param stg - parent stage
 	 * @return self
 	 */
-	public PanBase appear(Stage stg){		
+	public PanBase appear(Stage stg){
 		init_panel();		
 		init_stage(stg).show();
 		return this;
@@ -115,7 +112,7 @@ public abstract class PanBase {
 	 * present a new panel, and blocking for dismissing 
 	 * @param stg - parent stage
 	 */
-	public void standby(Stage stg){		
+	public void standby(Stage stg){
 		init_panel();		
 		init_stage(stg).showAndWait();
 	}
@@ -177,7 +174,8 @@ public abstract class PanBase {
 		if(customStyle!=null){
 			_root.setStyle(customStyle);
 		}
-		
+		//JFXDecorator _root = new JFXDecorator(stage, root);
+		//_root.setCustomMaximize(true);
 		init_scene(_root);
 	}
 	
@@ -404,15 +402,14 @@ public abstract class PanBase {
 				flagPresent = true;
 				eventShown(event);
 			}else if(WindowEvent.WINDOW_HIDING==event.getEventType()){
-				flagPresent = false;
-				watchStop();				
+				flagPresent = false;			
 				eventClose(event);
 				//TODO: BoxLogger.pruneList(root);//??? how to refresh message
 			}
 		}
 	};
-	//------------------------//
-	private int watchCount = 0;
+	//--------deprecate below lines--------//
+	//private int watchCount = 0;
 	
 	/*private ScheduledExecutorService watch = null;
 	protected int getWatchCount(){
@@ -442,7 +439,7 @@ public abstract class PanBase {
 		watchCount = 0;
 	}*/
 	
-	private Timeline watch = null;	
+	/*private Timeline watch = null;	
 	private EventHandler<ActionEvent> eventWatchHandle = 
 		new EventHandler<ActionEvent>()
 	{
@@ -466,71 +463,9 @@ public abstract class PanBase {
 			watch.stop();
 			watch = null;
 		}		
-	}	
+	}*/
 	//------------------------//
-
-	public GridPane genGridPack(int stride,Pane root,Node... lstND){		
-		GridPane pan = new GridPane();
-		pan.getStyleClass().add("grid-small");
-		
-		if(root!=null){
-			pan.prefWidthProperty().bind(root.widthProperty().divide(stride));
-		}
-		
-		int col=0, row=0;
-		for(int i=0; i<lstND.length; i++){			
-			pan.add(lstND[i],col,row);
-			pan.setAlignment(Pos.TOP_LEFT);
-			if(i%stride==(stride-1)){
-				row++;
-				col=0;
-			}else{
-				col++;
-			}
-		}
-		return pan;
-	}
-	//------------------------//
-
-	/**
-	 * Decorate root-panel with lines.<p>
-	 * It will generate a new panel 
-	 * @param txt - just show title
-	 * @param cntxt - context-panel or root-panel
-	 * @return a new panel
-	 */
-	public static Pane decorate(String txt,Node cntxt){
-		
-		Label title = new Label("[ "+txt+" ]");
-		title.getStyleClass().add("decorate0-title");
-		cntxt.getStyleClass().add("decorate0-content");
-		StackPane.setAlignment(title,Pos.TOP_LEFT);
-		StackPane.setAlignment(cntxt,Pos.BOTTOM_LEFT);
-		
-		StackPane grp = new StackPane();
-		grp.getStyleClass().add("decorate0-border");
-		grp.getChildren().addAll(title,cntxt);
-		return grp;
-	}
 	
-	/**
-	 * Decorate control item with a table grid.<p>
-	 * User must pay attention to argument sequence.Column symbol will be added automatically.<p> 
-	 * @param arg - the sequence must be Label and Control, etc.
-	 * @return
-	 */
-	public static GridPane decorateGrid(Object... arg){
-		GridPane pan = new GridPane();
-		pan.getStyleClass().add("grid-small");
-		int cnt = arg.length/2;
-		for(int i=0; i<cnt; i++){
-			Label txt = new Label((String)arg[i*2+0]);
-			Node obj = (Node)(arg[i*2+1]);
-			pan.addRow(i,txt,new Label("："),obj);
-		}		
-		return pan;
-	}
-
 	public static HBox fillHBox(Object... args){
 		HBox lay = new HBox();
 		lay.getStyleClass().add("hbox-small");

@@ -16,7 +16,7 @@ public class PanHelpful extends PanDecorate {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public Node layoutBody() {
+	public Node eventLayout() {
 		GridPane lay = new GridPane();
 		lay.getStyleClass().add("grid-medium");
 		

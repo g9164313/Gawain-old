@@ -28,29 +28,30 @@ import javafx.stage.FileChooser;
  */
 public class BoxLogger extends PanDecorate {
 
-	private TextArea box;
-	
-	public BoxLogger(){
-		super("輸出紀錄");		
-		prepare();
-	}
-	
+	private TextArea boxMsg;
+
 	public BoxLogger(int height){
 		this();
-		box.setPrefHeight(height);
+		boxMsg.setPrefHeight(height);
 	}
 	
 	public BoxLogger(int width,int height){
 		this();
-		box.setPrefWidth(width);
-		box.setPrefHeight(height);
+		boxMsg.setPrefWidth(width);
+		boxMsg.setPrefHeight(height);
 	}
 	
+	public BoxLogger(){
+		super("輸出紀錄");		
+		prepare();
+		build();
+	}
+
 	private static SimpleDateFormat logTime = new SimpleDateFormat("[yyyy/MM/dd HH:mm:ss]");
 	
 	public void prepare() {
 		lstBox.add(this);
-		box.setEditable(false);		
+		boxMsg.setEditable(false);		
 		init_menu();		
 		if(logFile!=null){
 			return;
@@ -71,7 +72,7 @@ public class BoxLogger extends PanDecorate {
 		ContextMenu menu = new ContextMenu();
 		MenuItem itm1 = new MenuItem("清除");
 		itm1.setOnAction(event->{
-			box.setText("");
+			boxMsg.setText("");
 		});
 		MenuItem itm2 = new MenuItem("另存");
 		itm2.setOnAction(event->{
@@ -84,30 +85,30 @@ public class BoxLogger extends PanDecorate {
             }
 		});
 		menu.getItems().addAll(itm1,itm2);
-		box.setContextMenu(menu);
+		boxMsg.setContextMenu(menu);
+	}
+	
+	@Override
+	public Node eventLayout() {
+		boxMsg = new TextArea();
+		return boxMsg;
 	}
 	
 	private void save_box(File fs){
 		try {
 			PrintWriter out = new PrintWriter(fs);
-			out.write(box.getText());
+			out.write(boxMsg.getText());
 			out.close();
 		} catch (FileNotFoundException e) {
 			//e.printStackTrace();
 			printf(e.getMessage());
 		}
 	}
-	
-	@Override
-	public Node layoutBody() {
-		box = new TextArea();
-		return box;
-	}
-	
+
 	public void printf(String fmt,Object... arg){
 		String txt = String.format(fmt, arg);
-		box.appendText(txt);
-		box.setScrollTop(Double.MAX_VALUE);
+		boxMsg.appendText(txt);
+		boxMsg.setScrollTop(Double.MAX_VALUE);
 		if(logFile!=null){
 			if(txt.endsWith("\n")==true){
 				logFile.print(txt);

@@ -162,7 +162,7 @@ public class PanOption extends PanDecorate {
 	}
 
 	@Override
-	public Node layoutBody() {
+	public Node eventLayout() {
 		VBox lay2 = new VBox();
 		lay2.getStyleClass().add("vbox-small");
 		lay2.getChildren().addAll(

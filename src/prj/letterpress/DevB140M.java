@@ -13,7 +13,7 @@ import narl.itrc.BoxIntValue;
 import narl.itrc.DevMotion;
 import narl.itrc.DevTTY;
 import narl.itrc.Misc;
-import narl.itrc.PanBase;
+import narl.itrc.PanDecorate;
 
 /**
  * This is just a wrap object for GALIL DMC-B140-M motion card.<p>
@@ -386,10 +386,10 @@ public class DevB140M extends DevMotion {
 		HBox pan1 = new HBox();
 		pan1.getStyleClass().add("hbox-small");		
 		pan1.getChildren().addAll(
-			PanBase.decorate("A 軸",panAxis[0]),	
-			PanBase.decorate("B 軸",panAxis[1]),
-			PanBase.decorate("C 軸",panAxis[2]),
-			PanBase.decorate("D 軸",panAxis[3])
+			PanDecorate.group("A 軸",panAxis[0]),	
+			PanDecorate.group("B 軸",panAxis[1]),
+			PanDecorate.group("C 軸",panAxis[2]),
+			PanDecorate.group("D 軸",panAxis[3])
 		);
 		lay0.getChildren().addAll(pan0,pan1);
 		return lay0;

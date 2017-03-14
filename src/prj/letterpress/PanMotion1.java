@@ -20,7 +20,7 @@ public class PanMotion1 extends PanDecorate {
 	}
 		
 	@Override
-	public Node layoutBody() {
+	public Node eventLayout() {
 		GridPane lay = new GridPane();
 		lay.getStyleClass().add("grid-small");
 		

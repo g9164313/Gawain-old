@@ -1,5 +1,7 @@
 package prj.scada;
 
+import com.jfoenix.controls.JFXDecorator;
+
 import javafx.scene.Node;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
@@ -9,15 +11,15 @@ import narl.itrc.PanBase;
 public class PanSputter extends PanBase {
 
 	public PanSputter(){
-		customStyle = "-fx-background-color: #FEFEFE;";
+		customStyle = "-fx-background-color: #FFFFFF;";
 	}
 	
 	private DevSQM160 devSQM160 = new DevSQM160();
 		
 	@Override
 	protected void eventShown(WindowEvent e){
-		devSQM160.open("/dev/ttyS0,19200,8n1");
-		devSQM160.exec("@");
+		//devSQM160.open("/dev/ttyS0,19200,8n1");
+		//devSQM160.exec("@");
 	}
 	
 	@Override

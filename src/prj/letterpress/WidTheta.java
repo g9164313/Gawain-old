@@ -18,7 +18,7 @@ public class WidTheta extends PanDecorate {
 	}
 	
 	@Override
-	public Node layoutBody() {
+	public Node eventLayout() {
 		final GridPane lay = new GridPane();
 		lay.getStyleClass().add("grid-medium");
 		

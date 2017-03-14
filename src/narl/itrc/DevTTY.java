@@ -210,11 +210,23 @@ public class DevTTY extends DevBase {
 	/**
 	 * Read just one byte data<p>
 	 * This is blocking method!!!.<p>
-	 * @return response
+	 * @return byte from TTY device
 	 */
 	public byte readByte(){
 		byte[] buf = implRead(1);
+		if(buf==null){
+			return (byte)0x00;
+		}
 		return buf[0];
+	}
+	
+	/**
+	 * Read just one character<p>
+	 * This is blocking method!!!.<p>
+	 * @return character from TTY device
+	 */
+	public char readChar(){
+		return (char)(readByte());
 	}
 	
 	/**
@@ -317,8 +329,7 @@ public class DevTTY extends DevBase {
 		return readTxt(tail);
 	}
 	
-	private Task<String> tskFetch = null;
-		
+	private Task<String> tskFetch = null;		
 	/**
 	 * 
 	 * Write command and read back what the device generated.<p>

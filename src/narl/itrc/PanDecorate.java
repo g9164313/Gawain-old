@@ -1,99 +1,81 @@
 package narl.itrc;
 
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
-import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
 
+/**
+ * Decorate root-panel with lines.<p>
+ * @author qq
+ *
+ */
 public abstract class PanDecorate extends StackPane {
 	
-	public static final int STYLE_DEFAULT = 0;
-	public static final int STYLE_BORDER1 = 1;
+	public StringProperty title = new SimpleStringProperty();
 	
-	public static int STYLE = STYLE_DEFAULT;//TODO: how to set a global flag??
+	private Node cntxt = null; 
 	
-	private Label _name = null;
-	private Node  _body = null;
-	
-	public PanDecorate(){
-		this(null,null);
+	public PanDecorate(Node body){
+		this("",body);
 	}
 	
 	public PanDecorate(String name){
 		this(name,null);
 	}
-
-	public PanDecorate(Node body){
-		this(null,body);
+	
+	public PanDecorate(StringProperty name){
+		this(name,null);
+	}
+	
+	public PanDecorate(StringProperty name,Node body){
+		title = name;
+		cntxt = body;
+		getStyleClass().add("decorate0-border");
 	}
 	
 	public PanDecorate(String name,Node body){
-		switch(STYLE){
-		case STYLE_DEFAULT:
-			init_default(name,body);
-			break;
-		case STYLE_BORDER1:
-			init_white1(name,body);
-			break;
-		}
+		title = new SimpleStringProperty(name);
+		cntxt = body;
+		getStyleClass().add("decorate0-border");
 	}
 	
-	private void init_default(String name,Node body){
-		if(name!=null){
-			_name = new Label(" "+name);
-			_name.getStyleClass().add("group0-title");
-			getChildren().add(_name);
-			StackPane.setAlignment(_name,Pos.TOP_LEFT);
-		}
-		if(body!=null){
-			_body = body;
-			
-		}else{
-			_body = layoutBody();
-			_body.getStyleClass().add("group0-content");
-		}
-		getChildren().add(_body);		
-		getStyleClass().add("group0-border");				
-		StackPane.setAlignment(_body,Pos.BOTTOM_LEFT);
+	public PanDecorate build(){
 		
+		String name = title.get();
+		
+		if(name.length()!=0){			
+			Label txtTitle = new Label();
+			txtTitle.getStyleClass().add("decorate0-title");
+			txtTitle.textProperty().bind(title);
+			StackPane.setAlignment(txtTitle,Pos.TOP_LEFT);
+			getChildren().add(txtTitle);			
+		}
+		
+		if(cntxt==null){
+			cntxt = eventLayout();
+			if(cntxt==null){
+				//no context, generate a dummy one~~~
+			}			
+		}
+		cntxt.getStyleClass().add("decorate0-content");
+		StackPane.setAlignment(cntxt,Pos.BOTTOM_LEFT);
+		getChildren().add(cntxt);
+		
+		return this;
 	}
 	
-	private void init_white1(String name,Node body){		
-		if(name!=null){
-			_name = new Label(name);
-			_name.getStyleClass().add("group1-title");
-			_name.setMaxWidth(Double.MAX_VALUE);
-		}
-		if(body!=null){
-			_body = body;
-		}else{
-			_body = layoutBody();
-		}
-		VBox lay = new VBox();
-		lay.getStyleClass().add("vbox-small");
-		lay.getChildren().add(_name);
-		lay.getChildren().add(_body);
-		getChildren().add(lay);
-		getStyleClass().add("group1-border");	
-	}
-	
-	public abstract Node layoutBody();
-	//-----------------------------//
+	public abstract Node eventLayout();
 
 	/**
 	 * the convenient method to generate the group frame.
 	 * @param cntxt - group context
 	 * @return
 	 */
-	public static Pane group(final Node cntxt){
-		return new PanDecorate(cntxt){
-			@Override
-			public Node layoutBody() {
-				return cntxt;//do nothing~~~
-			}
-		};
+	public static PanDecorate group(final Node cntxt){
+		return group("",cntxt);
 	}
 	
 	/**
@@ -102,12 +84,12 @@ public abstract class PanDecorate extends StackPane {
 	 * @param cntxt - group context
 	 * @return
 	 */
-	public static Pane group(final String txt,final Node cntxt){
+	public static PanDecorate group(final String txt,final Node cntxt){
 		return new PanDecorate(txt,cntxt){
 			@Override
-			public Node layoutBody() {				
+			public Node eventLayout() {				
 				return cntxt;//do nothing~~~
 			}
-		};
+		}.build();
 	}
 }

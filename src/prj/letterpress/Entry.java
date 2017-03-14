@@ -2,7 +2,6 @@ package prj.letterpress;
 
 import javafx.geometry.Side;
 import javafx.scene.Node;
-import javafx.scene.Parent;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TabPane.TabClosingPolicy;
@@ -13,7 +12,6 @@ import javafx.stage.WindowEvent;
 import narl.itrc.BoxLogger;
 import narl.itrc.DevTTY;
 import narl.itrc.PanBase;
-import narl.itrc.PanDecorate;
 import narl.itrc.vision.CamFlyCapture;
 import narl.itrc.vision.ImgRender;
 
@@ -22,7 +20,6 @@ public class Entry extends PanBase {
 	public Entry(){
 		firstAction = FIRST_MAXIMIZED;
 		customCSS = Entry.class.getResource("style.css");
-		PanDecorate.STYLE = PanDecorate.STYLE_BORDER1;
 		inst = this;
 	}
 

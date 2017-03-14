@@ -51,7 +51,7 @@ public abstract class DevBase extends Pane implements Gawain.EventHook {
 	 * @return self instance
 	 */
 	public DevBase build(){
-		return build(null);
+		return build("");
 	}
 	
 	/**
@@ -64,7 +64,7 @@ public abstract class DevBase extends Pane implements Gawain.EventHook {
 			Node nd = eventLayout();
 			if(nd!=null){
 				if(title!=null){
-					nd = PanBase.decorate(title,nd);
+					nd = PanDecorate.group(title,nd);
 				}
 				getChildren().add(nd);
 			}else{
@@ -73,6 +73,9 @@ public abstract class DevBase extends Pane implements Gawain.EventHook {
 		}
 		return this;
 	}
+	
+	
+	
 	
 	public PanBase showConsole(){
 		return showConsole("");
