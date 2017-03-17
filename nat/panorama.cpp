@@ -388,7 +388,6 @@ NAT_EXPORT void tear_tile_any(
 				//valid_roi(_aa,img);
 				tmp.copyTo(img(_aa));
 			}else{
-				//TODO: what~~~
 			}
 
 			imgLF+=bb.width;

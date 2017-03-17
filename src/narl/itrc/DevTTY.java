@@ -164,8 +164,22 @@ public class DevTTY extends DevBase {
 	
 	/**
 	 * open TTY and start to communication.<p>
-	 * 
-	 * @param path - control statement.
+	 * if path have no control statement, it will append the second argument.<p>
+	 * @param path - device name, or full name
+	 * @param attr - control statement
+	 * @return
+	 */
+	public long open(String path,String attr){
+		if(path.contains(",")==false){
+			path = path + ","+attr; //add default attribute setting.
+		}		
+		return open(path);
+	}
+	
+	/**
+	 * open TTY and start to communication.<p>
+	 * the argument path must be full name. it means path includes device name and control statement.<p>
+	 * @param path - full name, including device name and control statement.
 	 */
 	public long open(String path){
 		if(setInfoPath(path)==false){

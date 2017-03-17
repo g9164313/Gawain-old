@@ -1,13 +1,12 @@
 package narl.itrc;
 
+import java.math.BigDecimal;
+
 import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXSpinner;
 import com.sun.glass.ui.Application;
 
-import eu.hansolo.enzo.notification.Notification;
-import eu.hansolo.enzo.notification.NotifierBuilder;
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
+import javafx.beans.property.FloatProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.event.ActionEvent;
@@ -16,8 +15,12 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
 import javafx.scene.control.Control;
+import javafx.scene.control.Spinner;
+import javafx.scene.control.SpinnerValueFactory;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
@@ -29,7 +32,7 @@ import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.stage.Window;
 import javafx.stage.WindowEvent;
-import javafx.util.Duration;
+import javafx.util.StringConverter;
 
 
 public abstract class PanBase {	
@@ -96,6 +99,7 @@ public abstract class PanBase {
 	 * @return self
 	 */
 	public PanBase appear(Stage stg){
+		stage = stg;
 		init_panel();		
 		init_stage(stg).show();
 		return this;
@@ -113,6 +117,7 @@ public abstract class PanBase {
 	 * @param stg - parent stage
 	 */
 	public void standby(Stage stg){
+		stage = stg;
 		init_panel();		
 		init_stage(stg).showAndWait();
 	}
@@ -125,14 +130,23 @@ public abstract class PanBase {
 	 * @param eventConfirm - when user press confirm button 
 	 */
 	public void popup(
-		Window parent,
+		final Window parent,
 		final EventHandler<ActionEvent> eventCancel,
 		final EventHandler<ActionEvent> eventConfirm
 	){
+		stage = create_dialog(parent);
 		init_dialog(eventCancel,eventConfirm);		
-		init_stage(create_dialog(parent)).showAndWait();
+		init_stage(stage).showAndWait();
 	}
 	
+	public void popup(final Window parent){
+		popup(parent,null,null);
+	}
+	
+	public void popup(){
+		popup(null,null,null);
+	}
+			
 	public void dismiss(){		
 		if(stage==null){
 			return;
@@ -144,13 +158,10 @@ public abstract class PanBase {
 		
 	public abstract Node eventLayout();
 	
-	private void init_scene(Parent root){
-		
+	private void init_scene(Parent root){		
 		scene = new Scene(root);
-		
 		//load a default style...
-		scene.getStylesheets().add(Gawain.class.getResource("res/styles.css").toExternalForm());		
-		
+		scene.getStylesheets().add(Gawain.class.getResource("res/styles.css").toExternalForm());				
 		//if user give us a URL, try to load a custom style file....
 		if(customCSS!=null){			
 			scene.getStylesheets().add(customCSS.toExternalForm());
@@ -164,7 +175,7 @@ public abstract class PanBase {
 		if(root!=null){
 			return;
 		}
-		root = eventLayout();
+		root = eventLayout();//At this time, we should have stage~~~~
 
 		spin.setVisible(false);
 		spin.setRadius(64);
@@ -190,37 +201,28 @@ public abstract class PanBase {
 		
 		BorderPane _root = new BorderPane();		
 		_root.setCenter(root);
-		
-		Button[] btn = {
-			genButton1("取消",""),
-			genButton2("確認","")
-		};
-		for(Button b:btn){
-			HBox.setHgrow(b, Priority.ALWAYS);
-			b.setVisible(false);
-			b.setPrefHeight(32);
-			b.setMaxWidth(Double.MAX_VALUE);
+		if(eventCancel!=null || eventConfirm!=null){			
+			HBox lay0 = new HBox();
+			lay0.setAlignment(Pos.BASELINE_RIGHT);
+			lay0.getStyleClass().add("hbox-small");
+			if(eventCancel!=null){
+				Button btn = genButton3("取消","close.png");
+				btn.setOnAction(event->{
+					eventCancel.handle(event);
+					dismiss();
+				});
+				lay0.getChildren().add(btn);
+			}
+			if(eventConfirm!=null){
+				Button btn = genButton2("確認","check.png");				
+				btn.setOnAction(event->{					
+					eventConfirm.handle(event);
+					dismiss();
+				});
+				lay0.getChildren().add(btn);
+			}
+			_root.setBottom(lay0);
 		}
-		if(eventCancel!=null){
-			btn[0].setVisible(true);
-			btn[0].setOnAction(eventCancel);
-		}
-		if(eventCancel!=null){
-			btn[1].setVisible(true);
-			btn[1].setOnAction(eventCancel);
-		}
-
-		Button btn1 = genButton2("確認","");
-		HBox.setHgrow(btn1, Priority.ALWAYS);
-		btn1.setPrefHeight(32);
-		btn1.setMaxWidth(Double.MAX_VALUE);
-		
-		HBox lay0 = new HBox();
-		lay0.getStyleClass().add("hobx-medium");		
-		lay0.getChildren().addAll(btn[0],btn[1]);
-
-		_root.setBottom(lay0);
-
 		init_scene(_root);
 	}
 	
@@ -241,13 +243,10 @@ public abstract class PanBase {
 		return stg;
 	}
 	
-	private Stage init_stage(Stage stg){	
-		
-		stage = stg;//override global variable, keep it for 'dismiss' command.
+	private Stage init_stage(Stage stg){		
 		if(stg.isShowing()==true){
-			return stage;
+			return stg;
 		}
-
 		//check whether we need to hook event~~~
 		if(stg.getOnShowing()==null){
 			stg.setOnShowing(eventWindow);
@@ -257,23 +256,22 @@ public abstract class PanBase {
 		}		
 		if(stg.getOnHiding()==null){
 			stg.setOnHiding(eventWindow);
-		}
-		
+		}		
 		//set title and some properties~~~
 		stg.titleProperty().bind(propTitle);
 		stg.setScene(scene);
 		stg.sizeToScene();
 		stg.setUserData(PanBase.this);
-		
+		//user may need a special action~~~
 		switch(firstAction){
 		case FIRST_FULLSCREEN:
-			stage.setFullScreen(true);
+			stg.setFullScreen(true);
 			break;
 		case FIRST_MAXIMIZED:
-			stage.setMaximized(true);
+			stg.setMaximized(true);
 			break;
 		}
-		return stage;
+		return stg;
 	}
 	//------------------------//
 	
@@ -313,45 +311,67 @@ public abstract class PanBase {
 	}
 	//------------------------//
 	
-	//this message may have some bug, workaround is stopping it periodically
-	private static final Notification.Notifier msgBox =
-		NotifierBuilder.create()
-		.popupLocation(Pos.CENTER)
-		.popupLifeTime(Duration.millis(1500))
-		.build();
-	
-	private static Timeline msgEvent = null;
-	
-	private static void event_stop_msgBox(){
-		msgEvent = new Timeline(new KeyFrame(
-			Duration.millis(2000),
-			event->msgBox.stop()
-		));
-		msgEvent.play();
+	/**
+	 * macro-expansion for information alter dialog
+	 * @param title
+	 * @param message
+	 */
+	public static void notifyInfo(
+		final String title,
+		final String message
+	){
+		popup_alter(
+			AlertType.INFORMATION,
+			title,message,
+			null
+		);
 	}
 	
-	public static void notifyInfo(String title,String message){
-		if(msgEvent!=null){
-			msgEvent.pause();
-		}
-		msgBox.notifyInfo(title, message);
-		event_stop_msgBox();
+	/**
+	 * macro-expansion for warning alter dialog
+	 * @param title
+	 * @param message
+	 */
+	public static void notifyWarning(
+		final String title,
+		final String message
+	){
+		popup_alter(
+			AlertType.WARNING,
+			title,message,
+			null
+		);
 	}
 	
-	public static void notifyWarning(String title,String message){
-		if(msgEvent!=null){
-			msgEvent.pause();
-		}
-		msgBox.notifyWarning(title, message);
-		event_stop_msgBox();
+	/**
+	 * macro-expansion for error alter dialog
+	 * @param title 
+	 * @param message
+	 */
+	public static void notifyError(
+		final String title,
+		final String message
+	){
+		popup_alter(
+			AlertType.ERROR,
+			title,message,
+			null
+		);
 	}
 	
-	public static void notifyError(String title,String message){
-		if(msgEvent!=null){
-			msgEvent.pause();
+	private static void popup_alter(
+		final AlertType type,
+		final String title,
+		final String message,
+		final Node expand
+	){
+		Alert dia = new Alert(type);
+		dia.setTitle(title);
+		dia.setContentText(message);
+		if(expand!=null){
+			dia.getDialogPane().setExpandableContent(expand);
 		}
-		msgBox.notifyError(title, message);
-		event_stop_msgBox();
+		dia.showAndWait();
 	}
 	//------------------------//
 	
@@ -404,68 +424,12 @@ public abstract class PanBase {
 			}else if(WindowEvent.WINDOW_HIDING==event.getEventType()){
 				flagPresent = false;			
 				eventClose(event);
-				//TODO: BoxLogger.pruneList(root);//??? how to refresh message
+				//TODO:??? BoxLogger.pruneList(root);//??? how to refresh message
 			}
 		}
 	};
-	//--------deprecate below lines--------//
-	//private int watchCount = 0;
-	
-	/*private ScheduledExecutorService watch = null;
-	protected int getWatchCount(){
-		return watchCount;
-	}
-	protected void watchStart(int ms){
-		if(watch==null){
-			watch = Executors.newScheduledThreadPool(1);
-		}
-		watchCount = 0;//reset it~~~
-		final Runnable tsk = new Runnable(){
-			@Override
-			public void run() {
-				watchCount++;
-				eventWatch(watchCount);
-			}
-		};
-		watch.scheduleAtFixedRate(tsk,0,ms,TimeUnit.MILLISECONDS);
-	}
-	protected void watchStop(){		
-		if(watch!=null){
-			if(watch.isShutdown()==false){
-				watch.shutdown();
-				watch = null;
-			}
-		}
-		watchCount = 0;
-	}*/
-	
-	/*private Timeline watch = null;	
-	private EventHandler<ActionEvent> eventWatchHandle = 
-		new EventHandler<ActionEvent>()
-	{
-		@Override
-		public void handle(ActionEvent event) {
-			eventWatch(watchCount);
-			watchCount++;
-		}
-	};	
-	protected void watchStart(int ms){
-		watchCount = 0;//reset this counter~~~
-		watch = new Timeline(new KeyFrame(
-			Duration.millis(ms),
-			eventWatchHandle
-		));
-		watch.setCycleCount(Timeline.INDEFINITE);
-		watch.play();
-	}	
-	protected void watchStop(){
-		if(watch!=null){
-			watch.stop();
-			watch = null;
-		}		
-	}*/
 	//------------------------//
-	
+
 	public static HBox fillHBox(Object... args){
 		HBox lay = new HBox();
 		lay.getStyleClass().add("hbox-small");
@@ -583,5 +547,73 @@ public abstract class PanBase {
 	){
 		return gen_fx_button(title,iconName,"btn-raised-4");
 	}
+	//----------------------------------------------//
+		
+	public static Spinner<Float> genSpinnerFloat(
+		final float min,
+		final float max,
+		final float tick,
+		FloatProperty prop
+	){
+		Spinner<Float> spn = new Spinner<Float>();
+		SpinnerValueFactory<Float> fac = new SpinnerValueFactory<Float>(){
+			
+			private BigDecimal valMin,valMax,valTick;
+			private FloatProperty propVal;
+			private String fmt = "%.03f";
+			
+			private StringConverter<Float> conv = new StringConverter<Float>(){
+				@Override
+				public String toString(Float object) {
+					return String.format(fmt,object);
+				}
+				@Override
+				public Float fromString(String string) {
+					return Float.valueOf(string);
+				}
+			};
+			{
+				String txt = String.valueOf(tick);
+				int pos = txt.indexOf(".");
+				pos = txt.length() - pos - 1;
+				fmt = "%.0"+pos+"f";
+				valMin = new BigDecimal(String.format(fmt, min));
+				valMax = new BigDecimal(String.format(fmt, max));			
+				valTick = new BigDecimal(txt);
+				propVal = prop;
+				setConverter(conv);
+				setValue(prop.getValue());
+			}
+			@Override
+			public void decrement(int steps) {
+				final BigDecimal valOld = new BigDecimal(String.format(fmt, propVal.get()));
+	            final BigDecimal valNew = valOld.subtract(valTick.multiply(BigDecimal.valueOf(steps)));
+	            int cmp = valNew.compareTo(valMin);
+	            if(cmp>=0){
+	            	float v = valNew.floatValue();            	
+	            	setValue(v);
+	            	propVal.setValue(v);
+	            }
+			}
+
+			@Override
+			public void increment(int steps) {
+				final BigDecimal valOld = new BigDecimal(String.format(fmt, propVal.get()));
+	            final BigDecimal valNew = valOld.add(valTick.multiply(BigDecimal.valueOf(steps)));
+	            int cmp = valNew.compareTo(valMax);
+	            Misc.logv("inc-cmp = %d, %s, %s", cmp, valNew.toString(), valMax.toString());
+	            if(cmp<=0){
+	            	float v = valNew.floatValue();            	
+	            	setValue(v);
+	            	propVal.setValue(v);
+	            }
+			}
+		};
+		spn.setValueFactory(fac);
+		return spn;
+	}
+	//----------------------------------------------//
+	
+	
 }
 

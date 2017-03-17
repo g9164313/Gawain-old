@@ -1,6 +1,6 @@
-// stdafx.h : 可在此標頭檔中包含標準的系統 Include 檔，
-// 或是經常使用卻很少變更的
-// 專案專用 Include 檔案
+// stdafx.h : 嚙箠嚙箭嚙踝蕭嚙踝蕭嚙磐嚙褕歹蕭嚙稽嚙緣嚙請準迎蕭嚙緣嚙踝蕭 Include 嚙褕，
+// 嚙諄是嚙篇嚙窯嚙誕用卻嚙豌歹蕭嚙豌改蕭
+// 嚙瞎嚙論專嚙踝蕭 Include 嚙褕殷蕭
 //
 
 #pragma once
@@ -9,7 +9,3 @@
 
 #include <stdio.h>
 #include <tchar.h>
-
-
-
-// TODO:  在此參考您的程式所需要的其他標頭

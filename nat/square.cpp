@@ -27,7 +27,6 @@ static vector<MarkDefect> squrDft;
 extern int Yen(Mat& data,double* valCrit);
 
 inline void addMarkSpeckle(vector<Point>& spk){
-	//TODO:check defect range~~~
 	Point2f cc;
 	float rad,area;
 	minEnclosingCircle(spk,cc,rad);
@@ -355,7 +354,7 @@ NAT_EXPORT int squareIdentify(void* data,int width,int height){
 	}
 	squareRelease();
 	if(useTranpose==true){
-		transpose(dat(roi),squrDat);//TODO:do we need this???
+		transpose(dat(roi),squrDat);
 	}else{
 		dat(roi).copyTo(squrDat);
 	}

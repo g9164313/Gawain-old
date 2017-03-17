@@ -106,7 +106,7 @@ void toColor(Mat& src,Mat& dst){
 ){
 	char name[500];
 	jstrcpy(env,jname,name);
-	namedWindow(name,CV_WINDOW_AUTOSIZE);//TODO~~~~
+	namedWindow(name,CV_WINDOW_AUTOSIZE);
 }
 
 extern "C" JNIEXPORT void JNICALL Java_narl_itrc_Misc_renderWindow(

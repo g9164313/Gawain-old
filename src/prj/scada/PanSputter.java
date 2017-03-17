@@ -3,6 +3,7 @@ package prj.scada;
 import com.jfoenix.controls.JFXDecorator;
 
 import javafx.scene.Node;
+import javafx.scene.control.Button;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.WindowEvent;
@@ -25,10 +26,17 @@ public class PanSputter extends PanBase {
 	@Override
 	public Node eventLayout() {
 		
+		Button btn = new Button("test");
+		btn.setMaxWidth(Double.MAX_VALUE);
+		btn.setOnAction(event->{
+			PanBase.notifyError("ggyy", "text1");
+		});
+		
 		VBox lay0 = new VBox();
 		lay0.getStyleClass().add("vbox-medium");
 		lay0.getChildren().addAll(
-			devSQM160.build("SQM160")
+			devSQM160.build("SQM160"),
+			btn
 		);
 		
 		BorderPane root = new BorderPane();

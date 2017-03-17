@@ -1,8 +1,6 @@
-// stdafx.cpp : 僅包含標準 Include 檔的原始程式檔
-// testboard.pch 會成為先行編譯標頭檔
-// stdafx.obj 會包含先行編譯類型資訊
+// stdafx.cpp : 嚙褓包嚙緣嚙請瘀蕭 Include 嚙褕迎蕭嚙踝蕭l嚙緹嚙踝蕭嚙踝蕭
+// testboard.pch 嚙罵嚙踝蕭嚙踝蕭嚙踝蕭嚙踝蕭s譯嚙踝蕭嚙磐嚙踝蕭
+// stdafx.obj 嚙罵嚙稽嚙緣嚙踝蕭嚙踝蕭s譯嚙踝蕭嚙踝蕭嚙踝蕭T
 
 #include "stdafx.h"
-
-// TODO:  在 STDAFX.H 中參考您需要的任何其他標頭，
-// 而不要在這個檔案中參考
+// 嚙諉歹蕭嚙緯嚙箭嚙緻嚙踝蕭嚙褕案歹蕭嚙諸佗蕭
