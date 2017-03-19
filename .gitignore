@@ -3,6 +3,12 @@ Makefiel
 *.class
 *.glade
 
+gawain/
+nat/wrap-vc10/
+nat/wrap-vc11/
+nat/wrap-vc12/
+nat/wrap-vc14/
+
 # Mobile Tools for Java (J2ME)
 .mtj.tmp/
 
