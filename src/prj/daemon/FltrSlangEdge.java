@@ -157,6 +157,7 @@ public class FltrSlangEdge extends ImgFilter {
 			lay.getStyleClass().add("grid-medium");
 			
 			final Button btnCalculate = PanBase.genButton1("演算",null);
+			btnCalculate.setPrefWidth(100.);
 			btnCalculate.setOnAction(event->{
 				String txt = txtPixSize.getText();
 				if(Misc.isValidPhy(txt)==true){
@@ -169,14 +170,15 @@ public class FltrSlangEdge extends ImgFilter {
 				}
 				rndr.attach(FltrSlangEdge.this);
 			});
-			btnCalculate.setPrefWidth(100.);
+			
 			
 			final Button btnExport = PanBase.genButton1("匯出",null);
+			btnExport.setPrefWidth(100.);
 			btnExport.setOnAction(event->{
 				export_sheet();
 			});
 			
-			txtPixSize = new JFXTextField("5 um");                    
+			txtPixSize = new JFXTextField("1.67 um");                    
 			txtPixSize.setPromptText("pixel size");
 			
 			lay.add(btnCalculate,0, 0, 2, 1);

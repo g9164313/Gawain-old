@@ -1,7 +1,5 @@
 package prj.scada;
 
-import com.jfoenix.controls.JFXDecorator;
-
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.layout.BorderPane;
@@ -16,11 +14,14 @@ public class PanSputter extends PanBase {
 	}
 	
 	private DevSQM160 devSQM160 = new DevSQM160();
-		
+	
+	private DevSPIK2000 devSPIK2K = new DevSPIK2000();
+	
 	@Override
 	protected void eventShown(WindowEvent e){
 		//devSQM160.open("/dev/ttyS0,19200,8n1");
 		//devSQM160.exec("@");
+		spinning(true);
 	}
 	
 	@Override
@@ -29,18 +30,19 @@ public class PanSputter extends PanBase {
 		Button btn = new Button("test");
 		btn.setMaxWidth(Double.MAX_VALUE);
 		btn.setOnAction(event->{
-			PanBase.notifyError("ggyy", "text1");
+			spinning(true);
 		});
 		
-		VBox lay0 = new VBox();
-		lay0.getStyleClass().add("vbox-medium");
-		lay0.getChildren().addAll(
+		VBox lay_setting = new VBox();
+		lay_setting.getStyleClass().add("vbox-medium");
+		lay_setting.getChildren().addAll(
 			devSQM160.build("SQM160"),
+			devSPIK2K.build("SPKI2000"),
 			btn
 		);
-		
+
 		BorderPane root = new BorderPane();
-		root.setRight(lay0);
+		root.setRight(lay_setting);
 		return root;
 	}
 }

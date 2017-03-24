@@ -330,6 +330,15 @@ public class ImgPreview extends BorderPane {
 	 */
 	private int markIndx = MARK_NONE;
 
+	public void setROI(int x, int y, int w, int h){
+		markList[0].pts1[0] = x;
+		markList[0].pts1[1] = y;
+		markList[0].pts2[0] = x + w;
+		markList[0].pts2[1] = y + h;
+		markList[0].type = MARK_RECT;
+		drawAllMark();
+	}
+	
 	public int[] getMark(int i){
 		if(i<0 || markList.length<=i){
 			return null;

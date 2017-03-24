@@ -50,8 +50,10 @@ public abstract class PanDecorate extends StackPane {
 			Label txtTitle = new Label();
 			txtTitle.getStyleClass().add("decorate0-title");
 			txtTitle.textProperty().bind(title);
+			
 			StackPane.setAlignment(txtTitle,Pos.TOP_LEFT);
-			getChildren().add(txtTitle);			
+			getChildren().add(txtTitle);
+			
 		}
 		
 		if(cntxt==null){
@@ -61,9 +63,9 @@ public abstract class PanDecorate extends StackPane {
 			}			
 		}
 		cntxt.getStyleClass().add("decorate0-content");
+				
 		StackPane.setAlignment(cntxt,Pos.BOTTOM_LEFT);
 		getChildren().add(cntxt);
-		
 		return this;
 	}
 	

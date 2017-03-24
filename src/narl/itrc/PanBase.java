@@ -3,10 +3,14 @@ package narl.itrc;
 import java.math.BigDecimal;
 
 import com.jfoenix.controls.JFXButton;
+import com.jfoenix.controls.JFXProgressBar;
 import com.jfoenix.controls.JFXSpinner;
+import com.jfoenix.controls.JFXTextField;
 import com.sun.glass.ui.Application;
 
+import javafx.beans.binding.Bindings;
 import javafx.beans.property.FloatProperty;
+import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.event.ActionEvent;
@@ -21,6 +25,8 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Control;
 import javafx.scene.control.Spinner;
 import javafx.scene.control.SpinnerValueFactory;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
@@ -33,6 +39,7 @@ import javafx.stage.StageStyle;
 import javafx.stage.Window;
 import javafx.stage.WindowEvent;
 import javafx.util.StringConverter;
+import javafx.util.converter.NumberStringConverter;
 
 
 public abstract class PanBase {	
@@ -139,14 +146,24 @@ public abstract class PanBase {
 		init_stage(stage).showAndWait();
 	}
 	
+	/**
+	 * present a new 'dialog'.<p>
+	 * @param parent - root panel
+	 */
 	public void popup(final Window parent){
 		popup(parent,null,null);
 	}
 	
+	/**
+	 * present a new 'dialog'.<p>
+	 */
 	public void popup(){
 		popup(null,null,null);
 	}
-			
+	
+	/**
+	 * close panel
+	 */
 	public void dismiss(){		
 		if(stage==null){
 			return;
@@ -176,12 +193,8 @@ public abstract class PanBase {
 			return;
 		}
 		root = eventLayout();//At this time, we should have stage~~~~
-
-		spin.setVisible(false);
-		spin.setRadius(64);
-		spin.setOnMouseClicked(event->spinning(false));
 		
-		StackPane _root = new StackPane(root,spin);
+		StackPane _root = new StackPane(root,panTask);
 		if(customStyle!=null){
 			_root.setStyle(customStyle);
 		}
@@ -275,8 +288,34 @@ public abstract class PanBase {
 	}
 	//------------------------//
 	
-	private JFXSpinner spin = new JFXSpinner();	
+	private class PanTask extends HBox {		
+		public JFXProgressBar bar = new JFXProgressBar();
+		public TextArea box = new TextArea();
+		public JFXSpinner spn = new JFXSpinner();
+		
+		public PanTask(){
+			setStyle("-fx-spacing: 7;-fx-padding: 10;");
+			final double ww = 300.;
+			final double hh = 30.;
+			spn.setRadius((hh/2.)+7.);
+			spn.setOnMouseClicked(event->{
+				root.setDisable(false);
+				this.setVisible(false);
+			});
+			bar.setPrefWidth(ww);
+			box.setPrefSize(ww, hh);
 
+			VBox lay0 = new VBox();
+			lay0.setStyle("-fx-spacing: 7;");
+			lay0.getChildren().addAll(bar,box);
+			getChildren().addAll(lay0,spn);
+			
+			setMaxSize(ww+hh, hh);
+			setVisible(false);//the initial state is invisible~~ 
+		}
+	}	
+	private PanTask panTask = new PanTask();
+	
 	public void spinning(
 		final boolean flag
 	){
@@ -287,27 +326,8 @@ public abstract class PanBase {
 		final boolean flag,
 		final TskAction task
 	){
-		if(flag==false && task!=null){
-			task.stop();
-		}
 		root.setDisable(flag);
-		spin.setVisible(flag);
-	}
-	
-	public void invokeSpinning(
-		final boolean flag
-	){
-		invokeSpinning(flag,null);
-	}
-	
-	public void invokeSpinning(
-		final boolean flag,
-		final TskAction spinTask
-	){
-		if(Application.GetApplication()==null){
-			return;
-		}
-		Application.invokeAndWait(()->spinning(flag,spinTask));
+		panTask.setVisible(true);
 	}
 	//------------------------//
 	
@@ -614,6 +634,92 @@ public abstract class PanBase {
 	}
 	//----------------------------------------------//
 	
+	private static void validInteger(
+		final int min,
+		final int max,
+		final TextField box,
+		final IntegerProperty val
+	){
+		int curVal = 0;
+		try{
+			curVal = Integer.valueOf(box.getText());
+			if(curVal<min){
+				box.setText(String.valueOf(min));
+			}else if(max<curVal){
+				box.setText(String.valueOf(max));			
+			}else{
+				box.setText(String.valueOf(curVal));
+				val.setValue(curVal);//assign new value~~~
+			}
+		}catch(NumberFormatException e){
+			box.setText(String.valueOf(val.get()));//restore old value~~~~
+		}
+		box.positionCaret(box.getText().length());
+	}
+		
+	private static void validFloat(
+		final BigDecimal min,
+		final BigDecimal max,
+		final TextField box,
+		final FloatProperty val
+	){		
+		try{
+			BigDecimal _val = new BigDecimal(val.get());
+			if(_val.compareTo(min)<0){
+				box.setText(min.toString());
+			}else if(_val.compareTo(max)>0){
+				box.setText(max.toString());
+			}else{
+				box.setText(_val.toString());
+				val.setValue(_val.floatValue());//assign new value~~~
+			}
+		}catch(NumberFormatException e){
+			box.setText(String.valueOf(val.get()));//restore old value~~~~
+		}
+		box.positionCaret(box.getText().length());
+	}
+		
+	public static TextField genBoxInteger(
+		final int min, 
+		final int max,
+		final IntegerProperty val
+	){
+		final JFXTextField box = new JFXTextField();
+		box.setOnAction(event->{
+			validInteger(min,max,box,val);
+		});
+		box.focusedProperty().addListener((arg1,newVal,oldVal)->{
+			validInteger(min,max,box,val);
+		});
+		Bindings.bindBidirectional(
+			box.textProperty(), 
+			val, 
+			new NumberStringConverter("#")
+		);
+		return box;
+	} 
+
+	public static TextField genBoxFloat(
+		final String min, 
+		final String max,
+		final FloatProperty val
+	){
+		final JFXTextField box = new JFXTextField();
+		final BigDecimal _min = new BigDecimal(min);
+		final BigDecimal _max = new BigDecimal(max);
+		box.setOnAction(event->{
+			validFloat(_min,_max,box,val);
+		});
+		box.focusedProperty().addListener((arg1,newVal,oldVal)->{
+			validFloat(_min,_max,box,val);
+		});
+		Bindings.bindBidirectional(
+			box.textProperty(), 
+			val, 
+			new NumberStringConverter("#.####")
+		);
+		return box;
+	} 
 	
 }
 

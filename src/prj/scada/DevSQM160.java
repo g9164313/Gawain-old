@@ -351,7 +351,7 @@ public class DevSQM160 extends DevTTY {
 		byte val = (byte) (((crc >> 7) & 0x7f) + 34);
 		return val;
 	}
-	// --------------------------------//
+	//--------------------------------//
 
 	/**
 	 * Film name, it must be changed manually~~~~

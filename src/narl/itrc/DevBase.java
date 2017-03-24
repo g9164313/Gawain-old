@@ -62,20 +62,19 @@ public abstract class DevBase extends Pane implements Gawain.EventHook {
 	public DevBase build(final String title){
 		if(getChildren().isEmpty()==true){
 			Node nd = eventLayout();
-			if(nd!=null){
+			getChildren().add(nd);
+			getStyleClass().add("decorate1-border");
+			//setMaxWidth(Double.MAX_VALUE);
+			/*if(nd!=null){
 				if(title!=null){
 					nd = PanDecorate.group(title,nd);
-				}
-				getChildren().add(nd);
+				}				
 			}else{
 				Misc.logw("No control-view");
-			}			
+			}*/			
 		}
 		return this;
 	}
-	
-	
-	
 	
 	public PanBase showConsole(){
 		return showConsole("");
@@ -85,7 +84,7 @@ public abstract class DevBase extends Pane implements Gawain.EventHook {
 		return new PanBase(title){
 			@Override
 			public Node eventLayout() {				
-				return DevBase.this.eventLayout();
+				return eventLayout();
 			}
 		}.appear();
 	}

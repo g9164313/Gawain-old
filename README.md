@@ -6,13 +6,10 @@ The main entry of this project is in "narl/itrc/Gawain.java", then it will load 
 
 # Required Packages
 This project requires below packages:
-+ Enzo
++ HanSolo/Medusa
 + JFoenix
-
-Other functions, like math calculation or reading excel file, we will choose the below packages:  
-+ Apache commons math3
-+ Jexcelapi
-+ Postgresql.jdbc4
++ PostgreSQL
++ Apache common math3
 
 
  
