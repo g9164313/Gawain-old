@@ -16,19 +16,22 @@ public class ZipcodeTW {
 	private static final int DEPTH_CITY = 0;
 	private static final int DEPTH_ZONE = 1;
 	private static final int DEPTH_ROAD = 2;
-	private static final int DEPTH_SIGN = 3;
-	private static final int DEPTH_CODE = 4;
-	private static final int MAX_DEPTH = 5;
+	private static final int DEPTH_SIGN_CODE = 3;
+	private static final int MAX_DEPTH = 4;
+	private static final int MAX_COLUMN = 5;//CSV file column
+
+	@SuppressWarnings("rawtypes")
+	private static Hashtable<String,Hashtable> treeLeaf = new Hashtable<String,Hashtable>();
 	
 	@SuppressWarnings("rawtypes")
-	private static Hashtable<String,Hashtable> tree = new Hashtable<String,Hashtable>();
+	private static Hashtable<String,Hashtable> treeRoot = new Hashtable<String,Hashtable>();
 
 	/**
 	 * read lines from CSV file one by one~~~~
 	 * @param pathCSV - CSV fila full path name....
 	 */
 	public static void buid(String pathCSV){
-		tree.clear();
+		treeRoot.clear();
 		Path path = Paths.get(pathCSV);
 		try {
 			BufferedReader fs = Files.newBufferedReader(path);
@@ -37,24 +40,22 @@ public class ZipcodeTW {
 				//three or four segments-->
 				//zipcode, city, zone, road, sign
 				String[] arg = txt.split(",");
-				if(arg.length!=MAX_DEPTH){
+				if(arg.length!=MAX_COLUMN){
 					Misc.logw("-->"+txt);
 					continue;
 				}
 				//reorder arguments~~~
 				String[] _arg = {
-					arg[0].replaceAll("\\s", ""),/*zipcode*/	
-					arg[3].replaceAll("\\s", ""),/*road*/
-					arg[2].replaceAll("\\s", ""),/*zone*/
 					arg[1].replaceAll("\\s", ""),/*city*/
+					arg[2].replaceAll("\\s", ""),/*zone*/
+					arg[3].replaceAll("\\s", ""),/*road*/
+					arg[4].replaceAll("\\s", "")+"@"+
+						arg[0].replaceAll("\\s", ""),/*sign + zipcode*/
 				};
-				build_tree(
-					tree,
-					_arg, _arg.length-1
-				);
+				build_tree(treeRoot,_arg, DEPTH_CITY);
 			}
 			fs.close();
-			Misc.logw("!!Done!!");
+			Misc.logw("!!build done!!");
 		} catch (IOException e) {	
 			e.printStackTrace();
 		}
@@ -62,30 +63,29 @@ public class ZipcodeTW {
 
 	@SuppressWarnings({ "rawtypes","unchecked"})
 	private static void build_tree(
-		Hashtable<String,Hashtable> leaf,
+		Hashtable<String,Hashtable> node,
 		final String[] arg,
-		final int idx
+		final int depth
 	){
-		String name = arg[idx];
-		Hashtable<String,Hashtable> node = leaf.get(name);
-		if(node==null){
-			node = new Hashtable<String,Hashtable>();
-			leaf.put(name, node);
-		}
-		if(idx==0){
-			//Misc.logv("==> %s] %s] %s] %s]", arg[3], arg[2], arg[1], arg[0]);
+		String name = arg[depth];
+		if(depth==DEPTH_SIGN_CODE){
+			node.put(name, treeLeaf);
 			return;
 		}
-		build_tree(node,arg,idx-1);
+		Hashtable<String,Hashtable> nd = node.get(name);
+		if(nd==null){
+			nd = new Hashtable<String,Hashtable>();
+			node.put(name, nd);
+		}
+		build_tree(nd,arg,depth+1);
 	}
 	//-------------------------------//
 	
-	public static void flatten(String pathFlat){
-		
+	public static void flatten(String full_name){
 		String txt = flatten();
-		
-		Path path = Paths.get(pathFlat);
+		Misc.logw("!!flatten done!!");
 		try {
+			Path path = Paths.get(full_name);
 			BufferedWriter fs = Files.newBufferedWriter(path);
 			fs.write(txt);
 			fs.close();
@@ -93,57 +93,55 @@ public class ZipcodeTW {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
 	}
 	
 	public static String flatten(){
-		String txt = "";
-		return flatten_tree(0,txt,tree);
+		return 
+			"static{\n\t Hashtable<String,Hashtable> node = treeRoot;\n" + 
+			flatten_tree(treeRoot,"node")+
+			"}\n";
 	}
 	
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	private static String flatten_tree(
-		int depth,
-		String cntxt,
-		Hashtable<String,Hashtable> leaf
+		Hashtable<String,Hashtable> node,
+		final String nodeName
 	){
-		Enumeration<String> set = leaf.keys();
-	
 		String txt = "";
 		
-		int idx=0;
+		int index = 0;
+		
+		Enumeration<String> set = node.keys();
 		
 		while(set.hasMoreElements()==true){
 			
 			String name = set.nextElement();
 
-			Hashtable<String,Hashtable> nxt = leaf.get(name);
+			Hashtable<String,Hashtable> nxt = node.get(name);
 			
-			if(nxt!=null){
-				txt = txt + flatten_tree(depth+1,cntxt,nxt);
-			}
+			if(nxt.isEmpty()==true){
+				txt += String.format(
+					"\t%s.put(\"%s\",treeLeaf);\n",
+					nodeName, name
+				);
+			}else{
+				String nxt_name = nodeName+"_"+index;
 				
-			txt = txt +String.format(
-				"node%d_%d.put(\"%s\",node%d);\n",
-				depth,idx,name,depth+1
-			);
+				txt += "\tHashtable<String,Hashtable> " + nxt_name + " = new Hashtable<String,Hashtable>();\n" +
+					flatten_tree(nxt, nxt_name) + 
+					"\t"+nodeName + ".put(\""+name+"\","+nxt_name+");\n" + 					
+					"\t/*----------------*/\n"; 
+			}
 			
-			idx++;
+			index++;
 		}
-		
-		if(idx==0){
-			return String.format(
-				"node%d = new Hashtable<String,Hashtable>();\n",
-				depth
-			);
-		}
-		return cntxt + txt;
+		return txt;
 	}
 	//-------------------------------//
 	
 	public static String parse(String address){
 		
-		return trace_leaf(tree,address,DEPTH_CITY);
+		return trace_leaf(treeRoot,address,DEPTH_CITY);
 	}
 	
 	@SuppressWarnings({ "unchecked", "rawtypes" })
