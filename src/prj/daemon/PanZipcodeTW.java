@@ -1,5 +1,15 @@
 package prj.daemon;
 
+import java.io.BufferedWriter;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.PrintStream;
+import java.io.PrintWriter;
+import java.nio.charset.Charset;
+
 import com.jfoenix.controls.JFXTextField;
 
 import javafx.geometry.Pos;
@@ -19,19 +29,39 @@ public class PanZipcodeTW extends PanBase {
 	
 	private final String TXT_UNKNOWN = "???";
 	
-	public PanZipcodeTW(){
+	final String name = "C:\\labor\\zip32.csv";//for test~~~
+	
+	public PanZipcodeTW() throws IOException{
+		
+		/*FileOutputStream ggyy = new FileOutputStream("C:\\labor\\ggyy.log");
+		OutputStreamWriter writer = new OutputStreamWriter(ggyy, "UTF-8");
+		OutputStream out = new OutputStream() {
+            @Override
+            public void write(int b) throws IOException{
+            	String tmp = String.format("%06X", b);
+            	writer.write(b);
+            }
+        };*/
+		
+        //System.setOut(new PrintStream("C:\\labor\\ggyy.log", "UTF-8"));
+        
+        //雙334號至516之3號 <-- bug ???
+		ZipcodeTW.buid(name);
+		
+		//writer.close();
 	}
 	
 	@Override
 	public Node eventLayout() {
 		
 		GridPane root = new GridPane();//show all sensor
-		root.getStyleClass().add("grid-medium");
+		root.getStyleClass().add("grid-large");
 		
 		Label txtCode = new Label(TXT_UNKNOWN);
 		
 		JFXTextField boxAddr = new JFXTextField("新竹市東區研發六路20號");
 		boxAddr.setPromptText("輸入地址後，按 Enter 鍵會產生 3+2郵遞區號");
+		boxAddr.setLabelFloat(true);
 		boxAddr.setPrefWidth(230);
 		boxAddr.setOnAction(event->{
 			String txt = ZipcodeTW.parse(boxAddr.getText());
@@ -40,9 +70,8 @@ public class PanZipcodeTW extends PanBase {
 	
 		Button btnBuild = PanBase.genButton1("訓練","");
 		btnBuild.setOnAction(event->{
-			String name = "C:\\labor\\zip32.csv";//for test~~~
 			ZipcodeTW.buid(name);
-			ZipcodeTW.flatten("C:\\labor\\ggyy.java");
+			//ZipcodeTW.flatten("C:\\labor\\ggyy.java");
 		});
 		
 		Button btnReset = PanBase.genButton1("清除","");
@@ -57,8 +86,8 @@ public class PanZipcodeTW extends PanBase {
 		layCommand.getStyleClass().add("hbox-small");
 		
 		root.addRow(0, new Label("郵遞區號:"), txtCode);
-		root.addRow(1, new Label("道路地址:"), boxAddr);
-		root.add(layCommand,0,2,2,1);
+		root.addRow(2, new Label("道路地址:"), boxAddr);
+		root.add(layCommand,0,3,2,1);
 		
 		return root;
 	}
