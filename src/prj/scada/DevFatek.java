@@ -3,6 +3,11 @@ package prj.scada;
 import javafx.scene.Node;
 import narl.itrc.DevTTY;
 
+/**
+ * Fatek PLC Controller
+ * @author qq
+ *
+ */
 public class DevFatek extends DevTTY {
 
 	public DevFatek(){

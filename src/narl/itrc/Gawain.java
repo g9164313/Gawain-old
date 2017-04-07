@@ -6,7 +6,10 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.io.RandomAccessFile;
+import java.io.UnsupportedEncodingException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -64,7 +67,7 @@ public class Gawain extends Application {
 	
 	private static void propInit(){
 		try {
-			File fs = new File(Misc.pathTemp+propName);
+			File fs = new File(Misc.pathSock+propName);
 			InputStream stm=null;
 			if(fs.exists()==false){
 				stm = Gawain.class.getResourceAsStream("/narl/itrc/res/"+propName);
@@ -78,13 +81,13 @@ public class Gawain extends Application {
 		}
 	}
 	
-	private static void propSave(){
+	private static void propKeep(){
 		try {
-			File fs = new File(Misc.pathTemp+propName);
+			File fs = new File(Misc.pathSock+propName);
 			FileOutputStream stm=null;
 			if(fs.exists()==false){
 				//the first dump!!!
-				stm = new FileOutputStream(Misc.pathTemp+propName);
+				stm = new FileOutputStream(Misc.pathSock+propName);
 				prop.store(stm,"");
 				return;
 			}
@@ -93,13 +96,128 @@ public class Gawain extends Application {
 			if(txt.equalsIgnoreCase("false")==true){
 				return;
 			}			
-			stm = new FileOutputStream(Misc.pathTemp+propName);
+			stm = new FileOutputStream(Misc.pathSock+propName);
 			prop.store(stm,"");
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}		
+	}
+	//--------------------------------------------//
+	
+	private static class Pipe extends OutputStream {
+		public PrintStream org;
+		public PrintStream fid;
+		public Pipe(){			
+		}
+		@Override
+		public void write(int b) throws IOException {
+			org.write(b);
+			if(fid!=null){
+				fid.write(b);
+			}
+		}
+		@Override
+		public void flush() throws IOException {
+			org.flush();
+			if(fid!=null){ 
+				fid.flush(); 
+			}
+		}
+		@Override
+		public void close() throws IOException {
+			org.close();
+			if(fid!=null){
+				fid.close();
+			}
+		}
+	};
+	private static Pipe[] pipe = {
+		new Pipe(), 
+		new Pipe()
+	};
+	
+	private static void loggerInit(){
+		PrintStream fid = null;
+		String opt = prop.getProperty("Logger", null);
+		if(opt!=null){
+			//it may be boolean flag or file path name~~~
+			if(opt.equalsIgnoreCase("true")==true || opt.length()==0){
+				//default path~~~
+				opt = Misc.pathSock + "logger.txt";
+			}
+			try {
+				fid = new PrintStream(opt, "UTF-8");
+			} catch (FileNotFoundException e) {
+				e.printStackTrace(); fid = null; 
+			} catch (UnsupportedEncodingException e) {
+				e.printStackTrace(); fid = null;
+			}	
+		}
+		
+		pipe[0].org = System.out;
+		pipe[0].fid = fid;
+		System.setOut(new PrintStream(pipe[0]));
+		
+		pipe[1].org = System.err;
+		pipe[1].fid = fid;
+		System.setErr(new PrintStream(pipe[1]));
+	}
+	//--------------------------------------------//
+	
+	@Override
+	public void start(Stage primaryStage) throws Exception {
+		if(optUnpack==true){
+			Misc.logv("unpack done...");
+			System.exit(0);
+			return;
+		}
+		new Loader().standby();
+		String name = prop.getProperty("LAUNCH","");	
+		try {
+			Object obj = Class.forName(name).newInstance();
+			//$ Demo how to pass arguments~~~
+			//Param1Type param1;
+			//Class cl = Class.forName(className);
+			//Constructor con = cl.getConstructor(Param1Type.class);
+			//obj = con.newInstance(param1,param2);
+			PanBase pan = (PanBase)obj;			
+			pan.appear(primaryStage);
+			//Misc.logv("啟動 launch [%s]",name);//show the first message for box-logger
+		} catch (
+			InstantiationException | 
+			IllegalAccessException | 
+			ClassNotFoundException e
+		) {			
+			e.printStackTrace();			
+		}
+	}
+	
+	public static AtomicBoolean flgStop = new AtomicBoolean(false);
+	
+	@Override
+	public void stop() throws Exception {
+		//Do we need to close render looper???
+		flgStop.set(true);		
+	}
+	
+	private static boolean optUnpack = false;
+
+	public static void main(String[] argv) {
+		flgStop.set(false);
+		propInit();
+		//parse arguments~~~~
+		for(int i=0; i<argv.length; i++){
+			if(argv[i].toLowerCase().startsWith("-unpack")==true){
+				optUnpack = true;
+			}
+		}
+		loggerInit();
+		//liceBind();//check dark license~~~		
+		launch(argv);		
+		propKeep();
+		hookShutdown();
 	}
 	//--------------------------------------------//
 	
@@ -135,13 +253,13 @@ public class Gawain extends Application {
 			System.exit(-203);
 		}
 	}
-	
+		
 	private static final String LICE_CIPHER="AES";
 	private static final String LICE_SECKEY=Gawain.class.toString();	
 	private static float liceDay = 1.f;//unit is days
 	private static SecretKeySpec liceKey = null;
 	private static Cipher liceCip = null;
-	
+		
 	private static boolean isBorn(){
 		try {
 			BasicFileAttributes attr = Files.readAttributes(
@@ -159,7 +277,7 @@ public class Gawain extends Application {
 		}		
 		return false;
 	}
-	
+		
 	private static EventHandler<ActionEvent> eventPeekLice = new EventHandler<ActionEvent>(){
 		@Override
 		public void handle(ActionEvent event) {
@@ -187,7 +305,7 @@ public class Gawain extends Application {
 			Misc.logv("check licence - %.2fday",liceDay);
 		}
 	};
-	
+		
 	@SuppressWarnings("unused")
 	private static void liceBind(){		
 		if(Misc.fileJar==null){
@@ -255,60 +373,7 @@ public class Gawain extends Application {
 			System.exit(0);
 		}
 	}
-	//--------------------------------------------//
-	
-	@Override
-	public void start(Stage primaryStage) throws Exception {
-		if(optUnpack==true){
-			Misc.logv("unpack done...");
-			System.exit(0);
-			return;
-		}
-		new Loader().standby();
-		String name = prop.getProperty("LAUNCH","");	
-		try {
-			Object obj = Class.forName(name).newInstance();
-			//$ Demo how to pass arguments~~~
-			//Param1Type param1;
-			//Class cl = Class.forName(className);
-			//Constructor con = cl.getConstructor(Param1Type.class);
-			//obj = con.newInstance(param1,param2);
-			PanBase pan = (PanBase)obj;			
-			pan.appear(primaryStage);
-			//Misc.logv("========啟動========");//show the first message for box-logger
-		} catch (
-			InstantiationException | 
-			IllegalAccessException | 
-			ClassNotFoundException e
-		) {			
-			e.printStackTrace();			
-		}
-	}
-	
-	public static AtomicBoolean flgStop = new AtomicBoolean(false);
-	
-	@Override
-	public void stop() throws Exception {
-		//Do we need to close render looper???
-		flgStop.set(true);		
-	}
-	
-	private static boolean optUnpack = false;
-		
-	public static void main(String[] argv) {
-		flgStop.set(false);
-		propInit();
-		//parse arguments~~~~
-		for(int i=0; i<argv.length; i++){
-			if(argv[i].toLowerCase().startsWith("-unpack")==true){
-				optUnpack = true;
-			}
-		}
-		//liceBind();//check dark license~~~
-		launch(argv);		
-		propSave();
-		hookShutdown();
-	}
+	//--------------------------------------------//	
 }
 
 

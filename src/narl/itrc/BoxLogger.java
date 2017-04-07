@@ -57,7 +57,7 @@ public class BoxLogger extends PanDecorate {
 			return;
 		}
 		try {
-			String name = Misc.pathTemp + "logger.txt";
+			String name = Misc.pathSock + "logger.txt";
 			FileWriter fw = new FileWriter(name, true);
 			BufferedWriter bw = new BufferedWriter(fw);
 			logFile = new PrintWriter(bw);

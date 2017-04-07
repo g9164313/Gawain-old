@@ -65,7 +65,8 @@ public class Misc {
 	}
 	
 	private static String log_txt(String pfx,String fmt,Object... arg){
-		return pfx+String.format(fmt+"\n", arg);
+		long tick = System.currentTimeMillis();
+		return String.format("[%tH:%tM:%tS.%tL]%s",tick,tick,tick,tick,pfx)+String.format(fmt+"\n", arg);
 	}
 	
 	//Should we deprecate this function???
@@ -402,7 +403,7 @@ public class Misc {
 	
 	public static final String pathRoot = check_root();
 	
-	public static final String pathTemp = check_temp();
+	public static final String pathSock = check_sock();
 	
 	public static final String fileJar = check_jar();
 	
@@ -414,7 +415,7 @@ public class Misc {
 	/**
 	 * The path where we keep files or data.
 	 */
-	public static final File fsPathTemp = new File(pathTemp);
+	public static final File fsPathTemp = new File(pathSock);
 	
 	/**
 	 * Where the jar file is, if no, this will be null
@@ -464,7 +465,7 @@ public class Misc {
 			return url;
 		}
 		url = url.replace('/',File.separatorChar);
-		Misc.logv("URL==>%s",url);
+		//System.out.printf("URL==>%s\n",url);//just for debug~~~
 		final String pre1 = "jar:file:";
 		final String pre3 = "file:";				
 		if(url.startsWith(pre1)==true){
@@ -490,16 +491,16 @@ public class Misc {
 			url = new File(".").getAbsolutePath();
 			url = url.substring(0,url.length()-1);
 		}
-		Misc.logv("ROOT==>%s",url);
+		//System.out.printf("ROOT==>%s",url);//just for debug~~~
 		return url;
 	}
 	
-	private static String check_temp(){
+	private static String check_sock(){
 		String url = Misc.pathRoot+"gawain"+File.separator;
 		File dir = new File(url);
 		if(dir.exists()==false){
 			if(dir.mkdirs()==false){
-				Misc.loge("we can't create a temp-->%s!!",url);
+				System.err.printf("we can't create a temp-->%s!!\n",url);
 				System.exit(-2);
 			}
 		}

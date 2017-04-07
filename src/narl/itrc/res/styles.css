@@ -69,6 +69,13 @@
     -fx-spacing: 7.0;
 }
 
+.pad-medium{
+    -fx-padding: 17px;
+}
+.pad-huge{
+    -fx-padding: 24px;
+}
+
 .grid-small{
     -fx-padding: 3px;
     -fx-hgap: 3px;
@@ -79,6 +86,16 @@
     -fx-padding: 7px;
     -fx-hgap: 7px;
     -fx-vgap: 7px;
+}
+.grid-medium-horizontal{
+    -fx-padding: 7px;
+    -fx-hgap: 14px;
+    -fx-vgap: 7px;
+}
+.grid-medium-vertical{
+    -fx-padding: 7px;
+    -fx-hgap: 7px;
+    -fx-vgap: 21px;
 }
 
 .grid-large{

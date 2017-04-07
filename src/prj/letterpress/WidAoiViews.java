@@ -213,8 +213,8 @@ public class WidAoiViews extends BorderPane {
 	private native float implFindRect(CamBundle bnd,int idx,int[] param,int[] loca,int[] locaCross);
 	//-------------------------------//
 
-	private final String backName0 = Misc.pathTemp+"back0.png";
-	private final String backName1 = Misc.pathTemp+"back1.png";
+	private final String backName0 = Misc.pathSock+"back0.png";
+	private final String backName1 = Misc.pathSock+"back1.png";
 	
 	public WidAoiViews(ImgRender rndr){
 		File fs0 = new File(backName0);

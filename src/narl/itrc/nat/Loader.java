@@ -37,7 +37,7 @@ public class Loader extends TskDialog {
 			return -2;
 		}
 		addLibraryPath(Misc.pathRoot);//default search path~~~
-		addLibraryPath(Misc.pathTemp);
+		addLibraryPath(Misc.pathSock);
 		
 		log("複製函式庫...");
 		for(int i=0; i<node.length; i++){
@@ -151,7 +151,7 @@ public class Loader extends TskDialog {
 		boolean isBase = false;
 		if(node.charAt(0)=='.'){
 			src = ".";
-			dst = Misc.pathTemp;	
+			dst = Misc.pathSock;	
 			lst = new String[1];
 			lst[0] = node.substring(1);
 			isBase = true;
@@ -160,7 +160,7 @@ public class Loader extends TskDialog {
 				"%s_%s_%s",
 				node,Misc.arch,Misc.getOSName()
 			);
-			dst = Misc.pathTemp+node;			
+			dst = Misc.pathSock+node;			
 			lst = Gawain.prop.getProperty(node,"").replace(' ',',').split(",");
 			if(lst[0].length()==0){
 				return;

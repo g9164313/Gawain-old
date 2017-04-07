@@ -13,9 +13,9 @@ import narl.itrc.vision.ImgRender;
 
 public class FilterNMText extends ImgFilter {
 
-	private String fileNM1 = Misc.pathTemp+"trained_classifierNM1.xml";
-	private String fileNM2 = Misc.pathTemp+"trained_classifierNM2.xml";
-	private String fileGRP = Misc.pathTemp+"trained_classifier_erGrouping.xml";
+	private String fileNM1 = Misc.pathSock+"trained_classifierNM1.xml";
+	private String fileNM2 = Misc.pathSock+"trained_classifierNM2.xml";
+	private String fileGRP = Misc.pathSock+"trained_classifier_erGrouping.xml";
 	
 	private ImgRender rndr;
 	
