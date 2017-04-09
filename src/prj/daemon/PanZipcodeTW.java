@@ -33,19 +33,9 @@ public class PanZipcodeTW extends PanBase {
 	
 	public PanZipcodeTW() throws IOException{
 		
-		/*FileOutputStream ggyy = new FileOutputStream("C:\\labor\\ggyy.log");
-		OutputStreamWriter writer = new OutputStreamWriter(ggyy, "UTF-8");
-		OutputStream out = new OutputStream() {
-            @Override
-            public void write(int b) throws IOException{
-            	String tmp = String.format("%06X", b);
-            	writer.write(b);
-            }
-        };*/
-		
-        //System.setOut(new PrintStream("C:\\labor\\ggyy.log", "UTF-8"));
+        System.setOut(new PrintStream("C:\\labor\\ggyy.log", "UTF-8"));
         
-        //雙334號至516之3號 <-- bug ???
+		//ZipcodeTW.notation("14號含附號");
 		ZipcodeTW.buid(name);
 		
 		//writer.close();

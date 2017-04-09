@@ -24,6 +24,9 @@ public class ZipcodeTW {
 	@SuppressWarnings("rawtypes")
 	private static Hashtable<String,Hashtable> treeRoot = new Hashtable<String,Hashtable>();
 
+	//有些政府單位的郵遞號碼是唯一，沒地址就查這表
+	private static Hashtable<String,String> nameBase = new Hashtable<String,String>();
+	
 	/**
 	 * read lines from CSV file one by one~~~~
 	 * @param pathCSV - CSV fila full path name....
@@ -46,14 +49,16 @@ public class ZipcodeTW {
 				for(int i=0; i<arg.length; i++){
 					arg[i] = arg[i]
 						.replaceAll("\\s", "")
-						.replaceAll("\u3000","");
+						.replaceAll("\u3000","")
+						.replace('（', '(')
+						.replace('）', ')');
 				}
 				//reorder arguments~~~
 				String[] _arg = {
 					arg[1],/*city*/
 					arg[2],/*zone*/
 					arg[3],/*road*/
-					arg[0]+notation(arg[4])/*zipcode + sign*/
+					arg[0]+notation(arg[4],arg[0])/*zipcode + sign*/
 				};
 				//System.out.println(arg[4]+" ==> "+_arg[3]);
 				build_tree(treeRoot,_arg, DEPTH_CITY);
@@ -190,73 +195,85 @@ public class ZipcodeTW {
 		String address,
 		String clue	
 	){
-		int mark[] = find_mark(address);
+		int[] mark = find_mark(address);
 		
 		String zipcode = clue.substring(0,6);
 		String notation= clue.substring(6);
 		
+		char tkn = notation.charAt(0);
+		notation = notation.substring(1);
+		int[] grp0 = null;
+		int[] grp1 = null;
+		if(notation.length()!=0){
+			String[] grp = notation.split("#");
+			if(grp.length==1){
+				grp0 = text2mark(grp[0]);
+			}else if(grp.length==2){
+				grp0 = text2mark(grp[0]);
+				grp1 = text2mark(grp[1]);
+			}
+		}
 		
+		switch(tkn){
+		case '?'://ignore this~~~
+			break;
+		case '*'://全
+			if(isMatch(grp0,mark)==false){
+				break;
+			}
+			return zipcode;
+		case 'A'://單全
+			if(mark[2]%2==1){
+				if(isMatch(grp0,mark)==false){
+					break;
+				}
+				return zipcode;
+			}
+			break;
+		case 'B'://雙全
+			if(mark[2]%2==0){
+				if(isMatch(grp0,mark)==false){
+					break;
+				}
+				return zipcode;
+			}
+			break;
 		
-		return zipcode;
+		case 'W'://TODO: '含附號'
+		case 'S'://TODO: '及以上附號'
+		case '@'://只有 '號'
+			if(grp0[2]==mark[2]){
+				return zipcode;
+			}
+			break;
+		}
+		return "";
+	}
+	
+	private static boolean isMatch(int[] group,int[] mark){
+		if(group==null){
+			return true;
+		}
+		for(int i=0; i<group.length; i++){
+			if(group[i]!=0 && mark[i]!=group[i]){
+				return false;
+			}
+		}
+		return true;
 	}
 	//-------------------------------//
 	
-	private static int markHead, markTail;
-	
-	private static int[] find_mark(String txt){
-		
-		int[] digi = new int[5];
-		
-		final char[] tkn = {'巷','弄','之','號','樓'};
-		
-		markHead = txt.length();//reset position~~~
-		markTail = -1;//reset position~~
-		
-		for(int i=0; i<tkn.length; i++){
-			
-			digi[i] = find_digital(txt,tkn[i]);
-			
-			if(digiTail>=0 && markTail<digiTail){
-				
-				markTail = digiTail;
-				
-				if(digiHead<markHead){
-					
-					markHead = digiHead;
-				}
-			}
-		}
-		return digi;
-	} 
-	
-	private static String replace_mark(String txt){
-		
-		if(markTail<0){
-			return txt;
-		}
-		String tail = txt.substring(markTail+1);
-		
-		String head = null;
-		if(markHead<0){
-			head = "";
-		}else{
-			head = txt.substring(0, markHead+1);
-		}
-		
-		return head + "#" + tail;
-	}
-	
 	private static int digiHead, digiTail;
 	
-	private static int find_digital(String txt,char tkn){
-		
-		int value=0;
-		
+	private static int find_digital(final String txt,char tkn){
+
 		digiTail = txt.indexOf(tkn);
 		digiHead = digiTail - 1;
 		if(digiTail<0 || digiHead<0){
-			return 0;
+			return 0;//we fail~~~~
 		}
+		
+		int value=0;
 		
 		while(digiHead>=0){
 			char cc = txt.charAt(digiHead);
@@ -268,87 +285,129 @@ public class ZipcodeTW {
 			}
 			digiHead--;
 		}
-		
 		return value;
 	}
 	
-	private static String dbg_notation = null; 
-	 
-	public static String notation(String txt){
-		
-		dbg_notation = txt;
-		
-		int[] mark1 = find_mark(txt);
-		txt = replace_mark(txt);
-		
-		int[] mark2 = find_mark(txt);
-		txt = replace_mark(txt);
-		
-		System.out.printf("%s --> %s\n", txt, dbg_notation);
-		
-		return "";
+	private static int markHead, markTail;
+	
+	private static void check_mark(){
+		if(digiHead>=-1 && digiHead<markHead){
+			markHead = digiHead;
+		}
+		if(digiTail>0 && markTail<digiTail){
+			markTail = digiTail;
+		}
 	}
 	
-	/*private static String dbg_notation = null;
-	
-	private static String notation(String txt){
-		dbg_notation = txt;
-		String nota = "";
-		String appx = "";
-		//First, skip some special case or prefix notation~~~
-		if(txt.matches("^\\d+號")==true){
-			return "!"+decide_mark(txt);
-		}
-		if(txt.matches("^\\d+巷\\d+弄.*")==true){
-			int pos = txt.indexOf('弄');
-			appx = ","+txt.substring(0, pos+1);
-			txt = txt.substring(pos+1);
-		}
-		if(txt.matches("^\\d+巷.*")==true){
-			int pos = txt.indexOf('巷');
-			appx = ","+txt.substring(0, pos+1);
-			txt = txt.substring(pos+1);
-		}
-		//Second, create logic for regular mark~~~ 
-		char cc = txt.charAt(0);
-		if(cc=='單'){
-			if(txt.charAt(1)=='全'){
-				nota = "W";//special case...
-			}else{
-				nota = "@"+decide_range(txt.substring(1));//odd token is '@'
-			}
-		}else if(cc=='雙'){
-			if(txt.charAt(1)=='全'){
-				nota = "R";//special case...
-			}else{
-				nota = "$"+decide_range(txt.substring(1));//even token is '$'
-			}
-		}else if(cc=='連'){
-			nota = "#"+decide_range(txt.substring(1));//continue token is "#";
-		}else if(cc=='全'){
-			nota = "*";
+	private static int[] find_mark(String txt){
+		
+		int[] digi = new int[5];//每一欄代表 '巷','弄','號','之','樓'
+
+		markHead = txt.length();
+		markTail = -1;
+		
+		digi[0] = find_digital(txt,'巷');
+		check_mark();
+
+		digi[1] = find_digital(txt,'弄');
+		check_mark();
+
+		digi[2] = find_digital(txt,'號');
+		check_mark();
+		digi[3] = find_digital(txt,'之');//speical case~~~
+		if(digiTail>=0 && digiTail<markTail){
+			//此時的 digi[4]用來暫時存放，digi[2]與digi[3]互相交換
+			digi[4] = digi[2];
+			digi[2] = digi[3];
+			digi[3] = digi[4];
+			check_mark();
 		}else{
-			System.err.println("unknown.1 - "+dbg_notation);
-			return "???";
+			digi[3] = 0;//reset this sign, it is invalid~~~
 		}
-		return nota+appx;
+
+		digi[4] = find_digital(txt,'樓');
+		check_mark();
+		
+		return digi;
+	} 
+	
+	private static int[] text2mark(String text){
+		int[] mark = new int[4];
+		String[] val = text.split(",");
+		for(int i=0; i<val.length; i++){
+			mark[i] = Integer.valueOf(val[i]);
+		}
+		return mark;
 	}
 	
-	private static String decide_range(String txt){
-		int pos = txt.indexOf("以下");
-		if(pos>=0){
-			return "<"+decide_mark(txt.substring(0,pos));
+	private static String mark2text(int[] val){
+		return String.format(
+			"%d,%d,%d,%d,%d", 
+			val[0],val[1],val[2],val[3],val[4]
+		);//依序為'巷','弄','號','之','樓'
+	}
+	
+	@SuppressWarnings("unused")
+	private static String dbg_notation = null; 
+	
+	public static String notation(String txt,final String code){
+		
+		dbg_notation = txt;
+				
+		//特殊地點
+		if(txt.matches(".*[(].*[)]")==true){
+			int pos = txt.indexOf("(");
+			String name = txt.substring(pos);
+			name = name.substring(1,name.length()-1);
+			if(code!=null){
+				nameBase.put(name, code);
+			}else{
+				System.err.print("X--> "+name+" without zipcode\n");
+				return "?";//沒給郵遞區號，直接放棄這資料
+			}
+			txt = txt.substring(0, pos);//只剩門號就好
 		}
-		pos = txt.indexOf("以上");
-		if(pos>=0){
-			return ">"+decide_mark(txt.substring(0,pos));
+		
+		//有門牌號碼，判斷範圍，決定是單，雙，連號，至，以上或以下
+		if(txt.matches(".*[單雙]?[全]")==true){
+			//System.out.printf("%s\n",dbg_notation);//checking
+			
+			String cmd = "*";//至少一定是'全'
+			if(txt.equalsIgnoreCase("全")==true){
+				return cmd;
+			}else if(txt.endsWith("單全")==true){
+				txt = txt.replace("單全", "");
+				cmd = "A";	
+			}else if(txt.endsWith("雙全")==true){
+				txt = txt.replace("雙全", "");
+				cmd = "B";
+			}
+			if(txt.length()==0){
+				return cmd;
+			}
+			return cmd+mark2text(find_mark(txt));
+			
+		}else if(txt.matches(".*[單雙連]?.+以[上下]")==true){
+			System.out.printf("%s\n",dbg_notation);//checking
+			
+		}else if(txt.matches(".*[單雙連]?.+至.+")==true){
+			//System.out.printf("%s\n",dbg_notation);//checking
+				
+		}else{
+			//System.out.printf("%s\n",dbg_notation);//checking
+			//只剩"門號"+[含附號][及以上附號]
+			String cmd = null;
+			if(txt.endsWith("含附號")==true){
+				txt = txt.replace("含附號", "");
+				cmd = "W";
+			}else if(txt.endsWith("及以上附號")==true){
+				txt = txt.replace("及以上附號", "");
+				cmd = "S";
+			}else{
+				cmd = "@";
+			}
+			return cmd+mark2text(find_mark(txt));
 		}
-		pos = txt.indexOf("至");
-		if(pos>=0){
-			return "~"+decide_mark(txt.substring(0,pos))+
-				" "+decide_mark(txt.substring(pos+1));
-		}
-		System.err.println("unknown.2 - "+dbg_notation);
-		return "???";
-	}*/
+		return "?";
+	}
 }
