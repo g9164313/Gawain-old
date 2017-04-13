@@ -1,12 +1,12 @@
 package narl.itrc;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 
 import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXProgressBar;
 import com.jfoenix.controls.JFXSpinner;
 import com.jfoenix.controls.JFXTextField;
-import com.sun.glass.ui.Application;
 
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.FloatProperty;
@@ -28,6 +28,9 @@ import javafx.scene.control.SpinnerValueFactory;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCombination;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -173,7 +176,7 @@ public abstract class PanBase {
 	}
 	//------------------------//
 		
-	public abstract Node eventLayout();
+	public abstract Node eventLayout(PanBase self);
 	
 	private void init_scene(Parent root){		
 		scene = new Scene(root);
@@ -183,23 +186,22 @@ public abstract class PanBase {
 		if(customCSS!=null){			
 			scene.getStylesheets().add(customCSS.toExternalForm());
 		}
-		scene.setUserData(PanBase.this);//do we need this???
+		//capture some short-key
+		scene.setOnKeyPressed(eventHookPress);
 	}
-	
+
 	private void init_panel(){
 		//first initialization...
 		//require children generate GUI-layout
 		if(root!=null){
 			return;
 		}
-		root = eventLayout();//At this time, we should have stage~~~~
-		
+		root = eventLayout(this);
+		//At this time, we should have stage~~~~
 		StackPane _root = new StackPane(root,panTask);
 		if(customStyle!=null){
 			_root.setStyle(customStyle);
-		}
-		//JFXDecorator _root = new JFXDecorator(stage, root);
-		//_root.setCustomMaximize(true);
+		}		
 		init_scene(_root);
 	}
 	
@@ -210,7 +212,7 @@ public abstract class PanBase {
 		if(root!=null){
 			return;
 		}
-		root = eventLayout();
+		root = eventLayout(this);
 		
 		BorderPane _root = new BorderPane();		
 		_root.setCenter(root);
@@ -286,6 +288,99 @@ public abstract class PanBase {
 		}
 		return stg;
 	}
+	//------------------------//
+
+	public interface EventHook {
+		void eventShowing(WindowEvent e);
+		void eventShown(WindowEvent e);
+		void eventWatch(int cnt);
+		void eventClose(WindowEvent e);
+	};
+	
+	public EventHook hook = null;
+	
+	protected void eventShowing(WindowEvent e){
+		if(hook!=null){ 
+			hook.eventShowing(e);
+		}
+	}
+	protected void eventShown(WindowEvent e){
+		if(hook!=null){ 
+			hook.eventShown(e);
+		}
+	}
+	protected void eventWatch(int cnt){
+		if(hook!=null){
+			hook.eventWatch(cnt);
+		}		
+	}
+	protected void eventClose(WindowEvent e){		
+		if(hook!=null){ 
+			hook.eventClose(e);
+		}
+	}
+
+	private EventHandler<WindowEvent> eventWindow = new EventHandler<WindowEvent>(){
+		@Override
+		public void handle(WindowEvent event) {
+			//if stage have no handle, direct event to here!!!
+			if(WindowEvent.WINDOW_SHOWING==event.getEventType()){
+				eventShowing(event);
+			}else if(WindowEvent.WINDOW_SHOWN==event.getEventType()){
+				eventShown(event);
+			}else if(WindowEvent.WINDOW_HIDING==event.getEventType()){			
+				eventClose(event);
+				//TODO:??? BoxLogger.pruneList(root);//??? how to refresh message
+			}
+		}
+	};
+	
+	private HashMap<KeyCode,EventHandler<ActionEvent>> tableHotKey = new HashMap<KeyCode,EventHandler<ActionEvent>>();
+	
+	private HashMap<KeyCombination,EventHandler<ActionEvent>> tableShortcut = new HashMap<KeyCombination,EventHandler<ActionEvent>>();
+	
+	/**
+	 * Hook key in current panel, then launch a event~~~
+	 * @param key - just use key-code
+	 * @param event
+	 */
+	public void hookPress(KeyCode key,EventHandler<ActionEvent> event){		
+		tableHotKey.put(key, event);
+	}
+	
+	/**
+	 * Hook shortcut in current panel, then launch a event~~~
+	 * @param key - the string which represents the requested key combination
+	 * @param event
+	 */
+	public void hookPress(String key,EventHandler<ActionEvent> event){		
+		tableShortcut.put(KeyCombination.keyCombination(key), event);
+	}
+	
+	private EventHandler<KeyEvent> eventHookPress = new EventHandler<KeyEvent>(){
+		@Override
+		public void handle(KeyEvent event) {
+			KeyCode cc = event.getCode();
+			if(cc==KeyCode.ESCAPE){
+				dismiss();
+				return;
+			}
+			//check hot-key~~~
+			EventHandler<ActionEvent> event2;
+			if(tableShortcut.containsKey(cc)==true){
+				tableHotKey.get(cc).handle(null);
+				return;
+			}
+			//check all combination~~~
+			for(KeyCombination com:tableShortcut.keySet()){
+				if(com.match(event)==true){
+					event2 = tableShortcut.get(com);
+					event2.handle(null);
+					return;
+				}
+			}			
+		}
+	};
 	//------------------------//
 	
 	private class PanTask extends HBox {		
@@ -393,61 +488,6 @@ public abstract class PanBase {
 		}
 		dia.showAndWait();
 	}
-	//------------------------//
-	
-	public interface EventHook {
-		void eventShowing(WindowEvent e);
-		void eventShown(WindowEvent e);
-		void eventWatch(int cnt);
-		void eventClose(WindowEvent e);
-	};
-	
-	public EventHook hook = null;
-	
-	protected void eventShowing(WindowEvent e){
-		if(hook!=null){ 
-			hook.eventShowing(e);
-		}
-	}
-	protected void eventShown(WindowEvent e){
-		if(hook!=null){ 
-			hook.eventShown(e);
-		}
-	}
-	protected void eventWatch(int cnt){
-		if(hook!=null){
-			hook.eventWatch(cnt);
-		}		
-	}
-	protected void eventClose(WindowEvent e){		
-		if(hook!=null){ 
-			hook.eventClose(e);
-		}
-	}
-	
-	private boolean flagPresent = false;
-	
-	public boolean isPresent(){
-		return  flagPresent;
-	}
-	
-	private EventHandler<WindowEvent> eventWindow = new EventHandler<WindowEvent>(){
-		@Override
-		public void handle(WindowEvent event) {
-			//if stage have no handle, direct event to here!!!
-			if(WindowEvent.WINDOW_SHOWING==event.getEventType()){
-				flagPresent = false;
-				eventShowing(event);
-			}else if(WindowEvent.WINDOW_SHOWN==event.getEventType()){
-				flagPresent = true;
-				eventShown(event);
-			}else if(WindowEvent.WINDOW_HIDING==event.getEventType()){
-				flagPresent = false;			
-				eventClose(event);
-				//TODO:??? BoxLogger.pruneList(root);//??? how to refresh message
-			}
-		}
-	};
 	//------------------------//
 
 	public static HBox fillHBox(Object... args){

@@ -190,7 +190,7 @@ public class DevSPIK2000 extends DevTTY {
 		}
 		
 		@Override
-		public Node eventLayout() {
+		public Node eventLayout(PanBase pan) {
 			GridPane root = new GridPane();
 			root.getStyleClass().add("grid-medium");
 			

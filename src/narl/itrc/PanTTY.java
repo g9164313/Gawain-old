@@ -247,7 +247,7 @@ public class PanTTY extends Pane {
 		}
 
 		@Override
-		public Node eventLayout() {
+		public Node eventLayout(PanBase self) {
 			return root;
 		}
 	};

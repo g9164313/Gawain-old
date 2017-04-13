@@ -16,6 +16,7 @@ import javafx.scene.Node;
 import javafx.scene.control.ComboBox;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCombination;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Window;
@@ -101,6 +102,10 @@ public class Misc {
 		tsk.start();
 		return tsk;
 	}*/
+	
+	public static final KeyCombination shortcut_save = KeyCombination.keyCombination("Ctrl+S");
+	public static final KeyCombination shortcut_load = KeyCombination.keyCombination("Ctrl+L");
+	public static final KeyCombination shortcut_edit = KeyCombination.keyCombination("Ctrl+E");
 	
 	public static void selectTxt(ComboBox<String> box,String txt){
 		ObservableList<String> lst = box.getItems();

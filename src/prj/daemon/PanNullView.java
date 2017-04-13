@@ -18,7 +18,7 @@ public class PanNullView extends PanBase {
 	}
 	
 	@Override
-	public Node eventLayout() {
+	public Node eventLayout(PanBase pan) {
 		return dev.build("test-panel");		
 	}
 	//-----------------------//

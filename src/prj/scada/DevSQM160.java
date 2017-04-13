@@ -380,7 +380,7 @@ public class DevSQM160 extends DevTTY {
 		}
 		
 		@Override
-		public Node eventLayout() {
+		public Node eventLayout(PanBase pan) {
 			GridPane root = new GridPane();
 			root.getStyleClass().add("grid-medium");
 			
@@ -496,7 +496,7 @@ public class DevSQM160 extends DevTTY {
 		}
 
 		@Override
-		public Node eventLayout() {
+		public Node eventLayout(PanBase pan) {
 			GridPane root = new GridPane();
 			root.getStyleClass().add("grid-medium");			
 			section_1(root);

@@ -51,7 +51,7 @@ public class PanDummy extends PanBase {
 	}
 	
 	@Override
-	public Node eventLayout() {
+	public Node eventLayout(PanBase pan) {
 
 		/*final Label txtPath = new Label();
 		if(lstName.isEmpty()==false){

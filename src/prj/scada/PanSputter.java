@@ -1,10 +1,8 @@
 package prj.scada;
 
-import eu.hansolo.medusa.FGauge;
 import eu.hansolo.medusa.Gauge;
 import eu.hansolo.medusa.Gauge.SkinType;
 import eu.hansolo.medusa.GaugeBuilder;
-import eu.hansolo.medusa.skins.SpaceXSkin;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.layout.BorderPane;
@@ -31,7 +29,7 @@ public class PanSputter extends PanBase {
 	}
 	
 	@Override
-	public Node eventLayout() {
+	public Node eventLayout(PanBase pan) {
 		
 		Button btn = new Button("test");
 		btn.setMaxWidth(Double.MAX_VALUE);
@@ -48,7 +46,7 @@ public class PanSputter extends PanBase {
 			btn
 		);
 
-		WidMapFluid map = new WidMapFluid();
+		WidMapPiping map = new WidMapPiping(Misc.pathSock+"PID.xml");
 		
 		BorderPane root = new BorderPane();
 		root.setRight(lay_setting);

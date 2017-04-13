@@ -195,7 +195,7 @@ public class FltrSlangEdge extends ImgFilter {
 		}
 				
 		@Override
-		public Node eventLayout() {
+		public Node eventLayout(PanBase pan) {
 			BorderPane lay = new BorderPane();
 			lay.setCenter(layoutChart());
 			lay.setRight(layoutCtrl());

@@ -90,7 +90,7 @@ public class PanImgRender extends PanBase {
 	}
 	
 	@Override
-	public Node eventLayout() {
+	public Node eventLayout(PanBase pan) {
 		HBox lay0 = new HBox();
 		lay0.getStyleClass().add("vbox-small");
 		lay0.getChildren().addAll(

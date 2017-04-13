@@ -83,8 +83,8 @@ public abstract class DevBase extends Pane implements Gawain.EventHook {
 	public PanBase showConsole(final String title){
 		return new PanBase(title){
 			@Override
-			public Node eventLayout() {				
-				return eventLayout();
+			public Node eventLayout(PanBase pan) {				
+				return eventLayout(pan);
 			}
 		}.appear();
 	}

@@ -83,7 +83,7 @@ public class Entry extends PanBase {
 	public TabPane pager;
 	
 	@Override
-	public Node eventLayout() {
+	public Node eventLayout(PanBase pan) {
 		wmap = new WidMapWafer();
 		prvw = new WidAoiViews(rndr);
 		

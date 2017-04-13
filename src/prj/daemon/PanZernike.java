@@ -10,7 +10,7 @@ public class PanZernike extends PanBase {
 	}
 
 	@Override
-	public Node eventLayout() {
+	public Node eventLayout(PanBase pan) {
 		
 		return null;
 	}

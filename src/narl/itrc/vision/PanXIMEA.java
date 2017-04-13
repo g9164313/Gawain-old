@@ -49,7 +49,7 @@ public class PanXIMEA extends PanBase {
 	}
 	
 	@Override
-	public Node eventLayout() {
+	public Node eventLayout(PanBase pan) {
 		
 		chkAE = new JFXCheckBox("Automatic exposure/gain");
 		chkAE.setOnAction(event->{

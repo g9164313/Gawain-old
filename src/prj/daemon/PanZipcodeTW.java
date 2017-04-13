@@ -1,14 +1,7 @@
 package prj.daemon;
 
-import java.io.BufferedWriter;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.io.PrintStream;
-import java.io.PrintWriter;
-import java.nio.charset.Charset;
 
 import com.jfoenix.controls.JFXTextField;
 
@@ -42,7 +35,7 @@ public class PanZipcodeTW extends PanBase {
 	}
 	
 	@Override
-	public Node eventLayout() {
+	public Node eventLayout(PanBase pan) {
 		
 		GridPane root = new GridPane();//show all sensor
 		root.getStyleClass().add("grid-large");

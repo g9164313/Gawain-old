@@ -134,9 +134,6 @@ public class CamDummy extends CamBundle {
 	}
 	
 	private void check_slide(){
-		if(pan.isPresent()==false){
-			return;
-		}
 		final Runnable event = new Runnable(){
 			@Override
 			public void run() {
