@@ -26,7 +26,7 @@ public class PanZipcodeTW extends PanBase {
 	
 	public PanZipcodeTW() throws IOException{
 		
-        System.setOut(new PrintStream("C:\\labor\\ggyy.log", "UTF-8"));
+        //System.setOut(new PrintStream("C:\\labor\\ggyy.log", "UTF-8"));
         
 		//ZipcodeTW.notation("14號含附號");
 		ZipcodeTW.buid(name);

@@ -167,11 +167,11 @@ public class ZipcodeTW {
 			
 			if(depth>=DEPTH_SIGN_CODE){
 				
-				String zipcode = checkout(address,clue);
-				
-				if(zipcode.length()!=0){
-					return zipcode;
+				String zcode = parse_notation(address,clue);
+				if(zcode.length()!=0){
+					return zcode;
 				}
+				
 			}else{
 				
 				int pos = address.indexOf(clue);
@@ -191,76 +191,58 @@ public class ZipcodeTW {
 		return "?????";//WTF!!!
 	}
 	
-	private static String checkout(
+	private static String parse_notation(
 		String address,
-		String clue	
+		String notation	
 	){
 		int[] mark = find_mark(address);
 		
-		String zipcode = clue.substring(0,6);
-		String notation= clue.substring(6);
+		String zcode = notation.substring(0,6);
+		String badge = notation.substring(6);
 		
-		char tkn = notation.charAt(0);
-		notation = notation.substring(1);
-		int[] grp0 = null;
-		int[] grp1 = null;
-		if(notation.length()!=0){
-			String[] grp = notation.split("#");
-			if(grp.length==1){
-				grp0 = text2mark(grp[0]);
-			}else if(grp.length==2){
-				grp0 = text2mark(grp[0]);
-				grp1 = text2mark(grp[1]);
-			}
-		}
+		char tkn1 = badge.charAt(0);
+		char tkn2 = badge.charAt(1);
+		String[] args = badge.substring(2).split(",");
+	
+		int[] val = {
+			Integer.valueOf(args[0]),
+			Integer.valueOf(args[1]),
+			Integer.valueOf(args[2]),
+			Integer.valueOf(args[3]),
+			Integer.valueOf(args[4]),
+		};
 		
-		switch(tkn){
-		case '?'://ignore this~~~
+		switch(tkn1){
+		case '?'://ignore this,always fail~~~
 			break;
 		case '*'://全
-			if(isMatch(grp0,mark)==false){
-				break;
-			}
-			return zipcode;
-		case 'A'://單全
-			if(mark[2]%2==1){
-				if(isMatch(grp0,mark)==false){
-					break;
-				}
-				return zipcode;
-			}
+
 			break;
-		case 'B'://雙全
-			if(mark[2]%2==0){
-				if(isMatch(grp0,mark)==false){
-					break;
-				}
-				return zipcode;
-			}
+		case '>'://以上
 			break;
-		
-		case 'W'://TODO: '含附號'
-		case 'S'://TODO: '及以上附號'
-		case '@'://只有 '號'
-			if(grp0[2]==mark[2]){
-				return zipcode;
-			}
+		case '<'://以下
+			break;
+		case '~'://從某門號"至"某門號
+			int[] vtx = {
+				Integer.valueOf(args[0]),
+				Integer.valueOf(args[1]),
+				Integer.valueOf(args[2]),
+				Integer.valueOf(args[3]),
+				Integer.valueOf(args[4]),
+			};
+			break;
+		case '$'://含附號
+		case '%'://及以上附號
+		case '@'://固定門 號
 			break;
 		}
 		return "";
 	}
 	
-	private static boolean isMatch(int[] group,int[] mark){
-		if(group==null){
-			return true;
-		}
-		for(int i=0; i<group.length; i++){
-			if(group[i]!=0 && mark[i]!=group[i]){
-				return false;
-			}
-		}
+	private boolean check_direct(int[] mark, char attr, int[] vals){
 		return true;
 	}
+	
 	//-------------------------------//
 	
 	private static int digiHead, digiTail;
@@ -302,7 +284,10 @@ public class ZipcodeTW {
 	private static int[] find_mark(String txt){
 		
 		int[] digi = new int[5];//每一欄代表 '巷','弄','號','之','樓'
-
+		if(txt.length()==0){
+			return digi;//they are all zero!!!
+		}
+		
 		markHead = txt.length();
 		markTail = -1;
 		
@@ -331,23 +316,26 @@ public class ZipcodeTW {
 		return digi;
 	} 
 	
-	private static int[] text2mark(String text){
-		int[] mark = new int[4];
-		String[] val = text.split(",");
-		for(int i=0; i<val.length; i++){
-			mark[i] = Integer.valueOf(val[i]);
+	private static String text2badge(String text){
+		String badge = "-,";
+		//對於最後一組數字的限制
+		if(text.indexOf('單')>=0){
+			badge = "o";//odd
+		}else if(text.indexOf('雙')>=0){
+			badge = "e";//even
+		}else if(text.indexOf('連')>=0){
+			badge = "i";//integration
 		}
-		return mark;
+		//依序為'巷','弄','號','之','樓'
+		int[] val = find_mark(text);
+		return badge+
+			val[0]+","+
+			val[1]+","+
+			val[2]+","+
+			val[3]+","+
+			val[4];
 	}
 	
-	private static String mark2text(int[] val){
-		return String.format(
-			"%d,%d,%d,%d,%d", 
-			val[0],val[1],val[2],val[3],val[4]
-		);//依序為'巷','弄','號','之','樓'
-	}
-	
-	@SuppressWarnings("unused")
 	private static String dbg_notation = null; 
 	
 	public static String notation(String txt,final String code){
@@ -365,48 +353,47 @@ public class ZipcodeTW {
 				System.err.print("X--> "+name+" without zipcode\n");
 				return "?";//沒給郵遞區號，直接放棄這資料
 			}
-			txt = txt.substring(0, pos);//只剩門號就好
+			txt = txt.substring(0, pos);//只剩門號的邏輯判斷
 		}
 		
 		//有門牌號碼，判斷範圍，決定是單，雙，連號，至，以上或以下
 		if(txt.matches(".*[單雙]?[全]")==true){
 			//System.out.printf("%s\n",dbg_notation);//checking
-			
-			String cmd = "*";//至少一定是'全'
-			if(txt.equalsIgnoreCase("全")==true){
-				return cmd;
-			}else if(txt.endsWith("單全")==true){
-				txt = txt.replace("單全", "");
-				cmd = "A";	
-			}else if(txt.endsWith("雙全")==true){
-				txt = txt.replace("雙全", "");
-				cmd = "B";
-			}
-			if(txt.length()==0){
-				return cmd;
-			}
-			return cmd+mark2text(find_mark(txt));
+			txt = txt.substring(0, txt.length()-1);
+			return "*"+text2badge(txt);
 			
 		}else if(txt.matches(".*[單雙連]?.+以[上下]")==true){
-			System.out.printf("%s\n",dbg_notation);//checking
+			//System.out.printf("%s\n",dbg_notation);//checking
+			int len = txt.length();
+			char tkn = txt.charAt(len-1);
+			txt = txt.substring(0,len-2);
+			if(tkn=='上'){
+				return ">"+text2badge(txt);
+			}else if(tkn=='下'){
+				return "<"+text2badge(txt);
+			}
 			
 		}else if(txt.matches(".*[單雙連]?.+至.+")==true){
 			//System.out.printf("%s\n",dbg_notation);//checking
-				
+			int pos = txt.indexOf('至');
+			String prev = txt.substring(0,pos);
+			String post = txt.substring(pos+1);
+			int[] vtx = find_mark(post);
+			return "~"+
+				text2badge(prev)+","+
+				vtx[0]+","+vtx[1]+","+vtx[2]+","+vtx[3]+","+vtx[4];
+			
 		}else{
 			//System.out.printf("%s\n",dbg_notation);//checking
 			//只剩"門號"+[含附號][及以上附號]
 			String cmd = null;
 			if(txt.endsWith("含附號")==true){
-				txt = txt.replace("含附號", "");
-				cmd = "W";
+				
 			}else if(txt.endsWith("及以上附號")==true){
-				txt = txt.replace("及以上附號", "");
-				cmd = "S";
+				
 			}else{
-				cmd = "@";
+				return "@"+text2badge(txt);
 			}
-			return cmd+mark2text(find_mark(txt));
 		}
 		return "?";
 	}
