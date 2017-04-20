@@ -5,11 +5,11 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Properties;
 
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.geometry.Insets;
@@ -26,6 +26,7 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.RowConstraints;
 import javafx.scene.layout.StackPane;
 import javafx.stage.FileChooser;
+import javafx.util.Duration;
 import narl.itrc.Misc;
 
 /**
@@ -35,146 +36,135 @@ import narl.itrc.Misc;
  */
 public class WidMapPiping extends StackPane {
 
-	private BooleanProperty modeEdit = new SimpleBooleanProperty(true);
+	private BooleanProperty modeEdit = new SimpleBooleanProperty(false);
 	
-	public WidMapPiping(String full_name){
+	public WidMapPiping(){
 		
-		path_cell_file = full_name;
-
 		ScrollPane pan0 = new ScrollPane();
 		pan0.setHbarPolicy(ScrollBarPolicy.ALWAYS);
 		pan0.setVbarPolicy(ScrollBarPolicy.ALWAYS);
 		pan0.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
-		pan0.setContent(init_grid());		
-		
+		pan0.setContent(init_grid());	
+
 		setPadding(new Insets(17,17,17,17));
-		getChildren().addAll(pan0);
+		getChildren().addAll(pan0);		
 	}
 	
-	public WidMapPiping(){		
-		this("");		
+	public WidMapPiping(String xml_name){
+		this();		
+		load_cell(xml_name);		
 	}
-		
+	//----------------------------------//
+	
 	private static final int CELL_SIZE = 60;
-
-	private class CellView extends Group{
+	
+	private CellView cur_cell;
+	
+	private class CellView extends Group {
 		
-		private int[] loc = {0, 0};
-		private int[] tid = {3, 0};
+		public String hashLoc = null;
+
+		public int t_id[] = {0, 0, 0};
+		
+		public boolean working = false;
 		
 		private ImageView back = new ImageView();
 		private ImageView midd = new ImageView();
 		private ImageView frnt = new ImageView();
 
 		public CellView(int gx, int gy){
-
-			loc[0] = gx;
-			loc[1] = gy;
 			
+			hashLoc = String.format("%d#%d", gx, gy);
+	
 			back.setFitWidth(CELL_SIZE);
 			back.setFitHeight(CELL_SIZE);
-			
 			midd.setFitWidth(CELL_SIZE);
 			midd.setFitHeight(CELL_SIZE);
-			
 			frnt.setFitWidth(CELL_SIZE);
 			frnt.setFitHeight(CELL_SIZE);
-			
-			editMode();
+
+			setPickOnBounds(true);
+			getChildren().addAll(back,midd,frnt);
 			
 			setOnMouseEntered(event->{
-				if(modeEdit.get()==true){
-					cursor = this;					
-					frnt.setImage(imgCursor);					
+				cur_cell = this;
+				if(modeEdit.get()==true){					
+					update_cell_image();
 				}else{
-					cursor = null;
-				}				
+				}		
 			});
 			setOnMouseClicked(event->{
 				if(event.getButton()!=MouseButton.PRIMARY){
 					return;
 				}
-				
+				if(modeEdit.get()==true){
+					t_id[0] = cur_tid[0];
+					t_id[1] = cur_tid[1];
+					midd.setImage(imgCell[t_id[0]][t_id[1]][0]);
+				}else{
+					working = !working;
+					if(working==true){
+						do_working();
+					}else{
+						frnt.setImage(null);
+					}
+				}
 			});
 			setOnMouseExited(event->{
-				cursor = null;
-				if(modeEdit.get()==true){
+				cur_cell = null;
+				if(modeEdit.get()==true){					
+					midd.setImage(imgCell[t_id[0]][t_id[1]][0]);
 					frnt.setImage(null);
+				}else{
+					
 				}				
-			});
-			setPickOnBounds(true);
-			getChildren().addAll(back,midd,frnt);
+			});			
 		}
 		
-		public String getHashLoc(){
-			return String.format("%d,%d", loc[0],loc[1]);
+		public String getHashID(){
+			return String.format("%d#%d", t_id[0], t_id[1]);
 		}
 		
-		public void setHashLoc(String txt){
-			set_hash(",", loc, txt);
+		public void setHashID(String txt){
+			String[] val = txt.split("#");
+			t_id[0] = Integer.valueOf(val[0]);
+			t_id[1] = Integer.valueOf(val[1]);
+			t_id[2] = 0;//always, reset this value~~~
+			midd.setImage(imgCell[t_id[0]][t_id[1]][t_id[2]]);
 		}
 		
-		public String getHashTID(){
-			return String.format("%d#%d", tid[0],tid[1]); 
-		}
-		
-		public void setHashTID(String txt){
-			set_hash("#", tid, txt);
-		}
-		
-		private void set_hash(String tkn, int[] dat, String txt){
-			String[] val = txt.split(tkn);
-			dat[0] = Integer.valueOf(val[0]);
-			dat[1] = Integer.valueOf(val[1]);
-		}
-		
-		private void prev(){
-			if(modeEdit.get()==false){
-				return;
-			}
-			/*t_cat--;
-			if(t_cat<0){
-				t_cat = tile.length - 1;
-			}
-			t_dir = 0;//reset this variable
-			midd.setImage(tile[t_cat][t_dir]);*/
-		}
-		
-		private void next(){
-			if(modeEdit.get()==false){
-				return;
-			}
-			/*t_cat = (t_cat + 1) % tile.length;
-			t_dir = 0;//reset this variable
-			midd.setImage(tile[t_cat][t_dir]);*/
-		}
-		
-		private void editMode(){
-			if(modeEdit.get()==false){
-				back.setImage(null);
-			}else{
-				back.setImage(imgBlueprint);
-			}
-		}
-		
-		private void clear(){
-			if(modeEdit.get()==false){
-				return;
-			}
-			//t_cat = t_dir = 0;//reset this variable
-			//midd.setImage(null);
-		}
-		
-		private void rotate(){
-			if(modeEdit.get()==false){
-				return;
-			}
-			//t_dir = (t_dir+1) % tile[t_cat].length;
-			//midd.setImage(tile[t_cat][t_dir]);
-		}
+		private void do_working(){
+			int len = imgCell[t_id[0]][t_id[1]].length;
+			t_id[2] = (t_id[2] + 1) % len;
+			if(t_id[2]==0){
+				t_id[2] = 1;
+			}			
+			frnt.setImage(imgCell[t_id[0]][t_id[1]][t_id[2]]);
+		}		
 	};
+	
+	/**
+	 * There are two checking point, mode_change() and write_cell_from()
+	 */
+	private ArrayList<CellView> lstCell = new ArrayList<CellView>();
 
-	private CellView cursor;
+	private Timeline watcher = new Timeline(new KeyFrame(
+		Duration.millis(250),
+		event->{
+			if(modeEdit.get()==true){
+				return;
+			}
+			//animation for CellView, it is ugly polling.....			
+			for(CellView cv:lstCell){
+				if(cv.working==false){
+					continue;
+				}
+				cv.do_working();
+			}
+		}
+	));
+	//----------------------------------//
+
 	private GridPane grid = new GridPane();
 	
 	private static final int rows = 13;
@@ -198,73 +188,105 @@ public class WidMapPiping extends StackPane {
 				grid.add(new CellView(i,j), i, j);
 			}
 		}
-		if(path_cell_file.length()!=0){
-			File fs = new File(path_cell_file);
-			if(fs.exists()==true){
-				get_cell(fs);//load object from file
-			}			
-		}
+		mode_change(modeEdit.get());//refresh cell-view
 		
-		//sadly, we can`t set key event for Grid Panel
+		//start to play animation~~~
+		watcher.setCycleCount(Timeline.INDEFINITE);
+		watcher.play();
+
+		//Why we can`t hook key event for Grid Panel?
 		setOnKeyPressed(event->{
+			if(Misc.shortcut_edit.match(event)==true){
+				mode_change();
+				return;
+			}
+			if(modeEdit.get()==false){
+				return;
+			}
 			if(Misc.shortcut_save.match(event)==true){
 				save_cell();
 			}else if(Misc.shortcut_load.match(event)==true){
-				load_cell();
-			}else if(Misc.shortcut_edit.match(event)==true){
-				edit_grid();
+				load_cell();	
 			}else{
 				KeyCode cc = event.getCode();
-				if(cc==KeyCode.Q){				
-					cursor.prev();
-				}else if(cc==KeyCode.E){		
-					cursor.next();
-				}else if(cc==KeyCode.W || cc==KeyCode.DELETE){
-					cursor.clear();
-				}else if(cc==KeyCode.R){
-					cursor.rotate();
+				if(cur_cell==null){
+					return;
+				}
+				if(cc==KeyCode.A){				
+					prev_cell();
+				}else if(cc==KeyCode.D){		
+					next_cell();
+				}else if(cc==KeyCode.W){
+					prev_germ();
+				}else if(cc==KeyCode.S){
+					next_germ();
+				}else if(cc==KeyCode.DELETE){
+					clear_cell_view();
 				}
 			}			
 		});		
 		return grid;
 	}
 
-	private void edit_grid(){
-		//grid.setGridLinesVisible(true);
+	private void mode_change(){
 		boolean flag = modeEdit.get();
-		flag = !flag;
+		flag = !flag;		
+		mode_change(flag);
+	}
+	
+	private void mode_change(boolean flag){
+		//grid.setGridLinesVisible(true);
 		modeEdit.set(flag);
-		for(int j=0; j<rows; j++){
-			for(int i=0; i<cols; i++){
-				//cell[j][i].editMode();
+		lstCell.clear();
+		for(Node nd:grid.getChildren()){
+			CellView cv = (CellView)nd;
+			if(cv.midd.getImage()!=null){
+				lstCell.add(cv);
 			}
+			if(flag==true){
+				cv.back.setImage(imgBlueprint);				
+			}else{
+				cv.back.setImage(null);
+			}
+			cv.frnt.setImage(null);
 		}
 	}
-
-	private String path_cell_file = "";//full path name of grid file
+	//----------------------------------//
 	
 	private void save_cell(){
 		FileChooser dia = new FileChooser();
 		dia.setTitle("儲存為...");
-		if(path_cell_file.length()!=0){
-			dia.setInitialFileName(path_cell_file);
-		}
 		File fs = dia.showSaveDialog(getScene().getWindow());
 		if(fs==null){
 			return;
 		}
-		put_cell(fs);
+		write_cell_to(fs);
+	}
+
+	private void load_cell(){
+		FileChooser dia = new FileChooser();
+		dia.setTitle("讀取...");
+		File fs = dia.showOpenDialog(getScene().getWindow());
+		if(fs==null){
+			return;
+		}
+		read_cell_from(fs);
+	}	
+	
+	public void load_cell(String path){
+		File fs = new File(path);
+		if(fs.exists()==false){
+			return;
+		}
+		read_cell_from(fs);
 	}
 	
-	private void put_cell(File fs){
+	private void write_cell_to(File fs){
 		try {
 			Properties prop = new Properties();
-			for(Node node:grid.getChildren()){
-				CellView cell = (CellView)node;				
-				prop.setProperty(
-					cell.getHashLoc(), 
-					cell.getHashTID()
-				);
+			for(Node nd:grid.getChildren()){
+				CellView cv = (CellView)nd;				
+				prop.setProperty(cv.hashLoc, cv.getHashID());
 			}
 			FileOutputStream stm = new FileOutputStream(fs);
 			prop.storeToXML(stm, "P&I diagram");
@@ -276,31 +298,17 @@ public class WidMapPiping extends StackPane {
 		}
 	}
 	
-	private void load_cell(){
-		FileChooser dia = new FileChooser();
-		dia.setTitle("讀取...");
-		if(path_cell_file.length()!=0){
-			dia.setInitialFileName(path_cell_file);
-		}
-		File fs = dia.showOpenDialog(getScene().getWindow());
-		if(fs==null){
-			return;
-		}
-		get_cell(fs);
-	}	
-	
-	private void get_cell(File fs){
+	private void read_cell_from(File fs){
 		try {			
 			FileInputStream stm = new FileInputStream(fs);
 			Properties prop = new Properties();
 			prop.loadFromXML(stm);
 			stm.close();
-			for(Node node:grid.getChildren()){
-				CellView cell = (CellView)node;
-				String txt = prop.getProperty(cell.getHashLoc(),"");
-				if(txt.length()!=0){
-					cell.setHashTID(txt);
-				}
+			lstCell.clear();
+			for(Node nd:grid.getChildren()){
+				CellView cv = (CellView)nd;
+				lstCell.add(cv);
+				cv.setHashID(prop.getProperty(cv.hashLoc,"0#0"));
 			}
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
@@ -308,86 +316,151 @@ public class WidMapPiping extends StackPane {
 			e.printStackTrace();
 		} 
 	}
-
+	//----------------------------------//
+	
 	private static final String IMG_DIR = "/narl/itrc/res/tile/";
+	
+	private static final Image imgBlueprint = new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"blueprint.png"));
 	
 	private static final Image imgCursor = new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"cursor.png"));
 	
-	private static final Image imgBlueprint = new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"blureprint.png"));
+	private int[] cur_tid = { 1, 0 };
 	
-	private static Image[][] tile = {
-		{	null	},
-		{ 
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"gauge.png"   )), 
+	private void prev_cell(){
+		cur_tid[0]--;
+		if(cur_tid[0]<0){
+			cur_tid[0] = imgCell.length - 1;
+		}
+		cur_tid[1] = 0;//reset this index~~~
+		update_cell_image();
+	}
+	
+	private void next_cell(){
+		cur_tid[0] = (cur_tid[0]+1)%imgCell.length;
+		cur_tid[1] = 0;//reset this index~~~
+		update_cell_image();
+	}
+	
+	private void prev_germ(){
+		int len = imgCell[cur_tid[0]].length;
+		cur_tid[1]--;
+		if(cur_tid[1]<0){
+			cur_tid[1] = len-1;
+		}
+		update_cell_image();
+	}
+	
+	private void next_germ(){
+		int len = imgCell[cur_tid[0]].length;
+		cur_tid[1] = (cur_tid[1]+1)%len;
+		update_cell_image();
+	}
+
+	private void update_cell_image(){
+		if(cur_cell==null){
+			cur_cell.frnt.setImage(imgCursor);
+			return;
+		}
+		int i = cur_tid[0];
+		int j = cur_tid[1];
+		cur_cell.frnt.setImage(imgCell[i][j][0]);
+		cur_cell.midd.setImage(null);
+	}
+	
+	private void clear_cell_view(){
+		if(cur_cell==null){
+			return;
+		}
+		cur_cell.midd.setImage(null);
+		cur_cell.frnt.setImage(null);
+		cur_cell.setHashID("0#0");
+	}
+	
+	private static final Image[] p_ani = {
+		new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pump-1.png")),
+		new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pump-2.png")),
+		new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pump-3.png")),
+		new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pump-4.png")),
+		new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pump-5.png")),
+		new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pump-6.png")),
+		new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pump-7.png")),
+		new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pump-8.png")),
+	};
+	
+	private static final Image[] c_ani = {
+		new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"chuck-1.png")),
+		new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"chuck-2.png")),
+		new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"chuck-3.png")),
+		new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"chuck-4.png")),
+		new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"chuck-5.png")),
+		new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"chuck-6.png")),
+	};
+	
+	private static final Image[][][] imgCell = {
+		{//0：dummy image!!!
+			{ null, null, } 
 		},
-		{ 
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"valve.png"   )), 
+		{//1：pipe 
+			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pipe-a1.png")), null, },
+			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pipe-a2.png")), null, },
+			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pipe-b1.png")), null, },
+			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pipe-b2.png")), null, },
+			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pipe-b3.png")), null, },
+			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pipe-b4.png")), null, },
+			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pipe-c1.png")), null, },
+			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pipe-c2.png")), null, },
+			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pipe-c3.png")), null, },
+			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pipe-c4.png")), null, },
 		},
-		{
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"gun-01.png"  )),
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"gun-02.png"  )),
+		{//2：gauge
+			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"gauge.png")), null, },
 		},
-		{
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"holder-01.png")),
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"holder-02.png")),
+		{//3：pump 
+			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pump-a1.png")), p_ani[0], p_ani[1], p_ani[2], p_ani[3], p_ani[4], p_ani[5], p_ani[6], p_ani[7], },
+			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pump-a2.png")), p_ani[0], p_ani[1], p_ani[2], p_ani[3], p_ani[4], p_ani[5], p_ani[6], p_ani[7], },
+			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pump-b.png" )), p_ani[0], p_ani[1], p_ani[2], p_ani[3], p_ani[4], p_ani[5], p_ani[6], p_ani[7], },
+			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pump-c.png" )), p_ani[0], p_ani[1], p_ani[2], p_ani[3], p_ani[4], p_ani[5], p_ani[6], p_ani[7], },
 		},
-		{
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pump1-01.png")),
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pump1-02.png")),
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pump1-03.png")),
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pump2-01.png")),
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pump2-02.png")),
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pump2-03.png")),
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pump3-01.png")),
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pump3-02.png")),
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pump3-03.png")),
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pump4.png"   )),
+		{//4：tank
+			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"tank-a1.png")), null, },
+			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"tank-a2.png")), null, },
+			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"tank-b1.png")), null, },
+			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"tank-b2.png")), null, },
 		},
-		{
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"tank1-01.png")),
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"tank1-02.png")),
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"tank1-03.png")),
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"tank1-04.png")),
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"tank2-01.png")),
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"tank2-02.png")),
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"tank2-03.png")),
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"tank2-04.png")),
+		{//5：valve 
+			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"valve.png")), new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"valve-1.png")), },
 		},
-		{ 
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pipe2-01.png")),
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pipe2-02.png")),
+		{//6：wall
+			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"wall-a1.png")), null, },
+			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"wall-a2.png")), null, },
+			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"wall-a3.png")), null, },
+			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"wall-a4.png")), null, },
+			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"wall-b1.png")), null, },
+			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"wall-b2.png")), null, },
+			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"wall-b3.png")), null, },
+			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"wall-b4.png")), null, },
+			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"wall-c1.png")), null, },
+			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"wall-c2.png")), null, },
+			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"wall-c3.png")), null, },
+			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"wall-c4.png")), null, },
 		},
-		{
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pipe2-03.png")),		
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pipe2-04.png")),
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pipe2-05.png")),
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pipe2-06.png")),
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pipe2-07.png")),
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pipe2-08.png")),
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pipe2-09.png")),
+		{//7：sputter-gun
+			{ 
+				new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"gun-a1.png")),
+				new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"gun-a1-1.png")),
+				new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"gun-a1-2.png")), 
+				new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"gun-a1-3.png")), 
+			},
+			{ 
+				new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"gun-a2.png")),
+				new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"gun-a2-1.png")),
+				new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"gun-a2-2.png")), 
+				new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"gun-a2-3.png")), 
+			},
 		},
-		{
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pipe3-01.png")),
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pipe3-02.png")),
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pipe3-03.png")),
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pipe3-04.png")),
-		},
-		{
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pipe4.png"   )),
-		},
-		{
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"wall-01.png" )),
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"wall-11.png" )),
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"wall-02.png" )),
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"wall-03.png" )),
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"wall-13.png" )),
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"wall-04.png" )),
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"wall-05.png" )),
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"wall-15.png" )),
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"wall-06.png" )),
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"wall-07.png" )),
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"wall-17.png" )),
-			new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"wall-08.png" )),			
+		{//8：chuck, or stage
+			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"chuck-a1.png")), c_ani[0], c_ani[1], c_ani[2], c_ani[3], c_ani[4], c_ani[5], },
+			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"chuck-a2.png")), c_ani[0], c_ani[1], c_ani[2], c_ani[3], c_ani[4], c_ani[5], },
 		},
 	};
 

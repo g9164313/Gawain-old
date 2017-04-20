@@ -161,7 +161,9 @@ Mat align_center(Mat& Src){
 
 int main(int argc, char* argv[]){
 
-	Mat src = imread("./wiggle/snap-04.png",IMREAD_GRAYSCALE);
+	Vec4i gg;
+
+	/*Mat src = imread("./wiggle/snap-04.png",IMREAD_GRAYSCALE);
 
 	Rect roi;
 
@@ -174,6 +176,7 @@ int main(int argc, char* argv[]){
 	src = align_center(src);
 
 	TICK_END("thres")
+	*/
 
 	//Rect rect(bord,bord,src.cols-bord*2,src.rows-bord*2);
 	//TICK_BEG
@@ -181,7 +184,7 @@ int main(int argc, char* argv[]){
 	//msk = 250 * (msk - GC_PR_BGD);
 	//TICK_END("grabcut")
 
-	imwrite("./wiggle/mask.png",src);
+	//imwrite("./wiggle/mask.png",src);
 
 	return 0;
 }

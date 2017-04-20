@@ -22,6 +22,8 @@ public class PanSputter extends PanBase {
 	
 	private DevSPIK2000 devSPIK2K = new DevSPIK2000();
 	
+	private WidMapPiping map = new WidMapPiping();
+	
 	@Override
 	protected void eventShown(WindowEvent e){
 		//devSQM160.open("/dev/ttyS0,19200,8n1");
@@ -46,16 +48,17 @@ public class PanSputter extends PanBase {
 			btn
 		);
 
-		WidMapPiping map = new WidMapPiping(Misc.pathSock+"PID.xml");
+		map.load_cell(Misc.pathSock+"PID.xml");
 		
 		BorderPane root = new BorderPane();
-		root.setRight(lay_setting);
+		//root.setRight(lay_setting);
 		root.setCenter(map);
 		root.setLeft(lay_gauge());
 		return root;
 	}
 	
 	private Node lay_gauge(){
+		
 		GridPane lay = new GridPane();//show all sensor
 		lay.getStyleClass().add("grid-medium-vertical");
 		

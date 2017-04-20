@@ -132,8 +132,8 @@ $(TARGET_EXE):  ./wrap-unix/main2.cpp ./wrap-unix/misc.cpp $(CORE_FILE)
 #$(TARGET_EXE):  ./wrap-unix/FlyCap2.cpp
 	$(CC) $(CC_FLAG) -o $@ $^ $(LD_LIBS)
 
-all: $(TARGET_SO)
-#all: $(TARGET_EXE)
+#all: $(TARGET_SO)
+all: $(TARGET_EXE)
 #all: $(TARGET_EXE) $(TARGET_SO) 
 
 clean:
