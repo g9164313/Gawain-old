@@ -763,6 +763,26 @@ public class Misc {
 		return txt.substring(0,pos);
 	}
 	
+	public static String trimAppx(String txt){
+		int pos = txt.lastIndexOf(".");
+		if(pos<0){
+			return txt;
+		}
+		return txt.substring(0,pos);
+	}
+	
+	public static String trim_path_appx(String txt){
+		int beg = txt.lastIndexOf(File.separatorChar);
+		if(beg<0){
+			beg=0;
+		}
+		int end = txt.lastIndexOf(".");
+		if(end<0){
+			end = txt.length();
+		}
+		return txt.substring(beg,end);
+	}
+	
 	public static String trimSeparator(String txt){
 		int len = txt.length();
 		if(txt.charAt(len-1)==File.separatorChar){

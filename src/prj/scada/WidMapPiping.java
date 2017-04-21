@@ -12,11 +12,13 @@ import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
-import javafx.geometry.Insets;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.ScrollPane.ScrollBarPolicy;
+import javafx.scene.control.TextInputDialog;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
@@ -41,12 +43,14 @@ public class WidMapPiping extends StackPane {
 	public WidMapPiping(){
 		
 		ScrollPane pan0 = new ScrollPane();
-		pan0.setHbarPolicy(ScrollBarPolicy.ALWAYS);
-		pan0.setVbarPolicy(ScrollBarPolicy.ALWAYS);
+		//pan0.setHbarPolicy(ScrollBarPolicy.ALWAYS);
+		//pan0.setVbarPolicy(ScrollBarPolicy.ALWAYS);
 		pan0.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
-		pan0.setContent(init_grid());	
-
-		setPadding(new Insets(17,17,17,17));
+		pan0.getStyleClass().add("pad-small");
+		pan0.setContent(init_grid());
+				
+		//setPadding(new Insets(17,17,17,17));
+		getStyleClass().addAll("pad-medium");
 		getChildren().addAll(pan0);		
 	}
 	
@@ -68,6 +72,10 @@ public class WidMapPiping extends StackPane {
 		
 		public boolean working = false;
 		
+		public String name = "";
+		
+		public EventHandler<ActionEvent> eventHook = null;
+		
 		private ImageView back = new ImageView();
 		private ImageView midd = new ImageView();
 		private ImageView frnt = new ImageView();
@@ -75,7 +83,7 @@ public class WidMapPiping extends StackPane {
 		public CellView(int gx, int gy){
 			
 			hashLoc = String.format("%d#%d", gx, gy);
-	
+			
 			back.setFitWidth(CELL_SIZE);
 			back.setFitHeight(CELL_SIZE);
 			midd.setFitWidth(CELL_SIZE);
@@ -108,6 +116,11 @@ public class WidMapPiping extends StackPane {
 					}else{
 						frnt.setImage(null);
 					}
+					//just launch once~~~ 
+					if(eventHook!=null){
+						final ActionEvent obj = new ActionEvent(working,null);
+						eventHook.handle(obj);
+					}
 				}
 			});
 			setOnMouseExited(event->{
@@ -122,7 +135,7 @@ public class WidMapPiping extends StackPane {
 		}
 		
 		public String getHashID(){
-			return String.format("%d#%d", t_id[0], t_id[1]);
+			return String.format("%d#%d#%s", t_id[0], t_id[1], name);
 		}
 		
 		public void setHashID(String txt){
@@ -130,6 +143,9 @@ public class WidMapPiping extends StackPane {
 			t_id[0] = Integer.valueOf(val[0]);
 			t_id[1] = Integer.valueOf(val[1]);
 			t_id[2] = 0;//always, reset this value~~~
+			if(val.length==3){
+				name = val[2];
+			}
 			midd.setImage(imgCell[t_id[0]][t_id[1]][t_id[2]]);
 		}
 		
@@ -147,7 +163,28 @@ public class WidMapPiping extends StackPane {
 	 * There are two checking point, mode_change() and write_cell_from()
 	 */
 	private ArrayList<CellView> lstCell = new ArrayList<CellView>();
-
+	
+	public void setCellAction(String name,EventHandler<ActionEvent> action){
+		//polling list, find the target~~~
+		for(CellView cv:lstCell){
+			if(cv.name.equals(name)==true){
+				cv.eventHook = action;
+				return;
+			}
+		}
+		Misc.loge("No Cell -> %s", name);		
+	} 
+	
+	public void setCellWorking(String name,boolean flag){
+		for(CellView cv:lstCell){
+			if(cv.name.equals(name)==true){
+				cv.working = flag;
+				return;
+			}
+		}
+		Misc.loge("No Cell -> %s", name);
+	}
+	
 	private Timeline watcher = new Timeline(new KeyFrame(
 		Duration.millis(250),
 		event->{
@@ -173,7 +210,7 @@ public class WidMapPiping extends StackPane {
 	private GridPane init_grid(){
 		
 		grid.setMinSize(0., 0.);//force to the same size~~~
-		//grid.setStyle("-fx-background-color:#217acc;");
+		grid.setStyle("-fx-background-color:#FFFFFF;");
 		
 		for(int i=0; i<cols; i++){
 			ColumnConstraints col = new ColumnConstraints(CELL_SIZE);
@@ -220,6 +257,13 @@ public class WidMapPiping extends StackPane {
 					prev_germ();
 				}else if(cc==KeyCode.S){
 					next_germ();
+				}else if(cc==KeyCode.F){
+					final TextInputDialog dia = new TextInputDialog(cur_cell.name);
+					dia.setTitle("設定名稱");
+					dia.setContentText("名稱：");
+					if(dia.showAndWait().isPresent()==true){
+						cur_cell.name = dia.getResult();
+					}
 				}else if(cc==KeyCode.DELETE){
 					clear_cell_view();
 				}
@@ -285,7 +329,7 @@ public class WidMapPiping extends StackPane {
 		try {
 			Properties prop = new Properties();
 			for(Node nd:grid.getChildren()){
-				CellView cv = (CellView)nd;				
+				CellView cv = (CellView)nd;
 				prop.setProperty(cv.hashLoc, cv.getHashID());
 			}
 			FileOutputStream stm = new FileOutputStream(fs);

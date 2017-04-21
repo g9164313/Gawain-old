@@ -40,6 +40,13 @@
 	-fx-text-fill: BLACK;
 }
 
+.txt-medium {
+	-fx-font-size: 20px;
+	/*-fx-border-color: #455a64;*/
+	-fx-label-padding: 7,0,0,7;
+}
+
+
 .hbox-small, .vbox-small{
     -fx-padding: 7;
     -fx-spacing: 7;
@@ -58,47 +65,50 @@
     -fx-spacing: 13;
 }
 
-.hbox-test, .vbox-test{
+.hbox-test, .vbox-test {
 	-fx-border-color: #3375FF;
     -fx-padding: 13;
     -fx-spacing: 13;
 }
 
-.hbox-one-line{
+.hbox-one-line {
 	-fx-alignment: center-left;
     -fx-spacing: 7.0;
 }
 
-.pad-medium{
+.pad-small {
+    -fx-padding: 3px;
+}
+.pad-medium {
     -fx-padding: 17px;
 }
 .pad-huge{
     -fx-padding: 24px;
 }
 
-.grid-small{
+.grid-small {
     -fx-padding: 3px;
     -fx-hgap: 3px;
     -fx-vgap: 3px;
 }
 
-.grid-medium{
+.grid-medium {
     -fx-padding: 7px;
     -fx-hgap: 7px;
     -fx-vgap: 7px;
 }
-.grid-medium-horizontal{
-    -fx-padding: 7px;
-    -fx-hgap: 14px;
-    -fx-vgap: 7px;
+.grid-medium-horizontal {
+    -fx-padding: 14px 7px 14px 7px;
+    -fx-hgap: 21px;
+    -fx-vgap: 3px;
 }
-.grid-medium-vertical{
-    -fx-padding: 7px;
-    -fx-hgap: 7px;
+.grid-medium-vertical {
+    -fx-padding: 14px 7px 14px 7px;
+    -fx-hgap: 3px;
     -fx-vgap: 21px;
 }
 
-.grid-large{
+.grid-large {
     -fx-padding: 13px;
     -fx-hgap: 13px;
     -fx-vgap: 13px;
@@ -120,15 +130,15 @@
 	-fx-padding: 7 7 7 7;
 }
 
-.toggle-small{
+.toggle-small {
     -fx-padding: 0.3em;
     -fx-spacing: 0.3em;
 }
 
-.tabs-body{
+/*.tabs-body {
 	-fx-background-color: -fx-body-color, -fx-inner-border; 
     -fx-background-insets: 0, 2;
-}
+}*/
 
 .decorate0-title {
 	/*-fx-translate-y: -20;*/

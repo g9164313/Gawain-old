@@ -572,6 +572,8 @@ public abstract class PanBase {
 	){
 		JFXButton btn = new JFXButton(title);
 		btn.getStyleClass().add(styleName);
+		btn.setMinWidth(110);
+		btn.setMaxWidth(Double.MAX_VALUE);
 		if(iconName!=null){
 			if(iconName.length()!=0){
 				btn.setGraphic(Misc.getIcon(iconName));
