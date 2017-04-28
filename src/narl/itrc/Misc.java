@@ -772,7 +772,7 @@ public class Misc {
 	}
 	
 	public static String trim_path_appx(String txt){
-		int beg = txt.lastIndexOf(File.separatorChar);
+		int beg = txt.lastIndexOf(File.separatorChar)+1;
 		if(beg<0){
 			beg=0;
 		}

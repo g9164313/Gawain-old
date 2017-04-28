@@ -10,9 +10,49 @@
 using namespace cv;
 using namespace face;
 
-int main6(int argc, char* argv[]){
+extern int test_sfr(
+	Mat& img,
+	double scale,
+	vector<double>& frq,
+	vector<double>& sfr
+);
 
-	//Ptr<LBPHFaceRecognizer> mod = createLBPHFaceRecognizer();
+int main(int argc, char* argv[]){
+
+	//Mat img = imread("./test-0503.bmp",IMREAD_GRAYSCALE);
+	Mat img = imread("./test-0619.bmp",IMREAD_GRAYSCALE);
+
+	img = checkMono(img,NULL);
+
+	double scale = (1./5.)*1000.;
+	vector<double> frq, sfr;
+	int idx;
+	Mat roi;
+
+	//roi = img(Rect(130,100,36,36));
+	roi = img(Rect(115,88,36,36));
+	idx = test_sfr(roi, scale, frq, sfr);
+	printf("LF_TP:MTF50=(%.1f, %.1f)\n\n",frq[idx],sfr[idx]);
+
+	//roi = img(Rect(126,409,36,36));
+	roi = img(Rect(111,403,36,36));
+	idx = test_sfr(roi, scale, frq, sfr);
+	printf("LF_BM:MTF50=(%.1f, %.1f)\n\n",frq[idx],sfr[idx]);
+
+	//roi = img(Rect(359,294,36,36));
+	roi = img(Rect(350,286,36,36));
+	idx = test_sfr(roi, scale, frq, sfr);
+	printf("CENTR:MTF50=(%.1f, %.1f)\n\n",frq[idx],sfr[idx]);
+
+	//roi = img(Rect(596,103,36,36));
+	roi = img(Rect(586,95,36,36));
+	idx = test_sfr(roi, scale, frq, sfr);
+	printf("RH_TP:MTF50=(%.1f, %.1f)\n\n",frq[idx],sfr[idx]);
+
+	//roi = img(Rect(597,413,36,36));
+	roi = img(Rect(586,404,36,36));
+	idx = test_sfr(roi, scale, frq, sfr);
+	printf("RH_BM:MTF50=(%.1f, %.1f)\n\n",frq[idx],sfr[idx]);
 
 	return 0;
 }
@@ -159,7 +199,7 @@ Mat align_center(Mat& Src){
 	return res;
 }
 
-int main(int argc, char* argv[]){
+int main4(int argc, char* argv[]){
 
 	Vec4i gg;
 

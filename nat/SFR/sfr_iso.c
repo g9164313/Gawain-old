@@ -457,8 +457,10 @@ unsigned short check_slope(
 		double bestcycle, x;
 
 		if (absslope > (double) (5.0 / 4.0)) {
-			fprintf(stderr, "ERROR: Edge angle (%f) is too large\n",
-					atan(slope) * 180 / M_PI);
+			fprintf(stderr,
+				"ERROR: Edge angle (%f) is too large\n",
+				atan(slope) * 180 / M_PI
+			);
 			return 1;
 		}
 
@@ -573,11 +575,8 @@ unsigned short bin_to_regular_xgrid(
 	}
 
 	if (nzeros > 0) {
-		fprintf(stderr,
-				"\nWARNING: %d Zero counts found during projection binning.\n",
-				nzeros);
-		fprintf(stderr,
-				"The edge angle may be large, or you may need more lines of data.\n\n");
+		fprintf(stderr,"\nWARNING: %d Zero counts found during projection binning.\n",nzeros);
+		fprintf(stderr,"The edge angle may be large, or you may need more lines of data.\n");
 	}
 	return nzeros;
 }

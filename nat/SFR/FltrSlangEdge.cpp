@@ -163,4 +163,80 @@ extern "C" JNIEXPORT void JNICALL Java_prj_daemon_FltrSlangEdge_implSfrProc(
 	free(Disp);
 }
 
+extern int test_sfr(
+	Mat& img,
+	double scale,
+	vector<double>& frq,
+	vector<double>& sfr
+){
+
+	Mat dat;
+	img.convertTo(dat,CV_64FC1);
+
+	double *gray_v;
+	int size_x, size_y;
+
+	double *Freq = NULL;
+	double *Disp = NULL;
+	int bin_len;
+	double slope;
+	int numcycles = 0;
+	int center;
+	double off, R2;
+	int g_version = 0;
+
+	gray_v = (double*)dat.ptr();
+	size_x = dat.cols;
+	size_y = dat.rows;
+
+	short err = sfrProc(
+		gray_v, size_x, &size_y,
+		&Freq,
+		&Disp,
+		&bin_len,
+		&slope, &numcycles,
+		&center,/* location of edge mid-point */
+		&off,   /* shift to center edge */
+		&R2 /* linear edge fit */,
+		g_version, /* version */
+		0, /* iterate */
+		0  /* provide user angle */
+	);
+
+	frq.clear();
+	sfr.clear();
+
+	int idxMTF50 = 0;
+	for(int i = 0; i<bin_len/2; i++) {
+		double v_frq, v_sfr;
+		double freq, fd_scale;
+
+		freq = M_PI * Freq[i];
+
+		if (g_version & 4){
+			freq /= 2.0; /* [-1 0 1] */
+		}else{
+			freq /= 4.0; /* [-1 1] */
+		}
+
+		if (freq == 0.0){
+			fd_scale = 1.0;
+		}else{
+			fd_scale = freq / sin(freq);
+		}
+
+		v_frq = Freq[i] * scale;
+		v_sfr = Disp[i] * fd_scale;
+
+		frq.push_back(v_frq);
+		sfr.push_back(v_sfr);
+
+		if(v_sfr<=0.5 && idxMTF50==0){
+			idxMTF50 = i-1;
+		}
+	}
+	return idxMTF50;
+}
+
+
 

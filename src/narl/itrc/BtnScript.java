@@ -33,30 +33,66 @@ public class BtnScript extends JFXButton {
 	};
 	
 	public BtnScript(String title){
-		this(title,"btn-raised-2");
+		this(title,"btn-raised-2",null);
 	}
 	
-	public BtnScript(String title,String style){		
+	public BtnScript(String title,Object obj){
+		this(title,"btn-raised-2",obj);
+	}
+	
+	public BtnScript(String title,String style,Object obj){		
 		getStyleClass().add(style);
 		setText(title);
 		setMinWidth(110);
 		setMaxWidth(Double.MAX_VALUE);
 		setGraphic(icon[0]);
+		thiz = obj;
+	}
+	
+	/**
+	 * let this object provide all functions
+	 */
+	public Object thiz = null;
+	
+	/**
+	 * this object will keep the result~~~
+	 */
+	public Object result = null;
+	
+	private Object tsk_core(
+		final File file,
+		final ScriptEngine parser
+	) throws FileNotFoundException {		
+		try {
+			BufferedReader stream = new BufferedReader(new FileReader(file));
+			result = parser.eval(stream);
+			return result;
+		} catch (ScriptException e) {
+			System.out.println(e.getMessage());
+			//e.printStackTrace();
+			return result;
+		}
 	}
 	
 	public Runnable chkPoint = null;
 	
-	private Object tsk_core(final File fs)  throws Exception {
-		
-		BufferedReader stm = new BufferedReader(new FileReader(fs));
-		
-		ScriptEngine parser = new ScriptEngineManager().getEngineByName("nashorn");
+	@SuppressWarnings("unused")
+	private Object tsk_core_old(
+		final File file,
+		final ScriptEngine parser
+	)  throws Exception {
+		//this way, we regard each Closures as one statement~~~
+		BufferedReader stream = new BufferedReader(new FileReader(file));
 		
 		int cnt = 0;//counter for bracket~~~
 		String stat = "";
+		
 		String line = null;
-		while( (line=stm.readLine())!=null ){
+		while( (line=stream.readLine())!=null ){
 			stat = stat + line;
+			if(stat.length()==0){
+				continue;
+			}
 			cnt += count_bracket(line);
 			if(cnt==0){
 				//we got a statement, throw it into parser~~~
@@ -76,7 +112,7 @@ public class BtnScript extends JFXButton {
 		if(cnt!=0){
 			//something is wrong~~~~
 		}
-		stm.close();
+		stream.close();
 		return null;
 	}
 	
@@ -116,7 +152,7 @@ public class BtnScript extends JFXButton {
 		}
 		
 		if(task!=null){
-			if(task.isDone()==true){
+			if(task.isDone()==false){
 				//cancel task???
 				task.cancel();
 				return false;
@@ -128,7 +164,15 @@ public class BtnScript extends JFXButton {
 		task = new Task<Object>(){			
 			@Override
 			protected Object call() throws Exception {
-				return tsk_core(fs);
+
+				ScriptEngine par = new ScriptEngineManager().getEngineByName("nashorn");
+				
+				result = null;
+				
+				if(thiz!=null){
+					par.put("thiz",thiz);
+				}
+				return tsk_core(fs,par);
 			}
 		};
 		task.setOnCancelled(event->{

@@ -8,6 +8,8 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineFactory;
 import javax.script.ScriptEngineManager;
 
+import com.sun.glass.ui.Application;
+
 import eu.hansolo.medusa.Gauge;
 import eu.hansolo.medusa.Gauge.SkinType;
 import eu.hansolo.medusa.GaugeBuilder;
@@ -37,22 +39,27 @@ public class PanSputter extends PanBase {
 	
 	private WidMapPiping mapper = new WidMapPiping();
 	
-	private File script = null;
+	private String nameScript = Misc.pathSock+"test.js";
 
 	@Override
 	protected void eventShown(WindowEvent e){
 		//devSQM160.open("/dev/ttyS0,19200,8n1");
 		//devSQM160.exec("@");
+		
+		//load the default mapping....
+		mapper.load_cell(Misc.pathSock+"PID.xml");
+		
+		//hook each action of valve or pump
 		mapper.setCellAction("ggyy", event->{
 			boolean flag = (boolean)event.getSource();
 			System.out.println("flag = "+flag);
 		});
 		
 		//load the first recipe script~~~
-		script = new File(Misc.pathSock+"test.js");
+
 	}
 	
-	final BtnScript btnExec = new BtnScript("執行");
+	final BtnScript btnExec = new BtnScript("執行",this);
 	
 	private Runnable eventUpdate = new Runnable(){
 		@Override
@@ -60,6 +67,20 @@ public class PanSputter extends PanBase {
 			
 		}
 	};
+	
+	public void test_print(){
+		final Runnable _tsk = new Runnable(){
+			@Override
+			public void run() {
+			}
+		};
+		if(Application.isEventThread()==false){
+			_tsk.run();
+		}else{
+			Application.invokeAndWait(_tsk);
+		}
+		System.out.println("ggyy");
+	}
 	
 	@Override
 	public Node eventLayout(PanBase pan) {
@@ -70,8 +91,6 @@ public class PanSputter extends PanBase {
 			//spinning(true);
 			Misc.logv("---check---");
 		});
-		
-		mapper.load_cell(Misc.pathSock+"PID.xml");
 
 		BorderPane root = new BorderPane();
 		root.setRight(lay_action());
@@ -85,10 +104,8 @@ public class PanSputter extends PanBase {
 		GridPane lay = new GridPane();//show all sensor
 		lay.getStyleClass().add("grid-medium-vertical");
 		
-		final String DEF_UNKNOW_TXT = "------------";
-		
 		final Label txt[] = {
-			new Label("Recipe："), new Label(DEF_UNKNOW_TXT),
+			new Label("Recipe："), new Label(Misc.trim_path_appx(nameScript)),
 		};
 		for(int i=0; i<txt.length; i++){
 			txt[i].getStyleClass().add("txt-medium");
@@ -102,19 +119,19 @@ public class PanSputter extends PanBase {
 			if(fs==null){
 				return;
 			}
-			script = fs;
-			txt[1].setText(Misc.trim_path_appx(script.getName()));
+			nameScript = fs.getAbsolutePath();
+			txt[1].setText(Misc.trim_path_appx(nameScript));
 		});
 		
 		btnExec.chkPoint = eventUpdate;
 		btnExec.setOnAction(event->{
-			if(script==null){
+			if(nameScript.length()==0){
 				final Alert dia = new Alert(AlertType.INFORMATION);
 				dia.setHeaderText("沒有指定腳本！！");
 				dia.showAndWait();
 				return;
 			}
-			btnExec.eval(script);
+			btnExec.eval(nameScript);
 		});
 
 		final Button btnEdit = PanBase.genButton2("編輯",null);
@@ -129,7 +146,8 @@ public class PanSputter extends PanBase {
 	}
 	
 	private Gauge[] gauge = { 
-		null, null, null, null, null, null, null, 
+		null, null, null, null, 
+		null, null, null, null,
 	};
 	
 	private Node lay_gauge(){
