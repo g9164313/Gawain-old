@@ -163,24 +163,24 @@ public class ZipcodeTW {
 
 		while(set.hasMoreElements()==true){
 		
-			String clue = set.nextElement();
+			String notation = set.nextElement();
 			
 			if(depth>=DEPTH_SIGN_CODE){
 				
-				String zcode = parse_notation(address,clue);
+				String zcode = decide_zipcode(address,notation);
 				if(zcode.length()!=0){
 					return zcode;
 				}
 				
 			}else{
 				
-				int pos = address.indexOf(clue);
+				int pos = address.indexOf(notation);
 				if(pos<0){
 					continue;
 				}
-				address = address.substring(pos+clue.length());
+				address = address.substring(pos+notation.length());
 				
-				root = root.get(clue);
+				root = root.get(notation);
 				if(root==null){
 					return "?????";//WTF!!!
 				}
@@ -191,7 +191,7 @@ public class ZipcodeTW {
 		return "?????";//WTF!!!
 	}
 	
-	private static String parse_notation(
+	private static String decide_zipcode(
 		String address,
 		String notation	
 	){
@@ -200,142 +200,23 @@ public class ZipcodeTW {
 		String zcode = notation.substring(0,6);
 		String badge = notation.substring(6);
 		
-		char tkn1 = badge.charAt(0);
-		char tkn2 = badge.charAt(1);
-		String[] args = badge.substring(2).split(",");
-	
-		int[] val = {
-			Integer.valueOf(args[0]),
-			Integer.valueOf(args[1]),
-			Integer.valueOf(args[2]),
-			Integer.valueOf(args[3]),
-			Integer.valueOf(args[4]),
-		};
 		
-		switch(tkn1){
-		case '?'://ignore this,always fail~~~
-			break;
-		case '*'://全
-
-			break;
-		case '>'://以上
-			break;
-		case '<'://以下
-			break;
-		case '~'://從某門號"至"某門號
-			int[] vtx = {
-				Integer.valueOf(args[0]),
-				Integer.valueOf(args[1]),
-				Integer.valueOf(args[2]),
-				Integer.valueOf(args[3]),
-				Integer.valueOf(args[4]),
-			};
-			break;
-		case '$'://含附號
-		case '%'://及以上附號
-		case '@'://固定門 號
-			break;
-		}
 		return "";
 	}
-	
-	private boolean check_direct(int[] mark, char attr, int[] vals){
-		return true;
-	}
-	
 	//-------------------------------//
-	
-	private static int digiHead, digiTail;
-	
-	private static int find_digital(final String txt,char tkn){
 
-		digiTail = txt.indexOf(tkn);
-		digiHead = digiTail - 1;
-		if(digiTail<0 || digiHead<0){
-			return 0;//we fail~~~~
-		}
-		
-		int value=0;
-		
-		while(digiHead>=0){
-			char cc = txt.charAt(digiHead);
-			if('0'<=cc && cc<='9'){
-				int dd = (int)(cc - '0');
-				value = value + dd*(int)Math.pow(10,digiTail-digiHead-1);
-			}else{
-				break;
-			}
-			digiHead--;
-		}
-		return value;
-	}
-	
-	private static int markHead, markTail;
-	
-	private static void check_mark(){
-		if(digiHead>=-1 && digiHead<markHead){
-			markHead = digiHead;
-		}
-		if(digiTail>0 && markTail<digiTail){
-			markTail = digiTail;
-		}
-	}
-	
 	private static int[] find_mark(String txt){
-		
-		int[] digi = new int[5];//每一欄代表 '巷','弄','號','之','樓'
+		//每一欄代表 '巷','弄','(之)號(樓)'
+		//'(之)號(樓)'為的固定點，也就是連除 40000跟 200，用來表示'之'跟'樓'
+		int[] digi = new int[3];
 		if(txt.length()==0){
 			return digi;//they are all zero!!!
 		}
 		
-		markHead = txt.length();
-		markTail = -1;
-		
-		digi[0] = find_digital(txt,'巷');
-		check_mark();
-
-		digi[1] = find_digital(txt,'弄');
-		check_mark();
-
-		digi[2] = find_digital(txt,'號');
-		check_mark();
-		digi[3] = find_digital(txt,'之');//speical case~~~
-		if(digiTail>=0 && digiTail<markTail){
-			//此時的 digi[4]用來暫時存放，digi[2]與digi[3]互相交換
-			digi[4] = digi[2];
-			digi[2] = digi[3];
-			digi[3] = digi[4];
-			check_mark();
-		}else{
-			digi[3] = 0;//reset this sign, it is invalid~~~
-		}
-
-		digi[4] = find_digital(txt,'樓');
-		check_mark();
-		
 		return digi;
 	} 
 	
-	private static String text2badge(String text){
-		String badge = "-,";
-		//對於最後一組數字的限制
-		if(text.indexOf('單')>=0){
-			badge = "o";//odd
-		}else if(text.indexOf('雙')>=0){
-			badge = "e";//even
-		}else if(text.indexOf('連')>=0){
-			badge = "i";//integration
-		}
-		//依序為'巷','弄','號','之','樓'
-		int[] val = find_mark(text);
-		return badge+
-			val[0]+","+
-			val[1]+","+
-			val[2]+","+
-			val[3]+","+
-			val[4];
-	}
-	
+	@SuppressWarnings("unused")
 	private static String dbg_notation = null; 
 	
 	public static String notation(String txt,final String code){
@@ -356,43 +237,61 @@ public class ZipcodeTW {
 			txt = txt.substring(0, pos);//只剩門號的邏輯判斷
 		}
 		
+		char tkn = '?';
 		//有門牌號碼，判斷範圍，決定是單，雙，連號，至，以上或以下
 		if(txt.matches(".*[單雙]?[全]")==true){
 			//System.out.printf("%s\n",dbg_notation);//checking
-			txt = txt.substring(0, txt.length()-1);
-			return "*"+text2badge(txt);
+			if(txt.endsWith("單全")==true){
+				tkn=10;
+			}else if(txt.endsWith("雙全")==true){
+				tkn=11;
+			}else if(txt.endsWith("全")==true){
+				tkn=12;
+			}
+			return String.format("%c",tkn);
 			
 		}else if(txt.matches(".*[單雙連]?.+以[上下]")==true){
 			//System.out.printf("%s\n",dbg_notation);//checking
-			int len = txt.length();
-			char tkn = txt.charAt(len-1);
-			txt = txt.substring(0,len-2);
-			if(tkn=='上'){
-				return ">"+text2badge(txt);
-			}else if(tkn=='下'){
-				return "<"+text2badge(txt);
+			if(txt.endsWith("以上")==true){
+				tkn=20; 
+			}else if(txt.endsWith("以下")==true){
+				tkn=25;
 			}
+			if(txt.indexOf('單')>=0){
+				tkn =(char)(tkn+1);
+			}else if(txt.indexOf('雙')>=0){
+				tkn =(char)(tkn+2);
+			}else if(txt.indexOf('連')>=0){
+				tkn =(char)(tkn+3);
+			}
+			return String.format("%c",tkn);
 			
 		}else if(txt.matches(".*[單雙連]?.+至.+")==true){
 			//System.out.printf("%s\n",dbg_notation);//checking
-			int pos = txt.indexOf('至');
-			String prev = txt.substring(0,pos);
-			String post = txt.substring(pos+1);
-			int[] vtx = find_mark(post);
-			return "~"+
-				text2badge(prev)+","+
-				vtx[0]+","+vtx[1]+","+vtx[2]+","+vtx[3]+","+vtx[4];
+			if(txt.indexOf('單')>=0){
+				tkn = 31;
+			}else if(txt.indexOf('雙')>=0){
+				tkn = 32;
+			}else if(txt.indexOf('連')>=0){
+				tkn = 33;
+			}else{
+				//Is this possible???
+				System.out.printf("warning-->%s\n",dbg_notation);//checking
+			}
+			int pos = txt.lastIndexOf('至');
+			String sta = txt.substring(0,pos);
+			String off = txt.substring(pos+1);
+			return String.format("%c",tkn);
 			
 		}else{
 			//System.out.printf("%s\n",dbg_notation);//checking
 			//只剩"門號"+[含附號][及以上附號]
-			String cmd = null;
 			if(txt.endsWith("含附號")==true){
 				
 			}else if(txt.endsWith("及以上附號")==true){
 				
 			}else{
-				return "@"+text2badge(txt);
+				
 			}
 		}
 		return "?";
