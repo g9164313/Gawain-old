@@ -10,17 +10,20 @@ import narl.itrc.DevTTY;
  */
 public class DevFatek extends DevTTY {
 
-	public DevFatek(){
-		
+	public DevFatek(){		
 	}
+	
+	public DevFatek(String name){
+		connect(name);
+	} 
 	
 	/**
 	 * connect TTY port and prepare to send commands.<p>
-	 * @param path - device name or full name
+	 * @param name - device path name
 	 * @return TRUE-success,<p> FALSE-fail to open TTY port
 	 */
-	public boolean connect(String path){
-		if(open(path,"19200,8n1")<=0L){
+	public boolean connect(String name){
+		if(open(name,"19200,8n1")<=0L){
 			return false;
 		}
 		return true;

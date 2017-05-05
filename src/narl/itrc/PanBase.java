@@ -2,6 +2,7 @@ package narl.itrc;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
+import java.util.Optional;
 
 import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXProgressBar;
@@ -22,6 +23,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.Control;
 import javafx.scene.control.Spinner;
 import javafx.scene.control.SpinnerValueFactory;
@@ -335,9 +337,9 @@ public abstract class PanBase {
 		}
 	};
 	
-	private HashMap<KeyCode,EventHandler<ActionEvent>> tableHotKey = new HashMap<KeyCode,EventHandler<ActionEvent>>();
+	private HashMap<KeyCode,EventHandler<ActionEvent>> mapHotKey = new HashMap<KeyCode,EventHandler<ActionEvent>>();
 	
-	private HashMap<KeyCombination,EventHandler<ActionEvent>> tableShortcut = new HashMap<KeyCombination,EventHandler<ActionEvent>>();
+	private HashMap<KeyCombination,EventHandler<ActionEvent>> mapShortcut = new HashMap<KeyCombination,EventHandler<ActionEvent>>();
 	
 	/**
 	 * Hook key in current panel, then launch a event~~~
@@ -345,7 +347,7 @@ public abstract class PanBase {
 	 * @param event
 	 */
 	public void hookPress(KeyCode key,EventHandler<ActionEvent> event){		
-		tableHotKey.put(key, event);
+		mapHotKey.put(key, event);
 	}
 	
 	/**
@@ -354,7 +356,7 @@ public abstract class PanBase {
 	 * @param event
 	 */
 	public void hookPress(String key,EventHandler<ActionEvent> event){		
-		tableShortcut.put(KeyCombination.keyCombination(key), event);
+		mapShortcut.put(KeyCombination.keyCombination(key), event);
 	}
 	
 	private EventHandler<KeyEvent> eventHookPress = new EventHandler<KeyEvent>(){
@@ -362,19 +364,29 @@ public abstract class PanBase {
 		public void handle(KeyEvent event) {
 			KeyCode cc = event.getCode();
 			if(cc==KeyCode.ESCAPE){
-				dismiss();
+				if(Gawain.isMainWindow(PanBase.this)==true){
+					final Alert dia = new Alert(AlertType.CONFIRMATION);
+					dia.setTitle("提示");
+					dia.setHeaderText("確認離開主程式？");
+					//dia.setContentText("確認離開主程式？");					
+					final Optional<ButtonType> opt = dia.showAndWait();
+					if(opt.get()==ButtonType.CANCEL){
+						return;
+					}
+				}
+				dismiss();				
 				return;
 			}
 			//check hot-key~~~
 			EventHandler<ActionEvent> event2;
-			if(tableShortcut.containsKey(cc)==true){
-				tableHotKey.get(cc).handle(null);
+			if(mapShortcut.containsKey(cc)==true){
+				mapHotKey.get(cc).handle(null);
 				return;
 			}
 			//check all combination~~~
-			for(KeyCombination com:tableShortcut.keySet()){
+			for(KeyCombination com:mapShortcut.keySet()){
 				if(com.match(event)==true){
-					event2 = tableShortcut.get(com);
+					event2 = mapShortcut.get(com);
 					event2.handle(null);
 					return;
 				}

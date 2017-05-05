@@ -78,13 +78,13 @@ public class Entry extends PanBase {
 			PanOption.enableAOI(false);
 		}
 	}
-	public WidMapWafer wmap;
+	public WidMapWafer1 wmap;
 	public WidAoiViews prvw;
 	public TabPane pager;
 	
 	@Override
 	public Node eventLayout(PanBase pan) {
-		wmap = new WidMapWafer();
+		wmap = new WidMapWafer1();
 		prvw = new WidAoiViews(rndr);
 		
 		//----perspective view----

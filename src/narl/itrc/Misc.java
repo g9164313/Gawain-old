@@ -10,8 +10,11 @@ import java.util.Enumeration;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
+import com.sun.glass.ui.Application;
+
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.scene.Node;
 import javafx.scene.control.ComboBox;
 import javafx.scene.image.Image;
@@ -790,6 +793,39 @@ public class Misc {
 		}
 		return txt;
 	}
+
+	/**
+	 * parse text which contains geometry information.
+	 * @param txt - format {x}_{y}@{width}x{height}
+	 * @param out - change text to integer
+	 * @return
+	 */
+	public static boolean parseGeomInfo(String txt,int[] out){
+		//String[] aa = txt.split("@");
+		//if(aa[0].matches("\\d+[_]\\d+")==false){
+		//	return false;
+		//}
+		String[] inf = txt.split("@");
+		String[] loca = inf[0].split("_");
+		String[] size = inf[1].split("x");
+		out[0] = txt2int(loca[0]);
+		out[1] = txt2int(loca[1]);
+		out[2] = txt2int(size[0]);
+		out[3] = txt2int(size[1]);
+		return true;
+	}
+	
+	/**
+	 * parse text which contains geometry information.<p>
+	 * It is convenient function....
+	 * @param txt - format {x}_{y}@{width}x{height}
+	 * @return integer array
+	 */
+	public static int[] parseGeomInfo(String txt){
+		int[] res = new int[4];
+		parseGeomInfo(txt,res);
+		return res;
+	}	
 	//--------------------------//
 	
 	/**
@@ -830,6 +866,38 @@ public class Misc {
 			txt = "[ERROR]: "+e.getMessage();
 		}		
 		return txt;
+	}
+	
+	
+	
+	/**
+	 * It is just a macro or template function...
+	 * @param tsk - runnable object
+	 */
+	public static void invoke(Runnable tsk){
+		if(Application.isEventThread()==true){
+			tsk.run();
+		}else{
+			Application.invokeAndWait(tsk);
+		}
+	}
+	
+	/**
+	 * It is just a macro or template function...
+	 * @param tsk - lamda function
+	 */
+	public static void invoke(EventHandler<ActionEvent> tsk){
+		if(Application.isEventThread()==true){
+			tsk.handle(null);
+		}else{
+			final Runnable node = new Runnable(){
+				@Override
+				public void run() {
+					tsk.handle(null);
+				}
+			};
+			Application.invokeAndWait(node);
+		}
 	}	
 	//--------------------------//
 	//I don't know how to set up category for below lines
@@ -845,7 +913,20 @@ public class Misc {
 	public static int hypotInt(int[] pa,int[] pb){
 		return Math.round((float)Math.hypot(pa[0]-pb[0], pa[1]-pb[1]));
 	}
-	
+		
+	public static int txt2int(String txt){
+		char[] cc = txt.toCharArray();
+		int val = 0;
+		for(int i=0; i<cc.length; i++){
+			if(cc[i]<'0' || '9'<cc[i]){
+				Misc.logw("fail to parse (%s)", txt);
+				return 0;//drop this text, it is invalid number~~~~
+			}
+			val = val + (int)(cc[i] - '0') * ((int)Math.pow(10, cc.length-i-1));
+		}
+		return val;
+	}
+		
 	public static float[] int2float(int[] src){
 		float[] dst = new float[src.length];
 		for(int i=0; i<src.length; i++){
@@ -854,7 +935,7 @@ public class Misc {
 		return dst;
 	}
 	
-	public static Double[] Int2Double(Integer[] src){
+	public static Double[] int2double(Integer[] src){
 		Double[] dst = new Double[src.length];
 		for(int i=0; i<src.length; i++){
 			if(src[i]==null){

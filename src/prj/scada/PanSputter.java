@@ -31,55 +31,33 @@ public class PanSputter extends PanBase {
 
 	public PanSputter(){
 		customStyle = "-fx-background-color: white;";
+		
+		//load the default mapping....
+		//mapper.loadCell(Misc.pathSock+"PID.xml");
 	}
 	
 	private DevSQM160 devSQM160 = new DevSQM160();
 	
 	private DevSPIK2000 devSPIK2K = new DevSPIK2000();
 	
-	private WidMapPiping mapper = new WidMapPiping();
+	private DevFatek devPLC = new DevFatek("/dev/tty11");
+	
+	private WidMapPumper mapper = new WidMapPumper("sample-pid");
 	
 	private String nameScript = Misc.pathSock+"test.js";
 
+	private BtnScript btnExec = new BtnScript("執行",this);
+	
 	@Override
 	protected void eventShown(WindowEvent e){
 		//devSQM160.open("/dev/ttyS0,19200,8n1");
 		//devSQM160.exec("@");
-		
-		//load the default mapping....
-		mapper.load_cell(Misc.pathSock+"PID.xml");
-		
-		//hook each action of valve or pump
-		mapper.setCellAction("ggyy", event->{
-			boolean flag = (boolean)event.getSource();
-			System.out.println("flag = "+flag);
-		});
-		
-		//load the first recipe script~~~
-
+				
+		//hook each action of indicator, motor, valve or pump
 	}
 	
-	final BtnScript btnExec = new BtnScript("執行",this);
-	
-	private Runnable eventUpdate = new Runnable(){
-		@Override
-		public void run() {
-			
-		}
-	};
-	
-	public void test_print(){
-		final Runnable _tsk = new Runnable(){
-			@Override
-			public void run() {
-			}
-		};
-		if(Application.isEventThread()==false){
-			_tsk.run();
-		}else{
-			Application.invokeAndWait(_tsk);
-		}
-		System.out.println("ggyy");
+	public void valve_1(boolean flag){
+		System.out.println("flag="+flag);
 	}
 	
 	@Override
@@ -122,8 +100,7 @@ public class PanSputter extends PanBase {
 			nameScript = fs.getAbsolutePath();
 			txt[1].setText(Misc.trim_path_appx(nameScript));
 		});
-		
-		btnExec.chkPoint = eventUpdate;
+
 		btnExec.setOnAction(event->{
 			if(nameScript.length()==0){
 				final Alert dia = new Alert(AlertType.INFORMATION);
@@ -131,7 +108,7 @@ public class PanSputter extends PanBase {
 				dia.showAndWait();
 				return;
 			}
-			btnExec.eval(nameScript);
+			btnExec.eval(nameScript);//When fail, what should we do?
 		});
 
 		final Button btnEdit = PanBase.genButton2("編輯",null);

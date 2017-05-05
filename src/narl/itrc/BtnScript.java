@@ -2,17 +2,14 @@ package narl.itrc;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
-import java.io.IOException;
 
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 
 import com.jfoenix.controls.JFXButton;
-import com.sun.glass.ui.Application;
 
 import javafx.concurrent.Task;
 import javafx.concurrent.WorkerStateEvent;
@@ -49,6 +46,8 @@ public class BtnScript extends JFXButton {
 		thiz = obj;
 	}
 	
+	
+	
 	/**
 	 * let this object provide all functions
 	 */
@@ -74,61 +73,6 @@ public class BtnScript extends JFXButton {
 		}
 	}
 	
-	public Runnable chkPoint = null;
-	
-	@SuppressWarnings("unused")
-	private Object tsk_core_old(
-		final File file,
-		final ScriptEngine parser
-	)  throws Exception {
-		//this way, we regard each Closures as one statement~~~
-		BufferedReader stream = new BufferedReader(new FileReader(file));
-		
-		int cnt = 0;//counter for bracket~~~
-		String stat = "";
-		
-		String line = null;
-		while( (line=stream.readLine())!=null ){
-			stat = stat + line;
-			if(stat.length()==0){
-				continue;
-			}
-			cnt += count_bracket(line);
-			if(cnt==0){
-				//we got a statement, throw it into parser~~~
-				try {
-					parser.eval(stat);
-				} catch (ScriptException e) {
-					e.printStackTrace();
-				}
-				//At this time, some result were got, let user update information...
-				if(chkPoint!=null){
-					Application.invokeAndWait(chkPoint);
-				}
-				//Clear statements, for next turn~~~
-				stat = "";
-			}
-		}
-		if(cnt!=0){
-			//something is wrong~~~~
-		}
-		stream.close();
-		return null;
-	}
-	
-	private int count_bracket(String txt){
-		int cnt = 0;
-		char[] lst = txt.toCharArray();
-		for(char cc:lst){
-			if(cc=='{' || cc=='[' || cc=='('){
-				cnt++;
-			}else if(cc==')' || cc==']' || cc=='}'){
-				cnt--;
-			}
-		}			
-		return cnt;
-	}
-	
 	private Task<Object> task = null;
 	
 	private EventHandler<WorkerStateEvent> hook1, hook2, hook3;//ugly, because this type has no generic array.....
@@ -152,9 +96,8 @@ public class BtnScript extends JFXButton {
 		}
 		
 		if(task!=null){
-			if(task.isDone()==false){
-				//cancel task???
-				task.cancel();
+			if(task.isDone()==false){				
+				task.cancel();//cancel task???
 				return false;
 			}
 		}
@@ -167,7 +110,7 @@ public class BtnScript extends JFXButton {
 
 				ScriptEngine par = new ScriptEngineManager().getEngineByName("nashorn");
 				
-				result = null;
+				result = null;//reset the previous result~~~
 				
 				if(thiz!=null){
 					par.put("thiz",thiz);

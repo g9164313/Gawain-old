@@ -27,6 +27,7 @@ import javafx.application.Application;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.stage.Stage;
+import javafx.stage.Window;
 import javafx.util.Duration;
 
 import javax.crypto.BadPaddingException;
@@ -166,6 +167,19 @@ public class Gawain extends Application {
 	}
 	//--------------------------------------------//
 	
+	private static PanBase parent = null;
+	
+	public static Window getMainWindow(){
+		if(parent==null){
+			return null;
+		}
+		return parent.getScene().getWindow();
+	}
+	
+	public static boolean isMainWindow(PanBase pan){
+		return pan.equals(parent);
+	}
+	
 	@Override
 	public void start(Stage primaryStage) throws Exception {
 		if(optUnpack==true){
@@ -182,8 +196,8 @@ public class Gawain extends Application {
 			//Class cl = Class.forName(className);
 			//Constructor con = cl.getConstructor(Param1Type.class);
 			//obj = con.newInstance(param1,param2);
-			PanBase pan = (PanBase)obj;			
-			pan.appear(primaryStage);
+			parent = (PanBase)obj;			
+			parent.appear(primaryStage);
 			//Misc.logv("啟動 launch [%s]",name);//show the first message for box-logger
 		} catch (
 			InstantiationException | 

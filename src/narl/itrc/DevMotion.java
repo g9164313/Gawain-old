@@ -424,7 +424,7 @@ public abstract class DevMotion {
 	 * @param step - the sign for [X,Y,Z,A].<p>
 	 */
 	public void setValue(Integer... step){
-		Double[] val = Misc.Int2Double(step);
+		Double[] val = Misc.int2double(step);
 		routine(PULSE_UNIT,val);
 		setPosition(node);
 	}

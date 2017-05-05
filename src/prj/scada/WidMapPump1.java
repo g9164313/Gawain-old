@@ -32,15 +32,16 @@ import javafx.util.Duration;
 import narl.itrc.Misc;
 
 /**
- * Create and control P&ID (piping and instrument diagrams) 
+ * Create and control P&ID (piping and instrument diagrams)
+ * TODO: ready to deprecate this class :-( 
  * @author qq
  *
  */
-public class WidMapPiping extends StackPane {
+public class WidMapPump1 extends StackPane {
 
 	private BooleanProperty modeEdit = new SimpleBooleanProperty(false);
 	
-	public WidMapPiping(){
+	public WidMapPump1(){
 		
 		ScrollPane pan0 = new ScrollPane();
 		//pan0.setHbarPolicy(ScrollBarPolicy.ALWAYS);
@@ -54,9 +55,9 @@ public class WidMapPiping extends StackPane {
 		getChildren().addAll(pan0);		
 	}
 	
-	public WidMapPiping(String xml_name){
+	public WidMapPump1(String xml_name){
 		this();		
-		load_cell(xml_name);		
+		loadCell(xml_name);		
 	}
 	//----------------------------------//
 	
@@ -317,7 +318,7 @@ public class WidMapPiping extends StackPane {
 		read_cell_from(fs);
 	}	
 	
-	public void load_cell(String path){
+	public void loadCell(String path){
 		File fs = new File(path);
 		if(fs.exists()==false){
 			return;
@@ -364,9 +365,9 @@ public class WidMapPiping extends StackPane {
 	
 	private static final String IMG_DIR = "/narl/itrc/res/tile/";
 	
-	private static final Image imgBlueprint = new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"blueprint.png"));
+	private static final Image imgBlueprint = new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"blueprint.png"));
 	
-	private static final Image imgCursor = new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"cursor.png"));
+	private static final Image imgCursor = new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"cursor.png"));
 	
 	private int[] cur_tid = { 1, 0 };
 	
@@ -421,23 +422,23 @@ public class WidMapPiping extends StackPane {
 	}
 	
 	private static final Image[] p_ani = {
-		new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pump-1.png")),
-		new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pump-2.png")),
-		new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pump-3.png")),
-		new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pump-4.png")),
-		new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pump-5.png")),
-		new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pump-6.png")),
-		new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pump-7.png")),
-		new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pump-8.png")),
+		new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"pump-1.png")),
+		new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"pump-2.png")),
+		new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"pump-3.png")),
+		new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"pump-4.png")),
+		new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"pump-5.png")),
+		new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"pump-6.png")),
+		new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"pump-7.png")),
+		new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"pump-8.png")),
 	};
 	
 	private static final Image[] c_ani = {
-		new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"chuck-1.png")),
-		new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"chuck-2.png")),
-		new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"chuck-3.png")),
-		new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"chuck-4.png")),
-		new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"chuck-5.png")),
-		new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"chuck-6.png")),
+		new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"chuck-1.png")),
+		new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"chuck-2.png")),
+		new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"chuck-3.png")),
+		new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"chuck-4.png")),
+		new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"chuck-5.png")),
+		new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"chuck-6.png")),
 	};
 	
 	private static final Image[][][] imgCell = {
@@ -445,66 +446,66 @@ public class WidMapPiping extends StackPane {
 			{ null, null, } 
 		},
 		{//1：pipe 
-			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pipe-a1.png")), null, },
-			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pipe-a2.png")), null, },
-			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pipe-b1.png")), null, },
-			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pipe-b2.png")), null, },
-			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pipe-b3.png")), null, },
-			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pipe-b4.png")), null, },
-			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pipe-c1.png")), null, },
-			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pipe-c2.png")), null, },
-			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pipe-c3.png")), null, },
-			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pipe-c4.png")), null, },
+			{ new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"pipe-a1.png")), null, },
+			{ new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"pipe-a2.png")), null, },
+			{ new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"pipe-b1.png")), null, },
+			{ new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"pipe-b2.png")), null, },
+			{ new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"pipe-b3.png")), null, },
+			{ new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"pipe-b4.png")), null, },
+			{ new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"pipe-c1.png")), null, },
+			{ new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"pipe-c2.png")), null, },
+			{ new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"pipe-c3.png")), null, },
+			{ new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"pipe-c4.png")), null, },
 		},
 		{//2：gauge
-			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"gauge.png")), null, },
+			{ new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"gauge.png")), null, },
 		},
 		{//3：pump 
-			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pump-a1.png")), p_ani[0], p_ani[1], p_ani[2], p_ani[3], p_ani[4], p_ani[5], p_ani[6], p_ani[7], },
-			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pump-a2.png")), p_ani[0], p_ani[1], p_ani[2], p_ani[3], p_ani[4], p_ani[5], p_ani[6], p_ani[7], },
-			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pump-b.png" )), p_ani[0], p_ani[1], p_ani[2], p_ani[3], p_ani[4], p_ani[5], p_ani[6], p_ani[7], },
-			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"pump-c.png" )), p_ani[0], p_ani[1], p_ani[2], p_ani[3], p_ani[4], p_ani[5], p_ani[6], p_ani[7], },
+			{ new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"pump-a1.png")), p_ani[0], p_ani[1], p_ani[2], p_ani[3], p_ani[4], p_ani[5], p_ani[6], p_ani[7], },
+			{ new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"pump-a2.png")), p_ani[0], p_ani[1], p_ani[2], p_ani[3], p_ani[4], p_ani[5], p_ani[6], p_ani[7], },
+			{ new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"pump-b.png" )), p_ani[0], p_ani[1], p_ani[2], p_ani[3], p_ani[4], p_ani[5], p_ani[6], p_ani[7], },
+			{ new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"pump-c.png" )), p_ani[0], p_ani[1], p_ani[2], p_ani[3], p_ani[4], p_ani[5], p_ani[6], p_ani[7], },
 		},
 		{//4：tank
-			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"tank-a1.png")), null, },
-			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"tank-a2.png")), null, },
-			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"tank-b1.png")), null, },
-			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"tank-b2.png")), null, },
+			{ new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"tank-a1.png")), null, },
+			{ new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"tank-a2.png")), null, },
+			{ new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"tank-b1.png")), null, },
+			{ new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"tank-b2.png")), null, },
 		},
 		{//5：valve 
-			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"valve.png")), new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"valve-1.png")), },
+			{ new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"valve.png")), new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"valve-1.png")), },
 		},
 		{//6：wall
-			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"wall-a1.png")), null, },
-			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"wall-a2.png")), null, },
-			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"wall-a3.png")), null, },
-			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"wall-a4.png")), null, },
-			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"wall-b1.png")), null, },
-			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"wall-b2.png")), null, },
-			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"wall-b3.png")), null, },
-			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"wall-b4.png")), null, },
-			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"wall-c1.png")), null, },
-			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"wall-c2.png")), null, },
-			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"wall-c3.png")), null, },
-			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"wall-c4.png")), null, },
+			{ new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"wall-a1.png")), null, },
+			{ new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"wall-a2.png")), null, },
+			{ new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"wall-a3.png")), null, },
+			{ new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"wall-a4.png")), null, },
+			{ new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"wall-b1.png")), null, },
+			{ new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"wall-b2.png")), null, },
+			{ new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"wall-b3.png")), null, },
+			{ new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"wall-b4.png")), null, },
+			{ new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"wall-c1.png")), null, },
+			{ new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"wall-c2.png")), null, },
+			{ new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"wall-c3.png")), null, },
+			{ new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"wall-c4.png")), null, },
 		},
 		{//7：sputter-gun
 			{ 
-				new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"gun-a1.png")),
-				new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"gun-a1-1.png")),
-				new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"gun-a1-2.png")), 
-				new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"gun-a1-3.png")), 
+				new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"gun-a1.png")),
+				new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"gun-a1-1.png")),
+				new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"gun-a1-2.png")), 
+				new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"gun-a1-3.png")), 
 			},
 			{ 
-				new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"gun-a2.png")),
-				new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"gun-a2-1.png")),
-				new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"gun-a2-2.png")), 
-				new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"gun-a2-3.png")), 
+				new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"gun-a2.png")),
+				new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"gun-a2-1.png")),
+				new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"gun-a2-2.png")), 
+				new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"gun-a2-3.png")), 
 			},
 		},
 		{//8：chuck, or stage
-			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"chuck-a1.png")), c_ani[0], c_ani[1], c_ani[2], c_ani[3], c_ani[4], c_ani[5], },
-			{ new Image(WidMapPiping.class.getResourceAsStream(IMG_DIR+"chuck-a2.png")), c_ani[0], c_ani[1], c_ani[2], c_ani[3], c_ani[4], c_ani[5], },
+			{ new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"chuck-a1.png")), c_ani[0], c_ani[1], c_ani[2], c_ani[3], c_ani[4], c_ani[5], },
+			{ new Image(WidMapPump1.class.getResourceAsStream(IMG_DIR+"chuck-a2.png")), c_ani[0], c_ani[1], c_ani[2], c_ani[3], c_ani[4], c_ani[5], },
 		},
 	};
 

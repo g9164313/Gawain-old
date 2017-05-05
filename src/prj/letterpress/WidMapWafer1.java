@@ -21,7 +21,8 @@ import narl.itrc.WidMapBase;
 
 import com.jfoenix.controls.JFXComboBox;
 
-public class WidMapWafer extends WidMapBase {
+//TODO: ready to deprecate this class!!!!!
+public class WidMapWafer1 extends WidMapBase {
 	
 	private JFXComboBox<String> chkWafSeq;
 	private JFXComboBox<String> chkWafDia;
@@ -29,7 +30,7 @@ public class WidMapWafer extends WidMapBase {
 	private BoxPhyValue boxDieH;
 	private BoxPhyValue boxLane;
 
-	public WidMapWafer(){
+	public WidMapWafer1(){
 		setMapSize(getDiameter());
 		setDieSize(
 			boxDieW.getValue(),
