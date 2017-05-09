@@ -31,7 +31,6 @@ public class PanSputter extends PanBase {
 
 	public PanSputter(){
 		customStyle = "-fx-background-color: white;";
-		
 		//load the default mapping....
 		//mapper.loadCell(Misc.pathSock+"PID.xml");
 	}
@@ -49,17 +48,38 @@ public class PanSputter extends PanBase {
 	private BtnScript btnExec = new BtnScript("執行",this);
 	
 	@Override
+	protected void eventShowing(WindowEvent e){
+		//hook each action of indicator, motor, valve or pump
+		mapper.hookWith("valve_1", itm->{
+			
+		});
+		mapper.hookWith("valve_2", itm->{
+			
+		});
+		mapper.hookWith("valve_3", itm->{
+			
+		});
+	}
+		
+	public void valve_1(boolean flag){
+		mapper.doTask("valve_1");
+	}
+	
+	public void valve_2(boolean flag){
+		mapper.doTask("valve_2");
+	}
+	
+	public void valve_3(boolean flag){
+		mapper.doTask("valve_3");
+	}
+	
+	@Override
 	protected void eventShown(WindowEvent e){
 		//devSQM160.open("/dev/ttyS0,19200,8n1");
 		//devSQM160.exec("@");
-				
-		//hook each action of indicator, motor, valve or pump
+		
 	}
-	
-	public void valve_1(boolean flag){
-		System.out.println("flag="+flag);
-	}
-	
+
 	@Override
 	public Node eventLayout(PanBase pan) {
 		

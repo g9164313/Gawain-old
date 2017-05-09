@@ -2,6 +2,7 @@ package narl.itrc;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -597,12 +598,20 @@ public class Misc {
 		return name.substring(0,pos)+"."+appx;
 	}
 	
-	public static ImageView getIcon(String iconName){
-		return new ImageView(getImage(iconName));
+	public static ImageView getIcon(String name){
+		return new ImageView(getResImage("/narl/itrc/res/icon",name));
 	}
 	
-	public static Image getImage(String name){
-		return new Image(Gawain.class.getResourceAsStream("/narl/itrc/res/icon/"+name));
+	public static Image getResImage(String pkg,String name){
+		return new Image(Gawain.class.getResourceAsStream(pkg+"/"+name));
+	}
+	
+	public static Image getFileImage(String name){
+		File fs = new File(name);
+		if(fs.isFile()==false){
+			return null;
+		}		
+		return new Image(fs.toURI().toString());
 	}
 
 	public static FileChooser genChooseImage(){

@@ -72,7 +72,7 @@ public abstract class TskDialog extends TskAction {
 	private Parent layoutSplashImg(){
 		VBox lay0 = new VBox();
 		lay0.getStyleClass().add("splash-board");
-		ImageView img = new ImageView(Misc.getImage("logo.jpg"));
+		ImageView img = Misc.getIcon("logo.jpg");
 		workLog = new TextArea();//this is dummy~~~		
 		workBar = new ProgressBar();
 		workBar.prefWidthProperty().bind(workStage.widthProperty().subtract(3));
