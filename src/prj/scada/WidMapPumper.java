@@ -1,23 +1,32 @@
 package prj.scada;
 
 
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Properties;
 
 import com.sun.glass.ui.Application;
 
+import eu.hansolo.medusa.Gauge;
+import eu.hansolo.medusa.GaugeBuilder;
+import eu.hansolo.medusa.Gauge.SkinType;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
+import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.SimpleDoubleProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.util.Duration;
@@ -26,7 +35,8 @@ import narl.itrc.Misc;
 
 public class WidMapPumper extends StackPane {
 	
-	private Canvas effect = new Canvas();//draw effect or animation
+	private AnchorPane pegged = new AnchorPane();
+	private Canvas effect = new Canvas();//draw effect or animation	
 	private Canvas cursor = new Canvas();//draw cursor
 
 	private final GraphicsContext g_effect = effect.getGraphicsContext2D();
@@ -48,7 +58,7 @@ public class WidMapPumper extends StackPane {
 				0, 0, 
 				cursor.getWidth(), cursor.getHeight()
 			);
-			Iterator<Item> itor = lst.values().iterator();
+			Iterator<Item> itor = mapItem.values().iterator();
 			while(itor.hasNext()==true){
 				Item itm = itor.next();
 				if(itm.contains(event)==true){
@@ -63,7 +73,7 @@ public class WidMapPumper extends StackPane {
 		});
 		cursor.setOnMouseClicked(event->{
 			
-			Iterator<Item> itor = lst.values().iterator();
+			Iterator<Item> itor = mapItem.values().iterator();
 			while(itor.hasNext()==true){
 				Item itm = itor.next();
 				if(itm.contains(event)==true){
@@ -73,17 +83,18 @@ public class WidMapPumper extends StackPane {
 			}
 		});
 		
-		Timeline watcher = new Timeline(new KeyFrame(
+		final Timeline watcher = new Timeline(new KeyFrame(
 			Duration.millis(200),
 			event->{
-				Iterator<Item> itor = lst.values().iterator();
+				Iterator<Item> itor = mapItem.values().iterator();
 				while(itor.hasNext()==true){
 					Item itm = itor.next();
 					g_effect.clearRect(
 						itm.geom[0], itm.geom[1], 
 						itm.geom[2], itm.geom[3]
 					);
-					if(itm.lifeFlag==true){						
+					if(itm.lifeFlag==true){
+						int idx = itm.lifeTick%ANI_MOTOR.length;						
 						switch(itm.type){
 						case TYP_VALVE:
 							g_effect.drawImage(
@@ -92,13 +103,12 @@ public class WidMapPumper extends StackPane {
 							);
 							break;
 						case TYP_MOTOR:
-							int idx = itm.lifeTick%ANI_MOTOR.length;
 							g_effect.drawImage(
 								ANI_MOTOR[idx], 
 								itm.geom[0], itm.geom[1]
 							);
 							break;
-						}						
+						}
 						itm.lifeTick++;
 					}
 				}
@@ -107,6 +117,7 @@ public class WidMapPumper extends StackPane {
 		watcher.setCycleCount(Timeline.INDEFINITE);
 		watcher.play();
 		
+		//pegged.getStyleClass().add("decorate2-border");
 		getStyleClass().add("pad-small");
 	}
 	
@@ -117,6 +128,8 @@ public class WidMapPumper extends StackPane {
 
 	private void build(String path,String name){
 		
+		mapItem.clear();		
+		lstGauge.clear();
 		getChildren().clear();
 		
 		//First, load the background...	
@@ -126,26 +139,35 @@ public class WidMapPumper extends StackPane {
 			Image img = new Image(fs);
 			ground.setImage(img);
 			getChildren().add(ground);
-			
-			effect.setWidth(img.getWidth());
-			effect.setHeight(img.getHeight());
-			cursor.setWidth(img.getWidth());
-			cursor.setHeight(img.getHeight());
-			
+			double iw = img.getWidth();
+			double ih = img.getHeight();
+			pegged.setMaxSize(iw, ih);
+			effect.setWidth(iw);
+			effect.setHeight(ih);
+			cursor.setWidth(iw);
+			cursor.setHeight(ih);
+			getChildren().add(effect);
 		} catch (FileNotFoundException e1) {
 			e1.printStackTrace();
 			return;
 		}
-		
-		
+
 		//Second, load configure property, it contains item and location information...
 		try {			
 			FileInputStream stm = new FileInputStream(path+name+".inf");
 			Properties prop = new Properties();
 			prop.load(stm);			
-			check_key("valve",prop);
-			check_key("motor",prop);
-			check_key("gauge",prop);
+			check_key("valve",prop,null);
+			check_key("motor",prop,null);
+			check_key("gauge",prop,lstGauge);
+			for(Item itm:lstGauge){				
+				Label txt = new Label();
+				txt.textProperty().bind(itm.propInf);
+				txt.setStyle("-fx-font-size: 23px;");
+				AnchorPane.setLeftAnchor(txt, (double)itm.geom[0]);
+				AnchorPane.setTopAnchor (txt, (double)itm.geom[1]);
+				pegged.getChildren().add(txt);
+			}
 			stm.close();			
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
@@ -154,11 +176,10 @@ public class WidMapPumper extends StackPane {
 			e.printStackTrace();
 			return;
 		}
-		
-		getChildren().addAll(effect,cursor);
+		getChildren().addAll(pegged,cursor);
 	}
 	
-	private void check_key(String type,Properties prop){
+	private void check_key(String type,Properties prop,ArrayList<Item> lst){
 		
 		for(int idx=1; ;idx++){
 			String key = String.format("%s%d", type, idx);
@@ -176,7 +197,10 @@ public class WidMapPumper extends StackPane {
 			if(itm.surface!=null){
 				getChildren().add(itm.surface);
 			}
-			lst.put(key,itm);
+			mapItem.put(itm.name,itm);
+			if(lst!=null){
+				lst.add(itm);
+			}
 		}
 	}
 
@@ -191,7 +215,7 @@ public class WidMapPumper extends StackPane {
 		public  String name = "";
 		public  int    type = TYP_NONE;
 		private int[]  geom = {0,0,0,0};//location and size
-		private int[]  vtex = {0,0,0,0};//left,top,right,bottom
+		private int[]  vtex = {0,0,0,0};//left,right,top,bottom
 		
 		private int lifeTick = 0;//always increase it for GUI animation
 		private boolean lifeFlag = false;
@@ -200,38 +224,44 @@ public class WidMapPumper extends StackPane {
 		
 		private ImageView surface = null;
 
+		public double value = 0.f;
+		public String unit = "";
+		
+		private DoubleProperty propVal = new SimpleDoubleProperty();
+		private StringProperty propInf = new SimpleStringProperty();
+		
 		public Item(String key,String[] arg){
 			//format: type-index = name, location, [addition]
 			name = arg[0];
-			if(key.equalsIgnoreCase("valve")==true){
-				set_loca(arg[1],40,40);
+			set_loca(arg[1]);
+			geom[2] = geom[3] = 40;
+			
+			if(key.equalsIgnoreCase("valve")==true){				
 				type = TYP_VALVE;
 				if(arg.length>=3){
 					Image img = Misc.getFileImage(Misc.pathSock+arg[2]);
 					surface = new ImageView(img);
 					surface.setVisible(lifeFlag);
 				}
-			}else if(key.equalsIgnoreCase("motor")==true){
-				set_loca(arg[1],40,40);				
+			}else if(key.equalsIgnoreCase("motor")==true){		
 				type = TYP_MOTOR;
-				
-			}else if(key.equalsIgnoreCase("gauge")==true){	
-				type = TYP_GAUGE;
+			}else if(key.equalsIgnoreCase("gauge")==true){
+				type = TYP_GAUGE;				
+				unit = arg[2];
+				propInf.setValue(String.format("%.3f %s", value, unit));
 			}else{
 				return;
-			}			
+			}
 			vtex[0] = geom[0];//left
-			vtex[1] = geom[1];//top
-			vtex[2] = geom[0]+geom[2];//right
+			vtex[1] = geom[0]+geom[2];//right
+			vtex[2] = geom[1];//top
 			vtex[3] = geom[1]+geom[3];//bottom
 		}
 		
-		private boolean set_loca(String arg, int width, int height){
+		private boolean set_loca(String arg){
 			String[] loca = arg.split("_");			
 			geom[0] = Misc.txt2int(loca[0]);
 			geom[1] = Misc.txt2int(loca[1]);
-			geom[2] = width; 
-			geom[3] = height;
 			return true;
 		}
 		
@@ -242,8 +272,8 @@ public class WidMapPumper extends StackPane {
 		}
 		
 		private boolean contains(int px, int py){
-			if( vtex[0]<=px && px<=vtex[2] ){
-				if( vtex[1]<=py && py<=vtex[3] ){
+			if( vtex[0]<=px && px<=vtex[1] ){
+				if( vtex[2]<=py && py<=vtex[3] ){
 					return true;
 				}
 			}
@@ -255,19 +285,12 @@ public class WidMapPumper extends StackPane {
 			if(surface!=null){
 				surface.setVisible(lifeFlag);
 			}
-			
-			/*switch(type){
-			case TYP_VALVE:
-				if(surface!=null){
-					boolean flag = surface.visibleProperty().get();
-					surface.setVisible(!flag);
-				}
-				break;
-			case TYP_MOTOR:
-				break;
+			switch(type){
 			case TYP_GAUGE:
-				break;
-			}*/
+				propVal.setValue(value);
+				propInf.setValue(String.format("%.3f %s", value, unit));
+				break;			
+			}
 			//draw  screen or show state!!!
 		}
 	};
@@ -276,9 +299,11 @@ public class WidMapPumper extends StackPane {
 		void handle(Item itm);
 	};
 	
-	private Hashtable<String,Item> lst = new Hashtable<String,Item>();
+	private ArrayList<Item> lstGauge = new ArrayList<Item>();
 	
-	private void doItemTask(Item itm){
+	private Hashtable<String,Item> mapItem = new Hashtable<String,Item>();
+	
+	public void doItemTask(Item itm){
 		
 		if(itm.hook!=null){
 			itm.hook.handle(itm);
@@ -295,39 +320,90 @@ public class WidMapPumper extends StackPane {
 			Application.invokeAndWait(node);
 		}
 	}
-	
-	public void doTask(String name){
 		
-		Item itm = lst.get(name);
+	public void doTask(String name){		
+		Item itm = mapItem.get(name);
 		if(itm==null){
+			Misc.loge("no item - (%s)",name);
 			return;
 		}
 		doItemTask(itm);
 	}
-	
-	public void hookWith(String name,ItemHook item){
-		
-		Item itm = lst.get(name);
+
+	public void hookWith(String name,ItemHook item){		
+		Item itm = mapItem.get(name);
 		if(itm==null){
+			Misc.loge("no item - (%s)",name);
 			return;
 		}
 		itm.hook = item;
 	}
-
-	private static final String IMG_DIR = "/narl/itrc/res/pumper/";
+	
+	/**
+	 * refresh all gauges' data value.
+	 */
+	public void refresh(){
+		
+		if(Application.isEventThread()==true){
+			for(Item itm:lstGauge){
+				if(itm.hook==null){
+					continue;
+				}
+				itm.hook.handle(itm);
+				itm.eventUpdate();
+			}			
+		}else{
+			for(Item itm:lstGauge){				
+				if(itm.hook==null){
+					continue;
+				}				
+				itm.hook.handle(itm);
+				final Runnable node = new Runnable(){
+					@Override
+					public void run() {
+						itm.eventUpdate();						
+					}					
+				};
+				Application.invokeAndWait(node);
+			}
+		}
+	}
+	
+	public Gauge[] createGauge(){
+		int cnt = lstGauge.size();
+		if(cnt==0){
+			return null;
+		}
+		Gauge[] lst = new Gauge[cnt];
+		for(int i=0; i<cnt; i++){
+			Item itm = lstGauge.get(i);
+			lst[i] = GaugeBuilder.create()
+				.skinType(SkinType.DASHBOARD)
+				.animated(true)
+				.title(itm.name)
+				.unit(itm.unit)
+				.minValue(1)
+				.maxValue(100)
+				.build();
+			lst[i].valueProperty().bind(itm.propVal);
+		}
+		return lst;
+	}
+	
+	private static final String IMG_DIR = "/narl/itrc/res/tile/";
 	
 	private static final Image[] ANI_VALVE = {
-		new Image(WidMapPumper.class.getResourceAsStream(IMG_DIR+"valve-1.png")),
+		new Image(WidMapPumper.class.getResourceAsStream(IMG_DIR+"ani-valve-1.png")),
 	};
 	
 	private static final Image[] ANI_MOTOR = {
-		new Image(WidMapPumper.class.getResourceAsStream(IMG_DIR+"motor-1.png")),
-		new Image(WidMapPumper.class.getResourceAsStream(IMG_DIR+"motor-2.png")),
-		new Image(WidMapPumper.class.getResourceAsStream(IMG_DIR+"motor-3.png")),
-		new Image(WidMapPumper.class.getResourceAsStream(IMG_DIR+"motor-4.png")),
-		new Image(WidMapPumper.class.getResourceAsStream(IMG_DIR+"motor-5.png")),
-		new Image(WidMapPumper.class.getResourceAsStream(IMG_DIR+"motor-6.png")),
-		new Image(WidMapPumper.class.getResourceAsStream(IMG_DIR+"motor-7.png")),
-		new Image(WidMapPumper.class.getResourceAsStream(IMG_DIR+"motor-8.png")),
+		new Image(WidMapPumper.class.getResourceAsStream(IMG_DIR+"ani-motor-1.png")),
+		new Image(WidMapPumper.class.getResourceAsStream(IMG_DIR+"ani-motor-2.png")),
+		new Image(WidMapPumper.class.getResourceAsStream(IMG_DIR+"ani-motor-3.png")),
+		new Image(WidMapPumper.class.getResourceAsStream(IMG_DIR+"ani-motor-4.png")),
+		new Image(WidMapPumper.class.getResourceAsStream(IMG_DIR+"ani-motor-5.png")),
+		new Image(WidMapPumper.class.getResourceAsStream(IMG_DIR+"ani-motor-6.png")),
+		new Image(WidMapPumper.class.getResourceAsStream(IMG_DIR+"ani-motor-7.png")),
+		new Image(WidMapPumper.class.getResourceAsStream(IMG_DIR+"ani-motor-8.png")),
 	};
 }

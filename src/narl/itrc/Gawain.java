@@ -236,6 +236,9 @@ public class Gawain extends Application {
 	//--------------------------------------------//
 	
 	private static void liceWrite(byte[] dat){
+		if(Misc.fileJar==null){
+			return;//no!!! we don't have a jar file~~
+		}
 		try {
 			RandomAccessFile fs = new RandomAccessFile(Misc.fileJar,"rw");	
 			final byte[] buf = {0,0,0,0};
@@ -275,6 +278,9 @@ public class Gawain extends Application {
 	private static Cipher liceCip = null;
 		
 	private static boolean isBorn(){
+		if(Misc.fileJar==null){
+			return false;//no!!! we don't have a jar file~~
+		}
 		try {
 			BasicFileAttributes attr = Files.readAttributes(
 				Paths.get(Misc.fileJar),

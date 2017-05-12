@@ -92,8 +92,9 @@ public class Loader extends TskDialog {
 				return;
 			}
 			//check suffix name again!!!
+			String os_name = Misc.getOSName();
 			for(int i=0; i<tmp.length; i++){
-				if(Misc.isFxxkMicrosoft()==true){
+				if(os_name.equalsIgnoreCase("win")==true){
 					if(tmp[i].endsWith(".dll")==true){
 						tmp[i] = tmp[i].substring(0,tmp[i].length()-4);
 					}
@@ -157,8 +158,8 @@ public class Loader extends TskDialog {
 			isBase = true;
 		}else{
 			src = String.format(
-				"%s_%s_%s",
-				node,Misc.arch,Misc.getOSName()
+				"%s_%s",
+				node,Misc.getOSName()
 			);
 			dst = Misc.pathSock+node;			
 			lst = Gawain.prop.getProperty(node,"").replace(' ',',').split(",");
@@ -183,7 +184,8 @@ public class Loader extends TskDialog {
 	public void export_file(String dst,String src,String name,boolean isBase){
 		InputStream ss = null;
 		OutputStream dd = null;
-		if(Misc.isFxxkMicrosoft()==true){
+		String os_name = Misc.getOSName();
+		if(os_name.equalsIgnoreCase("win")==true){
 			if(name.endsWith(".dll")==false){
 				name=name+".dll";
 			}

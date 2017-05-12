@@ -11,7 +11,7 @@ public class FilterExecIJ extends ImgFilter {
 	
 	@Override
 	public void cookData(ArrayList<ImgPreview> list) {
-		String name = Misc.fsPathTemp+File.separator+"temp.png";
+		String name = Misc.pathSock+File.separator+"temp.png";
 		ImgPreview prv = list.get(prvIndex);
 		CamBundle bnd = prv.bundle;
 		bnd.saveImage(name);
@@ -55,7 +55,7 @@ public class FilterExecIJ extends ImgFilter {
 				//it is a executed file
 				pb = new ProcessBuilder(ij_path,img_name);
 			}
-			pb.directory(Misc.fsPathTemp);
+			pb.directory(Misc.dirSock);
 			procIJ = pb.start();
 		} catch (Exception e) {
 			PanBase.notifyError(

@@ -50,8 +50,11 @@ public class BoxLogger extends PanDecorate {
 	private static SimpleDateFormat logTime = new SimpleDateFormat("[yyyy/MM/dd HH:mm:ss]");
 	
 	public void prepare() {
+		if(boxMsg==null){
+			return;
+		}
 		lstBox.add(this);
-		boxMsg.setEditable(false);		
+		boxMsg.setEditable(false);
 		init_menu();		
 		if(logFile!=null){
 			return;
@@ -78,7 +81,7 @@ public class BoxLogger extends PanDecorate {
 		itm2.setOnAction(event->{
 			FileChooser chs = new FileChooser();
             chs.setTitle("另存新檔");
-            chs.setInitialDirectory(Misc.fsPathRoot);
+            chs.setInitialDirectory(Misc.dirRoot);
             File fs = chs.showSaveDialog(Misc.getParent(event));
             if(fs!=null){
             	save_box(fs);

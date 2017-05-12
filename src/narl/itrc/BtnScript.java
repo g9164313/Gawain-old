@@ -13,6 +13,7 @@ import com.jfoenix.controls.JFXButton;
 
 import javafx.concurrent.Task;
 import javafx.concurrent.WorkerStateEvent;
+import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.image.ImageView;
 
@@ -75,9 +76,9 @@ public class BtnScript extends JFXButton {
 	
 	private Task<Object> task = null;
 	
-	private EventHandler<WorkerStateEvent> hook1, hook2, hook3;//ugly, because this type has no generic array.....
+	private EventHandler<WorkerStateEvent> hook = null;//ugly, because this type has no generic array.....
 	
-	public void setOnCancelled(EventHandler<WorkerStateEvent> value){
+	/*public void setOnCancelled(EventHandler<WorkerStateEvent> value){
 		hook1 = value;
 	}
 	
@@ -87,7 +88,7 @@ public class BtnScript extends JFXButton {
 	
 	public void setOnSucceeded(EventHandler<WorkerStateEvent> value){
 		hook3 = value;
-	}
+	}*/
 	
 	public boolean eval(final File fs){
 		
@@ -108,32 +109,33 @@ public class BtnScript extends JFXButton {
 			@Override
 			protected Object call() throws Exception {
 
-				ScriptEngine par = new ScriptEngineManager().getEngineByName("nashorn");
+				ScriptEngine parser = new ScriptEngineManager().getEngineByName("nashorn");
 				
 				result = null;//reset the previous result~~~
 				
+				parser.put("sys", BtnScript.this);//provide the basic or convenience functions 
 				if(thiz!=null){
-					par.put("thiz",thiz);
+					parser.put("dev",thiz);
 				}
-				return tsk_core(fs,par);
+				return tsk_core(fs,parser);
 			}
 		};
 		task.setOnCancelled(event->{
 			setGraphic(icon[0]);	
-			if(hook1!=null){
-				hook1.handle(event);
+			if(hook!=null){
+				hook.handle(event);
 			}
 		});
 		task.setOnFailed(event->{
 			setGraphic(icon[0]);	
-			if(hook2!=null){
-				hook2.handle(event);
+			if(hook!=null){
+				hook.handle(event);
 			}
 		});
 		task.setOnSucceeded(event->{
-			setGraphic(icon[0]);			
-			if(hook3!=null){
-				hook3.handle(event);
+			setGraphic(icon[0]);
+			if(hook!=null){
+				hook.handle(event);
 			}
 		});
 		
@@ -144,4 +146,20 @@ public class BtnScript extends JFXButton {
 	public boolean eval(String name){
 		return eval(new File(name));
 	}
+
+	public void setOnAction(
+		EventHandler<ActionEvent> beg_event,
+		EventHandler<WorkerStateEvent> end_event
+	) { 
+		onActionProperty().set(beg_event);
+		hook = end_event;
+	}
+		
+	/**
+	 * blocking delay function for parse
+	 * @param ms - millisecond
+	 */
+	public void delay(long millisec){
+		Misc.delay(millisec);
+	}	
 }

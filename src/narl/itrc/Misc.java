@@ -8,6 +8,8 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Enumeration;
+import java.util.Map;
+import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
@@ -408,64 +410,24 @@ public class Misc {
 	}	
 	//----------------------------------------//
 	
-	public static final String arch = check_arch();
+	public static final String pathRoot= check_root();
 	
-	public static final String pathRoot = check_root();
-	
-	public static final String pathSock = check_sock();
+	public static final String pathSock= check_sock();
 	
 	public static final String fileJar = check_jar();
 	
 	/**
 	 * The path where we start.
 	 */
-	public static final File fsPathRoot = new File(pathRoot);
+	public static final File dirRoot = new File(pathRoot);
 	
 	/**
 	 * The path where we keep files or data.
 	 */
-	public static final File fsPathTemp = new File(pathSock);
-	
-	/**
-	 * Where the jar file is, if no, this will be null
-	 */
-	public static final File fsFileJar = (fileJar==null)?(null):(new File(fileJar));
-	
-	private static String check_arch(){
-		String name = System.getProperty("os.arch");
-		if(name.indexOf("64")>0){
-			return "x64";
-		}
-		return name;
-	}
-	
-	public static boolean isPOSIX(){
-		String name = System.getProperty("os.name").toLowerCase();
-		if(name.indexOf("linux")>=0){
-			return true;
-		}
-		return false;
-	}
-	
-	public static boolean isFxxkMicrosoft(){
-		String name = System.getProperty("os.name").toLowerCase();
-		if(name.indexOf("win")>=0){
-			return true;
-		}
-		return false;
-	}
-	
-	public static String getOSName(){
-		String name = System.getProperty("os.name").toLowerCase();
-		if(name.indexOf("win")>=0){
-			return "win";
-		}else if(name.indexOf("linux")>=0){
-			return "linux";
-		}
-		return "unknow";
-	}
+	public static final File dirSock = new File(pathSock);
 	
 	private static String check_root(){
+		
 		String url = "."+File.separator;		
 		try {
 			url = Misc.class.getProtectionDomain().getCodeSource().getLocation().toURI().toString();
@@ -474,6 +436,7 @@ public class Misc {
 			return url;
 		}
 		url = url.replace('/',File.separatorChar);
+		
 		//System.out.printf("URL==>%s\n",url);//just for debug~~~
 		final String pre1 = "jar:file:";
 		final String pre3 = "file:";				
@@ -505,18 +468,35 @@ public class Misc {
 	}
 	
 	private static String check_sock(){
-		String url = Misc.pathRoot+"gawain"+File.separator;
-		File dir = new File(url);
+		
+		String path = null;
+		String os_name = System.getProperty("os.name");
+		if(os_name.equalsIgnoreCase("win")==true){
+			//TODO:how to get user directory???
+			path = Misc.pathRoot+"gawain"+File.separator;
+		}else{
+			//In unix, we have many ways to get home directory~~~
+			path = System.getenv("HOME");
+			if(path==null){
+				Misc.loge("fail to get $HOME");
+				path = Misc.pathRoot+"gawain"+File.separator;
+			}else{
+				path = path+File.separatorChar+".gawain"+File.separator;
+			}
+		}
+		
+		File dir = new File(path);
 		if(dir.exists()==false){
 			if(dir.mkdirs()==false){
-				System.err.printf("we can't create a temp-->%s!!\n",url);
+				System.err.printf("we can't create a temp-->%s!!\n",path);
 				System.exit(-2);
 			}
 		}
-		return url;
+		return path;
 	}
 	
 	private static String check_jar(){
+		
 		File[] lst = new File(".").listFiles();
 		for(File fs:lst){
 			if(fs.getName().indexOf(".jar")<=0){
@@ -546,6 +526,24 @@ public class Misc {
 			return txt;
 		}
 		return txt + File.separatorChar;
+	}
+	
+	public static boolean isPOSIX(){
+		String name = System.getProperty("os.name").toLowerCase();
+		if(name.indexOf("linux")>=0){
+			return true;
+		}
+		return false;
+	}
+	
+	public static String getOSName(){
+		String name = System.getProperty("os.name").toLowerCase();
+		if(name.indexOf("win")>=0){
+			return "win";
+		}else if(name.indexOf("linux")>=0){
+			return "linux";
+		}
+		return "unknow";
 	}
 	//------------------------------------------------//
 	
@@ -626,7 +624,7 @@ public class Misc {
 		};
 		FileChooser chs = new FileChooser();
 		chs.setTitle("開啟圖檔");
-		chs.setInitialDirectory(fsPathTemp);
+		chs.setInitialDirectory(dirSock);
 		chs.getExtensionFilters().addAll(exts);
 		return chs;
 	}
@@ -634,7 +632,7 @@ public class Misc {
 	public static DirectoryChooser genChooseDir(){
 		DirectoryChooser chs = new DirectoryChooser();
 		chs.setTitle("選取資料夾");
-		chs.setInitialDirectory(fsPathTemp);
+		chs.setInitialDirectory(dirSock);
 		return chs;
 	}
 	
@@ -668,36 +666,23 @@ public class Misc {
 		}
 		return hex;
 	}
-		
-	public static int[] splitInteger(String txt){
-		ArrayList<String> buff = new ArrayList<String>();
-		boolean ending=true;
-		String digi="";
+	
+	/**
+	 * It is same as "Integer.valueOf()", but this function accepts leading zero.<p>
+	 * @param txt - the string of integer value(including leading zero)
+	 * @return integer value
+	 */
+	public static int txt2int(String txt){
 		char[] cc = txt.toCharArray();
-		for(int i=0; i<cc.length; i++){			
-			if('0'<=cc[i]&&cc[i]<='9'){
-				digi = digi + cc[i];
-				ending = false;
-				continue;
+		int val = 0;
+		for(int i=0; i<cc.length; i++){
+			if(cc[i]<'0' || '9'<cc[i]){
+				Misc.logw("fail to parse (%s)", txt);
+				return 0;//drop this text, it is invalid number~~~~
 			}
-			if(ending==false){
-				buff.add(digi);
-				digi = "";//reset it~~~~
-			}
-			ending = true;
+			val = val + (int)(cc[i] - '0') * ((int)Math.pow(10, cc.length-i-1));
 		}
-		if(digi.length()!=0){
-			buff.add(digi);//final one~~~
-		}
-		int[] res = new int[buff.size()];
-		for(int i=0; i<buff.size(); i++){
-			try{
-				res[i] = Integer.valueOf(buff.get(i));
-			}catch(NumberFormatException e){
-				res[i] = 0;
-			}
-		}
-		return res;
+		return val;
 	}
 	//----------------------------------------//
 		
@@ -727,12 +712,18 @@ public class Misc {
 		return res;
 	}
 	
-	private static final String REX_POSITION="[(]\\p{Digit}+[,]\\p{Digit}+[)]";
+	private static final String REX_LOCA="[(]\\p{Digit}+[,]\\p{Digit}+[)]";
 	private static final String REX_SIZE="\\p{Digit}+[x]\\p{Digit}+";
-	
-	public static boolean trimPosition(String txt,int[] pos){
+	/**
+	 * Parse location information, the format is '({digi},{digi})'. <p>
+	 * Example: '(70,5)' or '(100,050)' 
+	 * @param txt
+	 * @param pos 
+	 * @return
+	 */
+	public static boolean trimLoca(String txt,int[] pos){
 		//example: (200,300) or (10,5)...
-		if(txt.matches(REX_POSITION)==false){
+		if(txt.matches(REX_LOCA)==false){
 			return false;
 		}
 		txt = txt.replace('(',' ').replace(')',' ').trim();
@@ -740,9 +731,16 @@ public class Misc {
 		return true;
 	}
 
-	public static boolean trimRectangle(String txt,int[] pos){
+	/**
+	 * Parse rectangle information, the format is '({digi},{digi})@{digi}x{digi}'. <p>
+	 * Example: '(70,5)@30x10' or '(100,050)@100x100' 
+	 * @param txt
+	 * @param pos
+	 * @return
+	 */
+	public static boolean trimRect(String txt,int[] pos){
 		//example: (200,300)@3x3 or (10,5)@100x100...
-		if(txt.matches(REX_POSITION+"[@]"+REX_SIZE)==false){
+		if(txt.matches(REX_LOCA+"[@]"+REX_SIZE)==false){
 			return false;
 		}
 		int idx = txt.indexOf("@");
@@ -751,56 +749,6 @@ public class Misc {
 		trim2Val(pxt,pos,',',0);
 		trim2Val(txt.substring(idx+1),pos,'x',2);		
 		return true;
-	}
-
-	private static void trim2Val(String txt,int[] buf,char sp,int off){
-		int idx = txt.indexOf(sp);
-		buf[off+0] = Integer.valueOf(txt.substring(0,idx));
-		buf[off+1] = Integer.valueOf(txt.substring(idx+1));
-	}
-	
-	public static String trimPath(String txt){
-		int pos = txt.lastIndexOf(File.separatorChar);
-		if(pos<0){
-			return txt;
-		}
-		return txt.substring(pos+1);
-	}
-	
-	public static String trimName(String txt){
-		int pos = txt.lastIndexOf(File.separatorChar);
-		if(pos<0){
-			return txt;
-		}
-		return txt.substring(0,pos);
-	}
-	
-	public static String trimAppx(String txt){
-		int pos = txt.lastIndexOf(".");
-		if(pos<0){
-			return txt;
-		}
-		return txt.substring(0,pos);
-	}
-	
-	public static String trim_path_appx(String txt){
-		int beg = txt.lastIndexOf(File.separatorChar)+1;
-		if(beg<0){
-			beg=0;
-		}
-		int end = txt.lastIndexOf(".");
-		if(end<0){
-			end = txt.length();
-		}
-		return txt.substring(beg,end);
-	}
-	
-	public static String trimSeparator(String txt){
-		int len = txt.length();
-		if(txt.charAt(len-1)==File.separatorChar){
-			txt = txt.substring(0,len-1);
-		}
-		return txt;
 	}
 
 	/**
@@ -834,6 +782,48 @@ public class Misc {
 		int[] res = new int[4];
 		parseGeomInfo(txt,res);
 		return res;
+	}
+	
+	private static void trim2Val(String txt,int[] buf,char sp,int off){
+		int idx = txt.indexOf(sp);
+		buf[off+0] = txt2int(txt.substring(0,idx));
+		buf[off+1] = txt2int(txt.substring(idx+1));
+	}
+	
+	public static String trimPath(String txt){
+		int pos = txt.lastIndexOf(File.separatorChar);
+		if(pos<0){
+			return txt;
+		}
+		return txt.substring(pos+1);
+	}
+	
+	public static String trimName(String txt){
+		int pos = txt.lastIndexOf(File.separatorChar);
+		if(pos<0){
+			return txt;
+		}
+		return txt.substring(0,pos);
+	}
+	
+	public static String trimAppx(String txt){
+		int pos = txt.lastIndexOf(".");
+		if(pos<0){
+			return txt;
+		}
+		return txt.substring(0,pos);
+	}
+	
+	public static String trimPathAppx(String txt){
+		int beg = txt.lastIndexOf(File.separatorChar)+1;
+		if(beg<0){
+			beg=0;
+		}
+		int end = txt.lastIndexOf(".");
+		if(end<0){
+			end = txt.length();
+		}
+		return txt.substring(beg,end);
 	}	
 	//--------------------------//
 	
@@ -922,20 +912,7 @@ public class Misc {
 	public static int hypotInt(int[] pa,int[] pb){
 		return Math.round((float)Math.hypot(pa[0]-pb[0], pa[1]-pb[1]));
 	}
-		
-	public static int txt2int(String txt){
-		char[] cc = txt.toCharArray();
-		int val = 0;
-		for(int i=0; i<cc.length; i++){
-			if(cc[i]<'0' || '9'<cc[i]){
-				Misc.logw("fail to parse (%s)", txt);
-				return 0;//drop this text, it is invalid number~~~~
-			}
-			val = val + (int)(cc[i] - '0') * ((int)Math.pow(10, cc.length-i-1));
-		}
-		return val;
-	}
-		
+	
 	public static float[] int2float(int[] src){
 		float[] dst = new float[src.length];
 		for(int i=0; i<src.length; i++){
