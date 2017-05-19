@@ -203,6 +203,9 @@ extern int test_sfr(
 		0  /* provide user angle */
 	);
 
+	//double angle = atan(slope) * 180 / M_PI;
+	//cout<<"angle="<<angle<<", cycle="<<numcycles<<endl;
+
 	frq.clear();
 	sfr.clear();
 

@@ -2,6 +2,7 @@
 #include <sys/msg.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <fstream>
 #include <global.hpp>
 #include <algorithm>
 #include <opencv2/face.hpp>
@@ -17,43 +18,138 @@ extern int test_sfr(
 	vector<double>& sfr
 );
 
-int main(int argc, char* argv[]){
+Point findRedCross(Mat& img){
+	Point loc;
 
-	//Mat img = imread("./test-0503.bmp",IMREAD_GRAYSCALE);
-	Mat img = imread("./test-0619.bmp",IMREAD_GRAYSCALE);
+	Mat chan[3];
+	split(img,chan);
 
-	img = checkMono(img,NULL);
+	Mat out1,out2,out3;
+	bitwise_xor(chan[2],chan[0],out1);
+	bitwise_xor(chan[2],chan[1],out2);
+	bitwise_and(out1,out2,out3);
 
+	threshold(out3,out1,254,255,THRESH_BINARY);
+
+	const int len = 11;
+
+	out2 = Mat::zeros(len,len,CV_8UC1);
+	line(out2, Point(5,0), Point(len/2,len), Scalar::all(255));
+	line(out2, Point(0,5), Point(len,len/2), Scalar::all(255));
+
+	out3 = Mat::zeros(
+		img.rows - out2.rows + 1,
+		img.cols - out2.cols + 1,
+		CV_32FC1
+	);
+
+	matchTemplate(out1, out2, out3, CV_TM_SQDIFF_NORMED);
+
+	minMaxLoc(out3,NULL,NULL,&loc,NULL);
+
+	loc.x = loc.x + len/2;
+	loc.y = loc.y + len/2;
+
+	circle(img,loc,5,Scalar(0,255,255));
+
+	return loc;
+}
+
+#define MACRO_CHECK(tag,per) {\
+	roi = gray(tag); \
+	idx = test_sfr(roi, scale, frq, sfr); \
+	idx = (int)(frq.size()*per); \
+	val = (int)(sfr[idx]*10000); \
+	printf("%d\t",val); \
+	sprintf(txt,"%d",val); \
+	putText(img, txt, Point(tag.x,tag.y)+off, FONT_HERSHEY_COMPLEX, 1., clr); \
+}
+
+void check_all_mtf(const char* name, const char* out_dir){
+
+	Point off(5,30);
+	Scalar clr(0,255,255);
+
+	Mat img = imread(name);
+	Mat gray = imread(name,IMREAD_GRAYSCALE);
+
+	Point aa = findRedCross(img);
+	if(aa.x<(img.cols/2-50) || (img.cols/2+50)<aa.x){
+		printf("0\t0\t0\t0\t0\t\n");
+		return;
+	}
+	if(aa.x<(img.cols/2-50) || (img.cols/2+50)<aa.x){
+		printf("0\t0\t0\t0\t0\t\n");
+		return;
+	}
+
+	Rect center(aa.x-30, aa.y+9, 48, 65);
+	Rect lf_tp(aa.x-288, aa.y-170, 48, 65);
+	Rect lf_bm(aa.x-288, aa.y+106, 48, 65);
+	Rect rh_tp(aa.x+237, aa.y-170, 48, 65);
+	Rect rh_bm(aa.x+237, aa.y+106, 48, 65);
+
+	rectangle(img,center,clr);
+	rectangle(img,lf_tp ,clr);
+	rectangle(img,lf_bm ,clr);
+	rectangle(img,rh_tp ,clr);
+	rectangle(img,rh_bm ,clr);
+
+	int idx,val;
+	char txt[100];
 	double scale = (1./5.)*1000.;
 	vector<double> frq, sfr;
-	int idx;
 	Mat roi;
 
-	//roi = img(Rect(130,100,36,36));
-	roi = img(Rect(115,88,36,36));
-	idx = test_sfr(roi, scale, frq, sfr);
-	printf("LF_TP:MTF50=(%.1f, %.1f)\n\n",frq[idx],sfr[idx]);
+	MACRO_CHECK(center,0.5);
+	MACRO_CHECK(lf_tp,0.4);
+	MACRO_CHECK(rh_tp,0.4);
+	MACRO_CHECK(lf_bm,0.4);
+	MACRO_CHECK(rh_bm,0.4);
+	printf("\n");
 
-	//roi = img(Rect(126,409,36,36));
-	roi = img(Rect(111,403,36,36));
-	idx = test_sfr(roi, scale, frq, sfr);
-	printf("LF_BM:MTF50=(%.1f, %.1f)\n\n",frq[idx],sfr[idx]);
+	if(out_dir!=NULL){
+		string fs_name(name);
+		fs_name = fs_name.substr(
+			0,
+			fs_name.find_last_of(".")
+		);
+		fs_name = fs_name.substr(
+			fs_name.find_last_of("/")+1,
+			fs_name.length()
+		);
+		sprintf(txt,"%s/%s.png",out_dir,fs_name.c_str());
+		imwrite(txt,img);
+	}else{
+		imwrite("dd.png",img);
+	}
 
-	//roi = img(Rect(359,294,36,36));
-	roi = img(Rect(350,286,36,36));
-	idx = test_sfr(roi, scale, frq, sfr);
-	printf("CENTR:MTF50=(%.1f, %.1f)\n\n",frq[idx],sfr[idx]);
+	/*printf("RH_BM:MTF50=(%.1f, %.1f)\n\n",frq[idx],sfr[idx]);
+	printf("Freq    SFR    \n");
+	for(int i=0; i<frq.size(); i++){
+		printf("%d) %.2f    %.2f\n", i, frq[i], sfr[i]);
+	}
+	printf("===[%ld]===\n",frq.size());*/
+}
 
-	//roi = img(Rect(596,103,36,36));
-	roi = img(Rect(586,95,36,36));
-	idx = test_sfr(roi, scale, frq, sfr);
-	printf("RH_TP:MTF50=(%.1f, %.1f)\n\n",frq[idx],sfr[idx]);
+int main(int argc, char* argv[]){
 
-	//roi = img(Rect(597,413,36,36));
-	roi = img(Rect(586,404,36,36));
-	idx = test_sfr(roi, scale, frq, sfr);
-	printf("RH_BM:MTF50=(%.1f, %.1f)\n\n",frq[idx],sfr[idx]);
+	const char* dirname = "./fisheye-test/result";
 
+	//const char* name = "./fisheye-test/20170512_08_30_12_CurrentImage.bmp";
+	//check_all_mtf(name,NULL);
+
+	printf("file\tCenter\tLF_UP\tRH_TP\tLF_BM\tRH_BM\n");
+
+	ifstream lstFile("./fisheye-test/list.txt");
+	//ifstream lstFile("./fisheye-test/NG-len/list.txt");
+	string line;
+	while(getline(lstFile, line)){
+		printf("%s\t",line.c_str());
+		char name[100];
+		sprintf(name,"./fisheye-test/%s",line.c_str());
+		check_all_mtf(name,dirname);
+	}
 	return 0;
 }
 //--------------------------------------------//

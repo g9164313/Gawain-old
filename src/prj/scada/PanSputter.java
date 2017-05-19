@@ -45,8 +45,8 @@ public class PanSputter extends PanBase {
 	
 	private DevFatek devPLC = new DevFatek("/dev/tty11");
 	
-	//private WidMapPumper mapper = new WidMapPumper("sample-pid");
-	private WidDiagram mapper = new WidDiagram();
+	//private WidMapPumper1 mapper = new WidMapPumper1("sample-pid");
+	private WidMapPumper mapper = new WidMapPumper();
 	
 	private String nameScript = Misc.pathSock+"test.js";
 
