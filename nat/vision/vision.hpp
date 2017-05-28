@@ -54,7 +54,7 @@ inline Mat checkMono(Mat& src,int* _r){
 inline Mat checkMono(JNIEnv* env,jintArray roi,Mat& src){
 	jint _roi[10];
 	env->GetIntArrayRegion(roi,0,4,_roi);
-	return checkMono(src,_roi);
+	return checkMono(src, (int*)_roi);
 }
 
 inline Mat checkROI(Mat& src,int* _r){
@@ -69,7 +69,7 @@ inline Mat checkROI(Mat& src,int* _r){
 inline Mat checkROI(JNIEnv* env,jintArray roi,Mat& src){
 	jint _roi[10];
 	env->GetIntArrayRegion(roi,0,4,_roi);
-	return checkROI(src,_roi);
+	return checkROI(src, (int*)_roi);
 }
 
 #define TICK_BEG \

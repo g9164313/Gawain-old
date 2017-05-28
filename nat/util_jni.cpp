@@ -183,7 +183,7 @@ void setIntArray(
 	jclass _clazz = env->GetObjectClass(thiz);
 	jfieldID id = env->GetFieldID(_clazz,name,"[I");
 	jintArray arry = env->NewIntArray(len);
-	env->SetIntArrayRegion(arry, 0, len, val);
+	env->SetIntArrayRegion(arry, 0, len, (jint*)val);
 	env->SetObjectField(thiz,id,arry);
 }
 
@@ -215,12 +215,22 @@ void callThreadJoin(JNIEnv* env,jobject thiz,const char* name){
 }
 //--------------------------------//
 
+#if defined _MSC_VER
+#define MACRO_LOG_BEG \
+	char txt[2048]; \
+	va_list args; \
+	va_start(args, fmt); \
+	vsprintf_s(txt,fmt,args); \
+	va_end(args);
+#else
 #define MACRO_LOG_BEG \
 	char txt[2048]; \
 	va_list args; \
 	va_start(args, fmt); \
 	vsprintf(txt,fmt,args); \
 	va_end(args);
+#endif
+
 
 void log_msg(JNIEnv* env,const char* name,const char* txt){
 	jclass clzz = env->FindClass("narl/itrc/Misc");

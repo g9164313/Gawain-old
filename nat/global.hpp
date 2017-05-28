@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+
 #ifdef _MSC_VER
 //this direction for M$ VC2010
 #include <Windows.h>
@@ -43,13 +44,7 @@ inline void msleep(int msec){
 #include <list>
 #include <string>
 #include <vector>
-#ifdef VISION
-#include "vision/vision.hpp"
-#endif
-
 using namespace std;
-
-extern void unsharpen(Mat& src,int rad,double scale);
 
 extern void setJDouble(JNIEnv *env,jobject thiz,const char* name,double val);
 extern double getJDouble(JNIEnv *env,jobject thiz,const char* name);
@@ -84,6 +79,10 @@ extern void logv(JNIEnv* env,const char* fmt,...);
 extern void logw(JNIEnv* env,const char* fmt,...);
 extern void loge(JNIEnv* env,const char* fmt,...);
 
+#ifdef USE_VISION
+#include "vision/vision.hpp"
+extern void unsharpen(Mat& src, int rad, double scale);
+#endif
 
 #endif /* GLOBAL_H_ */
 

@@ -35,10 +35,10 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implOpen(
 		NULL /* no templates */
 	);
 	if(hand==INVALID_HANDLE_VALUE){
-		setJlong(env,thiz,NAME_HANDLE,0);//reset handle!!!!
+		setJLong(env,thiz,NAME_HANDLE,0);//reset handle!!!!
 		return;
 	}
-	setJlong(env,thiz,NAME_HANDLE,hand);
+	setJLong(env,thiz,NAME_HANDLE,(long)hand);
 
 	DCB port_settings;
 	memset(&port_settings, 0, sizeof(port_settings));  /* clear the new struct  */
@@ -48,15 +48,15 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implOpen(
 	char modeData = (char)((int)data_bit);
 	char modePart = (char)((int)parity);
 	char modeStop = (char)((int)stop_bit);
-	sprintf(
+	sprintf_s(
 		modeText,
 		"baud=%d data=%c parity=%c stop=%c",
 		baud_rate, modeData, modePart, modeStop
 	);
 
-	cout<<"SETTING: "<<modeTxt<<endl;
+	cout << "SETTING: " << modeText << endl;
 
-	BuildCommDCBA(modeTxt, &port_settings);
+	BuildCommDCBA(modeText, &port_settings);
 
 	if(!SetCommState(hand, &port_settings)){
 		cout<<"Fail to set ["<<name<<"] state"<<endl;
@@ -186,18 +186,17 @@ extern "C" JNIEXPORT jbyteArray JNICALL Java_narl_itrc_DevTTY_implRead(
 	}
 
 #if defined _MSC_VER
-	jlong hand = getJlong(env,thiz,NAME_HANDLE);
+	jlong hand = getJLong(env,thiz,NAME_HANDLE);
 	if(hand!=0L){
-
 		int cnt = 0;
 		ReadFile(
-			(Handle)hand,
+			(HANDLE)hand,
 			buf, len,
 			(LPDWORD)((void *)&cnt),
 			NULL
 		);
 		if(cnt<=0){
-			cout<<"fail to read data"<<endl
+			cout << "fail to read data" << endl;
 			return NULL;
 		}
 		jbyteArray res = env->NewByteArray(cnt);
@@ -234,11 +233,11 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implWrite(
 	jbyte* buf = env->GetByteArrayElements(jbuf,NULL);
 	size_t len = env->GetArrayLength(jbuf);
 #if defined _MSC_VER
-	jlong hand = getJlong(env,thiz,NAME_HANDLE);
+	jlong hand = getJLong(env,thiz,NAME_HANDLE);
 	if(hand!=0L){
 		int n;
 		WriteFile(
-			(Handle)hand,
+			(HANDLE)hand,
 			buf, len,
 			(LPDWORD)((void *)&n),
 			NULL
@@ -271,7 +270,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implClose(
 	jobject thiz
 ) {
 #if defined _MSC_VER
-	Handle hand = (Handle)getJLong(env,thiz,NAME_HANDLE);
+	HANDLE hand = (HANDLE)getJLong(env,thiz,NAME_HANDLE);
 	CloseHandle(hand);
 #else
 	close(getJLong(env,thiz,NAME_HANDLE));
