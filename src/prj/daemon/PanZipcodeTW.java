@@ -29,7 +29,10 @@ public class PanZipcodeTW extends PanBase {
         //System.setOut(new PrintStream("C:\\labor\\ggyy.log", "UTF-8"));
         
 		//ZipcodeTW.notation("14號含附號");
-		ZipcodeTW.buid(name);
+		String code = ZipcodeTW.mark2vcode("1374巷256弄90之2號21樓");
+		int[] mark = ZipcodeTW.vcode2mark(code);
+		
+		//ZipcodeTW.buid(name);
 		
 		//writer.close();
 	}

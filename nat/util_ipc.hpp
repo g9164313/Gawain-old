@@ -35,6 +35,8 @@
 #define TextIsFail (bufTxt[0]=='F' && bufTxt[1]=='A' && bufTxt[2]=='I' && bufTxt[3]=='L')
 #define TextIsDone (bufTxt[0]=='D' && bufTxt[1]=='O' && bufTxt[2]=='N' && bufTxt[3]=='E')
 
+using namespace std;
+
 class IpcToken {
 public:
 	IpcToken(const char* name){

@@ -28,11 +28,11 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implOpen(
 	HANDLE hand = CreateFileA(
 		name,
 		GENERIC_READ|GENERIC_WRITE,
-		0,                          /* no share  */
-		NULL,                       /* no security */
+		0,   /* no share  */
+		NULL,/* no security */
 		OPEN_EXISTING,
-		0,                          /* no threads */
-		NULL                      /* no templates */
+		0,   /* no threads */
+		NULL /* no templates */
 	);
 	if(hand==INVALID_HANDLE_VALUE){
 		setJlong(env,thiz,NAME_HANDLE,0);//reset handle!!!!
