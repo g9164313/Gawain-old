@@ -2,7 +2,7 @@ package narl.itrc;
 
 import java.util.Hashtable;
 
-public class DevModbus implements Gawain.EventHook {
+public class DevModbus extends DevBase {
 
 	private long ptrCntx = 0L;//it is same as NULL point
 	
@@ -15,17 +15,21 @@ public class DevModbus implements Gawain.EventHook {
 	private static Hashtable<String,Long> tblName = new Hashtable<String,Long>();
 	
 	public DevModbus(){
-		Gawain.hook(this);
 	}
 	
-	public DevModbus(String name){
-		open(name);
+	/**
+	 * Create object and connect device immediately
+	 * @param path - device name and connection attributes
+	 */
+	public DevModbus(String path){
+		open(path);
 	}
 	
 	@Override
-	public void shutdown() {
-		close();
+	void eventShutdown() {
+		close();		
 	}
+	//---------------------//
 	
 	public int open(String name){
 		String[] val = name.trim().split(",");

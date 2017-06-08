@@ -61,7 +61,7 @@ public abstract class DevBase extends Pane implements Gawain.EventHook {
 	 */
 	public DevBase build(final String title){
 		if(getChildren().isEmpty()==true){
-			Node nd = eventLayout();
+			Node nd = eventLayout(null);
 			getChildren().add(nd);
 			getStyleClass().add("decorate1-border");
 			//setMaxWidth(Double.MAX_VALUE);
@@ -84,7 +84,7 @@ public abstract class DevBase extends Pane implements Gawain.EventHook {
 		return new PanBase(title){
 			@Override
 			public Node eventLayout(PanBase pan) {				
-				return eventLayout(pan);
+				return DevBase.this.eventLayout(pan);
 			}
 		}.appear();
 	}
@@ -94,7 +94,7 @@ public abstract class DevBase extends Pane implements Gawain.EventHook {
 	 * So, override this method to generate a control-view.
 	 * @return
 	 */
-	protected Node eventLayout(){
+	protected Node eventLayout(PanBase pan){
 		return null;
 	}
 	

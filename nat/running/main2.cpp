@@ -83,13 +83,13 @@ void check_all_mtf(const char* name, const char* out_dir){
 		return;
 	}
 
-	Rect center(aa.x-30, aa.y+9, 48, 65);
-	Rect lf_tp(aa.x-288, aa.y-170, 48, 65);
-	Rect lf_bm(aa.x-288, aa.y+106, 48, 65);
-	Rect rh_tp(aa.x+237, aa.y-170, 48, 65);
-	Rect rh_bm(aa.x+237, aa.y+106, 48, 65);
+	Rect cent (aa.x- 44, aa.y+ 13, 78, 111);
+	Rect lf_tp(aa.x-256, aa.y-181, 54, 60);
+	Rect lf_bm(aa.x-262, aa.y+118, 54, 60);
+	Rect rh_tp(aa.x+209, aa.y-177, 54, 60);
+	Rect rh_bm(aa.x+213, aa.y+122, 54, 60);
 
-	rectangle(img,center,clr);
+	rectangle(img,cent,clr);
 	rectangle(img,lf_tp ,clr);
 	rectangle(img,lf_bm ,clr);
 	rectangle(img,rh_tp ,clr);
@@ -101,7 +101,7 @@ void check_all_mtf(const char* name, const char* out_dir){
 	vector<double> frq, sfr;
 	Mat roi;
 
-	MACRO_CHECK(center,0.5);
+	MACRO_CHECK(cent,0.5);
 	MACRO_CHECK(lf_tp,0.4);
 	MACRO_CHECK(rh_tp,0.4);
 	MACRO_CHECK(lf_bm,0.4);
@@ -134,21 +134,21 @@ void check_all_mtf(const char* name, const char* out_dir){
 
 int main(int argc, char* argv[]){
 
-	const char* dirname = "./fisheye-test/result";
+#define DIR_NAME "fisheye-test2"
 
 	//const char* name = "./fisheye-test/20170512_08_30_12_CurrentImage.bmp";
 	//check_all_mtf(name,NULL);
 
-	printf("file\tCenter\tLF_UP\tRH_TP\tLF_BM\tRH_BM\n");
+	printf("file\tCenter\tLT\tRT\tLB\tRB\n");
 
-	ifstream lstFile("./fisheye-test/list.txt");
+	ifstream lstFile("./"DIR_NAME"/list.txt");
 	//ifstream lstFile("./fisheye-test/NG-len/list.txt");
 	string line;
 	while(getline(lstFile, line)){
 		printf("%s\t",line.c_str());
 		char name[100];
-		sprintf(name,"./fisheye-test/%s",line.c_str());
-		check_all_mtf(name,dirname);
+		sprintf(name,"./"DIR_NAME"/%s",line.c_str());
+		check_all_mtf(name,"./"DIR_NAME"/result");
 	}
 	return 0;
 }

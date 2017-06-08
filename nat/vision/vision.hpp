@@ -9,7 +9,8 @@
 #include <opencv2/opencv.hpp>
 
 using namespace cv;
-using namespace std;
+
+extern void unsharpen(Mat& src,int rad,double scale);
 
 //Do we need the below procedure~~~
 extern cv::Mat* obj2mat(JNIEnv *env,jobject obj);

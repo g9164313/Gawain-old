@@ -94,8 +94,8 @@
 
 .grid-medium {
     -fx-padding: 7px;
-    -fx-hgap: 7px;
-    -fx-vgap: 7px;
+    -fx-hgap: 13px;
+    -fx-vgap: 13px;
 }
 .grid-medium-horizontal {
     -fx-padding: 14px 7px 14px 7px;

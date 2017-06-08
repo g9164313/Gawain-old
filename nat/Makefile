@@ -127,7 +127,8 @@ else
 endif
 	
 
-$(TARGET_EXE):  ./wrap-unix/main2.cpp ./wrap-unix/misc.cpp $(CORE_FILE) $(LIB_SFRISO)
+#$(TARGET_EXE):  ./wrap-unix/main2.cpp ./wrap-unix/misc.cpp $(CORE_FILE) $(LIB_SFRISO)
+$(TARGET_EXE):  ./wrap-unix/main3.cpp
 #$(TARGET_EXE):  $(wildcard ./traincascade/*.cpp)
 #$(TARGET_EXE):  ./wrap-unix/FlyCap2.cpp
 	$(CC) $(CC_FLAG) -o $@ $^ $(LD_LIBS)

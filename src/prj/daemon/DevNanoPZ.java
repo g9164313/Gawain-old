@@ -199,7 +199,7 @@ public class DevNanoPZ extends DevTTY {
 	//-----------------------//
 
 	@Override
-	protected Node eventLayout(){
+	protected Node eventLayout(PanBase pan){
 		
 		GridPane root = new GridPane();
 		root.getStyleClass().add("grid-medium");

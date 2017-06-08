@@ -117,6 +117,7 @@ public class PanSputter extends PanBase {
 	
 	@Override
 	protected void eventShown(WindowEvent e){
+		devPLC.get(1, "R00001", "Y0009", "DWM0000");
 		//devSQM160.open("/dev/ttyS0,19200,8n1");
 		//devSQM160.exec("@");
 	}
@@ -132,12 +133,13 @@ public class PanSputter extends PanBase {
 		});
 		
 		BorderPane root = new BorderPane();
-		root.setRight(lay_action());
-		root.setCenter(mapper);
+		
 		root.setLeft(lay_gauge());
+		root.setCenter(mapper);
+		root.setRight(lay_action());
 		return root;
 	}
-
+	
 	private Node lay_action(){
 		
 		GridPane lay = new GridPane();
@@ -179,9 +181,15 @@ public class PanSputter extends PanBase {
 		btnEdit.setOnAction(event->{
 		});
 
+		final Button btnPLC = PanBase.genButton2("PLC 設定",null);
+		btnPLC.setOnAction(event->{
+			devPLC.showConsole("Fatek PLC");
+		});
+		
 		lay.addRow(0, txt[0], txt[1]);
 		lay.add(btnExec, 0, 1, 3, 1);
 		lay.add(btnEdit, 0, 2, 3, 1);
+		lay.add(btnPLC , 0, 3, 3, 1);
 		return lay;
 	}
 	

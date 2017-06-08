@@ -156,7 +156,7 @@ public class DevLK_G5000 extends DevTTY {
 	private JFXCheckBox chkAllOut, chkWatcher;
 	
 	@Override
-	protected Node eventLayout(){
+	protected Node eventLayout(PanBase pan){
 		
 		GridPane root = new GridPane();
 		root.getStyleClass().add("grid-medium");
