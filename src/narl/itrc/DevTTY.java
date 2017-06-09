@@ -14,8 +14,8 @@ public class DevTTY extends DevBase {
 	public DevTTY(){
 	}
 	
-	public DevTTY(String path){	
-		open(path);
+	public DevTTY(String path_addr){	
+		open(path_addr);
 	}
 
 	@Override
@@ -23,8 +23,15 @@ public class DevTTY extends DevBase {
 		return new PanTTY(this);
 	}
 
+	/**
+	 * This is special event, device want to do something before shutdown~~~
+	 */
+	protected void eventTurnOff(){		
+	}
+	
 	@Override
 	void eventShutdown() {
+		eventTurnOff();
 		close();
 	}
 	//---------------------//
@@ -41,8 +48,12 @@ public class DevTTY extends DevBase {
 		return handle;
 	}
 	
-	private final String TXT_UNKNOW_NAME = "?";
-	private final char TXT_UNKNOW_ATTR = '?';
+	public boolean isOpen(){
+		return (handle==0L)?(false):(true);
+	}
+	
+	private final String TXT_UNKNOW_NAME = "？";
+	private final char   TXT_UNKNOW_ATTR = '？';
 	
 	private String infoName = TXT_UNKNOW_NAME;
 	private int  infoBaud = -1;
@@ -101,21 +112,21 @@ public class DevTTY extends DevBase {
 	 * @param name - control statement.
 	 * @return TRUE - valid, FALSE - invalid
 	 */
-	public boolean setInfoPath(String path){
+	public boolean setInfoPathAttr(String path_attr){
 		
 		resetInfoPath();
 		
-		String[] arg = path.trim().split(",");
+		String[] arg = path_attr.trim().split(",");
 		//check we have 3 arguments at least
 		if(arg.length<3){
-			Misc.loge("fail to connect "+path);
+			Misc.loge("fail to connect "+path_attr);
 			return false;
 		}
 		
 		//check the fist argument,it is device name		
 		if(Misc.isPOSIX()==true){
 			if(new File(arg[0]).exists()==false){
-				Misc.loge("Unknown device --> "+path);
+				Misc.loge("Unknown device --> "+path_attr);
 				return false;
 			}
 		}else{
@@ -156,8 +167,7 @@ public class DevTTY extends DevBase {
 		char[] ctrl = arg[1].toCharArray();
 		infoData = ctrl[0];
 		infoPart = ctrl[1];
-		infoStop = ctrl[2];
-				
+		infoStop = ctrl[2];				
 		return true;		
 	}	
 	//---------------------//
@@ -165,24 +175,24 @@ public class DevTTY extends DevBase {
 	/**
 	 * open TTY and start to communication.<p>
 	 * if path have no control statement, it will append the second argument.<p>
-	 * @param path - device name, or full name
+	 * @param path_attr - device name, or full name
 	 * @param attr - default control statement
 	 * @return
 	 */
-	public long open(String path,String attr){
-		if(path.contains(",")==false){
-			path = path + ","+attr; //add default attribute setting.
+	public long open(String path_attr,String attr){
+		if(path_attr.contains(",")==false){
+			path_attr = path_attr + ","+attr; //add default attribute setting.
 		}		
-		return open(path);
+		return open(path_attr);
 	}
 	
 	/**
 	 * open TTY and start to communication.<p>
 	 * the argument path must be full name. it means path includes device name and control statement.<p>
-	 * @param path - full name, including device name and control statement.
+	 * @param path_attr - full name, including device name and control statement, ex:/dev/ttyS0,9600,8n1.
 	 */
-	public long open(String path){
-		if(setInfoPath(path)==false){
+	public long open(String path_attr){
+		if(setInfoPathAttr(path_attr)==false){
 			return -1L;
 		}
 		return open();
@@ -255,8 +265,7 @@ public class DevTTY extends DevBase {
 	/**
 	 * Read text from terminal-port.<p>
 	 * This is blocking method!!!.<p>
-	 * @return NULL - if no data<p>
-	 * Text - what we read.<p>
+	 * @return NULL - if no data<p> Text - what we read.<p>
 	 */
 	public String readTxt(){
 		byte[] buf = readBuf();
@@ -274,8 +283,7 @@ public class DevTTY extends DevBase {
 	/**
 	 * Read text from terminal-port and stopping after encountering tail part.<p>
 	 * This is blocking method!!!.<p>
-	 * @return NULL - if no data<p>
-	 * Text - what we read has tail part.<p>
+	 * @return NULL - if no data<p> Text - what we read has tail part.<p>
 	 */
 	public String readTxt(String tail){
 		String txt = "";

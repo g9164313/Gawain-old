@@ -33,6 +33,11 @@ public class DevCDR06 extends DevModbus {
 		root.getStyleClass().add("grid-small");
 	}
 	
+	public DevCDR06(String attr){
+		this();
+		connect(attr);
+	}
+	
 	public void connect(String attr){
 		title = null;
 		if(attr.length()==0){
@@ -104,19 +109,18 @@ public class DevCDR06 extends DevModbus {
 		if(title==null){
 			return;
 		}
+		
+		final String _sty = 
+			"-fx-font-size: 20px;"+
+			"-fx-label-padding: 7,0,0,0;";
+		
 		for(int i=0; i<title.length; i++){
 			
 			Label txtTitle = new Label(title[i]);
-			txtTitle.setStyle(
-				"-fx-font-size: 20px;"+
-				"-fx-label-padding: 7,0,0,0;"		
-			);
+			txtTitle.setStyle(_sty);
 			
 			Label txtValue = new Label();
-			txtValue.setStyle(
-				"-fx-font-size: 20px;"+
-				"-fx-label-padding: 7,0,0,0;"		
-			);
+			txtValue.setStyle(_sty);
 			txtValue.textProperty().bind(Bindings.convert(propValue[0]));
 			
 			root.add(txtTitle, 0, i);

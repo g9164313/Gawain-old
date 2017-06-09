@@ -24,6 +24,7 @@ public class PanEntry extends PanBase {
 	protected void eventShown(WindowEvent e){
 		cdr.connect("");
 		cdr.layout_grid();
+		cdr.update_auto(true);
 	}
 	//-------------------------------//
 	

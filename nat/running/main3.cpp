@@ -152,44 +152,77 @@ void wienerFilter(Mat &src, Mat &dst, Mat &_h, double k)
     Recomb(dst, dst);
 }
 
+void shape_gain(Mat& dat){
+
+	Mat plan[] ={
+		Mat_<double>(dat),
+		Mat::zeros(dat.size(), CV_64FC1)
+	};
+	//cout<<"cc1="<<plan[0]<<endl;
+
+	Mat comp;
+	merge(plan, 2, comp);
+	dft(comp, comp);
+	split(comp, plan);
+
+	//cout<<"cc3="<<plan[0]<<endl;
+	//cout<<"cc4="<<plan[1]<<endl;
+	//plan[0] = plan[0].mul(shape);
+	//plan[1] = plan[1].mul(shape);
+
+	int nn = plan[0].cols;
+	int n  = plan[0].cols/2;
+
+	double DC1 = plan[0].at<double>(0,0);//keep this~~~
+	double AC1 = plan[0].at<double>(0,n);
+
+	//cout<<"scale=[";
+	for(int i=1; i<nn; i++){
+		//double scale = 1 - abs( (i-(n-1)/2.) / (n/2.) );
+		//cout<<scale<<",";
+		plan[0].at<double>(0,i) = plan[0].at<double>(0,i)*2.3;
+	}
+	//cout<<"]"<<endl;
+
+	plan[0].at<double>(0,0) = DC1;
+	plan[0].at<double>(0,n) = AC1;
+
+	//Mat chk;
+	//plan[0].convertTo(chk,CV_16S);
+	//cout<<"cc2="<<chk<<endl;
+
+	merge(plan, 2, comp);
+	idft(comp, comp, DFT_SCALE);
+	split(comp, plan);
+	plan[0].convertTo(dat,CV_8UC1);
+	//cout<<"cc3="<<dat<<endl;
+
+	return;
+}
+
+
 int main(int argc, char* argv[]) {
 
-	Mat src = imread("reg-txt4.bmp");
 
-	Mat chan[3];
+	Mat src = imread("reg-xxr.bmp");
+	Mat chn[3];
+	split(src,chn);
 
-	split(src,chan);
-
-	Mat img = chan[2];
-
-	Mat dst(img.size(),CV_8UC1);
-
-	for(int i=0; i<img.rows; i++){
-
-		Mat line = img.row(i);
-
-		Mat plan[] ={
-			Mat_<double>(line),
-			Mat::zeros(line.size(), CV_64FC1)
-		};
-		cout<<"aa  ="<<plan[0]<<endl;
-
-		Mat comp;
-		merge(plan, 2, comp);
-		dft(comp, comp);
-		split(comp, plan);
-
-		cout<<"aa_f="<<plan[0]<<endl;
-
-		merge(plan, 2, comp);
-		idft(comp, comp, DFT_SCALE);
-		split(comp, plan);
-
-		cout<<"aa  ="<<plan[0]<<endl;
-
-		plan[0].copyTo(line);
+	for(int c=0; c<3; c++){
+		Mat img = chn[c];
+		for(int i=0; i<img.rows; i++){
+			Mat line = img.row(i);
+			/*for(int j=0; j<line.cols; j+=16){
+				Mat sect = line.colRange(j,j+16);
+				shape_gain(sect,tri);
+			}*/
+			shape_gain(line);
+		}
 	}
 
+	merge(chn, 3, src);
+	//imwrite("reg-xxx.png",src(Rect(1617,73,103,63)));
+	imwrite("reg-xxy.bmp",src);
 	return 0;
 }
 //-------------------------------//

@@ -127,14 +127,14 @@ else
 endif
 	
 
-#$(TARGET_EXE):  ./wrap-unix/main2.cpp ./wrap-unix/misc.cpp $(CORE_FILE) $(LIB_SFRISO)
-$(TARGET_EXE):  ./wrap-unix/main3.cpp
+#$(TARGET_EXE):  ./running/main2.cpp ./running/misc.cpp $(CORE_FILE) $(LIB_SFRISO)
+$(TARGET_EXE):  ./running/main3.cpp
 #$(TARGET_EXE):  $(wildcard ./traincascade/*.cpp)
-#$(TARGET_EXE):  ./wrap-unix/FlyCap2.cpp
-	$(CC) $(CC_FLAG) -o $@ $^ $(LD_LIBS)
+#$(TARGET_EXE):  ./running/FlyCap2.cpp
+	$(CC) -o $@ $^ $(CC_FLAG) $(LD_LIBS)
 
-all: $(TARGET_SO)
-#all: $(TARGET_EXE)
+#all: $(TARGET_SO)
+all: $(TARGET_EXE)
 #all: $(TARGET_EXE) $(TARGET_SO) 
 
 clean:
