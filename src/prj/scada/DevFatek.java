@@ -91,9 +91,7 @@ public class DevFatek extends DevTTY {
 		pave_txt(txt,buf,HDR);
 		wrapper(idx,0x4E,buf);
 		writeBuf(cmd_buf);
-		byte[] res = readBuf();
-		
-		return "";
+		return readMsg(STX,ETX);
 	}
 	
 	public void makeSwitch(int idx,boolean flag){

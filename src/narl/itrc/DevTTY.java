@@ -262,6 +262,33 @@ public class DevTTY extends DevBase {
 		return implRead(-1);
 	}
 	
+	
+	public String readMsg(byte beg,byte end){
+		String msg = "";
+		boolean flag = false;
+		int cnt = 10000;
+		while(cnt>=0){
+			byte[] buf = implRead(1);
+			if(buf==null){
+				System.err.println("fail to read data from TTY");
+				cnt-=5000;
+				continue;
+			}
+			char tkn = (char)(buf[0]);			
+			if(tkn==beg){
+				flag = true;//for next turn~~~~
+			}else if(flag==true){
+				if(tkn==end){
+					return msg;
+				}
+				msg = msg + tkn;
+			}else{
+				cnt--;
+			}			
+		}		
+		return msg;
+	}
+	
 	/**
 	 * Read text from terminal-port.<p>
 	 * This is blocking method!!!.<p>

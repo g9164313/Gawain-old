@@ -100,6 +100,10 @@ public class PanSputter extends PanBase {
 			System.out.printf("fail to connect PLC(%s)\n",devPLC.getName());
 		}else{
 			System.out.println("connect FATEK PLC device...");
+			System.out.printf("--> %s\n",devPLC.testEcho(1, "ggyy"));
+			System.out.printf("--> %s\n",devPLC.testEcho(1, "123456"));
+			System.out.printf("--> %s\n",devPLC.testEcho(1, "QQWWER"));
+			System.out.printf("--> %s\n",devPLC.testEcho(1, "ECHO-ECHO"));
 		}
 		watcher.setCycleCount(Timeline.INDEFINITE);
 		watcher.play();
@@ -126,7 +130,8 @@ public class PanSputter extends PanBase {
 		Duration.millis(1000), event->{
 			//System.out.println("period check~~~");
 			//mapper.refresh();
-			System.out.println("測試!!");
+			//System.out.println("測試!!");
+			
 		}
 	));
 	
