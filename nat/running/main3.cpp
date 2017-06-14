@@ -20,22 +20,25 @@ void convolveDFT(Mat& A, Mat& B, Mat& C)
 {
     // reallocate the output array if needed
     C.create(abs(A.rows - B.rows) + 1, abs(A.cols - B.cols) + 1, A.type());
+
     Size dftSize;
     // compute the size of DFT transform
     dftSize.width = getOptimalDFTSize(A.cols + B.cols - 1);
     dftSize.height = getOptimalDFTSize(A.rows + B.rows - 1);
+
     // allocate temporary buffers and initialize them with 0's
     Mat tempA(dftSize, A.type(), Scalar::all(0));
     Mat tempB(dftSize, B.type(), Scalar::all(0));
+
     // copy A and B to the top-left corners of tempA and tempB, respectively
     Mat roiA(tempA, Rect(0, 0, A.cols, A.rows));
     A.copyTo(roiA);
     Mat roiB(tempB, Rect(0, 0, B.cols, B.rows));
     B.copyTo(roiB);
+
     // now transform the padded A & B in-place;
     // use "nonzeroRows" hint for faster processing
     dft(tempA, tempA, 0, A.rows);
-
     dft(tempB, tempB, 0, A.rows);
 
     // multiply the spectrums;
@@ -173,19 +176,23 @@ void shape_gain(Mat& dat){
 	int nn = plan[0].cols;
 	int n  = plan[0].cols/2;
 
-	double DC1 = plan[0].at<double>(0,0);//keep this~~~
-	double AC1 = plan[0].at<double>(0,n);
+	//double DC1 = plan[0].at<double>(0,0);//keep this~~~
+	//double AC1 = plan[0].at<double>(0,n);
 
-	//cout<<"scale=[";
-	for(int i=1; i<nn; i++){
+	//cout<<"val=[";
+	for(int i=1; i<n; i++){
 		//double scale = 1 - abs( (i-(n-1)/2.) / (n/2.) );
-		//cout<<scale<<",";
-		plan[0].at<double>(0,i) = plan[0].at<double>(0,i)*2.3;
+		double idx = (i)/((double)n);
+		double val = sin(M_PI*idx)/(M_PI*idx);
+		//cout<<val<<",";
+		//plan[0].at<double>(0,i) = plan[0].at<double>(0,i)*2.3;
+		plan[0].at<double>(0,i) = val;
 	}
 	//cout<<"]"<<endl;
 
-	plan[0].at<double>(0,0) = DC1;
-	plan[0].at<double>(0,n) = AC1;
+	//plan[0].at<double>(0,0) = DC1;
+	//plan[0].at<double>(0,n) = AC1;
+
 
 	//Mat chk;
 	//plan[0].convertTo(chk,CV_16S);
@@ -312,5 +319,39 @@ int main1(int argc, char* argv[]) {
 	//imposition("aa3.png",ref,src);
 	return 0;
 }
+
+//--------------------------------------------//
+
+int example_main(int argc, char** argv){
+
+    Mat Img = imread("F:\\ImagesForTest\\lena.jpg", 0); // Source image
+    Img.convertTo(Img, CV_32FC1, 1.0 / 255.0);
+
+    Mat kernel = imread("F:\\ImagesForTest\\Point.jpg", 0); // PSF
+    //resize(kernel, kernel, Size(), 0.5, 0.5);
+
+    kernel.convertTo(kernel, CV_32FC1, 1./255.);
+
+    float kernel_sum = cv::sum(kernel)[0];
+    kernel /= kernel_sum;
+
+    int width = Img.cols;
+    int height= Img.rows;
+    Mat resim;
+    convolveDFT(Img, kernel, resim);
+
+    //Mat resim2;
+    //kernel.convertTo(kernel, CV_64FC1);
+    //wienerFilter(resim, resim2, kernel, 0.01); // Apply filter
+
+    //imshow("Kernel", kernel * 255);
+    //imshow("Image", Img);
+    //imshow("Result", resim);
+    //cvWaitKey(0);
+
+    return 0;
+}
+
+
 
 

@@ -9,6 +9,7 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import narl.itrc.DevTTY;
+import narl.itrc.Gawain;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
 
@@ -39,6 +40,21 @@ public class DevFatek extends DevTTY {
 	}
 	
 	/**
+	 * Connect device with default property setting
+	 * @return
+	 */
+	public boolean connect(){
+		String name = Gawain.prop.getProperty("DevFatek", null);
+		if(name==null){
+			return false;
+		}
+		if(open(name)<=0L){
+			return false;
+		}
+		return true;
+	}
+	
+	/**
 	 * just close TTY device
 	 */
 	public void disconnect(){
@@ -48,8 +64,8 @@ public class DevFatek extends DevTTY {
 	
 	private static final byte STX = 0x02;
 	private static final byte ETX = 0x03;
-	private static final int LEN = 8;
-	private static final int HDR = 5;
+	private static final int  LEN = 8;
+	private static final int  HDR = 5;
 	
 	public static final int VAL_DISABLE = 1;
 	public static final int VAL_ENABLE  = 2;

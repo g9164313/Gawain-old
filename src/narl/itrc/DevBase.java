@@ -8,7 +8,7 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.scene.Node;
 import javafx.scene.layout.Pane;
 
-public abstract class DevBase extends Pane implements Gawain.EventHook {
+public abstract class DevBase extends Pane implements Gawain.GlobalHook {
 
 	public DevBase(){
 		Gawain.hook(this);

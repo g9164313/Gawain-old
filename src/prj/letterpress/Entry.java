@@ -9,7 +9,6 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.stage.WindowEvent;
-import narl.itrc.BoxLogger;
 import narl.itrc.DevTTY;
 import narl.itrc.PanBase;
 import narl.itrc.vision.CamFlyCapture;
@@ -101,15 +100,14 @@ public class Entry extends PanBase {
 		//pager.getSelectionModel().select(1);
 		
 		//---main function and shortcut---//
-		Node nod1 = new BoxLogger(100);		
+		//Node nod1 = new BoxLogger(100);		
 		Node nod2 = new PanMotion1();
 		Node nod3 = new PanOption();
 		Node nod4 = new PanHelpful();
 		
 		HBox lay2 = new HBox();
 		lay2.getStyleClass().add("hbox-medium");
-		lay2.getChildren().addAll(nod1,nod2,nod3,nod4);
-		HBox.setHgrow(nod1,Priority.ALWAYS);
+		lay2.getChildren().addAll(nod2,nod3,nod4);
 		HBox.setHgrow(nod2,Priority.ALWAYS);
 		HBox.setHgrow(nod3,Priority.ALWAYS);
 		HBox.setHgrow(nod4,Priority.ALWAYS);

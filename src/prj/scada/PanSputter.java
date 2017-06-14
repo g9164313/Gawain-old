@@ -8,6 +8,7 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineFactory;
 import javax.script.ScriptEngineManager;
 
+import com.jfoenix.controls.JFXTabPane;
 import com.sun.glass.ui.Application;
 
 import eu.hansolo.medusa.Gauge;
@@ -20,12 +21,14 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.Tab;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.WindowEvent;
 import javafx.util.Duration;
+import narl.itrc.BoxLogger;
 import narl.itrc.BtnScript;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
@@ -43,7 +46,7 @@ public class PanSputter extends PanBase {
 	
 	private DevSPIK2000 devSPIK2K = new DevSPIK2000();
 	
-	private DevFatek devPLC = new DevFatek("/dev/tty11");
+	private DevFatek devPLC = new DevFatek();
 	
 	//private WidMapPumper1 mapper = new WidMapPumper1("sample-pid");
 	private WidMapPumper mapper = new WidMapPumper();
@@ -51,14 +54,7 @@ public class PanSputter extends PanBase {
 	private String nameScript = Misc.pathSock+"test.js";
 
 	private BtnScript btnExec = new BtnScript("執行",this);
-	
-	private Timeline watcher = new Timeline(new KeyFrame(
-		Duration.millis(1000), event->{
-			//System.out.println("period check~~~");
-			//mapper.refresh();
-		}
-	));
-	
+
 	@Override
 	protected void eventShowing(WindowEvent e){		
 		//hook each action of indicator, motor, valve or pump
@@ -100,7 +96,11 @@ public class PanSputter extends PanBase {
 		mapper.hookWith("gauge_6", itm->{
 			itm.value = 100*Math.random();//simulation~~~~
 		});*/
-				
+		if(devPLC.connect()==false){
+			System.out.printf("fail to connect PLC(%s)\n",devPLC.getName());
+		}else{
+			System.out.println("connect FATEK PLC device...");
+		}
 		watcher.setCycleCount(Timeline.INDEFINITE);
 		watcher.play();
 	}
@@ -117,11 +117,19 @@ public class PanSputter extends PanBase {
 	
 	@Override
 	protected void eventShown(WindowEvent e){
-		devPLC.get(1, "R00001", "Y0009", "DWM0000");
+		//devPLC.get(1, "R00001", "Y0009", "DWM0000");
 		//devSQM160.open("/dev/ttyS0,19200,8n1");
 		//devSQM160.exec("@");
 	}
-
+	
+	private Timeline watcher = new Timeline(new KeyFrame(
+		Duration.millis(1000), event->{
+			//System.out.println("period check~~~");
+			//mapper.refresh();
+			System.out.println("測試!!");
+		}
+	));
+	
 	@Override
 	public Node eventLayout(PanBase pan) {
 		
@@ -133,10 +141,10 @@ public class PanSputter extends PanBase {
 		});
 		
 		BorderPane root = new BorderPane();
-		
 		root.setLeft(lay_gauge());
 		root.setCenter(mapper);
 		root.setRight(lay_action());
+		root.setBottom(lay_inform());
 		return root;
 	}
 	
@@ -203,4 +211,14 @@ public class PanSputter extends PanBase {
 		}*/
 		return lay;
 	}
+	
+	private Node lay_inform(){
+		JFXTabPane pan = new JFXTabPane();
+		pan.setPrefHeight(200.);
+		Tab tab = new Tab();
+		tab.setText("系統紀錄");
+		tab.setContent(new BoxLogger());
+		pan.getTabs().add(tab);
+		return pan;
+	}	
 }

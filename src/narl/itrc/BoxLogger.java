@@ -1,171 +1,95 @@
 package narl.itrc;
 
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.io.PrintWriter;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 
-import com.sun.glass.ui.Application;
-
-import javafx.collections.ObservableList;
-import javafx.scene.Node;
-import javafx.scene.Parent;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
+import javafx.scene.control.CheckMenuItem;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.TextArea;
 import javafx.stage.FileChooser;
+import javafx.util.Duration;
 
-/**
- * Show text message, just like stdout screen~~~
- * Don't call 'Misc.log' in this class, this will result in re-entry!!!
- * @author qq
- *
- */
-public class BoxLogger extends PanDecorate {
+public class BoxLogger extends TextArea {
 
-	private TextArea boxMsg;
-
-	public BoxLogger(int height){
-		this();
-		boxMsg.setPrefHeight(height);
-	}
-	
-	public BoxLogger(int width,int height){
-		this();
-		boxMsg.setPrefWidth(width);
-		boxMsg.setPrefHeight(height);
-	}
+	private boolean flagEnable = true;
 	
 	public BoxLogger(){
-		super("輸出紀錄");		
-		prepare();
-		build();
-	}
+		
+		setEditable(false);
+		setStyle(
+			"-fx-control-inner-background: white;"+
+			"-fx-text-box-border: black;"
+		);
 
-	private static SimpleDateFormat logTime = new SimpleDateFormat("[yyyy/MM/dd HH:mm:ss]");
-	
-	public void prepare() {
-		if(boxMsg==null){
-			return;
-		}
-		lstBox.add(this);
-		boxMsg.setEditable(false);
-		init_menu();		
-		if(logFile!=null){
-			return;
-		}
-		try {
-			String name = Misc.pathSock + "logger.txt";
-			FileWriter fw = new FileWriter(name, true);
-			BufferedWriter bw = new BufferedWriter(fw);
-			logFile = new PrintWriter(bw);
-			logFile.println("========"+logTime.format(new Date())+"========");
-		} catch (IOException e) {
-			logFile = null;
-			e.printStackTrace();
-		}		
-	}
-	
-	private void init_menu(){
 		ContextMenu menu = new ContextMenu();
-		MenuItem itm1 = new MenuItem("清除");
+		CheckMenuItem itm1 = new CheckMenuItem("停止紀錄");
 		itm1.setOnAction(event->{
-			boxMsg.setText("");
-		});
-		MenuItem itm2 = new MenuItem("另存");
+			flagEnable = !flagEnable;
+		});		
+		MenuItem itm2 = new MenuItem("清除紀錄");
 		itm2.setOnAction(event->{
+			setText("");
+		});		
+		MenuItem itm3 = new MenuItem("另存紀錄");
+		itm3.setOnAction(event->{
 			FileChooser chs = new FileChooser();
-            chs.setTitle("另存新檔");
+            chs.setTitle("另存");
             chs.setInitialDirectory(Misc.dirRoot);
             File fs = chs.showSaveDialog(Misc.getParent(event));
             if(fs!=null){
-            	save_box(fs);
+            	try {
+        			PrintWriter out = new PrintWriter(fs);
+        			out.write(getText());
+        			out.close();
+        		} catch (FileNotFoundException e) {
+        			//System.err.println(e.getMessage());
+        			//how to show message???
+        		}
             }
 		});
-		menu.getItems().addAll(itm1,itm2);
-		boxMsg.setContextMenu(menu);
-	}
-	
-	@Override
-	public Node eventLayout() {
-		boxMsg = new TextArea();
-		return boxMsg;
-	}
-	
-	private void save_box(File fs){
-		try {
-			PrintWriter out = new PrintWriter(fs);
-			out.write(boxMsg.getText());
-			out.close();
-		} catch (FileNotFoundException e) {
-			//e.printStackTrace();
-			printf(e.getMessage());
+		menu.getItems().addAll(itm1,itm2,itm3);
+		setContextMenu(menu);
+		
+		if(watcher==null){
+			watcher = new Timeline(new KeyFrame(Duration.millis(50),eventRefresh));
+			watcher.setCycleCount(Timeline.INDEFINITE);
+			watcher.play();
 		}
+		lstBox.add(this);
 	}
-
-	public void printf(String fmt,Object... arg){
-		String txt = String.format(fmt, arg);
-		boxMsg.appendText(txt);
-		boxMsg.setScrollTop(Double.MAX_VALUE);
-		if(logFile!=null){
-			if(txt.endsWith("\n")==true){
-				logFile.print(txt);
-			}else{
-				logFile.println(txt);
-			}
-		}
-	}
-	//----------------------------------------//
-	
-	private static PrintWriter logFile = null;
 	
 	private static ArrayList<BoxLogger> lstBox = new ArrayList<BoxLogger>();
-
-	private static String oldMessage = "";
 	
-	public static void printAll(final String fmt,final Object... arg){
-		final Runnable task = new Runnable(){
-			@Override
-			public void run() {
-				for(BoxLogger box:lstBox){
-					if(oldMessage.length()!=0){
-						box.printf(oldMessage);
-					}
-					box.printf(fmt,arg);
+	private static EventHandler<ActionEvent> eventRefresh = new EventHandler<ActionEvent>(){
+		@Override
+		public void handle(ActionEvent event) {
+			String txt = "";
+			String msg = null;
+			do{
+				msg = Gawain.txtLogger.poll();
+				if(msg!=null){
+					txt = txt + msg;
 				}
-				if(lstBox.isEmpty()==true){
-					oldMessage = oldMessage + String.format(fmt,arg);
-				}else{
-					oldMessage = "";//reset 
-				}
-			}
-		};
-		if(Application.isEventThread()==true){
-			task.run();
-		}else{
-			Application.invokeAndWait(task);
-		}
-	}
-	
-	public static void pruneList(ObservableList<Node> lst){		
-		for(Node nd:lst){
-			if(nd instanceof Parent){
-				pruneList(((Parent)nd).getChildrenUnmodifiable());
-			}
-			if(nd instanceof BoxLogger){
-				lstBox.remove(((BoxLogger)nd));
-				if(lstBox.isEmpty()==true){
-					if(logFile!=null){
-						logFile.close();
-					}					
-				}
+			}while(msg!=null);
+			if(txt.length()==0){
 				return;
 			}
+			for(BoxLogger box:lstBox){
+				if(box.flagEnable==false){
+					continue;
+				}
+				box.appendText(txt);
+				box.setScrollTop(Double.MAX_VALUE);
+			}
 		}
-	}
+	};
+	
+	private static Timeline watcher;
 }

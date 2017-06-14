@@ -30,15 +30,6 @@ import javafx.stage.Window;
 public class Misc {
 
 	/**
-	 * It is same as logger function, but no line feed-back
-	 * @param fmt - pass through 'printf()' 
-	 * @param arg - pass through 'printf()'
-	 */
-	public static void printf(String fmt,Object... arg){
-		BoxLogger.printAll(fmt, arg);
-	}
-	
-	/**
 	 * just show messages, like 'stdout'
 	 * @param fmt - pass through 'printf()' 
 	 * @param arg - pass through 'printf()'
@@ -46,7 +37,6 @@ public class Misc {
 	public static void logv(String fmt,Object... arg){
 		String txt = log_txt("[VERBOSE] ",fmt,arg);
 		System.out.print(txt);
-		BoxLogger.printAll(txt);
 	}
 
 	/**
@@ -57,7 +47,6 @@ public class Misc {
 	public static void logw(String fmt,Object... arg){
 		String txt = log_txt("[WARN   ] ",fmt,arg);
 		System.out.print(txt);
-		BoxLogger.printAll(txt);
 	}
 	
 	/**
@@ -68,7 +57,6 @@ public class Misc {
 	public static void loge(String fmt,Object... arg){
 		String txt = log_txt("[ERROR  ] ",fmt,arg);
 		System.err.print(txt);
-		BoxLogger.printAll(txt);
 	}
 	
 	private static String log_txt(String pfx,String fmt,Object... arg){
