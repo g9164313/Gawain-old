@@ -65,9 +65,9 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implOpen(
 	COMMTIMEOUTS cpt;
 	cpt.ReadIntervalTimeout         = MAXDWORD;
 	cpt.ReadTotalTimeoutMultiplier  = 0;
-	cpt.ReadTotalTimeoutConstant    = 0;
+	cpt.ReadTotalTimeoutConstant    = 2000;
 	cpt.WriteTotalTimeoutMultiplier = 0;
-	cpt.WriteTotalTimeoutConstant   = 0;
+	cpt.WriteTotalTimeoutConstant   = 2000;
 	if(!SetCommTimeouts(hand, &cpt)){
 		cout<<"Fail to set Timeout"<<endl;
 	}

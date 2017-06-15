@@ -3,6 +3,7 @@ package narl.itrc;
 import java.io.File;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 
 import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
@@ -262,31 +263,76 @@ public class DevTTY extends DevBase {
 		return implRead(-1);
 	}
 	
-	
-	public String readMsg(byte beg,byte end){
-		String msg = "";
-		boolean flag = false;
-		int cnt = 10000;
-		while(cnt>=0){
+	public byte[] readPack(byte beg,byte end){
+		
+		ArrayList<Byte> lst = new ArrayList<Byte>();
+		
+		boolean flg = false;
+		
+		long tk2 = System.currentTimeMillis();
+		long tk1 = tk2;
+		
+		while((tk2-tk1)<1000L){
 			byte[] buf = implRead(1);
 			if(buf==null){
-				System.err.println("fail to read data from TTY");
-				cnt-=5000;
+				Misc.delay(50);
+				tk2 = System.currentTimeMillis();
 				continue;
-			}
-			char tkn = (char)(buf[0]);			
-			if(tkn==beg){
-				flag = true;//for next turn~~~~
-			}else if(flag==true){
-				if(tkn==end){
-					return msg;
+			}		
+			if(buf[0]==beg){
+				flg = true;//for next turn~~~~
+			}else if(flg==true){
+				if(buf[0]==end){
+					break;
 				}
-				msg = msg + tkn;
-			}else{
-				cnt--;
-			}			
+				lst.add(buf[0]);
+			}
+			tk2 = tk1;//reset ticker~~~
+		}
+		return check_out(lst);
+	}
+	
+	public byte[] readPackBuck(byte beg,byte end){
+		
+		ArrayList<Byte> lst = new ArrayList<Byte>();
+		
+		long tk2 = System.currentTimeMillis();
+		long tk1 = tk2;
+		boolean flg = false;
+		
+		while((tk2-tk1)<1000L){
+			byte[] buf = implRead(-1);
+			if(buf==null){
+				Misc.delay(50);
+				tk2 = System.currentTimeMillis();
+				continue;
+			}		
+			for(int i=0; i<buf.length; i++){				
+				if(buf[i]==beg){
+					flg = true;					
+				}else if(flg==true){
+					if(buf[i]==end){
+						return check_out(lst);
+					}
+					lst.add(buf[i]);
+				}
+			}
+			tk2 = tk1;//reset ticker~~~
 		}		
-		return msg;
+		return check_out(lst);
+	}
+	
+	
+	private byte[] check_out(ArrayList<Byte> lst){
+		int cnt = lst.size();
+		if(cnt==0){
+			return null;
+		}
+		byte[] buf = new byte[cnt];
+		for(int i=0; i<cnt; i++){
+			buf[i] = lst.get(i);
+		}
+		return buf;
 	}
 	
 	/**

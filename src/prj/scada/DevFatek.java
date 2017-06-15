@@ -1,13 +1,31 @@
 package prj.scada;
 
+import java.text.Format;
+import java.text.NumberFormat;
+
+import com.jfoenix.controls.JFXTabPane;
+import com.sun.glass.ui.Application;
+
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
+import javafx.scene.control.Tab;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.util.StringConverter;
+import javafx.util.converter.BooleanStringConverter;
+import javafx.util.converter.FormatStringConverter;
+import javafx.util.converter.NumberStringConverter;
+import narl.itrc.BoxLogger;
 import narl.itrc.DevTTY;
 import narl.itrc.Gawain;
 import narl.itrc.Misc;
@@ -77,103 +95,120 @@ public class DevFatek extends DevTTY {
 	public byte[] getSysInfo(int idx){
 		wrapper(idx,0x40,cmd_buf);
 		writeBuf(cmd_buf);
-		return readBuf();
+		//Finally, retrieve feedback
+		byte[] info = readPackBuck(STX,ETX);
+		event_last_error(info[HDR-1]);
+		event_inf( hex2val(info[HDR+0],info[HDR+1]) );		
+		return info;
 	}
 	
 	public byte[] getSysAll(int idx){
 		wrapper(idx,0x53,cmd_buf);
 		writeBuf(cmd_buf);
-		return readBuf();
+		//Finally, retrieve feedback
+		byte[] info = readPackBuck(STX,ETX);
+		event_last_error(info[HDR-1]);
+		event_inf( hex2val(info[HDR+0], info[HDR+1]) );
+		event_typ( hex2val(info[HDR+2], info[HDR+3]) );
+		event_nio( info[HDR+4], info[HDR+5] );
+		event_ver( info[HDR+6], info[HDR+7] );
+		event_var(
+			hex2val(info[HDR+ 8], info[HDR+ 9], info[HDR+10], info[HDR+11]),
+			hex2val(info[HDR+12], info[HDR+13], info[HDR+14], info[HDR+15]),
+			hex2val(info[HDR+16], info[HDR+17], info[HDR+18], info[HDR+19]),
+			hex2val(info[HDR+20], info[HDR+21], info[HDR+22], info[HDR+23]),
+			hex2val(info[HDR+24], info[HDR+25], info[HDR+26], info[HDR+27]),
+			hex2val(info[HDR+28], info[HDR+29], info[HDR+30], info[HDR+31]),
+			hex2val(info[HDR+32], info[HDR+33], info[HDR+34], info[HDR+35]),
+			hex2val(info[HDR+36], info[HDR+37], info[HDR+38], info[HDR+39]),
+			hex2val(info[HDR+40], info[HDR+41], info[HDR+42], info[HDR+43]),
+			hex2val(info[HDR+44], info[HDR+45], info[HDR+46], info[HDR+47]),
+			hex2val(info[HDR+48], info[HDR+49], info[HDR+50], info[HDR+51]),
+			hex2val(info[HDR+52], info[HDR+53], info[HDR+54], info[HDR+55])
+		);
+		return info;
 	}
 	
 	public String testEcho(int idx,String txt){
 		byte[] buf = new byte[LEN+txt.length()];
 		pave_txt(txt,buf,HDR);
 		wrapper(idx,0x4E,buf);
-		writeBuf(cmd_buf);
-		return readMsg(STX,ETX);
+		writeBuf(buf);
+		return byte2txt(readPackBuck(STX,ETX));
 	}
 	
 	public void makeSwitch(int idx,boolean flag){
-		
 		byte[] buf = new byte[LEN+1];
-		
 		buf[HDR+0] = (byte)((flag)?('1'):('0'));
-		
 		wrapper(idx,0x41,buf);
+		//Finally, retrieve feedback
+		buf = readPackBuck(STX,ETX);
+		event_last_error(buf[HDR-1]);
+	}
+	
+	public char setNode(int idx,String name,int argv){
+		byte[] buf = new byte[LEN+1+name.length()];		
+		buf[HDR+0] = val2hex_L(argv);		
+		pave_txt(name,buf,HDR+1);
+		wrapper(idx,0x42,buf);
+		//Finally, retrieve feedback
+		buf = readPackBuck(STX,ETX);
+		event_last_error(buf[HDR-1]);
+		return (char)(buf[HDR-1]);
 	}
 	
 	public void setNode(int idx,String name,int... argv){
-		
-		byte[] buf = null;		
-		int cmd;
-		
-		if(argv.length==1){
-			
-			cmd = 0x42;
-			buf = new byte[LEN+1+name.length()];
-			
-			buf[HDR+0] = (byte)(0x30+argv[0]);
-			
-			pave_txt(name,buf,HDR+1);
-			
-		}else{
-			
-			cmd = 0x45;
-			buf = new byte[LEN+2+name.length()+argv.length];
-			
-			buf[HDR+0] = (byte)(0x30+((argv.length & 0xF0)>>4));
-			buf[HDR+1] = (byte)(0x30+((argv.length & 0x0F)   ));
-			
-			int off = pave_txt(name,buf,HDR+2);
-			
-			for(int i=0; i<argv.length; i++){
-				buf[off+i] = (byte)(0x30+(argv[i]));
-			}
-		}
-		
-		wrapper(idx,cmd,buf);
+		byte[] buf = new byte[LEN+2+name.length()+argv.length];
+		int cnt = argv.length;
+		buf[HDR+0] = val2hex_H(cnt);
+		buf[HDR+1] = val2hex_L(cnt);	
+		int off = pave_txt(name,buf,HDR+2);		
+		for(int i=0; i<argv.length; i++){
+			buf[off+i] = val2hex_L(argv[i]);
+		}	
+		wrapper(idx,0x45,buf);
+		//Finally, retrieve feedback
+		buf = readPackBuck(STX,ETX);
+		event_last_error(buf[HDR-1]);
 	}
 	
-	public void getNodeSwitch(int idx,String name,int cnt){
-		
-		get_node(idx,0x43,name,cnt);
+	public int[] getNodeSwitch(int idx,String name,int cnt){
+		return get_node(idx,0x43,name,cnt);
 	}
 		
-	public void getNodeStatus(int idx,String name,int cnt){
-				
-		get_node(idx,0x44,name,cnt);
+	public int[] getNodeStatus(int idx,String name,int cnt){		
+		return get_node(idx,0x44,name,cnt);
 	}
 	
-	private void get_node(int idx,int cmd,String name,int cnt){
-		
+	private int[] get_node(int idx,int cmd,String name,int cnt){
 		byte[] buf = new byte[LEN+2+name.length()];
-		
-		buf[HDR+0] = (byte)(0x30+((cnt & 0xF0)>>4));
-		buf[HDR+1] = (byte)(0x30+((cnt & 0x0F)   ));
-		
-		pave_txt(name,buf,HDR+2);
-		
+		buf[HDR+0] = val2hex_H(cnt);
+		buf[HDR+1] = val2hex_L(cnt);
+		pave_txt(name,buf,HDR+2);	
 		wrapper(idx,cmd,buf);
+		//Finally, retrieve feedback
+		buf = readPackBuck(STX,ETX);
+		event_last_error(buf[HDR-1]);
+		int[] resp = new int[cnt];
+		for(int i=0; i<cnt; i++){
+			resp[i] = val2hex_L(buf[HDR+1+i]);
+		}
+		return resp;
 	}
 	
-	public void setRegister(int idx,String name,int... argv){
-		
+	public int setRegister(int idx,String name,int... argv){
 		int d_size = 0;
 		if(name.length()>=7){
 			d_size = 8;
 		}else{
 			d_size = 4;
 		}
-		
 		byte[] buf = new byte[LEN+2+name.length()+argv.length*d_size];
-		
-		buf[HDR+0] = (byte)(0x30+((argv.length & 0xF0)>>4));
-		buf[HDR+1] = (byte)(0x30+((argv.length & 0x0F)   ));
-		
+		int cnt = argv.length;
+		buf[HDR+0] = val2hex_H(cnt);
+		buf[HDR+1] = val2hex_L(cnt);
 		int off = pave_txt(name,buf,HDR+2);
-		
-		for(int i=0; i<argv.length; i++, off+=d_size){
+		for(int i=0; i<cnt; i++, off+=d_size){
 			int data = argv[i];
 			if(d_size==4){
 				buf[off+0] = val2hex(data,12);
@@ -191,38 +226,55 @@ public class DevFatek extends DevTTY {
 				buf[off+7] = val2hex(data, 0);
 			}
 		}
-		
 		wrapper(idx,0x47,buf);
+		//Finally, retrieve feedback
+		buf = readPackBuck(STX,ETX);
+		event_last_error(buf[HDR-1]);
+		return (char)(buf[HDR-1]);
 	}
 	
-	public void getRegister(int idx,String name,int cnt){
-		
+	public int[] getRegister(int idx,String name,int cnt){
+		int d_size = 0;
+		if(name.length()>=7){
+			d_size = 8;
+		}else{
+			d_size = 4;
+		}
 		byte[] buf = new byte[LEN+2+name.length()];
-		
-		buf[HDR+0] = (byte)(0x30+((cnt & 0xF0)>>4));
-		buf[HDR+1] = (byte)(0x30+((cnt & 0x0F)   ));
-		
-		pave_txt(name,buf,HDR+2);
-		
-		wrapper(idx,0x46,buf);		
+		buf[HDR+0] = val2hex_H(cnt);
+		buf[HDR+1] = val2hex_L(cnt);
+		pave_txt(name,buf,HDR+2);	
+		wrapper(idx,0x46,buf);
+		//Finally, retrieve feedback
+		buf = readPackBuck(STX,ETX);
+		event_last_error(buf[HDR-1]);
+		int[] resp = new int[cnt];
+		for(int i=0, j=HDR; i<cnt; i++, j+=d_size){
+			if(d_size==4){
+				resp[i] = hex2val(
+					buf[j+0], buf[j+1], buf[j+2], buf[j+3]
+				);
+			}else{
+				resp[i] = hex2val(
+					buf[j+0], buf[j+1], buf[j+2], buf[j+3],
+					buf[j+4], buf[j+5], buf[j+6], buf[j+7]
+				);
+			}
+		}
+		return resp;
 	}
 	
-	public void set(int idx,Object... argv){
-		
+	public char set(int idx,Object... argv){
 		if(argv.length%2!=0){
 			Misc.loge("the number of arguments must be even.");
-			return;
+			return '?';
 		}
 		
 		int total = 0;		
 		for(int i=0; i<argv.length; i+=2){
-			
-			String name = (String)argv[i+0];
-			
-			int size = name.length();
-			
+			String name = (String)argv[i+0];	
+			int size = name.length();	
 			total = total + size;
-
 			if(size>=7){
 				total+=8;
 			}else if(size==6){
@@ -233,22 +285,16 @@ public class DevFatek extends DevTTY {
 		}
 		
 		int count = argv.length/2; 
-		
 		byte[] buf = new byte[LEN+2+total];
-			
 		buf[HDR+0] = (byte)(0x30+((count & 0xF0)>>4));
 		buf[HDR+1] = (byte)(0x30+((count & 0x0F)   ));
-		
 		for(int i=0, off=HDR+2; i<count; i++){
-			
 			String name = (String)argv[i+0];
 			int    data = (int   )argv[i+1];
-			
 			off = pave_txt(name,buf,off);
-			
 			int size = name.length();
 			if(size<=5){
-				buf[off+0] = (byte)(0x30+(data&0xFF));
+				buf[off+0] = val2hex(data, 0);
 				off+=1;
 			}else if(size==6){
 				buf[off+0] = val2hex(data,12);
@@ -268,29 +314,49 @@ public class DevFatek extends DevTTY {
 				off+=8;
 			}
 		}
-		
 		wrapper(idx,0x49,buf);
+		//Finally, retrieve feedback
+		buf = readPackBuck(STX,ETX);
+		event_last_error(buf[HDR-1]);
+		return (char)(buf[HDR-1]);
 	}
 	
-	public void get(int idx,String... name){
-		
+	public int[] get(int idx,String... name){
 		int cnt = name.length;
-		
 		int total = 0;
 		for(int i=0; i<cnt; i++){
 			total = total + name[i].length(); 
 		}
-		
 		byte[] buf = new byte[LEN+2+total];
-		
-		buf[HDR+0] = (byte)(0x30+((cnt & 0xF0)>>4));
-		buf[HDR+1] = (byte)(0x30+((cnt & 0x0F)   ));
-		
+		buf[HDR+0] = val2hex_H(cnt);
+		buf[HDR+1] = val2hex_L(cnt);
 		for(int i=0,off=HDR+2; i<cnt; i++){
 			off = pave_txt(name[i],buf,off);
-		}
-				
+		}	
 		wrapper(idx,0x48,buf);
+		//Finally, retrieve feedback
+		buf = readPackBuck(STX,ETX);
+		event_last_error(buf[HDR-1]);
+		int[] resp = new int[cnt];
+		for(int i=0, off=HDR; i<cnt; i++){
+			int size = name[i].length();
+			if(size<=5){
+				resp[i] = hex2val(buf[off]);
+				off+=1;
+			}else if(size==6){
+				resp[i] = hex2val(
+					buf[off+0], buf[off+1], buf[off+2], buf[off+3]
+				);				
+				off+=4;
+			}else if(size>=7){
+				resp[i] = hex2val(
+					buf[off+0], buf[off+1], buf[off+2], buf[off+3],
+					buf[off+4], buf[off+5], buf[off+6], buf[off+7]
+				);
+				off+=8;
+			}
+		}
+		return resp;
 	}
 	
 	private int pave_txt(String txt,byte[] buf,int off){
@@ -319,10 +385,16 @@ public class DevFatek extends DevTTY {
 		buf[ed-1] = val2hex(chk,0);
 	}
 	
-	private byte val2hex(int val, int bit){
-		int msk = (0x0000000F)<<bit;
-		val = val & msk;
-		val = val >> bit;
+	private byte val2hex_H(int val){
+		return val2hex(val,4);
+	}
+	
+	private byte val2hex_L(int val){
+		return val2hex(val,0);
+	}
+		
+	private byte val2hex(int val, int shift){
+		val = (val >> shift) & 0x0000000F;
 		if(0<=val && val<=9){
 			val = val + 0x30;
 		}else{
@@ -334,22 +406,184 @@ public class DevFatek extends DevTTY {
 	private int hex2val(byte hex){
 		int val = 0;
 		if(0x30<=hex && hex<=0x39){
-			val = val - 0x30; 
+			val = hex - 0x30; 
 		}else{
-			val = val - 0x37;
+			val = hex - 0x37;
+		}
+		return val;
+	}
+
+	private int hex2val(byte... hex){
+		int val = 0;
+		int pow = (int)Math.pow(16,hex.length-1);
+		for(int i=0; i<hex.length;  i++){
+			val = val + (pow)*(hex2val(hex[i]));
+			pow = pow / 16;
 		}
 		return val;
 	}
 	
-	private int hex2val(byte hexH,byte hexL){
-		return 16*hex2val(hexH) + hex2val(hexL);
-	}
+	private String byte2txt(byte[] buf){
+		String txt = "";
+		int cnt = buf.length;
+		if(cnt==0){
+			return txt;
+		}
+		for(int i=0; i<cnt; i++){
+			txt = txt + (char)(buf[i]);
+		}
+		return txt;
+	}	
 	//--------------------------------//
 	
-	@Override
-	protected Node eventLayout(PanBase pan) {
-		
-		final String TXT_UNKNOW = "？？？";
+	private final String TXT_UNKNOW = "？？？";
+	
+	private BooleanProperty[] staInfo = {
+		new SimpleBooleanProperty(false), //B0: Run or Stop
+		new SimpleBooleanProperty(false), //B1: Battery
+		new SimpleBooleanProperty(false), //B2: Checksum
+		new SimpleBooleanProperty(false), //B3: Memory pack
+		new SimpleBooleanProperty(false), //B4: WDT timeout
+		new SimpleBooleanProperty(false), //B5: Use ID or not
+		new SimpleBooleanProperty(false), //B6: Emergency
+	};
+	
+	private StringProperty staTyp = new SimpleStringProperty(TXT_UNKNOW);//machine type
+	
+	private StringProperty staNIO = new SimpleStringProperty(TXT_UNKNOW);//the number of IO node
+	
+	private StringProperty staVer = new SimpleStringProperty(TXT_UNKNOW);//OS version
+	
+	private IntegerProperty[] staVar = {
+		new SimpleIntegerProperty(), //Ladder Size
+		new SimpleIntegerProperty(), //Discrete Input(?)
+		new SimpleIntegerProperty(), //Discrete Output(?)
+		new SimpleIntegerProperty(), //Register Input
+		new SimpleIntegerProperty(), //Register Output
+		new SimpleIntegerProperty(), //M(?) relay
+		new SimpleIntegerProperty(), //Step relay
+		new SimpleIntegerProperty(), //L(?) relay
+		new SimpleIntegerProperty(), //R Register
+		new SimpleIntegerProperty(), //D Register
+		new SimpleIntegerProperty(), //Timer
+		new SimpleIntegerProperty(), //Counter
+	};
+
+	private void event_inf(final int val){
+		final Runnable event = new Runnable(){
+			@Override
+			public void run() {
+				staInfo[0].set( ((val & 0b0000_0001)!=0)?(true):(false) );
+				staInfo[1].set( ((val & 0b0000_0010)!=0)?(true):(false) );
+				staInfo[2].set( ((val & 0b0000_0100)!=0)?(true):(false) );
+				staInfo[3].set( ((val & 0b0000_1000)!=0)?(true):(false) );
+				staInfo[4].set( ((val & 0b0001_0000)!=0)?(true):(false) );
+				staInfo[5].set( ((val & 0b0010_0000)!=0)?(true):(false) );
+				staInfo[6].set( ((val & 0b0100_0000)!=0)?(true):(false) );
+			}			
+		};
+		if(Application.isEventThread()==true){
+			event.run();
+		}else{
+			Application.invokeAndWait(event);
+		}
+	}
+	
+	private void event_typ(final int val){
+		final Runnable event = new Runnable(){
+			@Override
+			public void run() {
+				switch(val){
+				case 0: staTyp.set("MA"); break;
+				case 1: staTyp.set("MC"); break;
+				default: staTyp.set(TXT_UNKNOW); break;
+				}
+			}			
+		};
+		if(Application.isEventThread()==true){
+			event.run();
+		}else{
+			Application.invokeAndWait(event);
+		}
+	}
+	
+	private void event_nio(final byte val_H, final byte val_L){
+		final Runnable event = new Runnable(){
+			final char[] digi = {'０','１','２','３','４','５','６','７','８','９'};
+			@Override
+			public void run() {
+				char a = digi[hex2val(val_H)];
+				char b = digi[hex2val(val_L)];
+				staNIO.set("ｘ"+a+b);
+			}			
+		};
+		if(Application.isEventThread()==true){
+			event.run();
+		}else{
+			Application.invokeAndWait(event);
+		}
+	}
+	
+	private void event_ver(final byte val_H, final byte val_L){
+		final Runnable event = new Runnable(){
+			final char[] digi = {'０','１','２','３','４','５','６','７','８','９'};
+			@Override
+			public void run() {
+				char a = digi[hex2val(val_H)];
+				char b = digi[hex2val(val_L)];
+				staVer.set("Ｖ"+a+"."+b+"ｘ");
+			}			
+		};
+		if(Application.isEventThread()==true){
+			event.run();
+		}else{
+			Application.invokeAndWait(event);
+		}
+	}
+	
+	private void event_var(final int... val){
+		final Runnable event = new Runnable(){
+			@Override
+			public void run() {
+				for(int i=0; i<val.length; i++){
+					staVar[i].set(val[i]);
+				}
+			}			
+		};
+		if(Application.isEventThread()==true){
+			event.run();
+		}else{
+			Application.invokeAndWait(event);
+		}
+	}
+	
+	private StringProperty lastError = new SimpleStringProperty("");//error code After last command
+	
+	private void event_last_error(final byte code){
+		final Runnable event = new Runnable(){
+			@Override
+			public void run() {
+				switch(code){
+				case '0': lastError.set("通訊正常"); break;
+				case '2': lastError.set("不合法的數值表示"); break;
+				case '4': lastError.set("不合法的命令格式"); break;
+				case '5': lastError.set("階梯圖偵錯碼不符合，無法啟動"); break;
+				case '6': lastError.set("非法ID，無法啟動"); break;
+				case '7': lastError.set("語法錯誤，無法啟動"); break;
+				case '9': lastError.set("由階梯圖無法啟動"); break;
+				case 'A': lastError.set("非法地址"); break;
+				default: lastError.set(String.format("%s-(%c)",TXT_UNKNOW,(char)(code))); break;
+				}
+			}			
+		};
+		if(Application.isEventThread()==true){
+			event.run();
+		}else{
+			Application.invokeAndWait(event);
+		}
+	}
+	
+	private Node layout_sys_state(){
 		
 		HBox lay1 = new HBox();
 		lay1.getStyleClass().add("hbox-medium");
@@ -357,53 +591,108 @@ public class DevFatek extends DevTTY {
 		GridPane lay2 = new GridPane();//show all sensor
 		lay2.getStyleClass().add("grid-medium");
 		
-		Label[] txtInfo = {
-			new Label(TXT_UNKNOW), new Label(TXT_UNKNOW),
-			new Label(TXT_UNKNOW), new Label(TXT_UNKNOW),
-			new Label(TXT_UNKNOW), new Label(TXT_UNKNOW),
-			new Label(TXT_UNKNOW), new Label(TXT_UNKNOW),
-			new Label(TXT_UNKNOW), new Label(TXT_UNKNOW),
-			new Label(TXT_UNKNOW), new Label(TXT_UNKNOW),
-			new Label(TXT_UNKNOW), new Label(TXT_UNKNOW),
-			new Label(TXT_UNKNOW), new Label(TXT_UNKNOW),
-			new Label(TXT_UNKNOW), new Label(TXT_UNKNOW),
-			new Label(TXT_UNKNOW), new Label(TXT_UNKNOW),
-			new Label(TXT_UNKNOW),
-		};//see manual, the sequence is important!!!!
+		Label[] txtInfo = new Label[23];
+		for(int i=0; i<txtInfo.length; i++){
+			txtInfo[i] = new Label();
+			txtInfo[i].setPrefWidth(65);
+		}
 		
-		lay2.add(new Label("狀態1"     ), 0, 0); lay2.add(txtInfo[ 0], 1, 0);		
-		lay2.add(new Label("狀態2"     ), 0, 1); lay2.add(txtInfo[ 5], 1, 1); 
-		lay2.add(new Label("ＩＤ"      ), 0, 2); lay2.add(txtInfo[ 4], 1, 2); 
-		lay2.add(new Label("階梯圖"    ), 0, 3); lay2.add(txtInfo[ 1], 1, 3); 
-		lay2.add(new Label("階梯大小"  ), 0, 4); lay2.add(txtInfo[ 9], 1, 4); 
-		lay2.add(new Label("看門狗"    ), 0, 5); lay2.add(txtInfo[ 3], 1, 5); 
-		lay2.add(new Label("主機類型"  ), 0, 6); lay2.add(txtInfo[ 6], 1, 6); 
-		lay2.add(new Label("Ｉ／Ｏ個數"), 0, 7); lay2.add(txtInfo[ 7], 1, 7); 
-		lay2.add(new Label("版本"      ), 0, 8); lay2.add(txtInfo[ 8], 1, 8); 
-		lay2.add(new Label("使用記憶體"), 0, 9); lay2.add(txtInfo[ 2], 1, 9); 
+		txtInfo[ 0].textProperty().bind(staInfo[0].asString());//B0: Run or Stop
+		txtInfo[ 1].textProperty().bind(staInfo[1].asString());//B1: Battery
+		txtInfo[ 2].textProperty().bind(staInfo[2].asString());//B2: Checksum
+		txtInfo[ 3].textProperty().bind(staInfo[3].asString());//B3: Memory pack
+		txtInfo[ 4].textProperty().bind(staInfo[4].asString());//B4: WDT timeout
+		txtInfo[ 5].textProperty().bind(staInfo[5].asString());//B5: Use ID or not
+		txtInfo[ 6].textProperty().bind(staInfo[6].asString());//B6: Emergency
 		
-		lay2.add(new Label("計時器"    ), 3, 0); lay2.add(txtInfo[19], 4, 0);
-		lay2.add(new Label("記數器"    ), 3, 1); lay2.add(txtInfo[20], 4, 1);
-		lay2.add(new Label("Ｄ－輸入"  ), 3, 2); lay2.add(txtInfo[10], 4, 2);
-		lay2.add(new Label("Ｄ－輸出"  ), 3, 3); lay2.add(txtInfo[11], 4, 3);
-		lay2.add(new Label("Ｉ－暫存器"), 3, 4); lay2.add(txtInfo[12], 4, 4);
-		lay2.add(new Label("Ｏ－暫存器"), 3, 5); lay2.add(txtInfo[13], 4, 5);
-		lay2.add(new Label("Ｒ－暫存器"), 3, 6); lay2.add(txtInfo[17], 4, 6);
-		lay2.add(new Label("Ｄ－暫存器"), 3, 7); lay2.add(txtInfo[18], 4, 7); 
-		lay2.add(new Label("Ｍ－繼電器"), 3, 8); lay2.add(txtInfo[14], 4, 8);
-		lay2.add(new Label("Ｌ－繼電器"), 3, 9); lay2.add(txtInfo[16], 4, 9);
-		lay2.add(new Label("Ｓ－繼電器"), 3,10); lay2.add(txtInfo[15], 4,10);
+		txtInfo[ 7].textProperty().bind(staTyp);//machine type		
+		txtInfo[ 8].textProperty().bind(staNIO);//the number of IO node		
+		txtInfo[ 9].textProperty().bind(staVer);//OS version
 		
-		lay2.add(new Separator(Orientation.VERTICAL), 2, 0, 1, 10);
+		txtInfo[10].textProperty().bind(staVar[ 0].asString());//Ladder Size
+		txtInfo[11].textProperty().bind(staVar[ 1].asString("%X"));//Discrete Input(?)
+		txtInfo[12].textProperty().bind(staVar[ 2].asString("%X"));//Discrete Output(?)
+		txtInfo[13].textProperty().bind(staVar[ 3].asString("%X"));//Input Register 
+		txtInfo[14].textProperty().bind(staVar[ 4].asString("%X"));//Output Register 
+		txtInfo[15].textProperty().bind(staVar[ 5].asString("%X"));//M(?) relay
+		txtInfo[16].textProperty().bind(staVar[ 6].asString("%X"));//Step relay
+		txtInfo[17].textProperty().bind(staVar[ 7].asString("%X"));//L(?) relay
+		txtInfo[18].textProperty().bind(staVar[ 8].asString("%X"));//R Register
+		txtInfo[19].textProperty().bind(staVar[ 9].asString("%X"));//D Register
+		txtInfo[20].textProperty().bind(staVar[10].asString("%X"));//Timer
+		txtInfo[21].textProperty().bind(staVar[11].asString("%X"));//Counter
+		
+		lay2.add(new Label("主機類型"  ), 0, 0); lay2.add(txtInfo[ 7], 1, 0); 
+		lay2.add(new Label("Ｉ／Ｏ個數"), 0, 1); lay2.add(txtInfo[ 8], 1, 1); 
+		lay2.add(new Label("ＯＳ版本"  ), 0, 2); lay2.add(txtInfo[ 9], 1, 2);
+		lay2.add(new Label("主機運行"  ), 0, 3); lay2.add(txtInfo[ 0], 1, 3);
+		lay2.add(new Label("緊急狀況"  ), 0, 4); lay2.add(txtInfo[ 6], 1, 4);
+		lay2.add(new Label("電池用量"  ), 0, 5); lay2.add(txtInfo[ 1], 1, 5);
+		lay2.add(new Label("ＩＤ設置"  ), 0, 6); lay2.add(txtInfo[ 5], 1, 6); 		
+		lay2.add(new Label("看門狗"    ), 0, 7); lay2.add(txtInfo[ 4], 1, 7);		
+		lay2.add(new Label("記憶體使用"), 0, 8); lay2.add(txtInfo[ 3], 1, 8);
+		lay2.add(new Label("階梯圖合法"), 0, 9); lay2.add(txtInfo[ 2], 1, 9); 
+		lay2.add(new Label("階梯圖大小"), 0,10); lay2.add(txtInfo[10], 1,10); 
+		
+		lay2.add(new Label("Ｄ－輸入"  ), 3, 0); lay2.add(txtInfo[11], 4, 0);
+		lay2.add(new Label("Ｄ－輸出"  ), 3, 1); lay2.add(txtInfo[12], 4, 1);
+		lay2.add(new Label("Ｉ－暫存器"), 3, 2); lay2.add(txtInfo[13], 4, 2);
+		lay2.add(new Label("Ｏ－暫存器"), 3, 3); lay2.add(txtInfo[14], 4, 3);
+		lay2.add(new Label("Ｒ－暫存器"), 3, 4); lay2.add(txtInfo[18], 4, 4);
+		lay2.add(new Label("Ｄ－暫存器"), 3, 5); lay2.add(txtInfo[19], 4, 5); 
+		lay2.add(new Label("Ｍ－繼電器"), 3, 6); lay2.add(txtInfo[15], 4, 6);
+		lay2.add(new Label("Ｌ－繼電器"), 3, 7); lay2.add(txtInfo[17], 4, 7);
+		lay2.add(new Label("Ｓ－繼電器"), 3, 8); lay2.add(txtInfo[16], 4, 8);
+		lay2.add(new Label("計時器"    ), 3, 9); lay2.add(txtInfo[20], 4, 9);
+		lay2.add(new Label("記數器"    ), 3,10); lay2.add(txtInfo[21], 4,10);
+		
+		lay2.add(new Separator(Orientation.VERTICAL), 2, 0, 1, 11);
 		lay2.add(new Separator(Orientation.VERTICAL), 5, 0, 1, 11);
 		
 		VBox lay3 = new VBox();
 		lay3.getStyleClass().add("vbox-medium");
+
+		Button btnSysAll = PanBase.genButton2("更新",null);
+		btnSysAll.setOnAction(e->{
+			getSysAll(0x01);
+		});
+		Button btnSwitchOn = PanBase.genButton2("啟動",null);
+		btnSwitchOn.setOnAction(e->{
+			makeSwitch(0x01,true);
+			getSysInfo(0x01);
+		});
+		Button btnSwitchOff = PanBase.genButton2("關閉",null);
+		btnSwitchOff.setOnAction(e->{
+			makeSwitch(0x01,false);
+			getSysInfo(0x01);
+		});
 		
-		Button btnSysAll = PanBase.genButton2("更新狀態",null);
-		lay3.getChildren().addAll(btnSysAll);
-		
+		lay3.getChildren().addAll(btnSysAll,btnSwitchOn,btnSwitchOff);
 		lay1.getChildren().addAll(lay2,lay3);
 		return lay1;
+	}
+	
+	private Node layout_show_node(){		
+		return null;
+	}
+	
+	private Node layout_show_register(){
+		return null;
+	}
+	
+	@Override
+	protected Node eventLayout(PanBase pan) {		
+		JFXTabPane root = new JFXTabPane();
+		Tab tab1 = new Tab();
+		tab1.setText("系統資訊");
+		tab1.setContent(layout_sys_state());
+		Tab tab2 = new Tab();
+		tab2.setText("節點控制");
+		tab2.setContent(layout_show_node());
+		Tab tab3 = new Tab();
+		tab3.setText("暫存器");
+		tab3.setContent(layout_show_register());
+		root.getTabs().addAll(tab1,tab2,tab3);		
+		return root;
 	}	
 }
