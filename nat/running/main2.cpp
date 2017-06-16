@@ -83,11 +83,17 @@ void check_all_mtf(const char* name, const char* out_dir){
 		return;
 	}
 
-	Rect cent (aa.x- 44, aa.y+ 13, 78, 111);
-	Rect lf_tp(aa.x-256, aa.y-181, 54, 60);
-	Rect lf_bm(aa.x-262, aa.y+118, 54, 60);
-	Rect rh_tp(aa.x+209, aa.y-177, 54, 60);
-	Rect rh_bm(aa.x+213, aa.y+122, 54, 60);
+	//Rect cent (aa.x- 44, aa.y+ 13, 78, 111);
+	//Rect lf_tp(aa.x-256, aa.y-181, 54, 60);
+	//Rect lf_bm(aa.x-262, aa.y+118, 54, 60);
+	//Rect rh_tp(aa.x+209, aa.y-177, 54, 60);
+	//Rect rh_bm(aa.x+213, aa.y+122, 54, 60);
+
+	Rect cent (aa.x- 28, aa.y+ 11, 48, 60);
+	Rect lf_tp(aa.x-249, aa.y-157, 48, 60);
+	Rect lf_bm(aa.x-253, aa.y+ 87, 48, 60);
+	Rect rh_tp(aa.x+208, aa.y-150, 48, 60);
+	Rect rh_bm(aa.x+208, aa.y+ 90, 48, 60);
 
 	rectangle(img,cent,clr);
 	rectangle(img,lf_tp ,clr);
@@ -134,7 +140,7 @@ void check_all_mtf(const char* name, const char* out_dir){
 
 int main(int argc, char* argv[]){
 
-#define DIR_NAME "fisheye-test2"
+#define DIR_NAME "fisheye-test3"
 
 	//const char* name = "./fisheye-test/20170512_08_30_12_CurrentImage.bmp";
 	//check_all_mtf(name,NULL);
@@ -173,7 +179,7 @@ int main5(int argc, char* argv[]){
 
 	Mat src = src7;
 
-	registration(ref,src);
+	//registration(ref,src);
 
 	Mat sum;
 	addWeighted( ref, 0.5, src, 0.5, 0.0, sum);

@@ -4,7 +4,12 @@ import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
+import javafx.geometry.Orientation;
 import javafx.scene.Node;
+import javafx.scene.control.Button;
+import javafx.scene.control.Separator;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 import narl.itrc.DevTTY;
 import narl.itrc.Gawain;
@@ -41,7 +46,7 @@ public class DevHustIO extends DevTTY {
 	
 	public void connect(String attr){
 		if(attr.length()==0){
-			attr = Gawain.prop.getProperty("HustIO","/dev/ttyS0,4800,7e2,x");
+			attr = Gawain.prop.getProperty("DevHustIO","/dev/ttyS0,4800,7e2,x");
 		}
 		open(attr);
 		exec_cmd("O9000","N00000010000000001");//start report
@@ -204,13 +209,12 @@ public class DevHustIO extends DevTTY {
 				return;
 			}
 			lastReport = lastReport + readTxt();
-			
 			int beg = lastReport.indexOf(DC2);
 			if(beg>=0){
 				int end = lastReport.indexOf(DC4, beg);
 				if(end>0){					
 					//parse(lastReport.substring(beg, end));
-					Misc.logv("==>", lastReport);
+					Misc.logv("==>", lastReport);//debug!!!
 					lastReport = lastReport.substring(end+1);
 				}
 			}
@@ -222,8 +226,31 @@ public class DevHustIO extends DevTTY {
 		eventWatcher
 	));
 	
+	private final String TXT_RAD_START = "開始照射";
+	private final String TXT_RAD_STOP  = "開始照射";
+	
 	@Override
 	protected Node eventLayout(PanBase pan) {
-		return null;
+		
+		final GridPane root = new GridPane();//show all sensor
+		root.getStyleClass().add("grid-medium");
+
+		final VBox lay1 = new VBox();
+		lay1.getStyleClass().add("vbox-one-dir");
+		final Button btnTest = PanBase.genButton2("開始照射",null);
+		//btnTest.textProperty().bind(observable);
+		btnTest.setOnAction(event->{
+		});
+		final Button btnLoad = PanBase.genButton2("歸零",null);
+		btnLoad.setOnAction(event->{
+		});
+		final Button btnSave = PanBase.genButton2("移動",null);
+		btnSave.setOnAction(event->{
+		});
+		//lay1.getChildren().addAll(btnTest,btnLoad,btnSave,btnComp,btnVolt,btnMeas);
+		
+		root.add(new Separator(Orientation.VERTICAL), 2, 0, 1, 10);
+		root.add(lay1, 3, 0, 4, 10);
+		return root;
 	}
 }

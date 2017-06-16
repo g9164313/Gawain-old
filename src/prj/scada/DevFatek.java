@@ -651,7 +651,6 @@ public class DevFatek extends DevTTY {
 		
 		VBox lay3 = new VBox();
 		lay3.getStyleClass().add("vbox-medium");
-
 		Button btnSysAll = PanBase.genButton2("更新",null);
 		btnSysAll.setOnAction(e->{
 			getSysAll(0x01);
@@ -666,14 +665,32 @@ public class DevFatek extends DevTTY {
 			makeSwitch(0x01,false);
 			getSysInfo(0x01);
 		});
-		
 		lay3.getChildren().addAll(btnSysAll,btnSwitchOn,btnSwitchOff);
+		
 		lay1.getChildren().addAll(lay2,lay3);
 		return lay1;
 	}
 	
-	private Node layout_show_node(){		
-		return null;
+	private Node layout_show_node(){
+		
+		HBox lay1 = new HBox();
+		lay1.getStyleClass().add("hbox-medium");
+		
+		GridPane lay2 = new GridPane();//show all sensor
+		lay2.getStyleClass().add("grid-medium");
+		
+		VBox lay3 = new VBox();
+		lay3.getStyleClass().add("vbox-medium");
+		Button btnLoad = PanBase.genButton2("讀取",null);
+		btnLoad.setOnAction(e->{
+		});
+		Button btnSave = PanBase.genButton2("寫入",null);
+		btnSave.setOnAction(e->{
+		});
+		lay3.getChildren().addAll(btnLoad,btnSave);
+		
+		lay1.getChildren().addAll(lay2,lay3);
+		return lay1;
 	}
 	
 	private Node layout_show_register(){
@@ -681,8 +698,11 @@ public class DevFatek extends DevTTY {
 	}
 	
 	@Override
-	protected Node eventLayout(PanBase pan) {		
-		JFXTabPane root = new JFXTabPane();
+	protected Node eventLayout(PanBase pan) {
+		
+		VBox lay1 = new VBox();
+
+		JFXTabPane lay2 = new JFXTabPane();
 		Tab tab1 = new Tab();
 		tab1.setText("系統資訊");
 		tab1.setContent(layout_sys_state());
@@ -692,7 +712,13 @@ public class DevFatek extends DevTTY {
 		Tab tab3 = new Tab();
 		tab3.setText("暫存器");
 		tab3.setContent(layout_show_register());
-		root.getTabs().addAll(tab1,tab2,tab3);		
-		return root;
+		lay2.getTabs().addAll(tab1,tab2,tab3);
+		
+		Label txtLast = new Label();
+		txtLast.setPrefWidth(200);
+		txtLast.textProperty().bind(lastError);
+		
+		lay1.getChildren().addAll(lay2,txtLast);
+		return lay1;
 	}	
 }

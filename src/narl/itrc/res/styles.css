@@ -46,6 +46,14 @@
 	-fx-label-padding: 7,0,0,7;
 }
 
+.vbox-one-dir, .vbox-one-direction{
+    -fx-padding: 13 0 0 0;
+    -fx-spacing: 13;
+}
+.hbox-one-dir, .hbox-one-direction{
+    -fx-padding: 0 13 0 0;
+    -fx-spacing: 13;
+}
 
 .hbox-small, .vbox-small{
     -fx-padding: 7;
@@ -141,7 +149,7 @@
 }*/
 
 .decorate0-title {
-	/*-fx-translate-y: -20;*/
+	-fx-translate-y: -20;
 }
 .decorate0-content {
  	-fx-padding: 7px 7px 7px 7px;

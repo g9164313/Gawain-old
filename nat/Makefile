@@ -94,28 +94,28 @@ LD_LIBS += $(LIB_XIMEA)
 
 ########################
 
-CORE_FILE = util_cv.cpp util_jni.cpp registration.cpp
+#CORE_FILE = util_jni.cpp DevTTY.cpp
+CORE_FILE = util_jni.cpp DevTTY.cpp DevModbus.cpp
 
-#SFR_MITRE =  ./SFR/sfr_iso.c ./SFR/find_area.c
-IMG_FILTER =
+VISION_FILE =  ./vision/CamBundle.cpp util_cv.cpp registration.cpp
+
+#IMG_FILTER =
 LIB_SFRISO = ./SFR/FltrSlangEdge.cpp ./SFR/sfr_iso.c 
 
-BASIC_DEVICE = ./vision/CamBundle.cpp DevTTY.cpp DevModbus.cpp
-
-DEV_CAMERA = ./vision/CamVidcap.cpp 
+#DEV_CAMERA = ./vision/CamVidcap.cpp 
 #DEV_CAMERA += ./vision/CamMulticam.cpp 
-DEV_CAMERA += ./vision/CamFlyCapture.cpp
-DEV_CAMERA += ./vision/CamXIMEA.cpp
+#DEV_CAMERA += ./vision/CamFlyCapture.cpp
+#DEV_CAMERA += ./vision/CamXIMEA.cpp
 
-PRJ_CUSTOM = PrjLetterpress.cpp
+#PRJ_CUSTOM = PrjLetterpress.cpp
 ########################
 
 OBJECTS = $(SOURCES:.cpp=.o)
 
 CHECK_EXEC := $(word 2,$(shell pgrep -f "narl.itrc.Gawain"))
 
-$(TARGET_SO): $(CORE_FILE) $(IMG_FILTER) $(LIB_SFRISO) $(BASIC_DEVICE) $(DEV_CAMERA) $(PRJ_CUSTOM) 
-	$(CC) $(CC_FLAG)  -fPIC -shared -o $@ $^ $(LD_LIBS)
+$(TARGET_SO): $(CORE_FILE) $(IMG_FILTER) $(LIB_SFRISO) $(DEV_CAMERA) $(PRJ_CUSTOM) 
+	$(CC) -fPIC -shared -o $@ $^ $(LD_LIBS) $(CC_FLAG)
 	cp -rf $@ ../bin/narl/itrc/nat
 	cp -rf $@ ../src/narl/itrc/nat
 	#cp -rf $@ /home/qq/.local/bin/gawain
@@ -127,8 +127,8 @@ else
 endif
 	
 
-#$(TARGET_EXE):  ./running/main2.cpp ./running/misc.cpp $(CORE_FILE) $(LIB_SFRISO)
-$(TARGET_EXE):  ./running/main3.cpp
+$(TARGET_EXE):  ./running/main2.cpp ./running/misc.cpp $(CORE_FILE) $(LIB_SFRISO)
+#$(TARGET_EXE):  ./running/main3.cpp
 #$(TARGET_EXE):  $(wildcard ./traincascade/*.cpp)
 #$(TARGET_EXE):  ./running/FlyCap2.cpp
 	$(CC) -o $@ $^ $(CC_FLAG) $(LD_LIBS)
