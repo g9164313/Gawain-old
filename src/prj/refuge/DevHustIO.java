@@ -1,13 +1,22 @@
 package prj.refuge;
 
+import com.jfoenix.controls.JFXComboBox;
+import com.jfoenix.controls.JFXRadioButton;
+import com.jfoenix.controls.JFXTextField;
+
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
+import javafx.beans.property.ReadOnlyProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
+import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
@@ -30,13 +39,16 @@ public class DevHustIO extends DevTTY {
 		"M05", "M04", "M03"
 	};//hard_code, the index is also value!!!
 	
+	private int curIsotope = 1;//one-base index
+
 	public static final double MAX_LOCA = 5910.;//millimeter, this is dependent on mechine
 	//private final char DC1 = 0x11;
 	private final char DC2 = 0x12;
 	//private final char DC3 = 0x13;
 	private final char DC4 = 0x14;
 	
-	public DevHustIO(){		
+	public DevHustIO(){
+		watcher.setCycleCount(Timeline.INDEFINITE);
 	}
 	
 	public DevHustIO(String attr){
@@ -63,30 +75,35 @@ public class DevHustIO extends DevTTY {
 	protected void eventTurnOff(){	
 		exec_cmd("O9000","N1");//stop report~~~
 	}
-		
-	private int curIsotope = 0;
 
-	public void radiStart(int code){		
-		if(0<=code && code<ISOTOPE_CODE.length){
-			curIsotope = code;
-		}
-		exec_cmd("O9000","N0000111",ISOTOPE_CODE[curIsotope]);
+	public void radiStart(){
+		radiStart(curIsotope);
+	}
+	
+	public void radiStart(int idx){		
+		if(0<idx && idx<=ISOTOPE_CODE.length){
+			curIsotope = idx;//it is one-base
+		}		
+		exec_cmd("O9000","N0000111",ISOTOPE_CODE[curIsotope-1]);
 		exec_cmd("O9005","N10000000");
+		Misc.logv("開始照射 %s",ISOTOPE_NAME[curIsotope-1]);
 	}
 
-	public void radiStop(){
+	public void radiStop(){		
 		exec_cmd("O9005","N01000000");
+		Misc.logv("停止照射");
 	}
 	
 	public void moveToOrg(){
-		/*waitfor(-1);
-		double loca = Double.parseDouble(reg[LOCA]);
-		if(loca<=0.1){
-			return;//check again!!!
-		}
-		exec_cmd("O9005","N00100000");		
-		waitfor(0);
-		Misc.delay(7000);*/
+		exec_cmd("O9005","N00100000");
+	}
+	
+	public void moveToAbs(double mm){
+		moveToAbs(String.format("%.4f",mm));
+	}
+	
+	public void moveToAbs(String pos){	
+		exec_cmd("O9000","N0000111","G01X"+pos);
 	}
 	
 	private void exec_cmd(String... arg){
@@ -125,10 +142,9 @@ public class DevHustIO extends DevTTY {
 	private final int LOCA_B=19;
 	private final int C_BIT =20;
 	private final int A_BIT =21;
-	private final int S_BIT =22;
-	
+	private final int S_BIT =22;	
 	private String info[] = new String[23];
-	
+
 	private void map_info(char sig,String val){
 		switch(sig){
 		case 'A':/*program don't exist*/break;
@@ -148,7 +164,12 @@ public class DevHustIO extends DevTTY {
 		case 'S': info[SPEED ]=val; break;
 		case 'T': info[CUTTER]=val; break;
 		case 'U':
-		case 'X': info[LOCA  ]=val; break;
+		case 'X':
+			if(val.equalsIgnoreCase(info[LOCA])==false){
+				info[LOCA]=val;//update information!!!!
+				update_location();
+			}			
+			break;
 		case 'V': info[AXIS_Y]=val; break;
 		case 'Y': info[LOCA_Y]=val; break;
 		case 'W': info[AXIS_Z]=val; break;
@@ -168,12 +189,9 @@ public class DevHustIO extends DevTTY {
 	private int parse(String txt){
 		//Report Example:
 		//[DC2]
-		//%O9001
-		//H001004U 1000.001R 00000018%
+		//%\rO9001
+		//H001004U 1000.001R 00000018\r%
 		//[DC4]
-		if(txt.length()==0){
-			return -1;
-		}
 		txt = txt.substring(2,txt.length()-1);//trim token(%)
 		
 		int pos = txt.indexOf('\r');
@@ -201,21 +219,64 @@ public class DevHustIO extends DevTTY {
 	//--------------------------------//
 		
 	private String lastReport = "";//keep all messages
+
+	private long radiBeg = -1;
+	private long radiIdx = -1;
+	private long radiEnd = 0;
+	private StringProperty propCounter = new SimpleStringProperty("********");		
+	
+	private void update_counter(){
+		int off = (int)(radiIdx - radiBeg);
+		int sec = off/1000;
+		int msc = off%1000;
+		int min = sec/60;
+		sec = sec % 60;
+		propCounter.set(String.format("%d：%d.%03d", min,sec,msc));
+	}
+	
+	private StringProperty propLocation = new SimpleStringProperty("********");
+	private ReadOnlyProperty<String> locaUnit = null;
+	private void update_location(){
+		try{
+			if(info[LOCA]==null){
+				return;
+			}
+			double val = Double.valueOf(info[LOCA]);
+			if(locaUnit==null){
+				propLocation.set(String.format("%.4fmm",val));
+			}else{
+				val = Misc.phyConvert(val, "mm", locaUnit.getValue());
+				propLocation.set(String.format("%.4f",val));
+			}			
+		}catch(NumberFormatException e){
+			Misc.loge("Wrong format - %s", info[LOCA]);
+		}
+	} 
 	
 	private EventHandler<ActionEvent> eventWatcher = new EventHandler<ActionEvent>(){
 		@Override
-		public void handle(ActionEvent event) {
+		public void handle(ActionEvent event) {			
+			if(radiBeg>=0){
+				radiIdx = System.currentTimeMillis();
+				update_counter();
+				if(radiIdx>=radiEnd){
+					radiStop();
+					radiBeg = radiIdx = -1;//for next turn~~~~
+				}				
+			}
 			if(isOpen()==false){
 				return;
-			}
+			}			
 			lastReport = lastReport + readTxt();
 			int beg = lastReport.indexOf(DC2);
 			if(beg>=0){
-				int end = lastReport.indexOf(DC4, beg);
-				if(end>0){					
-					//parse(lastReport.substring(beg, end));
-					Misc.logv("==>", lastReport);//debug!!!
-					lastReport = lastReport.substring(end+1);
+				int end = lastReport.indexOf(DC4, beg+1);
+				if(end>0){			
+					lastReport = lastReport.substring(beg+1,end);
+					parse(lastReport);
+					//Misc.logv("==>%s", info[LOCA]);//debug!!!
+					//Misc.logv("==>%s", lastReport);//debug!!!
+					lastReport = "";//reset it~~~~
 				}
 			}
 		}
@@ -225,32 +286,97 @@ public class DevHustIO extends DevTTY {
 		Duration.millis(150),
 		eventWatcher
 	));
-	
-	private final String TXT_RAD_START = "開始照射";
-	private final String TXT_RAD_STOP  = "開始照射";
-	
+
 	@Override
 	protected Node eventLayout(PanBase pan) {
 		
 		final GridPane root = new GridPane();//show all sensor
 		root.getStyleClass().add("grid-medium");
-
+		
+		Label txtInfo1 = new Label("--------");
+		txtInfo1.textProperty().bind(propLocation);
+		Label txtInfo2 = new Label("--------");	
+		txtInfo2.textProperty().bind(propCounter);
+		
+		GridPane.setFillWidth(txtInfo1, true);
+		GridPane.setFillWidth(txtInfo2, true);
+				
+		JFXTextField txtValue = new JFXTextField();
+		txtValue.setText("100");
+		txtValue.setMaxWidth(97);
+		
+		JFXComboBox<String> cmbUnit = new JFXComboBox<String>();
+		cmbUnit.getItems().addAll("cm","mm","μm");
+		cmbUnit.setMaxWidth(100);
+		cmbUnit.getSelectionModel().select(0);
+		locaUnit = cmbUnit.getSelectionModel().selectedItemProperty();
+		
+		JFXTextField txtMin = new JFXTextField();
+		txtMin.setText("00");
+		txtMin.setMaxWidth(30);
+		
+		JFXTextField txtSec = new JFXTextField();
+		txtSec.setText("10");
+		txtSec.setMaxWidth(30);
+		
+		final ToggleGroup grpIso = new ToggleGroup();		
+		JFXRadioButton[] chkIso = {
+			new JFXRadioButton(ISOTOPE_NAME[0]),
+			new JFXRadioButton(ISOTOPE_NAME[1]),
+			new JFXRadioButton(ISOTOPE_NAME[2])
+		};
+		for(int i=0; i<chkIso.length; i++){
+			chkIso[i].setToggleGroup(grpIso);
+			chkIso[i].setUserData(i+1);
+		}
+		grpIso.selectToggle(chkIso[curIsotope-1]);
+		
+		root.add(new Label("距離"), 0, 0); root.add(txtInfo1, 1, 0, 2, 1);
+		root.add(new Label("計時"), 0, 1); root.add(txtInfo2, 1, 1, 2, 1); 
+		root.add(new Label("射源"), 0, 2); root.add(chkIso[0], 1, 2, 3, 1);
+		root.add(chkIso[1], 1, 3, 3, 1);
+		root.add(chkIso[2], 1, 4, 3, 1);
+		
+		root.add(new Label("移動距離"), 0, 5); root.add(txtValue, 1, 5, 3, 1);		
+		root.add(new Label("移動單位"), 0, 6); root.add(cmbUnit , 1, 6, 3, 1);
+		root.add(new Label("照射時間"), 0, 7); root.add(txtMin , 1, 7); root.add(new Label("："), 2, 7); root.add(txtSec , 3, 7);
+		
 		final VBox lay1 = new VBox();
 		lay1.getStyleClass().add("vbox-one-dir");
-		final Button btnTest = PanBase.genButton2("開始照射",null);
-		//btnTest.textProperty().bind(observable);
-		btnTest.setOnAction(event->{
-		});
-		final Button btnLoad = PanBase.genButton2("歸零",null);
-		btnLoad.setOnAction(event->{
-		});
-		final Button btnSave = PanBase.genButton2("移動",null);
-		btnSave.setOnAction(event->{
-		});
-		//lay1.getChildren().addAll(btnTest,btnLoad,btnSave,btnComp,btnVolt,btnMeas);
 		
-		root.add(new Separator(Orientation.VERTICAL), 2, 0, 1, 10);
-		root.add(lay1, 3, 0, 4, 10);
+		final Button btnMove = PanBase.genButton2("移動","dir-right.png");
+		btnMove.setOnAction(event->{
+			String val = txtValue.getText();
+			String unt = cmbUnit.getSelectionModel().getSelectedItem();
+			double mm = Misc.phyConvert(val+unt, "mm");
+			moveToAbs(mm);
+		});
+		final Button btnZero = PanBase.genButton2("歸零","clock-ccw.png");
+		btnZero.setOnAction(event->{
+			moveToOrg();
+		});
+		final Button btnRadi = PanBase.genButton2("照射","lightbulb-on-outline.png");
+		btnRadi.setOnAction(event->{
+			if(radiBeg>=0){
+				return;
+			}
+			curIsotope = (int)(grpIso.getSelectedToggle().getUserData());
+			int min = Misc.txt2int(txtMin.getText());
+			int sec = Misc.txt2int(txtSec.getText());
+			radiBeg = radiIdx = System.currentTimeMillis();			
+			radiEnd = radiBeg + (long)((60*min+sec)*1000);//the unit is milli-second
+			radiStart();
+		});
+		final Button btnStop = PanBase.genButton2("停止","lightbulb.png");
+		btnStop.setOnAction(event->{			
+			radiStop();
+			update_counter();
+			radiBeg = radiIdx = -1L;
+		});
+		lay1.getChildren().addAll(btnMove,btnZero,btnRadi,btnStop);
+		
+		root.add(new Separator(Orientation.VERTICAL), 4, 0, 1, 10);
+		root.add(lay1, 5, 0, 4, 10);
 		return root;
 	}
 }

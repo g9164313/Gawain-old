@@ -1,10 +1,14 @@
 package prj.refuge;
 
+import java.math.BigDecimal;
+
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.Node;
@@ -26,7 +30,8 @@ public class DevCDR06 extends DevModbus {
 	private short[]  fixpt = null;
 	private short[]  value = null;
 	
-	private IntegerProperty[] propValue = null;
+	//private double[] value = null;
+	private StringProperty[] propValue = null;
 	
 	public DevCDR06(){
 		watcher.setCycleCount(Timeline.INDEFINITE);
@@ -53,10 +58,10 @@ public class DevCDR06 extends DevModbus {
 			title = new String[cnt];
 			fixpt = new short[cnt];
 			value = new short[cnt];
-			propValue = new IntegerProperty[cnt];
+			propValue = new SimpleStringProperty[cnt];
 			for(int i=0; i<cnt; i++){
 				title[i] = argv[1+i];
-				propValue[i] = new SimpleIntegerProperty();
+				propValue[i] = new SimpleStringProperty();
 			}
 			readR(0x300002,fixpt);//version, ??, decimal point, decimal point, ...
 			eventWatcher.handle(null);
@@ -78,11 +83,9 @@ public class DevCDR06 extends DevModbus {
 			}
 			readH(0x300000,value);
 			for(int i=0; i<title.length; i++){
-				int val = value[i] - 19999;
-				for(int j=0; j<fixpt[i]; j++){
-					val = val / 10;
-				}
-				propValue[i].set(val);
+				BigDecimal val = new BigDecimal(value[i] - 19999);
+				val = val.movePointLeft(fixpt[i]);
+				propValue[i].set(val.toString());
 			}
 		}
 	};
@@ -121,7 +124,7 @@ public class DevCDR06 extends DevModbus {
 			
 			Label txtValue = new Label();
 			txtValue.setStyle(_sty);
-			txtValue.textProperty().bind(Bindings.convert(propValue[0]));
+			txtValue.textProperty().bind(propValue[i]);
 			
 			root.add(txtTitle, 0, i);
 			root.add(txtValue, 1, i);

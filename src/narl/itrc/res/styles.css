@@ -58,11 +58,13 @@
 .hbox-small, .vbox-small{
     -fx-padding: 7;
     -fx-spacing: 7;
+    -fx-alignment: center;
 }
 
 .hbox-medium, .vbox-medium{
     -fx-padding: 13;
     -fx-spacing: 13;
+    -fx-alignment: center;
 }
 
 .hbox-small-space, .vbox-small-space{

@@ -10,6 +10,7 @@ import javafx.scene.layout.VBox;
 import narl.itrc.DevTTY;
 import narl.itrc.Gawain;
 import narl.itrc.PanBase;
+import narl.itrc.Misc;
 
 public class DevAT5350 extends DevTTY {
 
@@ -50,6 +51,8 @@ public class DevAT5350 extends DevTTY {
 		lay1.getStyleClass().add("vbox-one-dir");
 		final Button btnTest = PanBase.genButton2("測試連線",null);
 		btnTest.setOnAction(event->{
+			String resp = fetch("*IDN?\n","\n");
+			Misc.logv("got --> "+resp);
 		});
 		final Button btnLoad = PanBase.genButton2("讀取參數",null);
 		btnLoad.setOnAction(event->{
