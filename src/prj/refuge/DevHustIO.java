@@ -33,15 +33,15 @@ import narl.itrc.PanBase;
 public class DevHustIO extends DevTTY {
 
 	public static String[] ISOTOPE_NAME = {
-		"0.05Ci", "0.5Ci", "3Ci"
+		"3Ci", "0.05Ci", "0.5Ci",
 	};//hard_code, the index is also value!!!
 	private final String[] ISOTOPE_CODE = {
-		"M05", "M04", "M03"
+		"M03", "M04", "M05", 
 	};//hard_code, the index is also value!!!
 	
-	private int curIsotope = 1;//one-base index
+	private int curIsotope = 2;//zero-base index
 
-	public static final double MAX_LOCA = 5910.;//millimeter, this is dependent on mechine
+	public static final double MAX_LOCA = 5910.;//millimeter, this is dependent on machine
 	//private final char DC1 = 0x11;
 	private final char DC2 = 0x12;
 	//private final char DC3 = 0x13;
@@ -81,12 +81,12 @@ public class DevHustIO extends DevTTY {
 	}
 	
 	public void radiStart(int idx){		
-		if(0<idx && idx<=ISOTOPE_CODE.length){
-			curIsotope = idx;//it is one-base
+		if(0<=idx && idx<ISOTOPE_CODE.length){
+			curIsotope = idx;
 		}		
-		exec_cmd("O9000","N0000111",ISOTOPE_CODE[curIsotope-1]);
+		exec_cmd("O9000","N0000111",ISOTOPE_CODE[curIsotope]);
 		exec_cmd("O9005","N10000000");
-		Misc.logv("開始照射 %s",ISOTOPE_NAME[curIsotope-1]);
+		Misc.logv("開始照射 %s",ISOTOPE_NAME[curIsotope]);
 	}
 
 	public void radiStop(){		
@@ -329,7 +329,7 @@ public class DevHustIO extends DevTTY {
 			chkIso[i].setToggleGroup(grpIso);
 			chkIso[i].setUserData(i+1);
 		}
-		grpIso.selectToggle(chkIso[curIsotope-1]);
+		grpIso.selectToggle(chkIso[curIsotope]);
 		
 		root.add(new Label("距離"), 0, 0); root.add(txtInfo1, 1, 0, 2, 1);
 		root.add(new Label("計時"), 0, 1); root.add(txtInfo2, 1, 1, 2, 1); 
@@ -349,6 +349,10 @@ public class DevHustIO extends DevTTY {
 			String val = txtValue.getText();
 			String unt = cmbUnit.getSelectionModel().getSelectedItem();
 			double mm = Misc.phyConvert(val+unt, "mm");
+			if(mm>MAX_LOCA){				
+				Misc.loge("超過機械限制");
+				return;
+			}
 			moveToAbs(mm);
 		});
 		final Button btnZero = PanBase.genButton2("歸零","clock-ccw.png");

@@ -114,7 +114,7 @@ OBJECTS = $(SOURCES:.cpp=.o)
 
 CHECK_EXEC := $(word 2,$(shell pgrep -f "narl.itrc.Gawain"))
 
-$(TARGET_SO): $(CORE_FILE) $(IMG_FILTER) $(LIB_SFRISO) $(DEV_CAMERA) $(PRJ_CUSTOM) 
+$(TARGET_SO): $(CORE_FILE)
 	$(CC) -fPIC -shared -o $@ $^ $(LD_LIBS) $(CC_FLAG)
 	cp -rf $@ ../bin/narl/itrc/nat
 	cp -rf $@ ../src/narl/itrc/nat
@@ -133,8 +133,8 @@ $(TARGET_EXE):  ./running/main2.cpp ./running/misc.cpp $(CORE_FILE) $(LIB_SFRISO
 #$(TARGET_EXE):  ./running/FlyCap2.cpp
 	$(CC) -o $@ $^ $(CC_FLAG) $(LD_LIBS)
 
-#all: $(TARGET_SO)
-all: $(TARGET_EXE)
+all: $(TARGET_SO)
+#all: $(TARGET_EXE)
 #all: $(TARGET_EXE) $(TARGET_SO) 
 
 clean:

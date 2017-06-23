@@ -68,10 +68,12 @@
 }
 
 .hbox-small-space, .vbox-small-space{
+	-fx-padding: 3;
     -fx-spacing: 7;
 }
 
 .hbox-medium-space, .vbox-medium-space{
+	-fx-padding: 7;
     -fx-spacing: 13;
 }
 
@@ -123,6 +125,20 @@
     -fx-hgap: 13px;
     -fx-vgap: 13px;
 }
+
+/**********************/
+.table-row-hbox {
+	-fx-padding: 13px;
+    -fx-spacing: 13px;
+}
+.table-col-vbox {
+    -fx-spacing: 13px;
+}
+
+.table-col-grid {
+    -fx-vgap: 13px;
+}
+/**********************/
 
 .flow-small {
     -fx-alignment: center-left;

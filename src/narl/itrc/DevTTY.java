@@ -238,7 +238,7 @@ public class DevTTY extends DevBase {
 	 * @return byte from TTY device
 	 */
 	public byte readByte(){
-		byte[] buf = implRead(1);
+		final byte[] buf = implRead(1);
 		if(buf==null){
 			return (byte)0x00;
 		}
@@ -334,6 +334,55 @@ public class DevTTY extends DevBase {
 		}
 		return buf;
 	}
+
+	public String readTxt(char end){
+		return readTxt(end,-1);
+	}
+	
+	public String readTxt(char end,int ms){
+		String res = "";
+		for(;;){
+			char cc = readChar();			
+			if(cc==end){
+				break;
+			}			
+			res = res + cc;
+			if(ms>0){
+				Misc.delay(ms);
+			}
+		}
+		return res;
+	}
+	
+	public String readTxt(char beg,char end){
+		return readTxt(beg,end,-1);
+	}
+	
+	public String readTxt(char beg,char end,int ms){
+		String res = "";
+		boolean flg = false;
+		long tk2 = System.currentTimeMillis();
+		long tk1 = tk2;
+		while((tk2-tk1)<1000L){
+			char cc = readChar();			
+			if(cc==beg){
+				flg = true;
+			}else if(cc==0){
+				tk2 = System.currentTimeMillis();
+				continue;
+			}else if(flg==true){
+				if(cc==end){
+					return res;
+				}
+				res = res + cc;
+			}
+			tk2 = tk1;
+			if(ms>0){
+				Misc.delay(ms);
+			}
+		}
+		return res;
+	}
 	
 	/**
 	 * Read text from terminal-port.<p>
@@ -378,6 +427,7 @@ public class DevTTY extends DevBase {
 		}
 		return txt;		
 	}
+	//------------------------------------//
 	
 	/**
 	 * Write byate data via terminal-port.<p>
@@ -392,10 +442,10 @@ public class DevTTY extends DevBase {
 	 * @param buf
 	 */
 	public void writeTxt(char ch){
-		byte[] buf = { (byte)ch };
-		implWrite(buf);
+		final byte[] tmp = { (byte)ch };
+		implWrite(tmp);
 	}
-	
+
 	/**
 	 * Write text via terminal-port.<p>
 	 * @param txt - context data
@@ -409,13 +459,16 @@ public class DevTTY extends DevBase {
 	}
 	
 	/**
-	 * write text via terminal-port, then wait.<p>
-	 * @param txt - context
-	 * @param ms - delay millisecond
+	 * It is same as writeTxt(), but send one character one time~~~
+	 * Attention, this function is blocking!!! 
+	 * @param txt - context data
 	 */
-	public void writeTxt(String txt,int ms){
-		writeTxt(txt);
-		Misc.delay(ms);
+	public void writeTxt(String txt, int ms){
+		char[] buf = txt.toCharArray();
+		for(char cc:buf){
+			writeTxt(cc);
+			Misc.delay(ms);
+		}		
 	}
 	//-----------------------//
 	

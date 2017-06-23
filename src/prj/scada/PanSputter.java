@@ -37,7 +37,7 @@ import narl.itrc.WidDiagram;
 public class PanSputter extends PanBase {
 
 	public PanSputter(){
-		firstAction = FIRST_MAXIMIZED;
+		//firstAction = FIRST_MAXIMIZED;
 		customStyle = "-fx-background-color: white;";
 		//load the default mapping....
 		//mapper.loadCell(Misc.pathSock+"PID.xml");

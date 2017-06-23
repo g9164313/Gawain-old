@@ -3,7 +3,9 @@ package prj.scada;
 import java.text.Format;
 import java.text.NumberFormat;
 
+import com.jfoenix.controls.JFXComboBox;
 import com.jfoenix.controls.JFXTabPane;
+import com.jfoenix.controls.JFXTextField;
 import com.sun.glass.ui.Application;
 
 import javafx.beans.property.BooleanProperty;
@@ -18,6 +20,11 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
 import javafx.scene.control.Tab;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import javafx.scene.control.cell.CheckBoxTableCell;
+import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
@@ -172,13 +179,29 @@ public class DevFatek extends DevTTY {
 		event_last_error(buf[HDR-1]);
 	}
 	
-	public int[] getNodeSwitch(int idx,String name,int cnt){
+	public int[] getNodeEnable(int idx,String name,int cnt){
 		return get_node(idx,0x43,name,cnt);
 	}
 		
 	public int[] getNodeStatus(int idx,String name,int cnt){		
 		return get_node(idx,0x44,name,cnt);
 	}
+	
+	/*public void getNodeValue(int idx,CompValue[] lst){
+		int cnt = lst.length;
+		int[] resp;
+		resp = getNodeEnable(idx,lst[0].getName(),cnt);
+		System.out.printf("%s-->\n",lst[0].getName());
+		for(int i=0; i<cnt; i++){
+			lst[i].enable.set((resp[i]!=0)?(true):(false));
+			System.out.printf("enable=",resp[i]);
+		}
+		resp = getNodeStatus(idx,lst[0].getName(),cnt);
+		for(int i=0; i<cnt; i++){
+			lst[i].status.set((resp[i]!=0)?(true):(false));
+			System.out.printf("status=",resp[i]);
+		}
+	}*/
 	
 	private int[] get_node(int idx,int cmd,String name,int cnt){
 		byte[] buf = new byte[LEN+2+name.length()];
@@ -332,7 +355,7 @@ public class DevFatek extends DevTTY {
 		buf[HDR+1] = val2hex_L(cnt);
 		for(int i=0,off=HDR+2; i<cnt; i++){
 			off = pave_txt(name[i],buf,off);
-		}	
+		}		
 		wrapper(idx,0x48,buf);
 		//Finally, retrieve feedback
 		buf = readPackBuck(STX,ETX);
@@ -650,7 +673,7 @@ public class DevFatek extends DevTTY {
 		lay2.add(new Separator(Orientation.VERTICAL), 5, 0, 1, 11);
 		
 		VBox lay3 = new VBox();
-		lay3.getStyleClass().add("vbox-medium");
+		lay3.getStyleClass().add("vbox-medium-space");
 		Button btnSysAll = PanBase.genButton2("更新",null);
 		btnSysAll.setOnAction(e->{
 			getSysAll(0x01);
@@ -671,31 +694,158 @@ public class DevFatek extends DevTTY {
 		return lay1;
 	}
 	
-	private Node layout_show_node(){
+	/**
+	 * this present the value of node and register
+	 * @author qq
+	 *
+	 */
+	public static class CompValue {
+		private final StringProperty  name  = new SimpleStringProperty();
+		private final StringProperty  status= new SimpleStringProperty("");
+		private final BooleanProperty enable= new SimpleBooleanProperty(false);
+				
+		public CompValue(String txt){
+			name.set(txt);
+		}
+		
+		public StringProperty nameProperty() { return name; }
+		public String getName() { return name.get(); }
+		public void setName(String txt) { name.set(txt); }
+		
+		public StringProperty statusProperty() { return status; }
+		public String getStatus() { return status.get(); }
+		public void setStatus(String txt) { status.set(txt); }
+		
+		public BooleanProperty enableProperty() { return enable; }
+		public boolean getEnable() { return enable.get(); }
+		public void setEnable(boolean txt) { enable.set(txt); }
+	} ;
+	
+	@SuppressWarnings("unchecked")
+	private Node layout_node_ctrl(){
 		
 		HBox lay1 = new HBox();
-		lay1.getStyleClass().add("hbox-medium");
+		lay1.getStyleClass().add("hbox-medium-space");
 		
-		GridPane lay2 = new GridPane();//show all sensor
-		lay2.getStyleClass().add("grid-medium");
+		final TableView<CompValue> tabNode = new TableView<CompValue>();
+		tabNode.setEditable(true);
+
+		TableColumn<CompValue,String> col1 = new TableColumn<CompValue,String>("位址");
+		col1.setCellValueFactory(new PropertyValueFactory<CompValue,String>("name"));
+		col1.setCellFactory(TextFieldTableCell.forTableColumn());
 		
-		VBox lay3 = new VBox();
-		lay3.getStyleClass().add("vbox-medium");
-		Button btnLoad = PanBase.genButton2("讀取",null);
-		btnLoad.setOnAction(e->{
+		TableColumn<CompValue,String> col2 = new TableColumn<CompValue,String>("內容");
+		col2.setCellValueFactory(new PropertyValueFactory<CompValue,String>("status"));
+		col2.setCellFactory(TextFieldTableCell.forTableColumn());
+		
+		TableColumn<CompValue,Boolean> col3 = new TableColumn<CompValue,Boolean>("致能");
+		col3.setCellValueFactory(new PropertyValueFactory<CompValue,Boolean>("enable"));
+		col3.setCellFactory(CheckBoxTableCell.forTableColumn(col3));
+		
+		tabNode.setPrefWidth(300);
+		tabNode.getColumns().addAll(col1,col2,col3);
+		
+		final JFXComboBox<String> cmbToken = new JFXComboBox<String>();
+		cmbToken.getItems().addAll(
+			"X"  ,"Y"  ,"M"  ,"S"  ,"T"  ,"C"  ,
+			"WX" ,"WY" ,"WM" ,"WS" ,"WT" ,"WC" ,
+			"DWX","DWY","DWM","DWS","DWT","DWC",
+			"RT" ,"RC" ,"R"  ,"D"  ,"F"
+		);
+		cmbToken.getSelectionModel().select(0);
+		
+		final JFXTextField boxAddr = new JFXTextField();
+		boxAddr.setPrefWidth(70);
+		boxAddr.setText("0");
+		
+		final Button btnAdd = PanBase.genButton2("新增節點",null);
+		btnAdd.setOnAction(e->{
+			String token = cmbToken.getSelectionModel().getSelectedItem();
+			int addr = (int)(Integer.valueOf(boxAddr.getText()));
+			String name = null;
+			if(
+				token.equalsIgnoreCase("R")==true || 
+				token.equalsIgnoreCase("D")==true || 
+				token.equalsIgnoreCase("F")==true 
+			){
+				name = String.format("%s%05d",token,addr);
+			}else{
+				name = String.format("%s%04d",token,addr);
+			}			
+			CompValue cv = new CompValue(name);
+			tabNode.getItems().add(cv);
+			//for next register or node~~~~
+			addr++;
+			boxAddr.setText(""+addr);
+		});		
+		final Button btnDel = PanBase.genButton2("刪除節點",null);
+		btnDel.setOnAction(e->{
+			tabNode.getSelectionModel().getSelectedItems().forEach(obj->{
+				tabNode.getItems().remove(obj);
+			});
 		});
-		Button btnSave = PanBase.genButton2("寫入",null);
+		
+		final Button btnLoad = PanBase.genButton2("讀取節點",null);
+		btnLoad.setOnAction(e->{
+			int cnt = tabNode.getItems().size();
+			String[] arg = new String[cnt];
+			for(int i=0; i<cnt; i++){
+				arg[i] = tabNode.getItems().get(i).getName();
+			}
+			int[] val = get(1,arg);
+			for(int i=0; i<cnt; i++){
+				CompValue com = tabNode.getItems().get(i);
+				String name = com.getName();
+				if(name.charAt(0)=='D'){
+					com.setStatus(String.format("%08X", val[i]));
+				}else if(
+					name.charAt(0)=='W' ||
+					name.charAt(0)=='R' ||
+					name.charAt(0)=='D' ||
+					name.charAt(0)=='F'
+				){
+					com.setStatus(String.format("%04X", val[i]));
+				}else{
+					com.setStatus(String.format("%02X", val[i]));
+				}				
+			}
+		});
+		final Button btnSave = PanBase.genButton2("更新節點",null);
 		btnSave.setOnAction(e->{
 		});
-		lay3.getChildren().addAll(btnLoad,btnSave);
+
+		final Button btnLoadEN = PanBase.genButton2("讀取致能",null);
+		final Button btnSaveEN = PanBase.genButton2("更新致能",null);
 		
-		lay1.getChildren().addAll(lay2,lay3);
+		GridPane lay3 = new GridPane();
+		lay3.getStyleClass().add("grid-medium");
+		lay3.addRow(0, new Label("名稱"), cmbToken);
+		lay3.addRow(1, new Label("位置"), boxAddr);
+		lay3.add(btnAdd , 0, 2, 3, 1);
+		lay3.add(btnDel , 0, 3, 3, 1);
+		lay3.add(btnLoad, 0, 4, 3, 1);
+		lay3.add(btnSave, 0, 5, 3, 1);
+		lay3.add(btnLoadEN, 0, 6, 3, 1);
+		lay3.add(btnSaveEN, 0, 7, 3, 1);
+		
+		lay1.getChildren().addAll(tabNode,lay3);
 		return lay1;
 	}
 	
-	private Node layout_show_register(){
-		return null;
-	}
+	public static class RegValue {
+		private final StringProperty  name = new SimpleStringProperty();
+		private final IntegerProperty value= new SimpleIntegerProperty();
+		
+		public RegValue(String txt){
+			name.set(txt);
+		}
+		
+		public String getName() { return name.get(); }
+		public void setName(String txt) { name.set(txt); }
+		
+		public int getValue() { return value.get(); }
+		public void setValue(int txt) { value.set(txt); }
+	};
 	
 	@Override
 	protected Node eventLayout(PanBase pan) {
@@ -707,12 +857,9 @@ public class DevFatek extends DevTTY {
 		tab1.setText("系統資訊");
 		tab1.setContent(layout_sys_state());
 		Tab tab2 = new Tab();
-		tab2.setText("節點控制");
-		tab2.setContent(layout_show_node());
-		Tab tab3 = new Tab();
-		tab3.setText("暫存器");
-		tab3.setContent(layout_show_register());
-		lay2.getTabs().addAll(tab1,tab2,tab3);
+		tab2.setText("節點/暫存器");
+		tab2.setContent(layout_node_ctrl());
+		lay2.getTabs().addAll(tab1,tab2);
 		
 		Label txtLast = new Label();
 		txtLast.setPrefWidth(200);
