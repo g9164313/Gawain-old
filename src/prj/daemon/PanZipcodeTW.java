@@ -1,7 +1,6 @@
 package prj.daemon;
 
 import java.io.IOException;
-import java.io.PrintStream;
 
 import com.jfoenix.controls.JFXTextField;
 
@@ -26,15 +25,11 @@ public class PanZipcodeTW extends PanBase {
 	
 	public PanZipcodeTW() throws IOException{
 		
-        //System.setOut(new PrintStream("C:\\labor\\ggyy.log", "UTF-8"));
-        
+		ZipcodeTW.buid(name);
+		
 		//ZipcodeTW.notation("14號含附號");
-		String code = ZipcodeTW.mark2vcode("1374巷256弄90之2號21樓");
-		int[] mark = ZipcodeTW.vcode2mark(code);
-		
-		//ZipcodeTW.buid(name);
-		
-		//writer.close();
+		//String code = ZipcodeTW.mark2vcode("1374巷256弄90之2號21樓");
+		//int[] mark = ZipcodeTW.vcode2mark(code);
 	}
 	
 	@Override
@@ -60,11 +55,11 @@ public class PanZipcodeTW extends PanBase {
 			//ZipcodeTW.flatten("C:\\labor\\ggyy.java");
 		});
 		
-		Button btnReset = PanBase.genButton1("清除","");
+		Button btnReset = PanBase.genButton1("分析","");
 		btnReset.setOnAction(event->{
 			//How to put data in clipboard ??
-			txtCode.setText(TXT_UNKNOWN);
-			boxAddr.setText("");
+			String txt = ZipcodeTW.parse(boxAddr.getText());
+			txtCode.setText(txt);
 		});
 
 		HBox layCommand = new HBox(btnBuild,btnReset);

@@ -13,11 +13,13 @@ import java.util.Hashtable;
 public class ZipcodeTW {
 
 	private static final int DEPTH_CITY = 0;
-	private static final int DEPTH_ZONE = 1;
-	private static final int DEPTH_ROAD = 2;
+	//private static final int DEPTH_ZONE = 1;
+	//private static final int DEPTH_ROAD = 2;
 	private static final int DEPTH_SIGN_CODE = 3;
 	private static final int MAX_COLUMN = 5;//CSV file column
-
+	
+	private static final char TKN_UNKNOW = '?';
+	
 	@SuppressWarnings("rawtypes")
 	private static Hashtable<String,Hashtable> treeLeaf = new Hashtable<String,Hashtable>();
 	
@@ -47,11 +49,7 @@ public class ZipcodeTW {
 				}
 				//first triming~~~
 				for(int i=0; i<arg.length; i++){
-					arg[i] = arg[i]
-						.replaceAll("\\s", "")
-						.replaceAll("\u3000","")
-						.replace('（', '(')
-						.replace('）', ')');
+					arg[i] = cook_word(arg[i]);
 				}
 				//reorder arguments~~~
 				String[] _arg = {
@@ -99,7 +97,6 @@ public class ZipcodeTW {
 			fs.write(txt);
 			fs.close();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -149,7 +146,7 @@ public class ZipcodeTW {
 	//-------------------------------//
 	
 	public static String parse(String address){
-		
+		address = cook_word(address);
 		return trace_tree(treeRoot,address,DEPTH_CITY);
 	}
 	
@@ -166,14 +163,11 @@ public class ZipcodeTW {
 			String notation = set.nextElement();
 			
 			if(depth>=DEPTH_SIGN_CODE){
-				
 				String zcode = decide_zipcode(address,notation);
 				if(zcode.length()!=0){
 					return zcode;
-				}
-				
-			}else{
-				
+				}			
+			}else{			
 				int pos = address.indexOf(notation);
 				if(pos<0){
 					continue;
@@ -183,8 +177,7 @@ public class ZipcodeTW {
 				root = root.get(notation);
 				if(root==null){
 					return "?????";//WTF!!!
-				}
-				
+				}			
 				return trace_tree(root,address,depth+1);
 			}
 		}
@@ -195,44 +188,157 @@ public class ZipcodeTW {
 		String address,
 		String notation	
 	){
-		int[] mark = find_mark(address);
+		int[]  num = find_digi(address);
+		//notation format: {zip-code}[token]{vcode}
+		String zip = notation.substring(0,5);
+		int    tkn = notation.charAt(5);
+		String cod = notation.substring(6);
+		int[]  bnd1 = vcode2mark(cod);
 		
-		String zcode = notation.substring(0,6);
-		String badge = notation.substring(6);
 		
+		Boolean res = check_even_odd(tkn,num);
+		if(res!=null){
+			return (res)?(zip):("");
+		}
+		res = check_bound(tkn,bnd1,num);
+		if(res!=null){
+			return (res)?(zip):("");
+		}
+		
+		int[] bnd2 =  vcode2mark_sec(cod);
+		res = check_bound(tkn,bnd1,bnd2,num);
+		if(res!=null){
+			return (res)?(zip):("");
+		}
 		
 		return "";
 	}
-	//-------------------------------//
-
-	private static int gather_num(String txt,char tkn,boolean isTail){
-		int pos = txt.indexOf(tkn);
-		if(pos<0){
-			return 0;
-		}
-		if(isTail==true){
-			txt = txt.substring(0, pos);
-		}else{
-			txt = txt.substring(pos+1);
-		}
-		if(txt.length()==0){
-			return 0;
-		}
-		char[] cc = txt.toCharArray();
-		txt = "";//reset this~~~
-		for(int i=0; i<cc.length; i++){
-			if('0'<=cc[i] && cc[i]<='9'){
-				txt = txt + cc[i];
+	
+	private static Boolean check_even_odd(int tkn, int[] num){
+		switch(tkn){
+		case 0x10://雙
+		case 0x11://單
+			for(int v:num){
+				if(v==0){
+					continue;
+				}
+				if(v%2==(tkn-0x10)){
+					return true;
+				}else{
+					return false;
+				}
 			}
-			if(isTail==false){
-				break;//In this condition, we reach a non-digital, just jump out!!!!
-			}
+			break;
+		case 0x12://全
+			return true;
 		}
-		return Integer.valueOf(txt);
+		return null;
 	}
 	
-	private static int[] find_mark(String txt){
-		//每一欄代表 '巷','弄','(之)號(樓)'
+	private static Boolean check_bound(int tkn, int[] rng, int[] num){
+		if(tkn<0x13 || 0x1A<tkn){
+			return null;
+		}
+		for(int i=rng.length-1; i>=0; i--){
+			if(rng[i]!=0){
+				if(num[i]==0){
+					return false;
+				}
+				switch(tkn){	
+				case 0x14://以上-雙
+				case 0x15://以上-單
+					if(rng[i]<=num[i]){
+						if(num[i]%2==(tkn-0x14)){
+							return true;
+						}
+					}
+					return false;
+				case 0x13://以上
+				case 0x16://以上-連
+					if(rng[i]<=num[i]){
+						return true;
+					}
+					return false;
+				
+				case 0x18://以下-雙
+				case 0x19://以下-單
+					if(num[i]<=rng[i]){
+						if(num[i]%2==(tkn-0x18)){
+							return true;
+						}
+					}
+					return false;
+				case 0x1A://以下-連
+				case 0x17://以下
+					if(num[i]<=rng[i]){
+						return true;
+					}
+					return false;
+				}
+				return false;
+			}
+		}
+		return false;
+	}
+
+	private static Boolean check_bound(
+		int tkn, 
+		int[] rng1, int[] rng2, 
+		int[] num
+	){
+		int aa = rng1[fst_nonzero_index(rng1)];
+		int bb = rng2[fst_nonzero_index(rng2)];
+		int cc = rng1[fst_nonzero_index(num)];
+		if(aa>=bb || aa==0 || bb==0){
+			System.err.println("impossible, check it!!!");
+			return false;
+		}
+		if(aa<=cc && cc<=bb){
+			if(tkn==0x1B || tkn==0x1C){
+				if(cc%2==(tkn-0x1B)){
+					return true;
+				}else{
+					return false;
+				}
+			}
+			return true;
+		}
+		return false;
+	}
+	
+	private static int fst_nonzero_index(int[] val){
+		for(int i=0; i<val.length; i++){
+			if(val[i]!=0){
+				return i;
+			}
+		}
+		return -1;
+	}
+	//-------------------------------//
+
+	private static String cook_word(String txt){
+		//使用者可能會用全行字，或空白隔開，消滅牠們!!!
+		txt = txt
+			.replaceAll("\\s", "")
+			.replaceAll("\u3000","")
+			.replace('（', '(')
+			.replace('）', ')')
+			.replace('０', '0')
+			.replace('１', '1')
+			.replace('２', '2')
+			.replace('３', '3')
+			.replace('４', '4')
+			.replace('５', '5')
+			.replace('６', '6')
+			.replace('７', '7')
+			.replace('８', '8')
+			.replace('９', '9');
+		//資料庫裡的路名跟街名用國字，巷弄號則用阿拉伯數字，統一他們???
+		return txt;
+	}
+	
+
+	private static int[] find_digi(String txt){
 		//矩陣內順序依序為 '巷','弄','號','之','樓', 0 表示沒有此編號
 		int[] digi = new int[5];
 		if(txt.length()==0){
@@ -243,7 +349,7 @@ public class ZipcodeTW {
 		char[] tkn = txt.toCharArray();
 		//first, process a special word....
 		int pos = txt.indexOf('之');
-		if(pos!=0){
+		if(pos>0){
 			for(int i=pos+1; i<tkn.length; i++){
 				char cc = tkn[i];
 				if( cc<'0' || '9'<cc ){
@@ -272,6 +378,9 @@ public class ZipcodeTW {
 				digi[1] = Integer.valueOf(num);
 				break;
 			case '號':
+				if(num.length()==0){
+					break;//忽略 "含附號","及以上附號"
+				}
 				digi[2] = Integer.valueOf(num);
 				break;
 			case '樓':
@@ -287,20 +396,20 @@ public class ZipcodeTW {
 	private final static int BASE_OFF=32;
 		
 	public static String mark2vcode(String txt){
-		//format:[length][no-zero, 64-base][no-zero, 64-base]...
-		int[] mrk = find_mark(txt);
-		String val = "";
+		//format:[length][no-zero, 96-base][no-zero, 96-base]...
+		int[] digi = find_digi(txt);
+		String code = "";
 		char len = 0x0;
-		if(mrk[0]!=0){ len = (char)(len+0b00001); val=val+int2txt(mrk[0]); }
-		if(mrk[1]!=0){ len = (char)(len+0b00010); val=val+int2txt(mrk[1]); }
-		if(mrk[2]!=0){ len = (char)(len+0b00100); val=val+int2txt(mrk[2]); }
-		if(mrk[3]!=0){ len = (char)(len+0b01000); val=val+int2txt(mrk[3]); }
-		if(mrk[4]!=0){ len = (char)(len+0b10000); val=val+int2txt(mrk[4]); }
+		if(digi[0]!=0){ len = (char)(len+0b00001); code=code+int2txt(digi[0]); }
+		if(digi[1]!=0){ len = (char)(len+0b00010); code=code+int2txt(digi[1]); }
+		if(digi[2]!=0){ len = (char)(len+0b00100); code=code+int2txt(digi[2]); }
+		if(digi[3]!=0){ len = (char)(len+0b01000); code=code+int2txt(digi[3]); }
+		if(digi[4]!=0){ len = (char)(len+0b10000); code=code+int2txt(digi[4]); }
 		len = (char)(len | BASE_OFF);
 		if(len==BASE_OFF){
 			return "";
 		}
-		return ""+len+val;
+		return ""+len+code;
 	}
 
 	private static String int2txt(int val){
@@ -315,32 +424,40 @@ public class ZipcodeTW {
 	
 	public static int[] vcode2mark(String txt){
 		//format:[length][no-zero, 64-base][no-zero, 64-base]...
-		//check lenth bit, then parse value~~~
-		int[] mrk = new int[5];
+		//check length bit, then parse value~~~
+		int[] digi = new int[5];
 		if(txt.length()==0){
-			return mrk;//they are all zero!!!
+			return digi;//they are all zero!!!
 		}
-		char[] tkn = txt.toCharArray();
+		char[] code = txt.toCharArray();
 		int i=0;
-		for(; i<tkn.length; i++){
-			tkn[i] = (char)(tkn[i] - BASE_OFF);
+		for(; i<code.length; i++){
+			code[i] = (char)(code[i] - BASE_OFF);
 		}
 		i=1;//reset this for counting....
-		if( (tkn[0]&0b00001)!=0 ){ mrk[0] = tkn[i]*BASE_VAL + tkn[i+1]; i+=2; }
-		if( (tkn[0]&0b00010)!=0 ){ mrk[1] = tkn[i]*BASE_VAL + tkn[i+1]; i+=2; }
-		if( (tkn[0]&0b00100)!=0 ){ mrk[2] = tkn[i]*BASE_VAL + tkn[i+1]; i+=2; }
-		if( (tkn[0]&0b01000)!=0 ){ mrk[3] = tkn[i]*BASE_VAL + tkn[i+1]; i+=2; }
-		if( (tkn[0]&0b10000)!=0 ){ mrk[4] = tkn[i]*BASE_VAL + tkn[i+1]; i+=2; }
-		return mrk;
+		if( (code[0]&0b00001)!=0 ){ digi[0] = code[i]*BASE_VAL + code[i+1]; i+=2; }
+		if( (code[0]&0b00010)!=0 ){ digi[1] = code[i]*BASE_VAL + code[i+1]; i+=2; }
+		if( (code[0]&0b00100)!=0 ){ digi[2] = code[i]*BASE_VAL + code[i+1]; i+=2; }
+		if( (code[0]&0b01000)!=0 ){ digi[3] = code[i]*BASE_VAL + code[i+1]; i+=2; }
+		if( (code[0]&0b10000)!=0 ){ digi[4] = code[i]*BASE_VAL + code[i+1]; i+=2; }
+		return digi;
 	}
 	
-	@SuppressWarnings("unused")
-	private static String dbg_notation = null; 
+	public static int[] vcode2mark_sec(String txt){
+		char tkn = txt.charAt(0);
+		int len = 0;
+		if( (tkn&0b00001)!=0 ){ len+=2; }
+		if( (tkn&0b00010)!=0 ){ len+=2; }
+		if( (tkn&0b00100)!=0 ){ len+=2; }
+		if( (tkn&0b01000)!=0 ){ len+=2; }
+		if( (tkn&0b10000)!=0 ){ len+=2; }
+		return vcode2mark(txt.substring(len+1));
+	}
 	
-	public static String notation(String txt,final String code){
-		
-		dbg_notation = txt;
-				
+	private static String dbg_txt = null; 
+	
+	public static String notation(String txt,final String code){		
+		dbg_txt = txt;		
 		//特殊地點
 		if(txt.matches(".*[(].*[)]")==true){
 			int pos = txt.indexOf("(");
@@ -356,63 +473,69 @@ public class ZipcodeTW {
 			return "?";
 		}
 		
-		char tkn = '?';
+		char tkn = TKN_UNKNOW;
 		//有門牌號碼，判斷範圍，決定是單，雙，連號，至，以上或以下
 		if(txt.matches(".*[單雙]?[全]")==true){
+			
 			//System.out.printf("%s\n",dbg_notation);//checking
-			if(txt.endsWith("單全")==true){
+			if(txt.endsWith("雙全")==true){
 				tkn=0x10;
-			}else if(txt.endsWith("雙全")==true){
+			}else if(txt.endsWith("單全")==true){
 				tkn=0x11;
 			}else if(txt.endsWith("全")==true){
 				tkn=0x12;
 			}
-			return String.format("%c",tkn);
+			txt = mark2vcode(txt);	
+			return String.format("%c%s",tkn,txt);
 			
 		}else if(txt.matches(".*[單雙連]?.+以[上下]")==true){
+			
 			//System.out.printf("%s\n",dbg_notation);//checking
 			if(txt.endsWith("以上")==true){
-				tkn=0x13;//0x13, 0x14(單), 0x15(雙), 0x16(連) 
+				tkn=0x13;//0x13, 0x14(雙), 0x15(單), 0x16(連) 
 			}else if(txt.endsWith("以下")==true){
-				tkn=0x17;//0x17, 0x18(單), 0x19(雙), 0x1A(連) 
+				tkn=0x17;//0x17, 0x18(雙), 0x19(單), 0x1A(連) 
 			}
-			if(txt.indexOf('單')>=0){
+			if(txt.indexOf('雙')>=0){
 				tkn =(char)(tkn+1);
-			}else if(txt.indexOf('雙')>=0){
+			}else if(txt.indexOf('單')>=0){
 				tkn =(char)(tkn+2);
 			}else if(txt.indexOf('連')>=0){
 				tkn =(char)(tkn+3);
 			}
-			return String.format("%c",tkn);
+			txt = mark2vcode(txt);	
+			return String.format("%c%s",tkn,txt);
 			
 		}else if(txt.matches(".*[單雙連]?.+至.+")==true){
+			
 			//System.out.printf("%s\n",dbg_notation);//checking
-			if(txt.indexOf('單')>=0){
-				tkn = 0x1B;
-			}else if(txt.indexOf('雙')>=0){
+			if(txt.indexOf('雙')>=0){
 				tkn = 0x1C;
+			}else if(txt.indexOf('單')>=0){
+				tkn = 0x1B;
 			}else if(txt.indexOf('連')>=0){
 				tkn = 0x1D;
 			}else{
-				//Is this possible???
-				System.out.printf("warning-->%s\n",dbg_notation);//checking
+				System.err.printf("[INVALID]-->%s\n",dbg_txt);//checking
+				return ""+tkn;
 			}
 			int pos = txt.lastIndexOf('至');
-			String sta = txt.substring(0,pos);
-			String off = txt.substring(pos+1);
-			return String.format("%c",tkn);
+			String beg = txt.substring(0,pos);
+			String end = txt.substring(pos+1);
+			beg = mark2vcode(beg);	
+			end = mark2vcode(end);
+			return String.format("%c%s%s",tkn,beg,end);
 			
-		}else{
-			//System.out.printf("%s\n",dbg_notation);//checking
-			//只剩"門號"+[含附號][及以上附號]
-			if(txt.endsWith("含附號")==true){
-				
-			}else if(txt.endsWith("及以上附號")==true){
-				
-			}else{
-				
-			}
+		}else if(txt.endsWith("含附號")==true){
+			txt = mark2vcode(txt);
+			return String.format("%c%s",0x1E,txt);
+			
+		}else if(txt.endsWith("及以上附號")==true){
+			txt = mark2vcode(txt);
+			return String.format("%c%s",0x1F,txt);
 		}
-		return "?";
+		
+		System.err.printf("[NO PROCESS]-->%s\n",dbg_txt);//checking
+		return ""+tkn;
 	}
 }
