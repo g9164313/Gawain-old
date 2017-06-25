@@ -28,11 +28,11 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implOpen(
 	HANDLE hand = CreateFileA(
 		name,
 		GENERIC_READ|GENERIC_WRITE,
-		0,                          /* no share  */
-		NULL,                       /* no security */
+		0,   /* no share  */
+		NULL,/* no security */
 		OPEN_EXISTING,
-		0,                          /* no threads */
-		NULL                      /* no templates */
+		0,   /* no threads */
+		NULL /* no templates */
 	);
 	if(hand==INVALID_HANDLE_VALUE){
 		setJLong(env,thiz,NAME_HANDLE,0);//reset handle!!!!
@@ -48,7 +48,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implOpen(
 	char modeData = (char)((int)data_bit);
 	char modePart = (char)((int)parity);
 	char modeStop = (char)((int)stop_bit);
-	sprintf(
+	sprintf_s(
 		modeText,
 		"baud=%d data=%c parity=%c stop=%c",
 		baud_rate, modeData, modePart, modeStop
