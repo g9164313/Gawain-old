@@ -632,7 +632,7 @@ public class DevSQM160 extends DevTTY {
 	private PanSetSystem panSetting2 = new PanSetSystem();
 	
 	@Override
-	protected Node eventLayout() {
+	protected Node eventLayout(PanBase pan) {
 
 		final int DISP_SIZE = 53;
 		

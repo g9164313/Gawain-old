@@ -54,7 +54,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implOpen(
 		baud_rate, modeData, modePart, modeStop
 	);
 
-	cout << "SETTING: " << modeText << endl;
+	cout<<"SETTING: "<< modeText <<endl;
 
 	BuildCommDCBA(modeText, &port_settings);
 
@@ -65,9 +65,9 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implOpen(
 	COMMTIMEOUTS cpt;
 	cpt.ReadIntervalTimeout         = MAXDWORD;
 	cpt.ReadTotalTimeoutMultiplier  = 0;
-	cpt.ReadTotalTimeoutConstant    = 0;
+	cpt.ReadTotalTimeoutConstant    = 2000;
 	cpt.WriteTotalTimeoutMultiplier = 0;
-	cpt.WriteTotalTimeoutConstant   = 0;
+	cpt.WriteTotalTimeoutConstant   = 2000;
 	if(!SetCommTimeouts(hand, &cpt)){
 		cout<<"Fail to set Timeout"<<endl;
 	}
@@ -162,8 +162,8 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implOpen(
 	}
 
 	options.c_cflag |= (CLOCAL | CREAD);
-	options.c_cc[VMIN] = 0;//block until n bytes are received
-	options.c_cc[VTIME]= 1;//block until a timer expires (n * 100 mSec.)
+	options.c_cc[VMIN] =  0;//block until n bytes are received
+	options.c_cc[VTIME]= 30;//block until a timer expires (n * 100 mSec.)
 
 	//TODO:how to set flow-control
 	//block or not~~~

@@ -82,6 +82,8 @@ unsigned short locate_centroids(double *, double *, double *, unsigned short,uns
 unsigned short check_image_data(double *, unsigned short, unsigned short);
 unsigned short check_slope(double, unsigned short *, int *, double, int);
 
+static unsigned char flagShowError = 0;
+
 /*****************************************************************************/
 /* Data passed to this function is assumed to be radiometrically corrected,  */
 /* and oriented vertically, with black on left, white on right. The black to */
@@ -357,11 +359,15 @@ unsigned short locate_centroids(
 	 display an error message (the same one as if there were not a difference
 	 between the left and right sides of the box ) */
 	if (shifts[size_y - 1] < 2 || size_x - shifts[size_y - 1] < 2) {
-		fprintf(stderr,"** WARNING: Edge comes too close to the ROI corners.\n");
+		if(flagShowError!=0){
+			fprintf(stderr,"WARNING: Edge comes too close to the ROI corners.\n");
+		}
 		return 5;
 	}
 	if (shifts[0] < 2 || size_x - shifts[0] < 2) {
-		fprintf(stderr,"** WARNING: Edge comes too close to the ROI corners.\n");
+		if(flagShowError!=0){
+			fprintf(stderr,"WARNING: Edge comes too close to the ROI corners.\n");
+		}
 		return 5;
 	}
 
@@ -438,14 +444,16 @@ unsigned short check_slope(
 	 full periods, then alert the user. */
 	if (absslope < mincyc / (double) (*size_y)) {
 		if (errflag == 1) {
-			fprintf(stderr,
-				"WARNING: Edge angle (%f) is so shallow it needs\n",
-				atan(slope) * 180 / M_PI
-			);
-			fprintf(stderr,
-				"  %d lines of data (%.1f cycles) for accurate results\n",
-				(int) ceil(mincyc / absslope), mincyc
-			);
+			if(flagShowError!=0){
+				fprintf(stderr,
+					"WARNING: Edge angle (%f) is so shallow it needs\n",
+					atan(slope) * 180 / M_PI
+				);
+				fprintf(stderr,
+					"  %d lines of data (%.1f cycles) for accurate results\n",
+					(int) ceil(mincyc / absslope), mincyc
+				);
+			}
 			return 0;
 		} else {
 			return 1;
@@ -457,10 +465,12 @@ unsigned short check_slope(
 		double bestcycle, x;
 
 		if (absslope > (double) (5.0 / 4.0)) {
-			fprintf(stderr,
-				"ERROR: Edge angle (%f) is too large\n",
-				atan(slope) * 180 / M_PI
-			);
+			if(flagShowError!=0){
+				fprintf(stderr,
+					"ERROR: Edge angle (%f) is too large\n",
+					atan(slope) * 180 / M_PI
+				);
+			}
 			return 1;
 		}
 
@@ -470,14 +480,16 @@ unsigned short check_slope(
 
 		if ((int) ceil(mincyc * bestcycle) > *size_y) {
 			if (errflag == 1) {
-				fprintf(stderr,
-					"WARNING: Edge angle (%f) will reduce SFR accuracy\n",
-					atan(slope) * 180 / M_PI
-				);
-				fprintf(stderr,
-					"   if %g * %f = %d lines of data are not in ROI\n\n",
-					mincyc, bestcycle, (int) ceil(mincyc * bestcycle)
-				);
+				if(flagShowError!=0){
+					fprintf(stderr,
+						"WARNING: Edge angle (%f) will reduce SFR accuracy\n",
+						atan(slope) * 180 / M_PI
+					);
+					fprintf(stderr,
+						"   if %g * %f = %d lines of data are not in ROI\n\n",
+						mincyc, bestcycle, (int) ceil(mincyc * bestcycle)
+					);
+				}
 				return 0;
 			} else
 				return 1;
@@ -574,9 +586,11 @@ unsigned short bin_to_regular_xgrid(
 			AveEdge[i] = (AveEdge[i]) / ((double) counts[i]);
 	}
 
-	if (nzeros > 0) {
-		fprintf(stderr,"\nWARNING: %d Zero counts found during projection binning.\n",nzeros);
-		fprintf(stderr,"The edge angle may be large, or you may need more lines of data.\n");
+	if (nzeros > 0 && flagShowError) {
+		if(flagShowError!=0){
+			fprintf(stderr,"WARNING: %d Zero counts found during projection binning.\n",nzeros);
+			fprintf(stderr,"The edge angle may be large, or you may need more lines of data.\n");
+		}
 	}
 	return nzeros;
 }

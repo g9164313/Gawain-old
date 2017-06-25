@@ -9,10 +9,10 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.stage.WindowEvent;
-import narl.itrc.BoxLogger;
 import narl.itrc.DevTTY;
 import narl.itrc.PanBase;
 import narl.itrc.vision.CamFlyCapture;
+import narl.itrc.vision.CamVidcap;
 import narl.itrc.vision.ImgRender;
 
 public class Entry extends PanBase {
@@ -25,10 +25,10 @@ public class Entry extends PanBase {
 
 	public static Entry inst = null;
 	
-	//public static CamVidcap cam0 = new CamVidcap("0");
-	//public static CamVidcap cam1 = new CamVidcap("1");
-	public static CamFlyCapture cam0 = new CamFlyCapture("s:16025855");
-	public static CamFlyCapture cam1 = new CamFlyCapture("s:16138125");
+	public static CamVidcap cam0 = new CamVidcap("0");
+	public static CamVidcap cam1 = new CamVidcap("1");
+	//public static CamFlyCapture cam0 = new CamFlyCapture("s:16025855");
+	//public static CamFlyCapture cam1 = new CamFlyCapture("s:16138125");
 	public static ImgRender rndr = new ImgRender(cam0,cam1);
 	
 	public static DevB140M stg0 = new DevB140M("/dev/ttyS0,115200,8n1");
@@ -38,12 +38,12 @@ public class Entry extends PanBase {
 	/**
 	 * this flag means that we don't enable camera (render stage)
 	 */
-	private boolean camEnable = true;
+	private boolean camEnable = false;
 	
 	/**
 	 * this flag means that we don't enable motion stage
 	 */
-	private boolean stgEnable = true;
+	private boolean stgEnable = false;
 
 	public static void resetDefSpeed(){
 		stg0.exec(
@@ -100,15 +100,14 @@ public class Entry extends PanBase {
 		//pager.getSelectionModel().select(1);
 		
 		//---main function and shortcut---//
-		Node nod1 = new BoxLogger(100);		
+		//Node nod1 = new BoxLogger(100);		
 		Node nod2 = new PanMotion1();
 		Node nod3 = new PanOption();
 		Node nod4 = new PanHelpful();
 		
 		HBox lay2 = new HBox();
 		lay2.getStyleClass().add("hbox-medium");
-		lay2.getChildren().addAll(nod1,nod2,nod3,nod4);
-		HBox.setHgrow(nod1,Priority.ALWAYS);
+		lay2.getChildren().addAll(nod2,nod3,nod4);
 		HBox.setHgrow(nod2,Priority.ALWAYS);
 		HBox.setHgrow(nod3,Priority.ALWAYS);
 		HBox.setHgrow(nod4,Priority.ALWAYS);

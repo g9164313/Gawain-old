@@ -172,7 +172,7 @@ public class PanTTY extends Pane {
 						cmbDataBit.getSelectionModel().getSelectedItem() + 
 						cmbPartityBit.getSelectionModel().getSelectedItem().charAt(0) + 
 						cmbStopBit.getSelectionModel().getSelectedItem();
-					dev.setInfoPath(path);
+					dev.setInfoPathAttr(path);
 					eventOpen.handle(e);
 				}
 			});

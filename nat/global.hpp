@@ -8,7 +8,6 @@
 #ifndef GLOBAL_H
 #define GLOBAL_H
 
-#include <jni.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -44,20 +43,28 @@ inline void msleep(int msec){
 #include <list>
 #include <string>
 #include <vector>
+
+#include <jni.h>
+
 using namespace std;
 
-extern void setJDouble(JNIEnv *env,jobject thiz,const char* name,double val);
+#ifdef VISION
+#include "vision/vision.hpp"
+#endif
+
+extern void   setJDouble(JNIEnv *env,jobject thiz,const char* name,double val);
+
 extern double getJDouble(JNIEnv *env,jobject thiz,const char* name);
-extern void setFloat(JNIEnv *env,jobject thiz,const char* name,float val);
-extern float getFloat(JNIEnv *env,jobject thiz,const char* name);
-extern void setJLong(JNIEnv *env,jobject thiz,const char* name,long val);
-extern long getJLong(JNIEnv *env,jobject thiz,const char* name);
-extern void setJInt(JNIEnv *env,jobject thiz,const char* name,int val);
-extern int getJInt(JNIEnv *env,jobject thiz,const char* name);
-extern void setJChar(JNIEnv *env,jobject thiz,const char* name,char val);
-extern char getJChar(JNIEnv *env,jobject thiz,const char* name);
-extern void setJBool(JNIEnv *env,jobject thiz,const char* name,bool val);
-extern bool getJBool(JNIEnv *env,jobject thiz,const char* name);
+extern void   setFloat(JNIEnv *env,jobject thiz,const char* name,float val);
+extern float  getFloat(JNIEnv *env,jobject thiz,const char* name);
+extern void   setJLong(JNIEnv *env,jobject thiz,const char* name,long val);
+extern long   getJLong(JNIEnv *env,jobject thiz,const char* name);
+extern void   setJInt(JNIEnv *env,jobject thiz,const char* name,int val);
+extern int    getJInt(JNIEnv *env,jobject thiz,const char* name);
+extern void   setJChar(JNIEnv *env,jobject thiz,const char* name,char val);
+extern char   getJChar(JNIEnv *env,jobject thiz,const char* name);
+extern void   setJBool(JNIEnv *env,jobject thiz,const char* name,bool val);
+extern bool   getJBool(JNIEnv *env,jobject thiz,const char* name);
 
 extern jsize getJString(JNIEnv *env,jobject thiz,const char* name,const char* dst);
 

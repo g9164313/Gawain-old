@@ -33,13 +33,14 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevModbus_openRtu(
 	JNIEnv * env,
 	jobject thiz,
 	jstring jname,
-	jint baud,
-	jint data_bit,
+	jint  baud,
+	jint  data_bit,
 	jchar parity,
-	jint stop_bit
+	jint  stop_bit
 ) {
 	char name[500];
 	jstrcpy(env,jname,name);
+	cout<<"[MODBUS] RTU-->"<<name<<','<<baud<<','<<data_bit<<','<<parity<<','<<stop_bit<<','<<endl;
 	modbus_t *ctx = modbus_new_rtu(
 		name,
 		baud,
@@ -47,13 +48,48 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevModbus_openRtu(
 		data_bit,
 		stop_bit
 	);
-	if(modbus_connect(ctx)==-1){
-		cout<<"ModBus Connection failed"<<endl;
+	if( modbus_connect(ctx)<0 ){
 		modbus_free(ctx);
 		setPtrCntx(env,thiz,0L);
+		cout<<"[MODBUS] fail to connect..."<<endl;
 	}else{
 		setPtrCntx(env,thiz,(jlong)ctx);
 	}
+}
+
+extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevModbus_openTcp(
+	JNIEnv *env,
+	jclass thiz,
+	jstring jIpaddr,
+	jint port
+) {
+	char ipaddr[32];
+	jstrcpy(env, jIpaddr, ipaddr);
+	cout<<"[MODBUS] TCP-->"<<ipaddr<<':'<<port<<endl;
+	modbus_t *ctx = modbus_new_tcp(
+		ipaddr,
+		port
+	);
+	if( modbus_connect(ctx)<0 ) {
+		modbus_free(ctx);
+		setPtrCntx(env,thiz,0L);
+		cout<<"[MODBUS] fail to connect..."<<endl;
+	}else{
+		setPtrCntx(env,thiz,(jlong)ctx);
+	}
+}
+
+extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevModbus_close(
+	JNIEnv * env,
+	jobject thiz
+) {
+	modbus_t* ctx = (modbus_t*)getPtrCntx(env,thiz);
+	if(ctx==NULL){
+		return;
+	}
+	modbus_close(ctx);
+	modbus_free(ctx);
+	setPtrCntx(env,thiz,0L);
 }
 
 extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevModbus_readH(
@@ -70,9 +106,9 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevModbus_readH(
 	if(addr>0){
 		modbus_set_slave(ctx,addr);
 	}
-	jsize len = env->GetArrayLength(jbuf);
+	jsize   len = env->GetArrayLength(jbuf);
 	jshort* buf = env->GetShortArrayElements(jbuf,NULL);
-	modbus_read_input_registers(ctx,off,len,(uint16_t*)buf);
+	modbus_read_input_registers(ctx, off, len, (uint16_t*)buf);
 	env->ReleaseShortArrayElements(jbuf,buf,0);
 }
 
@@ -90,9 +126,9 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevModbus_readR(
 	if(addr>0){
 		modbus_set_slave(ctx,addr);
 	}
-	jsize len = env->GetArrayLength(jbuf);
+	jsize   len = env->GetArrayLength(jbuf);
 	jshort* buf = env->GetShortArrayElements(jbuf,NULL);
-	modbus_read_registers(ctx,off,len,(uint16_t*)buf);
+	modbus_read_registers(ctx, off, len, (uint16_t*)buf);
 	env->ReleaseShortArrayElements(jbuf,buf,0);
 }
 
@@ -116,18 +152,6 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevModbus_write(
 	env->ReleaseShortArrayElements(jbuf,buf,0);
 }
 
-extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevModbus_close(
-	JNIEnv * env,
-	jobject thiz
-) {
-	modbus_t* ctx = (modbus_t*)getPtrCntx(env,thiz);
-	if(ctx==NULL){
-		return;
-	}
-	modbus_close(ctx);
-	modbus_free(ctx);
-	setPtrCntx(env,thiz,0L);
-}
 
 
 

@@ -1,5 +1,6 @@
 package narl.itrc;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -18,6 +19,7 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Properties;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.jar.JarFile;
 
@@ -40,16 +42,16 @@ import narl.itrc.nat.Loader;
 
 public class Gawain extends Application {
 	
-	public interface EventHook {
+	public interface GlobalHook {
 		/**
-		 * Callback, when pprogram is shutdown.<p>
+		 * Callback, when program is shutdown.<p>
 		 */
 		public void shutdown();		
 	}
 	
-	private static ArrayList<EventHook> hook = new ArrayList<EventHook>();
+	private static ArrayList<GlobalHook> hook = new ArrayList<GlobalHook>();
 	
-	public static void hook(EventHook h){
+	public static void hook(GlobalHook h){
 		if(hook.contains(h)==true){
 			return;
 		}
@@ -57,7 +59,7 @@ public class Gawain extends Application {
 	}
 	
 	private static void hookShutdown(){
-		for(EventHook h:hook){
+		for(GlobalHook h:hook){
 			h.shutdown();
 		}
 	}
@@ -107,62 +109,72 @@ public class Gawain extends Application {
 	}
 	//--------------------------------------------//
 	
-	private static class Pipe extends OutputStream {
+	private static class PipeStream extends OutputStream {
 		public PrintStream org;
 		public PrintStream fid;
-		public Pipe(){			
-		}
+		private ByteArrayOutputStream buf = new ByteArrayOutputStream();
+		private PrintStream stm = new PrintStream(buf);
 		@Override
-		public void write(int b) throws IOException {
-			org.write(b);
-			if(fid!=null){
-				fid.write(b);
-			}
+		public void write(int b) throws IOException {			
+			 if(org!=null){ org.write(b); }
+			 if(fid!=null){ fid.write(b); }
+			 stm.write(b);
+			 if(b=='\n'){
+				 try {
+					txtLogger.put(buf.toString());
+				} catch (InterruptedException e) {
+					//how to show message???
+				}
+				 buf.reset();
+			 }
 		}
 		@Override
 		public void flush() throws IOException {
-			org.flush();
-			if(fid!=null){ 
-				fid.flush(); 
-			}
+			if(org!=null){ org.flush(); }
+			if(fid!=null){ fid.flush(); }
 		}
 		@Override
 		public void close() throws IOException {
-			org.close();
-			if(fid!=null){
-				fid.close();
-			}
+			if(org!=null){ org.close(); }
+			if(fid!=null){ fid.close(); }
 		}
 	};
-	private static Pipe[] pipe = {
-		new Pipe(), 
-		new Pipe()
+	
+	public static final ArrayBlockingQueue<String> txtLogger = new ArrayBlockingQueue<String>(200);
+	
+	public static final PipeStream[] pipe = {
+		new PipeStream(),
+		new PipeStream(),
 	};
 	
-	private static void loggerInit(){
-		PrintStream fid = null;
-		String opt = prop.getProperty("Logger", null);
+	private static void strmInit(){
+		//keep the original stream...
+		final PrintStream s_out = System.out;
+		final PrintStream s_err = System.err;
+		
+		//Check whether we need logger file.
+		PrintStream s_fid = null;
+		String opt = prop.getProperty("Logger",null);
 		if(opt!=null){
 			//it may be boolean flag or file path name~~~
-			if(opt.equalsIgnoreCase("true")==true || opt.length()==0){
-				//default path~~~
-				opt = Misc.pathSock + "logger.txt";
+			if(opt.equalsIgnoreCase("true")==true || opt.length()==0){				
+				opt = Misc.pathSock + "logger.txt";//default path~~~
 			}
 			try {
-				fid = new PrintStream(opt, "UTF-8");
+				s_fid = new PrintStream(opt, "UTF-8");
 			} catch (FileNotFoundException e) {
-				e.printStackTrace(); fid = null; 
+				e.printStackTrace();
 			} catch (UnsupportedEncodingException e) {
-				e.printStackTrace(); fid = null;
+				e.printStackTrace();
 			}	
 		}
 		
-		pipe[0].org = System.out;
-		pipe[0].fid = fid;
+		//redirect the original output-stream...
+		pipe[0].org = s_out;
+		pipe[0].fid = s_fid;
+		pipe[1].org = s_err;
+		pipe[1].fid = s_fid;
 		System.setOut(new PrintStream(pipe[0]));
-		
-		pipe[1].org = System.err;
-		pipe[1].fid = fid;
 		System.setErr(new PrintStream(pipe[1]));
 	}
 	//--------------------------------------------//
@@ -217,8 +229,8 @@ public class Gawain extends Application {
 	}
 	
 	private static boolean optUnpack = false;
-
-	public static void main(String[] argv) {
+	
+	public static void main(String[] argv) {		
 		flgStop.set(false);
 		propInit();
 		//parse arguments~~~~
@@ -227,7 +239,7 @@ public class Gawain extends Application {
 				optUnpack = true;
 			}
 		}
-		loggerInit();
+		strmInit();
 		//liceBind();//check dark license~~~		
 		launch(argv);		
 		propKeep();
@@ -236,6 +248,9 @@ public class Gawain extends Application {
 	//--------------------------------------------//
 	
 	private static void liceWrite(byte[] dat){
+		if(Misc.fileJar==null){
+			return;//no!!! we don't have a jar file~~
+		}
 		try {
 			RandomAccessFile fs = new RandomAccessFile(Misc.fileJar,"rw");	
 			final byte[] buf = {0,0,0,0};
@@ -275,6 +290,9 @@ public class Gawain extends Application {
 	private static Cipher liceCip = null;
 		
 	private static boolean isBorn(){
+		if(Misc.fileJar==null){
+			return false;//no!!! we don't have a jar file~~
+		}
 		try {
 			BasicFileAttributes attr = Files.readAttributes(
 				Paths.get(Misc.fileJar),

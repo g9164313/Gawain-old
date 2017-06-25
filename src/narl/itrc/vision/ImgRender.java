@@ -9,7 +9,7 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.concurrent.Task;
 import narl.itrc.Gawain;
 
-public class ImgRender implements Gawain.EventHook {
+public class ImgRender implements Gawain.GlobalHook {
 	
 	public ImgRender(CamBundle... list){		
 		this();

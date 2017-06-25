@@ -99,7 +99,7 @@ public class DevSPIK2000 extends DevTTY {
 	private final String TXT_DC2 = "--- DC 2 ---";
 	
 	@Override
-	protected Node eventLayout() {
+	protected Node eventLayout(PanBase pan) {
 		
 		GridPane root = new GridPane();//show all sensor
 		root.getStyleClass().add("grid-medium");

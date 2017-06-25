@@ -3,6 +3,7 @@ package narl.itrc;
 import java.io.File;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 
 import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
@@ -14,17 +15,24 @@ public class DevTTY extends DevBase {
 	public DevTTY(){
 	}
 	
-	public DevTTY(String path){	
-		open(path);
+	public DevTTY(String path_addr){	
+		open(path_addr);
 	}
 
 	@Override
-	protected Node eventLayout(){
+	protected Node eventLayout(PanBase pan){
 		return new PanTTY(this);
 	}
 
+	/**
+	 * This is special event, device want to do something before shutdown~~~
+	 */
+	protected void eventTurnOff(){		
+	}
+	
 	@Override
 	void eventShutdown() {
+		eventTurnOff();
 		close();
 	}
 	//---------------------//
@@ -41,8 +49,12 @@ public class DevTTY extends DevBase {
 		return handle;
 	}
 	
-	private final String TXT_UNKNOW_NAME = "?";
-	private final char TXT_UNKNOW_ATTR = '?';
+	public boolean isOpen(){
+		return (handle==0L)?(false):(true);
+	}
+	
+	private final String TXT_UNKNOW_NAME = "？";
+	private final char   TXT_UNKNOW_ATTR = '？';
 	
 	private String infoName = TXT_UNKNOW_NAME;
 	private int  infoBaud = -1;
@@ -101,21 +113,21 @@ public class DevTTY extends DevBase {
 	 * @param name - control statement.
 	 * @return TRUE - valid, FALSE - invalid
 	 */
-	public boolean setInfoPath(String path){
+	public boolean setInfoPathAttr(String path_attr){
 		
 		resetInfoPath();
 		
-		String[] arg = path.trim().split(",");
+		String[] arg = path_attr.trim().split(",");
 		//check we have 3 arguments at least
 		if(arg.length<3){
-			Misc.loge("fail to connect "+path);
+			Misc.loge("fail to connect "+path_attr);
 			return false;
 		}
 		
 		//check the fist argument,it is device name		
 		if(Misc.isPOSIX()==true){
 			if(new File(arg[0]).exists()==false){
-				Misc.loge("Unknown device --> "+path);
+				Misc.loge("Unknown device --> "+path_attr);
 				return false;
 			}
 		}else{
@@ -156,8 +168,7 @@ public class DevTTY extends DevBase {
 		char[] ctrl = arg[1].toCharArray();
 		infoData = ctrl[0];
 		infoPart = ctrl[1];
-		infoStop = ctrl[2];
-				
+		infoStop = ctrl[2];				
 		return true;		
 	}	
 	//---------------------//
@@ -165,24 +176,24 @@ public class DevTTY extends DevBase {
 	/**
 	 * open TTY and start to communication.<p>
 	 * if path have no control statement, it will append the second argument.<p>
-	 * @param path - device name, or full name
+	 * @param path_attr - device name, or full name
 	 * @param attr - default control statement
 	 * @return
 	 */
-	public long open(String path,String attr){
-		if(path.contains(",")==false){
-			path = path + ","+attr; //add default attribute setting.
+	public long open(String path_attr,String attr){
+		if(path_attr.contains(",")==false){
+			path_attr = path_attr + ","+attr; //add default attribute setting.
 		}		
-		return open(path);
+		return open(path_attr);
 	}
 	
 	/**
 	 * open TTY and start to communication.<p>
 	 * the argument path must be full name. it means path includes device name and control statement.<p>
-	 * @param path - full name, including device name and control statement.
+	 * @param path_attr - full name, including device name and control statement, ex:/dev/ttyS0,9600,8n1.
 	 */
-	public long open(String path){
-		if(setInfoPath(path)==false){
+	public long open(String path_attr){
+		if(setInfoPathAttr(path_attr)==false){
 			return -1L;
 		}
 		return open();
@@ -227,7 +238,7 @@ public class DevTTY extends DevBase {
 	 * @return byte from TTY device
 	 */
 	public byte readByte(){
-		byte[] buf = implRead(1);
+		final byte[] buf = implRead(1);
 		if(buf==null){
 			return (byte)0x00;
 		}
@@ -252,11 +263,131 @@ public class DevTTY extends DevBase {
 		return implRead(-1);
 	}
 	
+	public byte[] readPack(byte beg,byte end){
+		
+		ArrayList<Byte> lst = new ArrayList<Byte>();
+		
+		boolean flg = false;
+		
+		long tk2 = System.currentTimeMillis();
+		long tk1 = tk2;
+		
+		while((tk2-tk1)<1000L){
+			byte[] buf = implRead(1);
+			if(buf==null){
+				Misc.delay(50);
+				tk2 = System.currentTimeMillis();
+				continue;
+			}		
+			if(buf[0]==beg){
+				flg = true;//for next turn~~~~
+			}else if(flg==true){
+				if(buf[0]==end){
+					break;
+				}
+				lst.add(buf[0]);
+			}
+			tk2 = tk1;//reset ticker~~~
+		}
+		return check_out(lst);
+	}
+	
+	public byte[] readPackBuck(byte beg,byte end){
+		
+		ArrayList<Byte> lst = new ArrayList<Byte>();
+		
+		long tk2 = System.currentTimeMillis();
+		long tk1 = tk2;
+		boolean flg = false;
+		
+		while((tk2-tk1)<1000L){
+			byte[] buf = implRead(-1);
+			if(buf==null){
+				Misc.delay(50);
+				tk2 = System.currentTimeMillis();
+				continue;
+			}		
+			for(int i=0; i<buf.length; i++){				
+				if(buf[i]==beg){
+					flg = true;					
+				}else if(flg==true){
+					if(buf[i]==end){
+						return check_out(lst);
+					}
+					lst.add(buf[i]);
+				}
+			}
+			tk2 = tk1;//reset ticker~~~
+		}		
+		return check_out(lst);
+	}
+	
+	
+	private byte[] check_out(ArrayList<Byte> lst){
+		int cnt = lst.size();
+		if(cnt==0){
+			return null;
+		}
+		byte[] buf = new byte[cnt];
+		for(int i=0; i<cnt; i++){
+			buf[i] = lst.get(i);
+		}
+		return buf;
+	}
+
+	public String readTxt(char end){
+		return readTxt(end,-1);
+	}
+	
+	public String readTxt(char end,int ms){
+		String res = "";
+		for(;;){
+			char cc = readChar();			
+			if(cc==end){
+				break;
+			}			
+			res = res + cc;
+			if(ms>0){
+				Misc.delay(ms);
+			}
+		}
+		return res;
+	}
+	
+	public String readTxt(char beg,char end){
+		return readTxt(beg,end,-1);
+	}
+	
+	public String readTxt(char beg,char end,int ms){
+		String res = "";
+		boolean flg = false;
+		long tk2 = System.currentTimeMillis();
+		long tk1 = tk2;
+		while((tk2-tk1)<1000L){
+			char cc = readChar();			
+			if(cc==beg){
+				flg = true;
+			}else if(cc==0){
+				tk2 = System.currentTimeMillis();
+				continue;
+			}else if(flg==true){
+				if(cc==end){
+					return res;
+				}
+				res = res + cc;
+			}
+			tk2 = tk1;
+			if(ms>0){
+				Misc.delay(ms);
+			}
+		}
+		return res;
+	}
+	
 	/**
 	 * Read text from terminal-port.<p>
 	 * This is blocking method!!!.<p>
-	 * @return NULL - if no data<p>
-	 * Text - what we read.<p>
+	 * @return NULL - if no data<p> Text - what we read.<p>
 	 */
 	public String readTxt(){
 		byte[] buf = readBuf();
@@ -274,8 +405,7 @@ public class DevTTY extends DevBase {
 	/**
 	 * Read text from terminal-port and stopping after encountering tail part.<p>
 	 * This is blocking method!!!.<p>
-	 * @return NULL - if no data<p>
-	 * Text - what we read has tail part.<p>
+	 * @return NULL - if no data<p> Text - what we read has tail part.<p>
 	 */
 	public String readTxt(String tail){
 		String txt = "";
@@ -297,6 +427,7 @@ public class DevTTY extends DevBase {
 		}
 		return txt;		
 	}
+	//------------------------------------//
 	
 	/**
 	 * Write byate data via terminal-port.<p>
@@ -311,10 +442,10 @@ public class DevTTY extends DevBase {
 	 * @param buf
 	 */
 	public void writeTxt(char ch){
-		byte[] buf = { (byte)ch };
-		implWrite(buf);
+		final byte[] tmp = { (byte)ch };
+		implWrite(tmp);
 	}
-	
+
 	/**
 	 * Write text via terminal-port.<p>
 	 * @param txt - context data
@@ -328,13 +459,16 @@ public class DevTTY extends DevBase {
 	}
 	
 	/**
-	 * write text via terminal-port, then wait.<p>
-	 * @param txt - context
-	 * @param ms - delay millisecond
+	 * It is same as writeTxt(), but send one character one time~~~
+	 * Attention, this function is blocking!!! 
+	 * @param txt - context data
 	 */
-	public void writeTxt(String txt,int ms){
-		writeTxt(txt);
-		Misc.delay(ms);
+	public void writeTxt(String txt, int ms){
+		char[] buf = txt.toCharArray();
+		for(char cc:buf){
+			writeTxt(cc);
+			Misc.delay(ms);
+		}		
 	}
 	//-----------------------//
 	
