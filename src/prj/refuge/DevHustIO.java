@@ -33,10 +33,10 @@ import narl.itrc.PanBase;
 public class DevHustIO extends DevTTY {
 
 	public static String[] ISOTOPE_NAME = {
-		"3Ci", "0.05Ci", "0.5Ci",
+		"3Ci","0.5Ci","0.05Ci",
 	};//hard_code, the index is also value!!!
 	private final String[] ISOTOPE_CODE = {
-		"M03", "M04", "M05", 
+		"M03","M04","M05",
 	};//hard_code, the index is also value!!!
 	
 	private int curIsotope = 2;//zero-base index
@@ -61,12 +61,15 @@ public class DevHustIO extends DevTTY {
 			attr = Gawain.prop.getProperty("DevHustIO","/dev/ttyS0,4800,7e2,x");
 		}
 		open(attr);
-		exec_cmd("O9000","N00000010000000001");//start report
+		exec_cmd("O9000","N01");//reset mechine
+		exec_cmd("O9000","N001");//auto mode
+		exec_cmd("O9000","N00000001");//start report
 		watcher.play();//We must always monitor it!!!
 	}
 	
 	public void disconnect(){
 		watcher.pause();
+		exec_cmd("O9000","N1");//stop report!!!			
 		eventTurnOff();
 		close();
 	}
@@ -76,6 +79,14 @@ public class DevHustIO extends DevTTY {
 		exec_cmd("O9000","N1");//stop report~~~
 	}
 
+	public void setCurIsotope(int idx){
+		if(0<=idx && idx<ISOTOPE_CODE.length){
+			curIsotope = idx;
+		}else{
+			Misc.logw("Invalid Isotope Index(%d)", idx);
+		}
+	}
+	
 	public void radiStart(){
 		radiStart(curIsotope);
 	}
@@ -85,25 +96,59 @@ public class DevHustIO extends DevTTY {
 			curIsotope = idx;
 		}		
 		exec_cmd("O9000","N0000111",ISOTOPE_CODE[curIsotope]);
-		exec_cmd("O9005","N10000000");
-		Misc.logv("開始照射 %s",ISOTOPE_NAME[curIsotope]);
+		exec_cmd("O9005","N1");
+		Misc.logv("開始照射 (%s)",ISOTOPE_NAME[curIsotope]);
 	}
 
 	public void radiStop(){		
-		exec_cmd("O9005","N01000000");
+		exec_cmd("O9005","N01");
+		exec_cmd("O9000","N0000111");
+		Misc.logv("停止照射");
+	}
+	
+	public void syncRadiStop(){		
+		exec_cmd("O9005","N01");
+		exec_cmd("O9000","N0000111");//??? not complete ???
+		Misc.delay(10*1000);//program must be cooling down~~~
 		Misc.logv("停止照射");
 	}
 	
 	public void moveToOrg(){
-		exec_cmd("O9005","N00100000");
+		exec_cmd("O9005","N001");		
+	}
+	
+	public void moveToAbs(String mm){
+		exec_cmd("O9000","N0000111","G01X"+mm);
 	}
 	
 	public void moveToAbs(double mm){
 		moveToAbs(String.format("%.4f",mm));
 	}
 	
-	public void moveToAbs(String pos){	
-		exec_cmd("O9000","N0000111","G01X"+pos);
+	public boolean isMoving(){
+		String sta = info[HEALTH];
+		if(sta.indexOf("001004")>=0){
+			return false;//after radiation
+		}else if(sta.indexOf("001014")>=0){
+			return false;//zero-position
+		}else if(sta.indexOf("007004")>=0){
+			return false;//before radiation
+		}
+		return true;
+	}
+
+	public double syncMoveTo(double mm){
+		if(mm<=0){
+			moveToOrg();
+		}else{
+			moveToAbs(mm);
+		}
+		for(int i=0; i<10; i++){
+			do{
+				Misc.delay(100);
+			}while(isMoving()==true);
+		}
+		return Double.valueOf(info[LOCA]);
 	}
 	
 	private void exec_cmd(String... arg){
@@ -125,34 +170,36 @@ public class DevHustIO extends DevTTY {
 	private final int MEMORY=2;
 	private final int F_CODE=3;
 	private final int G_CODE=4;
-	private final int CUT_X =5;
-	private final int CUT_Y =6;
-	private final int CUT_Z =7;
-	private final int M_CODE=8;
-	private final int N_CODE=9;
-	private final int P_CODE=10;
-	private final int SPEED =11;
-	private final int CUTTER=12;
-	private final int LOCA  =13;
-	private final int AXIS_Y=14;
-	private final int LOCA_Y=15;
-	private final int AXIS_Z=16;
-	private final int LOCA_Z=17;
-	private final int AXIS_B=18;
-	private final int LOCA_B=19;
-	private final int C_BIT =20;
-	private final int A_BIT =21;
-	private final int S_BIT =22;	
-	private String info[] = new String[23];
-
-	private void map_info(char sig,String val){
-		switch(sig){
+	private final int HEALTH=5;
+	private final int CUT_X =6;
+	private final int CUT_Y =7;
+	private final int CUT_Z =8;
+	private final int M_CODE=9;
+	private final int N_CODE=10;
+	private final int P_CODE=11;
+	private final int SPEED =12;
+	private final int CUTTER=13;
+	private final int LOCA  =14;
+	private final int AXIS_Y=15;
+	private final int LOCA_Y=16;
+	private final int AXIS_Z=17;
+	private final int LOCA_Z=18;
+	private final int AXIS_B=19;
+	private final int LOCA_B=20;
+	private final int C_BIT =21;
+	private final int A_BIT =22;
+	private final int S_BIT =23;	
+	private String info[] = new String[24];
+	
+	private void map_info(char tkn,String val){
+		switch(tkn){
 		case 'A':/*program don't exist*/break;
 		case 'B': info[I_BIT ]=val; break;				
 		case 'C': info[O_BIT ]=val; break;
 		case 'E': info[MEMORY]=val; break;
 		case 'F': info[F_CODE]=val; break;
-		case 'G': info[G_CODE]=val; break;		
+		case 'G': info[G_CODE]=val; break;
+		case 'H': info[HEALTH]=val; break;//機械狀態
 		case 'I': info[CUT_X ]=val; break;
 		case 'J': info[CUT_Y ]=val; break;
 		case 'K': info[CUT_Z ]=val; break;
@@ -160,15 +207,16 @@ public class DevHustIO extends DevTTY {
 		case 'N': info[N_CODE]=val; break;
 		case 'O': /* command */     break;
 		case 'P': info[P_CODE]=val; break;
-		case 'R': /*undocumented*/  break;				
+		case 'R': /*unknown     */  break;	
 		case 'S': info[SPEED ]=val; break;
 		case 'T': info[CUTTER]=val; break;
-		case 'U':
+		case 'U':		
 		case 'X':
 			if(val.equalsIgnoreCase(info[LOCA])==false){
-				info[LOCA]=val;//update information!!!!
-				update_location();
-			}			
+				//location is different!!!
+				info[LOCA] = val;
+				update_location();				
+			}
 			break;
 		case 'V': info[AXIS_Y]=val; break;
 		case 'Y': info[LOCA_Y]=val; break;
@@ -181,7 +229,7 @@ public class DevHustIO extends DevTTY {
 		case '&': info[S_BIT ]=val; break;
 		case '<': /*unknown     */ break;
 		default: 
-			Misc.logw("unknown report: [%c]-%s\n", sig,val); 
+			Misc.logw("unknown report: [%c]%s\n", tkn,val); 
 			break;
 		}
 	}
@@ -193,27 +241,44 @@ public class DevHustIO extends DevTTY {
 		//H001004U 1000.001R 00000018\r%
 		//[DC4]
 		txt = txt.substring(2,txt.length()-1);//trim token(%)
+		txt = txt.replaceAll("\r","").replace("\n","");
 		
-		int pos = txt.indexOf('\r');
-		if(pos>=0){
-			//trip 'O900x'
-			txt = txt.substring(pos+1);
+		//Misc.logv("==>%s", txt);//debug!!!
+		
+		char[] dat = txt.toCharArray();
+		int[] pos = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
+		int idx = 0;
+		
+		for(int i=0; i<dat.length-1; i++){
+			if(dat[i]<'0' || '9'<dat[i]){
+				if(
+					dat[i]!=' ' && 
+					dat[i]!='.' && 
+					dat[i]!='?' && 
+					dat[i]!=':' &&
+					dat[i]!='+' && 
+					dat[i]!='-'
+				){
+					pos[idx++] = i;
+				}
+			}
 		}
-		//cut header!! DDHHHH		
-		if(txt.length()==0){
-			return -1;
+		for(int i=0; i<pos.length; i++){
+			if(pos[i]<0){
+				break;
+			}
+			if(pos[i+1]>0){
+				map_info(
+					dat[pos[i]],
+					txt.substring(pos[i]+1, pos[i+1])
+				);
+			}else{
+				map_info(
+					dat[pos[i]],
+					txt.substring(pos[i]+1)
+				);
+			}
 		}
-		pos = txt.indexOf('U');
-		if(pos<0){
-			return -1;
-		}
-		txt = txt.substring(pos+1);
-		pos = txt.indexOf('R');
-		if(pos<0){
-			return -1;
-		}
-		txt = txt.substring(0,pos);
-		map_info('U',txt.trim());
 		return 0;
 	}
 	//--------------------------------//
@@ -241,12 +306,18 @@ public class DevHustIO extends DevTTY {
 			if(info[LOCA]==null){
 				return;
 			}
-			double val = Double.valueOf(info[LOCA]);
+			final double val = Double.valueOf(info[LOCA]);
 			if(locaUnit==null){
-				propLocation.set(String.format("%.4fmm",val));
-			}else{
-				val = Misc.phyConvert(val, "mm", locaUnit.getValue());
-				propLocation.set(String.format("%.4f",val));
+				Misc.invoke(e->{
+					propLocation.set(String.format("%.4fmm",val));
+				});
+			}else{				
+				Misc.invoke(e->{
+					propLocation.set(String.format("%.4f %s",
+						Misc.phyConvert(val, "mm", locaUnit.getValue()),
+						locaUnit.getValue()
+					));
+				});
 			}			
 		}catch(NumberFormatException e){
 			Misc.loge("Wrong format - %s", info[LOCA]);
@@ -289,10 +360,7 @@ public class DevHustIO extends DevTTY {
 
 	@Override
 	protected Node eventLayout(PanBase pan) {
-		
-		final GridPane root = new GridPane();//show all sensor
-		root.getStyleClass().add("grid-medium");
-		
+
 		Label txtInfo1 = new Label("--------");
 		txtInfo1.textProperty().bind(propLocation);
 		Label txtInfo2 = new Label("--------");	
@@ -320,29 +388,27 @@ public class DevHustIO extends DevTTY {
 		txtSec.setMaxWidth(30);
 		
 		final ToggleGroup grpIso = new ToggleGroup();		
-		JFXRadioButton[] chkIso = {
+		final JFXRadioButton[] chkIso = {
 			new JFXRadioButton(ISOTOPE_NAME[0]),
 			new JFXRadioButton(ISOTOPE_NAME[1]),
 			new JFXRadioButton(ISOTOPE_NAME[2])
 		};
 		for(int i=0; i<chkIso.length; i++){
 			chkIso[i].setToggleGroup(grpIso);
-			chkIso[i].setUserData(i+1);
+			chkIso[i].setUserData(i);
 		}
 		grpIso.selectToggle(chkIso[curIsotope]);
 		
-		root.add(new Label("距離"), 0, 0); root.add(txtInfo1, 1, 0, 2, 1);
-		root.add(new Label("計時"), 0, 1); root.add(txtInfo2, 1, 1, 2, 1); 
-		root.add(new Label("射源"), 0, 2); root.add(chkIso[0], 1, 2, 3, 1);
-		root.add(chkIso[1], 1, 3, 3, 1);
-		root.add(chkIso[2], 1, 4, 3, 1);
-		
-		root.add(new Label("移動距離"), 0, 5); root.add(txtValue, 1, 5, 3, 1);		
-		root.add(new Label("移動單位"), 0, 6); root.add(cmbUnit , 1, 6, 3, 1);
-		root.add(new Label("照射時間"), 0, 7); root.add(txtMin , 1, 7); root.add(new Label("："), 2, 7); root.add(txtSec , 3, 7);
-		
-		final VBox lay1 = new VBox();
-		lay1.getStyleClass().add("vbox-one-dir");
+		final GridPane lay2 = new GridPane();//show all sensor
+		lay2.getStyleClass().add("grid-medium");
+		lay2.add(new Label("距離"), 0, 0); lay2.add(txtInfo1, 1, 0, 2, 1);
+		lay2.add(new Label("計時"), 0, 1); lay2.add(txtInfo2, 1, 1, 2, 1); 
+		lay2.add(new Label("射源"), 0, 2); lay2.add(chkIso[0], 1, 2, 3, 1);
+		lay2.add(chkIso[1], 1, 3, 3, 1);
+		lay2.add(chkIso[2], 1, 4, 3, 1);		
+		lay2.add(new Label("移動距離"), 0, 5); lay2.add(txtValue, 1, 5, 3, 1);		
+		lay2.add(new Label("移動單位"), 0, 6); lay2.add(cmbUnit , 1, 6, 3, 1);
+		lay2.add(new Label("照射時間"), 0, 7); lay2.add(txtMin , 1, 7); lay2.add(new Label("："), 2, 7); lay2.add(txtSec , 3, 7);
 		
 		final Button btnMove = PanBase.genButton2("移動","dir-right.png");
 		btnMove.setOnAction(event->{
@@ -377,10 +443,17 @@ public class DevHustIO extends DevTTY {
 			update_counter();
 			radiBeg = radiIdx = -1L;
 		});
-		lay1.getChildren().addAll(btnMove,btnZero,btnRadi,btnStop);
 		
-		root.add(new Separator(Orientation.VERTICAL), 4, 0, 1, 10);
-		root.add(lay1, 5, 0, 4, 10);
-		return root;
+		final VBox lay1 = new VBox();
+		lay1.getStyleClass().add("vbox-one-dir");		
+		lay1.getChildren().addAll(
+			btnMove,
+			btnZero,
+			btnRadi,
+			btnStop
+		);
+		lay2.add(new Separator(Orientation.VERTICAL), 4, 0, 1, 10);
+		lay2.add(lay1, 5, 0, 4, 10);
+		return lay2;
 	}
 }

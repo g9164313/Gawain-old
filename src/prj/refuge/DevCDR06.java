@@ -4,9 +4,6 @@ import java.math.BigDecimal;
 
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
-import javafx.beans.binding.Bindings;
-import javafx.beans.property.IntegerProperty;
-import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.event.ActionEvent;
@@ -17,6 +14,7 @@ import javafx.scene.layout.GridPane;
 import javafx.util.Duration;
 import narl.itrc.DevModbus;
 import narl.itrc.Gawain;
+import narl.itrc.Misc;
 import narl.itrc.PanBase;
 
 /**
@@ -59,6 +57,7 @@ public class DevCDR06 extends DevModbus {
 			fixpt = new short[cnt];
 			value = new short[cnt];
 			propValue = new SimpleStringProperty[cnt];
+			lastValue = new String[cnt];
 			for(int i=0; i<cnt; i++){
 				title[i] = argv[1+i];
 				propValue[i] = new SimpleStringProperty();
@@ -74,6 +73,16 @@ public class DevCDR06 extends DevModbus {
 		}
 	}
 	//--------------------------------//
+	
+	public String[] lastValue;
+	
+	public void updateLastValue(){
+		Misc.invoke(event->{
+			for(int i=0; i<propValue.length; i++){
+				lastValue[i] = propValue[i].get();
+			}			
+		});
+	}
 	
 	private EventHandler<ActionEvent> eventWatcher = new EventHandler<ActionEvent>(){
 		@Override

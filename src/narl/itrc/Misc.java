@@ -11,6 +11,8 @@ import java.util.jar.JarFile;
 
 import com.sun.glass.ui.Application;
 
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
@@ -22,6 +24,7 @@ import javafx.scene.input.KeyCombination;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Window;
+import javafx.util.Duration;
 
 public class Misc {
 
@@ -395,8 +398,10 @@ public class Misc {
 	//----------------------------------------//
 	
 	public static final String pathRoot= check_root();
+		
+	public static final String pathSock= check_path(true);
 	
-	public static final String pathSock= check_sock();
+	public static final String pathHome= check_path(false);
 	
 	public static final String fileJar = check_jar();
 	
@@ -409,6 +414,8 @@ public class Misc {
 	 * The path where we keep files or data.
 	 */
 	public static final File dirSock = new File(pathSock);
+	
+	public static final File dirHome = new File(pathHome);
 	
 	private static String check_root(){
 		
@@ -451,24 +458,33 @@ public class Misc {
 		return url;
 	}
 	
-	private static String check_sock(){
-		
+	private static String check_path(boolean isSock){		
 		String path = null;
 		String os_name = System.getProperty("os.name");
 		if(os_name.equalsIgnoreCase("win")==true){
 			//TODO:how to get user directory???
-			path = Misc.pathRoot+"gawain"+File.separator;
+			if(isSock==true){
+				path = pathRoot+".gawain"+File.separatorChar;
+			}else{
+				path = "."+File.separatorChar;
+			}
 		}else{
-			//In unix, we have many ways to get home directory~~~
 			path = System.getenv("HOME");
 			if(path==null){
-				Misc.loge("fail to get $HOME");
-				path = Misc.pathRoot+"gawain"+File.separator;
+				Misc.loge("fail to get $HOME");	
+				if(isSock==true){
+					path = pathRoot+File.separatorChar+".gawain"+File.separatorChar;
+				}else{
+					return "."+File.separatorChar;
+				}
 			}else{
-				path = path+File.separatorChar+".gawain"+File.separator;
+				if(isSock==true){
+					path = path+File.separatorChar+".gawain"+File.separatorChar;
+				}else{
+					return path+File.separatorChar;
+				}
 			}
 		}
-		
 		File dir = new File(path);
 		if(dir.exists()==false){
 			if(dir.mkdirs()==false){
@@ -851,20 +867,6 @@ public class Misc {
 		return txt;
 	}
 	
-	
-	
-	/**
-	 * It is just a macro or template function...
-	 * @param tsk - runnable object
-	 */
-	public static void invoke(Runnable tsk){
-		if(Application.isEventThread()==true){
-			tsk.run();
-		}else{
-			Application.invokeAndWait(tsk);
-		}
-	}
-	
 	/**
 	 * It is just a macro or template function...
 	 * @param tsk - lamda function
@@ -881,7 +883,35 @@ public class Misc {
 			};
 			Application.invokeAndWait(node);
 		}
-	}	
+	}
+	
+	/**
+	 * It is just a macro or template function...
+	 * First delay with few seconds, then task run~~~
+	 * @param msec - delay milli-second
+	 * @param tsk - lamda function
+	 */
+	public static void invoke(int msec, EventHandler<ActionEvent> tsk){
+		if(Application.isEventThread()==true){
+			final Timeline timer = new Timeline(new KeyFrame(
+				Duration.millis(msec),
+				eventAfter->{
+					tsk.handle(null);
+				}
+			));			
+			timer.setCycleCount(1);
+			timer.play();			
+		}else{
+			final Runnable node = new Runnable(){
+				@Override
+				public void run() {
+					tsk.handle(null);
+				}
+			};
+			delay(msec);
+			Application.invokeAndWait(node);
+		}
+	}
 	//--------------------------//
 	//I don't know how to set up category for below lines
 	
