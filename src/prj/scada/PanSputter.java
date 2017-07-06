@@ -1,19 +1,9 @@
 package prj.scada;
 
 import java.io.File;
-import java.io.FileReader;
-import java.util.List;
-
-import javax.script.ScriptEngine;
-import javax.script.ScriptEngineFactory;
-import javax.script.ScriptEngineManager;
 
 import com.jfoenix.controls.JFXTabPane;
-import com.sun.glass.ui.Application;
 
-import eu.hansolo.medusa.Gauge;
-import eu.hansolo.medusa.Gauge.SkinType;
-import eu.hansolo.medusa.GaugeBuilder;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.scene.Node;
@@ -24,7 +14,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.Tab;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.VBox;
+
 import javafx.stage.FileChooser;
 import javafx.stage.WindowEvent;
 import javafx.util.Duration;
@@ -32,7 +22,7 @@ import narl.itrc.BoxLogger;
 import narl.itrc.BtnScript;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
-import narl.itrc.WidDiagram;
+
 
 public class PanSputter extends PanBase {
 
@@ -102,8 +92,8 @@ public class PanSputter extends PanBase {
 		}else{
 			System.out.println("connect FATEK PLC device...");
 		}
-		watcher.setCycleCount(Timeline.INDEFINITE);
-		watcher.play();
+		//watcher.setCycleCount(Timeline.INDEFINITE);
+		//watcher.play();
 	}
 	
 	//---- below lines are entry points for script parse ----//

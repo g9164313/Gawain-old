@@ -35,6 +35,7 @@ import javafx.util.converter.NumberStringConverter;
 import narl.itrc.BoxLogger;
 import narl.itrc.DevTTY;
 import narl.itrc.Gawain;
+import narl.itrc.JBoxValInteger;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
 
@@ -148,20 +149,21 @@ public class DevFatek extends DevTTY {
 		byte[] buf = new byte[LEN+1];
 		buf[HDR+0] = (byte)((flag)?('1'):('0'));
 		wrapper(idx,0x41,buf);
+		writeBuf(buf);
 		//Finally, retrieve feedback
 		buf = readPackBuck(STX,ETX);
 		event_last_error(buf[HDR-1]);
 	}
 	
-	public char setNode(int idx,String name,int argv){
+	public void setNode(int idx,String name,int argv){
 		byte[] buf = new byte[LEN+1+name.length()];		
-		buf[HDR+0] = val2hex_L(argv);		
+		buf[HDR+0] = val2hex_L(argv);
 		pave_txt(name,buf,HDR+1);
 		wrapper(idx,0x42,buf);
+		writeBuf(buf);
 		//Finally, retrieve feedback
 		buf = readPackBuck(STX,ETX);
 		event_last_error(buf[HDR-1]);
-		return (char)(buf[HDR-1]);
 	}
 	
 	public void setNode(int idx,String name,int... argv){
@@ -174,9 +176,16 @@ public class DevFatek extends DevTTY {
 			buf[off+i] = val2hex_L(argv[i]);
 		}	
 		wrapper(idx,0x45,buf);
+		writeBuf(buf);
 		//Finally, retrieve feedback
 		buf = readPackBuck(STX,ETX);
 		event_last_error(buf[HDR-1]);
+	}
+	
+	public int getNodeEnable(int idx,String name){
+		int[] tmp = {0};
+		tmp = getNodeEnable(idx,name,1);
+		return tmp[0];
 	}
 	
 	public int[] getNodeEnable(int idx,String name,int cnt){
@@ -186,29 +195,14 @@ public class DevFatek extends DevTTY {
 	public int[] getNodeStatus(int idx,String name,int cnt){		
 		return get_node(idx,0x44,name,cnt);
 	}
-	
-	/*public void getNodeValue(int idx,CompValue[] lst){
-		int cnt = lst.length;
-		int[] resp;
-		resp = getNodeEnable(idx,lst[0].getName(),cnt);
-		System.out.printf("%s-->\n",lst[0].getName());
-		for(int i=0; i<cnt; i++){
-			lst[i].enable.set((resp[i]!=0)?(true):(false));
-			System.out.printf("enable=",resp[i]);
-		}
-		resp = getNodeStatus(idx,lst[0].getName(),cnt);
-		for(int i=0; i<cnt; i++){
-			lst[i].status.set((resp[i]!=0)?(true):(false));
-			System.out.printf("status=",resp[i]);
-		}
-	}*/
-	
+		
 	private int[] get_node(int idx,int cmd,String name,int cnt){
 		byte[] buf = new byte[LEN+2+name.length()];
 		buf[HDR+0] = val2hex_H(cnt);
 		buf[HDR+1] = val2hex_L(cnt);
 		pave_txt(name,buf,HDR+2);	
 		wrapper(idx,cmd,buf);
+		writeBuf(buf);
 		//Finally, retrieve feedback
 		buf = readPackBuck(STX,ETX);
 		event_last_error(buf[HDR-1]);
@@ -250,6 +244,7 @@ public class DevFatek extends DevTTY {
 			}
 		}
 		wrapper(idx,0x47,buf);
+		writeBuf(buf);
 		//Finally, retrieve feedback
 		buf = readPackBuck(STX,ETX);
 		event_last_error(buf[HDR-1]);
@@ -257,17 +252,13 @@ public class DevFatek extends DevTTY {
 	}
 	
 	public int[] getRegister(int idx,String name,int cnt){
-		int d_size = 0;
-		if(name.length()>=7){
-			d_size = 8;
-		}else{
-			d_size = 4;
-		}
+		int d_size = (name.length()>=7)?(8):(4);
 		byte[] buf = new byte[LEN+2+name.length()];
 		buf[HDR+0] = val2hex_H(cnt);
 		buf[HDR+1] = val2hex_L(cnt);
 		pave_txt(name,buf,HDR+2);	
 		wrapper(idx,0x46,buf);
+		writeBuf(buf);
 		//Finally, retrieve feedback
 		buf = readPackBuck(STX,ETX);
 		event_last_error(buf[HDR-1]);
@@ -338,6 +329,7 @@ public class DevFatek extends DevTTY {
 			}
 		}
 		wrapper(idx,0x49,buf);
+		writeBuf(buf);
 		//Finally, retrieve feedback
 		buf = readPackBuck(STX,ETX);
 		event_last_error(buf[HDR-1]);
@@ -357,8 +349,12 @@ public class DevFatek extends DevTTY {
 			off = pave_txt(name[i],buf,off);
 		}		
 		wrapper(idx,0x48,buf);
+		writeBuf(buf);
 		//Finally, retrieve feedback
 		buf = readPackBuck(STX,ETX);
+		if(buf==null){
+			return null;
+		}
 		event_last_error(buf[HDR-1]);
 		int[] resp = new int[cnt];
 		for(int i=0, off=HDR; i<cnt; i++){
@@ -722,7 +718,7 @@ public class DevFatek extends DevTTY {
 	} ;
 	
 	@SuppressWarnings("unchecked")
-	private Node layout_node_ctrl(){
+	private Node layout_watch_node(){
 		
 		HBox lay1 = new HBox();
 		lay1.getStyleClass().add("hbox-medium-space");
@@ -793,6 +789,10 @@ public class DevFatek extends DevTTY {
 				arg[i] = tabNode.getItems().get(i).getName();
 			}
 			int[] val = get(1,arg);
+			if(val==null){
+				Misc.loge("內部錯誤：無法讀取通訊埠");
+				return;
+			}
 			for(int i=0; i<cnt; i++){
 				CompValue com = tabNode.getItems().get(i);
 				String name = com.getName();
@@ -831,6 +831,47 @@ public class DevFatek extends DevTTY {
 		lay1.getChildren().addAll(tabNode,lay3);
 		return lay1;
 	}
+
+	private IntegerProperty[] iREG = null;//Device will map register to input analogy signal from address 'R3840'
+	
+	private Node layout_watch_rio(){
+		
+		final JBoxValInteger boxSize = new JBoxValInteger(10);
+		final Button btnReset = new Button("重設");
+
+		iREG = new IntegerProperty[boxSize.get()];
+		for(int i=0; i<iREG.length; i++){
+			iREG[i] = new SimpleIntegerProperty();
+		}
+		
+		final VBox lay1 = new VBox();
+		lay1.getStyleClass().add("vbox-small-space");
+		
+		final HBox lay2 = new HBox();
+		lay2.getStyleClass().add("hbox-medium-space");		
+		lay2.getChildren().addAll(
+			new Label("數目："),boxSize,
+			new Label("格式："),btnReset
+		);
+		
+		final GridPane lay3 = new GridPane();
+		lay3.getStyleClass().add("grid-medium");
+		
+		btnReset.setOnAction(e->{
+			lay3.getChildren().clear();
+			for(int i=0, addr=3840; i<boxSize.get(); i++, addr++){
+				Label txt = new Label("R"+addr);				
+				lay3.add(txt, 0, i);
+				txt = new Label();				
+				txt.textProperty().bind(iREG[i].asString("%06d"));
+				lay3.add(txt, 1, i);
+			}
+		});
+		btnReset.getOnAction().handle(null);
+		
+		lay1.getChildren().addAll(lay2,lay3);		
+		return lay1;
+	}
 	
 	public static class RegValue {
 		private final StringProperty  name = new SimpleStringProperty();
@@ -853,13 +894,20 @@ public class DevFatek extends DevTTY {
 		VBox lay1 = new VBox();
 
 		JFXTabPane lay2 = new JFXTabPane();
+		
 		Tab tab1 = new Tab();
 		tab1.setText("系統資訊");
 		tab1.setContent(layout_sys_state());
+		
 		Tab tab2 = new Tab();
-		tab2.setText("節點/暫存器");
-		tab2.setContent(layout_node_ctrl());
-		lay2.getTabs().addAll(tab1,tab2);
+		tab2.setText("節點監控");
+		tab2.setContent(layout_watch_node());
+		
+		Tab tab3 = new Tab();
+		tab3.setText("類比監控");
+		tab3.setContent(layout_watch_rio());
+		
+		lay2.getTabs().addAll(tab1,tab2,tab3);
 		
 		Label txtLast = new Label();
 		txtLast.setPrefWidth(200);
