@@ -1,9 +1,11 @@
 package prj.scada;
 
 import java.io.File;
+import java.util.Arrays;
 
 import com.jfoenix.controls.JFXTabPane;
 
+import eu.hansolo.medusa.Gauge;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.scene.Node;
@@ -38,9 +40,8 @@ public class PanSputter extends PanBase {
 	private DevSPIK2000 devSPIK2K = new DevSPIK2000();
 	
 	private DevFatek devPLC = new DevFatek();
-	
-	//private WidMapPumper1 mapper = new WidMapPumper1("sample-pid");
-	private WidMapPumper mapper = new WidMapPumper();
+
+	private WidMapPumper mapper = new WidMapPumper(devPLC);
 	
 	private String nameScript = Misc.pathSock+"test.js";
 
@@ -49,68 +50,22 @@ public class PanSputter extends PanBase {
 	@Override
 	protected void eventShowing(WindowEvent e){		
 		//hook each action of indicator, motor, valve or pump
-		/*mapper.hookWith("valve_1", itm->{
-		});
-		mapper.hookWith("valve_2", itm->{
-		});
-		mapper.hookWith("valve_3", itm->{
-		});
-		mapper.hookWith("valve_4", itm->{
-		});
-		mapper.hookWith("valve_5", itm->{
-		});
-		mapper.hookWith("valve_6", itm->{
-		});
-		
-		mapper.hookWith("motor_1", itm->{
-		});
-		mapper.hookWith("motor_2", itm->{
-		});
-		mapper.hookWith("motor_3", itm->{
-		});
-		
-		mapper.hookWith("gauge_1", itm->{
-			itm.value = 100*Math.random();//simulation~~~~
-		});
-		mapper.hookWith("gauge_2", itm->{
-			itm.value = 100*Math.random();//simulation~~~~
-		});
-		mapper.hookWith("gauge_3", itm->{
-			itm.value = 100*Math.random();//simulation~~~~
-		});
-		mapper.hookWith("gauge_4", itm->{
-			itm.value = 100*Math.random();//simulation~~~~
-		});
-		mapper.hookWith("gauge_5", itm->{
-			itm.value = 100*Math.random();//simulation~~~~
-		});
-		mapper.hookWith("gauge_6", itm->{
-			itm.value = 100*Math.random();//simulation~~~~
-		});*/
 		if(devPLC.connect()==false){
-			System.out.printf("fail to connect PLC(%s)\n",devPLC.getName());
+			Misc.logv("fail to connect PLC(%s)\n",devPLC.getName());
 		}else{
-			System.out.println("connect FATEK PLC device...");
+			Misc.logv("connect FATEK PLC device...");
 		}
-		//watcher.setCycleCount(Timeline.INDEFINITE);
-		//watcher.play();
 	}
-	
-	//---- below lines are entry points for script parse ----//
-	/*public void valve_1(boolean flag){ mapper.doTask("valve_1"); }
-	public void valve_2(boolean flag){ mapper.doTask("valve_2"); }
-	public void valve_3(boolean flag){ mapper.doTask("valve_3"); }
-	public void valve_4(boolean flag){ mapper.doTask("valve_4"); }
-	public void valve_5(boolean flag){ mapper.doTask("valve_5"); }
-	public void valve_6(boolean flag){ mapper.doTask("valve_6"); }
-	
-	public void refresh(){ mapper.refresh(); }*/
 	
 	@Override
 	protected void eventShown(WindowEvent e){
 		//devPLC.get(1, "R00001", "Y0009", "DWM0000");
 		//devSQM160.open("/dev/ttyS0,19200,8n1");
 		//devSQM160.exec("@");
+		devPLC.startMonitor("R01000-40");
+		root.setLeft(lay_gauge());
+		//watcher.setCycleCount(Timeline.INDEFINITE);
+		//watcher.play();
 	}
 	
 	private Timeline watcher = new Timeline(new KeyFrame(
@@ -121,6 +76,8 @@ public class PanSputter extends PanBase {
 		}
 	));
 	
+	BorderPane root = new BorderPane();
+	
 	@Override
 	public Node eventLayout(PanBase pan) {
 		
@@ -129,10 +86,7 @@ public class PanSputter extends PanBase {
 		btn.setOnAction(event->{
 			//spinning(true);
 			Misc.logv("---check---");
-		});
-		
-		BorderPane root = new BorderPane();
-		root.setLeft(lay_gauge());
+		});		
 		root.setCenter(mapper);
 		root.setRight(lay_action());
 		root.setBottom(lay_inform());
@@ -193,23 +147,60 @@ public class PanSputter extends PanBase {
 	}
 	
 	private Node lay_gauge(){
-		GridPane lay = new GridPane();
-		lay.getStyleClass().add("grid-medium");
-		/*Gauge[] lst = mapper.createGauge();
-		final int MAX_ROW = 4;
-		for(int i=0; i<lst.length; i++){
-			lay.add(lst[i], i/MAX_ROW, i%MAX_ROW);
-		}*/
+		
+		mapper.addGauge("Ar 流量", "sccm", 0., 10000., devPLC.getMarker("R1000"));
+		mapper.addGauge("O2 流量", "sccm", 0., 10000., devPLC.getMarker("R1001"));
+		mapper.addGauge("N2 流量", "sccm", 0., 10000., devPLC.getMarker("R1002"));
+			
+		mapper.addGauge("絕對氣壓", "mTorr", 0., 10000., devPLC.getMarker("R1004"));
+		mapper.addGauge("腔體氣壓", "Torr", 0., 10000., devPLC.getMarker("R1024"));				
+		mapper.addGauge("腔體溫度", "°C", 0., 100., devPLC.getMarker("R1032").divide(10.f));
+		mapper.addGauge("基板溫度", "°C", 0., 100., devPLC.getMarker("R1007").divide(10.f));
+		
+		mapper.addGauge("CP1 氣壓", "Torr", 0., 10000., devPLC.getMarker("R1025"));
+		mapper.addGauge("CP1 溫度", "K", 0., 30., devPLC.getMarker("R1028"));
+		mapper.addGauge("CP2 氣壓", "Torr", 0., 10000., devPLC.getMarker("R1035"));		
+		mapper.addGauge("CP2 溫度", "K", 0., 30., devPLC.getMarker("R1034"));
+		
+		mapper.addGauge("加熱器電流", "A", 0., 1., devPLC.getMarker("R1026"));	
+		mapper.addGauge("MP 電流", "A", 0., 1., devPLC.getMarker("R1027"));	
+		
+		Gauge[] gag = mapper.listGauge();
+		
+		GridPane lay0 = new GridPane();
+		lay0.addRow(0, gag[ 0], gag[11]);
+		lay0.addRow(1, gag[ 1]);
+		lay0.addRow(2, gag[ 2]);
+
+		GridPane lay1 = new GridPane();
+		lay1.addRow(0, gag[ 3], gag[ 4]);
+		lay1.addRow(1, gag[ 5], gag[ 6]);
+		
+		GridPane lay2 = new GridPane();
+		lay2.addRow(0, gag[ 7], gag[ 9]);
+		lay2.addRow(1, gag[ 8], gag[10]);
+		lay2.addRow(2, gag[12]);
+		
+		JFXTabPane lay = new JFXTabPane();
+		Tab[] tab = {
+			new Tab("進氣/其他"),
+			new Tab("腔體"),
+			new Tab("壓縮機")
+		};
+		tab[0].setContent(lay0);
+		tab[1].setContent(lay1);
+		tab[2].setContent(lay2);
+		lay.getTabs().addAll(tab);
 		return lay;
 	}
 	
 	private Node lay_inform(){
-		JFXTabPane pan = new JFXTabPane();
-		pan.setPrefHeight(200.);
+		JFXTabPane lay = new JFXTabPane();
+		lay.setPrefHeight(200.);
 		Tab tab = new Tab();
 		tab.setText("系統紀錄");
 		tab.setContent(new BoxLogger());
-		pan.getTabs().add(tab);
-		return pan;
+		lay.getTabs().add(tab);
+		return lay;
 	}	
 }

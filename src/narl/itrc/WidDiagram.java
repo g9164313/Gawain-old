@@ -1,16 +1,13 @@
 package narl.itrc;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.SimpleBooleanProperty;
 import javafx.event.EventHandler;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
@@ -21,39 +18,24 @@ import javafx.util.Duration;
 
 public class WidDiagram extends StackPane {
 	
-	private static final int TILE_SIZE = 40;
-	private static final int GRID_SIZE = TILE_SIZE/2;
+	protected static final int TILE_SIZE = 40;
+
+	private double width=20*TILE_SIZE, height=20*TILE_SIZE; 
 	
-	private double width=640., height=640.; 
-	
-	private Canvas blue_p = new Canvas();//show blueprint paper
-	private Canvas ground = new Canvas();//draw background
-	private Canvas effect = new Canvas();//draw animation	
+	private Canvas blue_p = new Canvas();//show blueprint
+	private Canvas ground = new Canvas();//draw background	
 	private Canvas cursor = new Canvas();//draw cursor
 	
-	private AnchorPane pegged = new AnchorPane();
-	private HBox       toolbox= new HBox();
+	private AnchorPane pegged = new AnchorPane();//speical layout for hooking!!!
 	
-	private final GraphicsContext gc_effect = effect.getGraphicsContext2D();
+	private final GraphicsContext gc_ground = ground.getGraphicsContext2D();
 	private final GraphicsContext gc_cursor = cursor.getGraphicsContext2D();
 	
-	public final BooleanProperty editMode = new SimpleBooleanProperty();
-	
 	public WidDiagram(){
-		init();		
-	}
-	
-	public WidDiagram(int width,int height){
-		this.width = width;
-		this.height= height;
 		init();
 	}
 	
 	private void init(){
-		
-		gc_effect.setFill(Color.TRANSPARENT);
-		gc_effect.setStroke(Color.YELLOWGREEN);
-		gc_effect.setLineWidth(2);
 		
 		gc_cursor.setFill(Color.TRANSPARENT);
 		gc_cursor.setStroke(Color.YELLOWGREEN);
@@ -65,21 +47,32 @@ public class WidDiagram extends StackPane {
 		blue_p.setHeight(height);
 		ground.setWidth(width);
 		ground.setHeight(height);
-		effect.setWidth(width);
-		effect.setHeight(height);
 		cursor.setWidth(width);
 		cursor.setHeight(height);
+
+		//pegged.getStyleClass().add("decorate2-border");
+		pegged.setPickOnBounds(true);
+		pegged.setPrefSize(width, height);
+		//pegged.getChildren().add(toolbox);
 		
-		pegged.setMaxSize(width, height);
+		loadPumpTile();
 		
 		draw_blue_print();
 		init_tool_box();
 		
-		//pegged.getStyleClass().add("decorate2-border");
 		getStyleClass().add("pad-small");
-		getChildren().addAll(blue_p,ground,effect,cursor,pegged);
+		getChildren().addAll(blue_p,ground,pegged,cursor);
+				
+		editMode(false);
+	}
 		
-		editMode(true);
+	protected Label addLabel(String title,int gx,int gy){
+		Label txt = new Label(title);
+		txt.setStyle("-fx-font-size: 23px;");
+		AnchorPane.setLeftAnchor(txt, (double)(gx*TILE_SIZE + TILE_SIZE));//why???
+		AnchorPane.setTopAnchor (txt, (double)(gy*TILE_SIZE));		
+		pegged.getChildren().add(txt);
+		return txt;
 	}
 	
 	private void draw_blue_print(){
@@ -97,6 +90,8 @@ public class WidDiagram extends StackPane {
 			}
 		}
 	}
+	
+	private HBox toolbox= new HBox();
 	
 	private void init_tool_box(){
 		toolbox.setStyle(
@@ -121,18 +116,18 @@ public class WidDiagram extends StackPane {
 		AnchorPane.setLeftAnchor(toolbox, width/4.);
 		AnchorPane.setBottomAnchor(toolbox, 17.);
 	}
-	
+
 	public void editMode(boolean flag){
 		if(flag==true){
 			watcher.pause();
-			pegged.getChildren().add(toolbox);
-			//setOnMouseMoved(eventEditMove);
-			//setOnMouseClicked(eventEditClick);
+			toolbox.setVisible(true);
+			cursor.setOnMouseMoved(null);
+			cursor.setOnMouseClicked(null);
 		}else{
 			watcher.play();
-			pegged.getChildren().remove(toolbox);
-			//setOnMouseMoved(null);			
-			//setOnMouseClicked(eventUserClick);
+			toolbox.setVisible(false);
+			cursor.setOnMouseMoved(eventUserMove);			
+			cursor.setOnMouseClicked(eventUserClick);
 		}
 		blue_p.setVisible(flag);
 	}
@@ -150,109 +145,228 @@ public class WidDiagram extends StackPane {
 		}
 	};
 	
+	private EventHandler<MouseEvent> eventUserMove = new EventHandler<MouseEvent>(){
+		@Override
+		public void handle(MouseEvent event) {
+			//show cursor???
+			final int cx = (int)(event.getX());
+			final int cy = (int)(event.getY());
+		}
+	};
+	
 	private EventHandler<MouseEvent> eventUserClick = new EventHandler<MouseEvent>(){
 		@Override
 		public void handle(MouseEvent event) {
+			final int cx = (int)(event.getX());
+			final int cy = (int)(event.getY());
+			mapPart.forEach((name,itm)->{
+				if(itm.clickable==false){
+					//some symbol is special, they don't need click event~~
+					return;
+				}
+				if(itm.contains(cx, cy)==true){
+					if(itm.flag!=0){
+						itm.flag = 0;
+					}else{
+						if(itm.face.length<=1){
+							itm.flag = 0;
+						}else{
+							itm.flag = 1;
+						}
+					}
+					itm.redraw();
+					itm.handle(event);
+					return;
+				}
+			});
 		}
 	};
 	//----------------------------------------//
 	
-	public class Item {
-		public String  name = "";
-		public Image[] face = null;		
-		public int[]   geom = {0,0,0,0};//x,y,width,height
+	public abstract class ItmPart implements EventHandler<MouseEvent> {
 		
-		public int     makeupFlag = -1;//negative value means 'disable'
+		public Image[]  face = null;		
+		public double[] loca = {0.,0.};//x,y coordinate...
+		public int      flag = 0;
+		
+		public boolean clickable = true;
+		
+		public ItmPart(){
+			eventInit();
+		}
+
+		public ItmPart(String category){
+			this(category,0,0);
+		}
+		
+		public ItmPart(String category,int gx, int gy){
+			this(category,(double)gx,(double)gy);
+		}
+		
+		public ItmPart(String category,double gx, double gy){
+			face = faces.get(category);			
+			if(
+				face.length==1 ||
+				category.contains("pipe")==true ||
+				category.contains("wall")==true
+			){
+				clickable = false;
+			}
+			loca[0] = gx * TILE_SIZE;
+			loca[1] = gy * TILE_SIZE;
+			eventInit();
+		}
+		
+		protected void eventInit(){			
+		}
 		
 		private void makeup(){
-			/*makeupFlag = makeupFlag % makeupPics.length;
-			gc_effect.clearRect(
-				geom[0], geom[1], 
-				geom[2], geom[3]
+			if(face.length<=2){
+				return;
+			}			
+			if(flag==0){
+				return;
+			}
+			redraw();
+			flag++;
+			if(flag>=face.length){
+				flag = 1;//reset~~~~
+			}
+		}
+		
+		public boolean contains(int x, int y){
+			int width = (int)(face[0].getWidth());
+			int height= (int)(face[0].getHeight());
+			if( 
+				loca[0]<=x && x<=(loca[0]+width ) &&
+				loca[1]<=y && y<=(loca[1]+height)
+			){
+				return true;
+			}
+			return false;
+		}
+		
+		private void redraw(){
+			gc_ground.clearRect(
+				loca[0]+1., 
+				loca[1]+1., 
+				face[0].getWidth()-1.,
+				face[0].getHeight()-1.
 			);
-			gc_effect.drawImage(
-				makeupPics[makeupFlag],
-				geom[0], geom[1]
-			);				
-			makeupFlag++;*/
+			gc_ground.drawImage(
+				face[flag],
+				loca[0], loca[1]
+			);
 		}
 	};
-
-	/**
-	 * This array keep 'all' items
-	 */
-	protected HashMap<String,Item> mapItem = new HashMap<String,Item>();
-	
-	/**
-	 * This array keep items with 'makeup' attribute.<p>
-	 */
-	private ArrayList<Item> lstMakeup = new ArrayList<Item>();
+	protected HashMap<String,ItmPart> mapPart = new HashMap<String,ItmPart>();
+		
+	protected void redraw(){
+		mapPart.forEach((name,itm)->itm.redraw());
+	}
 	
 	private final Timeline watcher = new Timeline(new KeyFrame(
 		Duration.millis(200),
 		event->{
-			for(Item itm:lstMakeup){				
-				if(itm.makeupFlag<0){
-					continue;
-				}
-				itm.makeup();
-			}
+			mapPart.forEach((name,itm)->itm.makeup());
 		}
 	));
 	//----------------------------------------//
 	
-	protected HashMap<String,Image[]> mapFace  = new HashMap<String,Image[]>();
-	protected HashMap<String,Image[]> mapMakeup= new HashMap<String,Image[]>();
+	protected HashMap<String,Image[]> faces  = new HashMap<String,Image[]>();
 
-	protected static final String KEY_BLUEPRINT= "blueprint";
-	protected static final String KEY_VALVE    = "valve";
-	protected static final String KEY_MOTOR1   = "motor1";
-	protected static final String KEY_MOTOR2   = "motor2";
-	protected static final String KEY_WALL     = "wall";
-	protected static final String KEY_VESSEL   = "vessel";
+	protected static final String CATE_WALL_A = "wall_1";
+	protected static final String CATE_WALL_B = "wall_2";
+	protected static final String CATE_WALL_C = "wall_3";
+	protected static final String CATE_WALL_D = "wall_4";
+	protected static final String CATE_WALL_E = "wall_5";
+	protected static final String CATE_WALL_F = "wall_6";
+	protected static final String CATE_WALL_G = "wall_7";
+	protected static final String CATE_WALL_H = "wall_8";
+	
+	protected static final String CATE_CHUCKA = "chuck_a";
+	protected static final String CATE_CHUCKB = "chuck_b";
+	protected static final String CATE_TOWER  = "tower-lamp";
+	protected static final String CATE_BATTLE = "battle";
+	
+	protected static final String CATE_PIPE_A = "pipe2_1";
+	protected static final String CATE_PIPE_B = "pipe2_2";
+	protected static final String CATE_PIPE_C = "pipe2_3";
+	protected static final String CATE_PIPE_D = "pipe2_4";
+	protected static final String CATE_PIPE_E = "pipe2_5";
+	protected static final String CATE_PIPE_F = "pipe2_6";
+	protected static final String CATE_PIPE_G = "pipe3_1";
+	protected static final String CATE_PIPE_H = "pipe3_2";
+	protected static final String CATE_PIPE_I = "pipe3_3";
+	protected static final String CATE_PIPE_J = "pipe3_4";
+	protected static final String CATE_PIPE_K = "pipe4";
+	
+	protected static final String CATE_VALVE   = "valve_manual";
+	protected static final String CATE_VALVE_BL= "valve_ball";
+	
+	protected static final String CATE_GAUGE   = "gauge";
+	
+	protected static final String CATE_M_PUMP  = "mp";
+	protected static final String CATE_C_PUMP  = "cp";
 	
 	private static final String path = "/narl/itrc/res/tile/";
 	
 	protected void loadPumpTile(){
 		
-		mapFace.clear();
-		mapMakeup.clear();
-
-		final String[][] name = {
-			{KEY_BLUEPRINT, "blueprint.png"},
-			{KEY_VALVE    ,  },
-			{KEY_MOTOR1   ,  },
-			{KEY_MOTOR2   ,  },
-			{KEY_WALL     ,  },
-			{KEY_VESSEL   ,  }
+		faces.clear();
+		
+		final String[][] cate = {
+			{CATE_TOWER  , "tower-1", "tower-2", "tower-3", "tower-4"},
+			//--------------//
+			{CATE_CHUCKA , "chuck-a1", "chuck-a2", "chuck-a3", "chuck-a4", "chuck-a5", "chuck-a6" },
+			{CATE_CHUCKB , "chuck-b1", "chuck-b2", "chuck-b3", "chuck-b4", "chuck-b5", "chuck-b6" },
+			//--------------//
+			{CATE_WALL_A , "wall-a"},
+			{CATE_WALL_B , "wall-b"},
+			{CATE_WALL_C , "wall-c"},
+			{CATE_WALL_D , "wall-d"},
+			{CATE_WALL_E , "wall-e"},
+			{CATE_WALL_F , "wall-f"},
+			{CATE_WALL_G , "wall-g"},
+			{CATE_WALL_H , "wall-h"},
+			//--------------//
+			{CATE_BATTLE , "battle"},
+			//--------------//
+			{CATE_PIPE_A, "pipe-a0", "pipe-a1"},
+			{CATE_PIPE_B, "pipe-b0", "pipe-b1"},
+			{CATE_PIPE_C, "pipe-c0", "pipe-c1"},
+			{CATE_PIPE_D, "pipe-d0", "pipe-d1"},
+			{CATE_PIPE_E, "pipe-e0", "pipe-e1"},
+			{CATE_PIPE_F, "pipe-f0", "pipe-f1"},
+			//--------------//
+			{CATE_PIPE_G, "pipe-g0", "pipe-g1"},
+			{CATE_PIPE_H, "pipe-h0", "pipe-h1"},
+			{CATE_PIPE_I, "pipe-i0", "pipe-i1"},
+			{CATE_PIPE_J, "pipe-j0", "pipe-j1"},
+			{CATE_PIPE_K, "pipe-k0", "pipe-k1"},
+			//--------------//
+			{CATE_VALVE   , "valve-0", "valve-1"},
+			{CATE_VALVE_BL, "valve-bl-0", "valve-bl-1"},
+			{CATE_GAUGE   , "gauge" },
+			//--------------//
+			{CATE_M_PUMP , "MP-0", 
+				           "MP-1", "MP-2", "MP-3", "MP-4",
+				           "MP-5", "MP-6", "MP-7", "MP-8", 
+			},
+			{CATE_C_PUMP , "CP-0", 
+		                   "CP-1", "CP-2", "CP-3", "CP-4",
+		                   "CP-5", "CP-6", "CP-7", "CP-8", 
+			},
 		};
 			
-		/*for(int i=0; i<name.length; i++){
-			//Default picture format is "PNG"
-			InputStream stm = WidDiagram.class.getResourceAsStream(path+name+".png");
-			Image image = new Image(stm);
-			mapFace.put(name[i], image);
-		}
-		
-		final String[] ani_motor = {
-			"ani-motor-1.png",
-			"ani-motor-2.png",
-			"ani-motor-3.png",
-			"ani-motor-4.png",
-			"ani-motor-5.png",
-			"ani-motor-6.png",
-			"ani-motor-7.png",
-			"ani-motor-8.png",
-		};
-		Image[] img = load_image(ani_motor);*/
+		for(int i=0; i<cate.length; i++){
+			int cnt = cate[i].length - 1;
+			Image[] imgs = new Image[cnt];
+			for(int j=1; j<=cnt; j++){
+				imgs[j-1] = new Image(WidDiagram.class.getResourceAsStream(path+cate[i][j]+".png"));
+			}
+			faces.put(cate[i][0],imgs);
+		}		
 	}
-
-	private Image[] load_image(String[] name){
-		int cnt = name.length;
-		Image[] img = new Image[cnt];
-		for(int i=0; i<cnt; i++){
-			img[i] = new Image(WidDiagram.class.getResourceAsStream(path+name));
-		}
-		return img;
-	}	
+	//----------------------------------------//
 }

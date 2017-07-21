@@ -292,36 +292,44 @@ public class DevTTY extends DevBase {
 		return check_out(lst);
 	}
 	
-	public byte[] readPackBuck(byte beg,byte end){
-		
-		ArrayList<Byte> lst = new ArrayList<Byte>();
-		
+	/*public byte[] readPackBuck(byte beg,byte end){
+
 		long tk2 = System.currentTimeMillis();
 		long tk1 = tk2;
-		boolean flg = false;
+		int idxBeg=-1;//the index of buffer
+		int idxEnd= 0;//the index of pool
+		
+		byte[] pool = new byte[1024];
 		
 		while((tk2-tk1)<1000L){
+			
 			byte[] buf = implRead(-1);
+			
 			if(buf==null){
-				Misc.delay(50);
+				Misc.delay(30);
 				tk2 = System.currentTimeMillis();
 				continue;
-			}		
-			for(int i=0; i<buf.length; i++){				
-				if(buf[i]==beg){
-					flg = true;					
-				}else if(flg==true){
-					if(buf[i]==end){
-						return check_out(lst);
+			}else{
+				tk2 = tk1 = System.currentTimeMillis();
+			}
+						
+			for(int i=0; i<buf.length; i++){
+				if(idxBeg<0){					
+					if(buf[i]==beg){
+						idxBeg = i;
+						continue;
 					}
-					lst.add(buf[i]);
+				}else{
+					if(buf[i]==end){						
+						return Arrays.copyOfRange(pool, 0, idxEnd);
+					}
+					pool[idxEnd] = buf[i];
+					idxEnd+=1;
 				}
 			}
-			tk2 = tk1;//reset ticker~~~
 		}		
-		return check_out(lst);
-	}
-	
+		return null;
+	}*/
 	
 	private byte[] check_out(ArrayList<Byte> lst){
 		int cnt = lst.size();

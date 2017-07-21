@@ -113,11 +113,31 @@ public class Misc {
 		box.getSelectionModel().select(cnt);
 	}
 	
+	private static long delayTick1, delayTick2;
+	
 	public static void delay(long millisec){
-		long t1 = System.currentTimeMillis();
-		long t2 = System.currentTimeMillis();
-		while((t2-t1)<millisec){
-			t2 = System.currentTimeMillis();
+		
+		delayTick1 = System.currentTimeMillis();		
+		delayTick2 = System.currentTimeMillis();
+		
+		if(Application.isEventThread()==false){			
+			final Runnable chkTick = new Runnable(){
+				@Override
+				public void run() {
+					delayTick2 = System.currentTimeMillis();
+				}				
+			};
+			for(;;){
+				if((delayTick2-delayTick1)>=millisec){
+					return;
+				}
+				Application.invokeAndWait(chkTick);
+			}
+			
+		}else{
+			while((delayTick2-delayTick1)<millisec){
+				delayTick2 = System.currentTimeMillis();
+			}
 		}
 	}
 	//----------------------------------------//

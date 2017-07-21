@@ -1,11 +1,8 @@
 package prj.scada;
 
-import java.text.Format;
-import java.text.NumberFormat;
+import java.util.ArrayList;
 
-import com.jfoenix.controls.JFXComboBox;
 import com.jfoenix.controls.JFXTabPane;
-import com.jfoenix.controls.JFXTextField;
 import com.sun.glass.ui.Application;
 
 import javafx.beans.property.BooleanProperty;
@@ -14,30 +11,26 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+import javafx.concurrent.Task;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
+
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
 import javafx.scene.control.Tab;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
-import javafx.scene.control.cell.CheckBoxTableCell;
-import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.scene.control.cell.TextFieldTableCell;
+
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
-import javafx.util.StringConverter;
-import javafx.util.converter.BooleanStringConverter;
-import javafx.util.converter.FormatStringConverter;
-import javafx.util.converter.NumberStringConverter;
-import narl.itrc.BoxLogger;
+
 import narl.itrc.DevTTY;
 import narl.itrc.Gawain;
-import narl.itrc.JBoxValInteger;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
+
 
 /**
  * Fatek PLC Controller
@@ -80,10 +73,11 @@ public class DevFatek extends DevTTY {
 		return true;
 	}
 	
-	/**
-	 * just close TTY device
-	 */
-	public void disconnect(){
+	@Override	
+	protected void eventTurnOff(){
+		if(tskMonitor!=null){
+			tskMonitor.cancel();
+		}
 		close();
 	}
 	//--------------------------------//
@@ -100,11 +94,11 @@ public class DevFatek extends DevTTY {
 	
 	private final byte[] cmd_buf = new byte[LEN];
 	
-	public byte[] getSysInfo(int idx){
+	public byte[] getSysInf(int idx){
 		wrapper(idx,0x40,cmd_buf);
 		writeBuf(cmd_buf);
 		//Finally, retrieve feedback
-		byte[] info = readPackBuck(STX,ETX);
+		byte[] info = readPack(STX,ETX);
 		event_last_error(info[HDR-1]);
 		event_inf( hex2val(info[HDR+0],info[HDR+1]) );		
 		return info;
@@ -114,7 +108,7 @@ public class DevFatek extends DevTTY {
 		wrapper(idx,0x53,cmd_buf);
 		writeBuf(cmd_buf);
 		//Finally, retrieve feedback
-		byte[] info = readPackBuck(STX,ETX);
+		byte[] info = readPack(STX,ETX);
 		event_last_error(info[HDR-1]);
 		event_inf( hex2val(info[HDR+0], info[HDR+1]) );
 		event_typ( hex2val(info[HDR+2], info[HDR+3]) );
@@ -142,7 +136,7 @@ public class DevFatek extends DevTTY {
 		pave_txt(txt,buf,HDR);
 		wrapper(idx,0x4E,buf);
 		writeBuf(buf);
-		return byte2txt(readPackBuck(STX,ETX));
+		return byte2txt(readPack(STX,ETX));
 	}
 	
 	public void makeSwitch(int idx,boolean flag){
@@ -151,7 +145,7 @@ public class DevFatek extends DevTTY {
 		wrapper(idx,0x41,buf);
 		writeBuf(buf);
 		//Finally, retrieve feedback
-		buf = readPackBuck(STX,ETX);
+		buf = readPack(STX,ETX);
 		event_last_error(buf[HDR-1]);
 	}
 	
@@ -162,7 +156,7 @@ public class DevFatek extends DevTTY {
 		wrapper(idx,0x42,buf);
 		writeBuf(buf);
 		//Finally, retrieve feedback
-		buf = readPackBuck(STX,ETX);
+		buf = readPack(STX,ETX);
 		event_last_error(buf[HDR-1]);
 	}
 	
@@ -178,7 +172,7 @@ public class DevFatek extends DevTTY {
 		wrapper(idx,0x45,buf);
 		writeBuf(buf);
 		//Finally, retrieve feedback
-		buf = readPackBuck(STX,ETX);
+		buf = readPack(STX,ETX);
 		event_last_error(buf[HDR-1]);
 	}
 	
@@ -204,11 +198,11 @@ public class DevFatek extends DevTTY {
 		wrapper(idx,cmd,buf);
 		writeBuf(buf);
 		//Finally, retrieve feedback
-		buf = readPackBuck(STX,ETX);
+		buf = readPack(STX,ETX);
 		event_last_error(buf[HDR-1]);
 		int[] resp = new int[cnt];
 		for(int i=0; i<cnt; i++){
-			resp[i] = val2hex_L(buf[HDR+1+i]);
+			resp[i] = hex2val(buf[HDR-1+i]);
 		}
 		return resp;
 	}
@@ -246,7 +240,7 @@ public class DevFatek extends DevTTY {
 		wrapper(idx,0x47,buf);
 		writeBuf(buf);
 		//Finally, retrieve feedback
-		buf = readPackBuck(STX,ETX);
+		buf = readPack(STX,ETX);
 		event_last_error(buf[HDR-1]);
 		return (char)(buf[HDR-1]);
 	}
@@ -260,7 +254,7 @@ public class DevFatek extends DevTTY {
 		wrapper(idx,0x46,buf);
 		writeBuf(buf);
 		//Finally, retrieve feedback
-		buf = readPackBuck(STX,ETX);
+		buf = readPack(STX,ETX);
 		event_last_error(buf[HDR-1]);
 		int[] resp = new int[cnt];
 		for(int i=0, j=HDR; i<cnt; i++, j+=d_size){
@@ -331,7 +325,7 @@ public class DevFatek extends DevTTY {
 		wrapper(idx,0x49,buf);
 		writeBuf(buf);
 		//Finally, retrieve feedback
-		buf = readPackBuck(STX,ETX);
+		buf = readPack(STX,ETX);
 		event_last_error(buf[HDR-1]);
 		return (char)(buf[HDR-1]);
 	}
@@ -349,9 +343,8 @@ public class DevFatek extends DevTTY {
 			off = pave_txt(name[i],buf,off);
 		}		
 		wrapper(idx,0x48,buf);
-		writeBuf(buf);
 		//Finally, retrieve feedback
-		buf = readPackBuck(STX,ETX);
+		buf = readPack(STX,ETX);
 		if(buf==null){
 			return null;
 		}
@@ -601,15 +594,161 @@ public class DevFatek extends DevTTY {
 			Application.invokeAndWait(event);
 		}
 	}
+
+	private class TskMonitor extends Task<Void>{
+		private int[] val;
+		private IntegerProperty[] prop;
+		private final long PERIOD = 200L;//millisecond;
+		@Override
+		protected Void call() throws Exception {
+			makeSwitch(0x01,true);//RUN!!!
+			getSysAll(0x01);
+			long tk1 = System.currentTimeMillis();
+			long tk2 = tk1 + PERIOD + 1;			
+			for(;;){
+				if((tk2-tk1)>=PERIOD){
+					for(Marker itm:lstMark){
+						if(itm.tkn[0]=='X' || itm.tkn[0]=='Y'){
+							val = getNodeStatus(0x01,itm.name,itm.size);
+							prop= itm.prop;
+							Misc.invoke(val2int);
+						}else{
+							val = getRegister(0x01,itm.name,itm.size);
+							prop= itm.prop;
+							Misc.invoke(val2sword);
+						}						
+					}					
+					tk1 = System.currentTimeMillis();
+				}				
+				tk2 = System.currentTimeMillis();
+				updateProgress(tk2-tk1, PERIOD);//trick, let event-thread have permission~~~
+			}
+		}
+		private EventHandler<ActionEvent> val2int = new EventHandler<ActionEvent>(){
+			@Override
+			public void handle(ActionEvent event) {
+				for(int i=0; i<prop.length; i++){
+					if(i>=val.length){
+						return;
+					}
+					prop[i].set(val[i]);
+				}				
+			}
+		};
+		private EventHandler<ActionEvent> val2sword = new EventHandler<ActionEvent>(){
+			@Override
+			public void handle(ActionEvent event) {
+				for(int i=0; i<prop.length; i++){
+					if(i>=val.length){
+						return;
+					}
+					int v = val[i];
+					if((v&0x8000)!=0){
+						v = v - (1<<16);
+					}
+					prop[i].set(v);
+				}
+			}
+		};
+	};
+	private Task<Void> tskMonitor;
 	
-	private Node layout_sys_state(){
-		
-		HBox lay1 = new HBox();
-		lay1.getStyleClass().add("hbox-medium");
-		
-		GridPane lay2 = new GridPane();//show all sensor
-		lay2.getStyleClass().add("grid-medium");
-		
+	private static class Marker {
+		private String name;
+		private int size = 0;
+		private IntegerProperty[] prop;
+		private char[] tkn = null;
+		private int seg = 0;
+		public Marker(String info){
+			String[] arg = info.split("-");
+			name = arg[0];
+			size = Integer.valueOf(arg[1]);
+			prop = new IntegerProperty[size];
+			for(int i=0; i<size; i++){
+				prop[i] = new SimpleIntegerProperty();
+			}
+			tkn = getToken(name);
+			seg = getSegment(name);
+		}
+		private IntegerProperty contain(char[] token, int address){
+			if(tkn==null){
+				return null;
+			}
+			if(tkn.length!=token.length){
+				return null;
+			}
+			for(int i=0; i<tkn.length; i++){
+				if(tkn[i]!=token[i]){
+					return null;
+				}
+			}
+			if(address<seg || (seg+size)<=address){
+				return null;
+			}
+			return prop[(address-seg)];
+		}
+		private static char[] getToken(String name){
+			char[] src = name.toCharArray();
+			int cnt= 0;
+			for(int i=0; i<src.length; i++){
+				if(src[i]<'0' || '9'<src[i]){
+					cnt++;
+				}else{
+					break;
+				}
+			}
+			char[] dst = new char[cnt];
+			for(int i=0; i<cnt; i++){
+				dst[i] = src[i];
+			}
+			return dst;
+		}
+		private static int getSegment(String name){
+			char[] src = name.toCharArray();
+			String txt = "";
+			for(int i=0; i<src.length; i++){
+				if('0'<=src[i] && src[i]<='9'){
+					txt = txt + src[i];
+				}
+			}
+			return Misc.txt2int(txt);
+		}		
+	};	
+	private ArrayList<Marker> lstMark = new ArrayList<Marker>();
+	
+	public IntegerProperty getMarker(String name){
+		char[] tkn = Marker.getToken(name);
+		int addr = Marker.getSegment(name);
+		for(Marker itm:lstMark){
+			IntegerProperty prop = itm.contain(tkn, addr);
+			if(prop!=null){
+				return prop;
+			}
+		}
+		return null;
+	}
+	
+	/**
+	 * token present node list, like "R01000-47". <p>
+	 * It will monitor register from R01000 to R01047.<p>
+	 * @param token - 
+	 */
+	public void startMonitor(String... token){
+		if(tskMonitor!=null){
+			if(tskMonitor.isRunning()==true){
+				return;
+			}
+		}
+		for(String tkn:token){
+			lstMark.add(new Marker(tkn));
+		}
+		tskMonitor = new TskMonitor();
+		//new Thread(tskMonitor,"Fatek-PLC-monitor").start();
+	}
+	//------------------------------------------//
+	
+	private Node layout_show_info(){
+				
 		Label[] txtInfo = new Label[23];
 		for(int i=0; i<txtInfo.length; i++){
 			txtInfo[i] = new Label();
@@ -641,6 +780,12 @@ public class DevFatek extends DevTTY {
 		txtInfo[20].textProperty().bind(staVar[10].asString("%X"));//Timer
 		txtInfo[21].textProperty().bind(staVar[11].asString("%X"));//Counter
 		
+		HBox lay1 = new HBox();
+		lay1.getStyleClass().add("hbox-medium");
+		
+		GridPane lay2 = new GridPane();//show all sensor
+		lay2.getStyleClass().add("grid-medium");
+
 		lay2.add(new Label("主機類型"  ), 0, 0); lay2.add(txtInfo[ 7], 1, 0); 
 		lay2.add(new Label("Ｉ／Ｏ個數"), 0, 1); lay2.add(txtInfo[ 8], 1, 1); 
 		lay2.add(new Label("ＯＳ版本"  ), 0, 2); lay2.add(txtInfo[ 9], 1, 2);
@@ -677,12 +822,12 @@ public class DevFatek extends DevTTY {
 		Button btnSwitchOn = PanBase.genButton2("啟動",null);
 		btnSwitchOn.setOnAction(e->{
 			makeSwitch(0x01,true);
-			getSysInfo(0x01);
+			getSysInf(0x01);
 		});
 		Button btnSwitchOff = PanBase.genButton2("關閉",null);
 		btnSwitchOff.setOnAction(e->{
 			makeSwitch(0x01,false);
-			getSysInfo(0x01);
+			getSysInf(0x01);
 		});
 		lay3.getChildren().addAll(btnSysAll,btnSwitchOn,btnSwitchOff);
 		
@@ -690,203 +835,45 @@ public class DevFatek extends DevTTY {
 		return lay1;
 	}
 	
-	/**
-	 * this present the value of node and register
-	 * @author qq
-	 *
-	 */
-	public static class CompValue {
-		private final StringProperty  name  = new SimpleStringProperty();
-		private final StringProperty  status= new SimpleStringProperty("");
-		private final BooleanProperty enable= new SimpleBooleanProperty(false);
-				
-		public CompValue(String txt){
-			name.set(txt);
-		}
-		
-		public StringProperty nameProperty() { return name; }
-		public String getName() { return name.get(); }
-		public void setName(String txt) { name.set(txt); }
-		
-		public StringProperty statusProperty() { return status; }
-		public String getStatus() { return status.get(); }
-		public void setStatus(String txt) { status.set(txt); }
-		
-		public BooleanProperty enableProperty() { return enable; }
-		public boolean getEnable() { return enable.get(); }
-		public void setEnable(boolean txt) { enable.set(txt); }
-	} ;
-	
-	@SuppressWarnings("unchecked")
 	private Node layout_watch_node(){
-		
+		/*final TabPairBody tabNodeX = new TabPairBody("節點輸入","數值",true);
+		if(nodX!=null){
+			for(int i=0; i<nodX.length; i++){
+				tabNodeX.addProperty(
+					String.format("X%04d", i), 
+					nodX[i], "%1d"
+				);
+			}
+		}
+		final TabPairBody tabNodeY = new TabPairBody("節點輸出","數值",true);
+		if(nodY!=null){
+			for(int i=0; i<nodY.length; i++){
+				tabNodeY.addProperty(
+					String.format("Y%04d", i), 
+					nodY[i], "%1d"
+				);
+			}
+		}
+		final TabPairBody tabRegIn = new TabPairBody("類比輸入","數值",true);
+		if(regRI!=null){
+			for(int i=0; i<regRI.length; i++){
+				tabRegIn.addProperty(
+					String.format("R%05d", 3840+i), 
+					regRI[i], "%06d"
+				);
+			}			
+		}*/
 		HBox lay1 = new HBox();
 		lay1.getStyleClass().add("hbox-medium-space");
-		
-		final TableView<CompValue> tabNode = new TableView<CompValue>();
-		tabNode.setEditable(true);
-
-		TableColumn<CompValue,String> col1 = new TableColumn<CompValue,String>("位址");
-		col1.setCellValueFactory(new PropertyValueFactory<CompValue,String>("name"));
-		col1.setCellFactory(TextFieldTableCell.forTableColumn());
-		
-		TableColumn<CompValue,String> col2 = new TableColumn<CompValue,String>("內容");
-		col2.setCellValueFactory(new PropertyValueFactory<CompValue,String>("status"));
-		col2.setCellFactory(TextFieldTableCell.forTableColumn());
-		
-		TableColumn<CompValue,Boolean> col3 = new TableColumn<CompValue,Boolean>("致能");
-		col3.setCellValueFactory(new PropertyValueFactory<CompValue,Boolean>("enable"));
-		col3.setCellFactory(CheckBoxTableCell.forTableColumn(col3));
-		
-		tabNode.setPrefWidth(300);
-		tabNode.getColumns().addAll(col1,col2,col3);
-		
-		final JFXComboBox<String> cmbToken = new JFXComboBox<String>();
-		cmbToken.getItems().addAll(
-			"X"  ,"Y"  ,"M"  ,"S"  ,"T"  ,"C"  ,
-			"WX" ,"WY" ,"WM" ,"WS" ,"WT" ,"WC" ,
-			"DWX","DWY","DWM","DWS","DWT","DWC",
-			"RT" ,"RC" ,"R"  ,"D"  ,"F"
-		);
-		cmbToken.getSelectionModel().select(0);
-		
-		final JFXTextField boxAddr = new JFXTextField();
-		boxAddr.setPrefWidth(70);
-		boxAddr.setText("0");
-		
-		final Button btnAdd = PanBase.genButton2("新增節點",null);
-		btnAdd.setOnAction(e->{
-			String token = cmbToken.getSelectionModel().getSelectedItem();
-			int addr = (int)(Integer.valueOf(boxAddr.getText()));
-			String name = null;
-			if(
-				token.equalsIgnoreCase("R")==true || 
-				token.equalsIgnoreCase("D")==true || 
-				token.equalsIgnoreCase("F")==true 
-			){
-				name = String.format("%s%05d",token,addr);
-			}else{
-				name = String.format("%s%04d",token,addr);
-			}			
-			CompValue cv = new CompValue(name);
-			tabNode.getItems().add(cv);
-			//for next register or node~~~~
-			addr++;
-			boxAddr.setText(""+addr);
-		});		
-		final Button btnDel = PanBase.genButton2("刪除節點",null);
-		btnDel.setOnAction(e->{
-			tabNode.getSelectionModel().getSelectedItems().forEach(obj->{
-				tabNode.getItems().remove(obj);
-			});
-		});
-		
-		final Button btnLoad = PanBase.genButton2("讀取節點",null);
-		btnLoad.setOnAction(e->{
-			int cnt = tabNode.getItems().size();
-			String[] arg = new String[cnt];
-			for(int i=0; i<cnt; i++){
-				arg[i] = tabNode.getItems().get(i).getName();
-			}
-			int[] val = get(1,arg);
-			if(val==null){
-				Misc.loge("內部錯誤：無法讀取通訊埠");
-				return;
-			}
-			for(int i=0; i<cnt; i++){
-				CompValue com = tabNode.getItems().get(i);
-				String name = com.getName();
-				if(name.charAt(0)=='D'){
-					com.setStatus(String.format("%08X", val[i]));
-				}else if(
-					name.charAt(0)=='W' ||
-					name.charAt(0)=='R' ||
-					name.charAt(0)=='D' ||
-					name.charAt(0)=='F'
-				){
-					com.setStatus(String.format("%04X", val[i]));
-				}else{
-					com.setStatus(String.format("%02X", val[i]));
-				}				
-			}
-		});
-		final Button btnSave = PanBase.genButton2("更新節點",null);
-		btnSave.setOnAction(e->{
-		});
-
-		final Button btnLoadEN = PanBase.genButton2("讀取致能",null);
-		final Button btnSaveEN = PanBase.genButton2("更新致能",null);
-		
-		GridPane lay3 = new GridPane();
-		lay3.getStyleClass().add("grid-medium");
-		lay3.addRow(0, new Label("名稱"), cmbToken);
-		lay3.addRow(1, new Label("位置"), boxAddr);
-		lay3.add(btnAdd , 0, 2, 3, 1);
-		lay3.add(btnDel , 0, 3, 3, 1);
-		lay3.add(btnLoad, 0, 4, 3, 1);
-		lay3.add(btnSave, 0, 5, 3, 1);
-		lay3.add(btnLoadEN, 0, 6, 3, 1);
-		lay3.add(btnSaveEN, 0, 7, 3, 1);
-		
-		lay1.getChildren().addAll(tabNode,lay3);
-		return lay1;
-	}
-
-	private IntegerProperty[] iREG = null;//Device will map register to input analogy signal from address 'R3840'
-	
-	private Node layout_watch_rio(){
-		
-		final JBoxValInteger boxSize = new JBoxValInteger(10);
-		final Button btnReset = new Button("重設");
-
-		iREG = new IntegerProperty[boxSize.get()];
-		for(int i=0; i<iREG.length; i++){
-			iREG[i] = new SimpleIntegerProperty();
-		}
-		
-		final VBox lay1 = new VBox();
-		lay1.getStyleClass().add("vbox-small-space");
-		
-		final HBox lay2 = new HBox();
-		lay2.getStyleClass().add("hbox-medium-space");		
-		lay2.getChildren().addAll(
-			new Label("數目："),boxSize,
-			new Label("格式："),btnReset
-		);
-		
-		final GridPane lay3 = new GridPane();
-		lay3.getStyleClass().add("grid-medium");
-		
-		btnReset.setOnAction(e->{
-			lay3.getChildren().clear();
-			for(int i=0, addr=3840; i<boxSize.get(); i++, addr++){
-				Label txt = new Label("R"+addr);				
-				lay3.add(txt, 0, i);
-				txt = new Label();				
-				txt.textProperty().bind(iREG[i].asString("%06d"));
-				lay3.add(txt, 1, i);
-			}
-		});
-		btnReset.getOnAction().handle(null);
-		
-		lay1.getChildren().addAll(lay2,lay3);		
+		//lay1.getChildren().addAll(tabNodeX, tabNodeY, tabRegIn);
 		return lay1;
 	}
 	
-	public static class RegValue {
-		private final StringProperty  name = new SimpleStringProperty();
-		private final IntegerProperty value= new SimpleIntegerProperty();
-		
-		public RegValue(String txt){
-			name.set(txt);
-		}
-		
-		public String getName() { return name.get(); }
-		public void setName(String txt) { name.set(txt); }
-		
-		public int getValue() { return value.get(); }
-		public void setValue(int txt) { value.set(txt); }
-	};
+	private Node layout_control_node(){
+		GridPane lay1 = new GridPane();//show all sensor
+		lay1.getStyleClass().add("grid-medium");
+		return lay1;
+	}
 	
 	@Override
 	protected Node eventLayout(PanBase pan) {
@@ -897,15 +884,15 @@ public class DevFatek extends DevTTY {
 		
 		Tab tab1 = new Tab();
 		tab1.setText("系統資訊");
-		tab1.setContent(layout_sys_state());
+		tab1.setContent(layout_show_info());
 		
 		Tab tab2 = new Tab();
-		tab2.setText("節點監控");
+		tab2.setText("監視節點");
 		tab2.setContent(layout_watch_node());
 		
 		Tab tab3 = new Tab();
-		tab3.setText("類比監控");
-		tab3.setContent(layout_watch_rio());
+		tab3.setText("監控節點");
+		tab3.setContent(layout_control_node());
 		
 		lay2.getTabs().addAll(tab1,tab2,tab3);
 		
