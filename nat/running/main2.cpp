@@ -6,10 +6,12 @@
 #include <global.hpp>
 #include <algorithm>
 #include <opencv2/face.hpp>
+#include <iostream>
 #include "../util_ipc.hpp"
 
 using namespace cv;
 using namespace face;
+using namespace std;
 
 extern int test_sfr(
 	Mat& img,
@@ -149,9 +151,45 @@ void check_all_mtf(const char* name, const char* out_dir){
 
 int main(int argc, char* argv[]){
 
+	const char* name = "./fisheye-test3/20170615_13_54_15_CurrentImage.bmp";
+
+	Mat img = imread(name);
+	Mat gray = imread(name,IMREAD_GRAYSCALE);
+
+	Point aa = findRedCross(img);
+
+	Rect cent (aa.x- 28, aa.y+ 11, 48, 60);
+	Rect lf_tp(aa.x-249, aa.y-157, 48, 60);
+
+	int idx,val;
+	char txt[100];
+	double scale = (1./6.)*1000.;
+	vector<double> frq, sfr;
+
+	Mat roi1 = gray(cent);
+	idx = test_sfr(roi1, scale, frq, sfr);
+	imwrite("dd1.png",roi1);
+	for(int i=0; i<frq.size(); i++){
+		printf("%.3f\t  %.3f\t  \n", frq[i], sfr[i]);
+	}
+
+	printf("\n--------\n");
+
+	Mat roi2 = gray(lf_tp);
+	idx = test_sfr(roi2, scale, frq, sfr);
+	imwrite("dd2.png",roi1);
+	for(int i=0; i<frq.size(); i++){
+		printf("%.3f\t  %.3f\t  \n", frq[i], sfr[i]);
+	}
+	return 0;
+}
+
+
+int main_tmp(int argc, char* argv[]){
+
 #define DIR_NAME "fisheye-test3"
 
-	//const char* name = "./fisheye-test3/20170615_13_54_15_CurrentImage.bmp";
+	const char* name = "./fisheye-test3/20170615_13_54_15_CurrentImage.bmp";
 	//check_all_mtf(name,"./"DIR_NAME"/result");
 	//return 1;
 

@@ -458,7 +458,7 @@ public class Misc {
 				url = url.substring(0,pos);
 			}
 		}else if(url.startsWith(pre3)==true){
-			url = url.substring(pre3.length());
+			url = url.substring(pre3.length()+1);//EX: "file:/xxx/xxx/xxx.jar"
 			final String post1 = "bin"+File.separatorChar;
 			final String post2 = ".jar";
 			int len;
@@ -480,8 +480,8 @@ public class Misc {
 	
 	private static String check_path(boolean isSock){		
 		String path = null;
-		String os_name = System.getProperty("os.name");
-		if(os_name.equalsIgnoreCase("win")==true){
+		String os_name = System.getProperty("os.name").toLowerCase();
+		if(os_name.contains("win")==true){
 			//TODO:how to get user directory???
 			if(isSock==true){
 				path = pathRoot+".gawain"+File.separatorChar;
@@ -491,7 +491,7 @@ public class Misc {
 		}else{
 			path = System.getenv("HOME");
 			if(path==null){
-				Misc.loge("fail to get $HOME");	
+				Misc.loge("fail to get $HOME");
 				if(isSock==true){
 					path = pathRoot+File.separatorChar+".gawain"+File.separatorChar;
 				}else{

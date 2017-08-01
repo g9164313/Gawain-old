@@ -31,8 +31,6 @@ public class PanSputter extends PanBase {
 	public PanSputter(){
 		//firstAction = FIRST_MAXIMIZED;
 		customStyle = "-fx-background-color: white;";
-		//load the default mapping....
-		//mapper.loadCell(Misc.pathSock+"PID.xml");
 	}
 	
 	private DevSQM160 devSQM160 = new DevSQM160();
@@ -41,7 +39,7 @@ public class PanSputter extends PanBase {
 	
 	private DevFatek devPLC = new DevFatek();
 
-	private WidMapPumper mapper = new WidMapPumper(devPLC);
+	private WidMapPumper mapper = new WidMapPumper();
 	
 	private String nameScript = Misc.pathSock+"test.js";
 
@@ -59,11 +57,9 @@ public class PanSputter extends PanBase {
 	
 	@Override
 	protected void eventShown(WindowEvent e){
-		//devPLC.get(1, "R00001", "Y0009", "DWM0000");
-		//devSQM160.open("/dev/ttyS0,19200,8n1");
-		//devSQM160.exec("@");
-		devPLC.startMonitor("R01000-40");
+		devPLC.startMonitor("R01000-40", "X0000-24", "Y0000-40");
 		root.setLeft(lay_gauge());
+		mapper.hookPart(devPLC);
 		//watcher.setCycleCount(Timeline.INDEFINITE);
 		//watcher.play();
 	}
@@ -134,15 +130,47 @@ public class PanSputter extends PanBase {
 		btnEdit.setOnAction(event->{
 		});
 
+		final Button btnTest1 = PanBase.genButton2("測試-1",null);
+		btnTest1.setOnAction(event->{
+			//tower lamp - red light
+			if(devPLC.getMarker("Y0029").get()==0){
+				devPLC.setNode(1, "M0029", 3);
+			}else{
+				devPLC.setNode(1, "M0029", 4);
+			}	
+		});
+		
+		final Button btnTest2 = PanBase.genButton2("測試-2",null);
+		btnTest2.setOnAction(event->{
+			//tower lamp - yellow light
+			if(devPLC.getMarker("Y0030").get()==0){
+				devPLC.setNode(1, "M0030", 3);
+			}else{
+				devPLC.setNode(1, "M0030", 4);
+			}
+		});
+		
+		final Button btnTest3 = PanBase.genButton2("測試-3",null);
+		btnTest3.setOnAction(event->{
+			if(devPLC.getMarker("Y0031").get()==0){
+				devPLC.setNode(1, "M0031", 3);
+			}else{
+				devPLC.setNode(1, "M0031", 4);
+			}
+		});
+		
 		final Button btnPLC = PanBase.genButton2("PLC 設定",null);
 		btnPLC.setOnAction(event->{
 			devPLC.showConsole("Fatek PLC");
 		});
 		
 		lay.addRow(0, txt[0], txt[1]);
-		lay.add(btnExec, 0, 1, 3, 1);
-		lay.add(btnEdit, 0, 2, 3, 1);
-		lay.add(btnPLC , 0, 3, 3, 1);
+		lay.add(btnExec , 0, 1, 3, 1);
+		lay.add(btnEdit , 0, 2, 3, 1);
+		lay.add(btnPLC  , 0, 3, 3, 1);
+		lay.add(btnTest1, 0, 4, 3, 1);
+		lay.add(btnTest2, 0, 5, 3, 1);
+		lay.add(btnTest3, 0, 6, 3, 1);
 		return lay;
 	}
 	

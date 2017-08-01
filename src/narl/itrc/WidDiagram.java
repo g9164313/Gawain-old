@@ -192,7 +192,7 @@ public class WidDiagram extends StackPane {
 		public boolean clickable = true;
 		
 		public ItmPart(){
-			eventInit();
+			eventInit(null);
 		}
 
 		public ItmPart(String category){
@@ -214,10 +214,10 @@ public class WidDiagram extends StackPane {
 			}
 			loca[0] = gx * TILE_SIZE;
 			loca[1] = gy * TILE_SIZE;
-			eventInit();
+			eventInit(null);
 		}
 		
-		protected void eventInit(){			
+		public void eventInit(DevBase device){			
 		}
 		
 		private void makeup(){
@@ -246,17 +246,25 @@ public class WidDiagram extends StackPane {
 			return false;
 		}
 		
-		private void redraw(){
+		public void clear(){
 			gc_ground.clearRect(
 				loca[0]+1., 
 				loca[1]+1., 
 				face[0].getWidth()-1.,
 				face[0].getHeight()-1.
 			);
+		}
+		
+		public void draw(int idx){
 			gc_ground.drawImage(
-				face[flag],
+				face[idx],
 				loca[0], loca[1]
 			);
+		}
+		
+		public void redraw(){
+			clear();
+			draw(flag);
 		}
 	};
 	protected HashMap<String,ItmPart> mapPart = new HashMap<String,ItmPart>();

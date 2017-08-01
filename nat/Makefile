@@ -77,11 +77,11 @@ CC_FLAG += -DVISION $(shell pkg-config --cflags opencv)
 #CC_FLAG += -march=native ???
 #CC_FLAG += $(shell pkg-config --cflags libmodbus) 
 #CC_FLAG += $(shell pkg-config --cflags qt5) 
-CC_FLAG += $(INC_EBUS)
+#CC_FLAG += $(INC_EBUS)
 CC_FLAG += $(INC_FLYCAPTURE)
 CC_FLAG += $(INC_XIMEA)
-CC_FLAG += $(INC_PYLON)
-CC_FLAG += $(INC_MULTICAM)
+#CC_FLAG += $(INC_PYLON)
+#CC_FLAG += $(INC_MULTICAM)
 
 LD_LIBS = $(shell pkg-config --libs opencv)  -lmodbus
 #LD_LIBS += $(shell pkg-config --libs libmodbus) 
@@ -95,7 +95,7 @@ LD_LIBS += $(LIB_XIMEA)
 ########################
 
 #CORE_FILE = util_jni.cpp DevTTY.cpp
-CORE_FILE = util_jni.cpp DevTTY.cpp DevModbus.cpp
+CORE_FILE = util_jni.cpp DevTTY.cpp 
 
 VISION_FILE =  ./vision/CamBundle.cpp util_cv.cpp registration.cpp
 
@@ -127,14 +127,14 @@ else
 endif
 	
 
-$(TARGET_EXE):  ./running/main2.cpp ./running/misc.cpp $(CORE_FILE) $(LIB_SFRISO)
-#$(TARGET_EXE):  ./running/main3.cpp
+#$(TARGET_EXE):  ./running/main2.cpp ./running/misc.cpp $(CORE_FILE) $(LIB_SFRISO)
+$(TARGET_EXE):  ./running/main-glance.cpp
 #$(TARGET_EXE):  $(wildcard ./traincascade/*.cpp)
 #$(TARGET_EXE):  ./running/FlyCap2.cpp
 	$(CC) -o $@ $^ $(CC_FLAG) $(LD_LIBS)
 
-all: $(TARGET_SO)
-#all: $(TARGET_EXE)
+#all: $(TARGET_SO)
+all: $(TARGET_EXE)
 #all: $(TARGET_EXE) $(TARGET_SO) 
 
 clean:

@@ -202,7 +202,7 @@ public class DevFatek extends DevTTY {
 		event_last_error(buf[HDR-1]);
 		int[] resp = new int[cnt];
 		for(int i=0; i<cnt; i++){
-			resp[i] = hex2val(buf[HDR-1+i]);
+			resp[i] = hex2val(buf[HDR+i]);
 		}
 		return resp;
 	}
@@ -724,7 +724,7 @@ public class DevFatek extends DevTTY {
 			if(prop!=null){
 				return prop;
 			}
-		}
+		}		
 		return null;
 	}
 	
@@ -743,7 +743,7 @@ public class DevFatek extends DevTTY {
 			lstMark.add(new Marker(tkn));
 		}
 		tskMonitor = new TskMonitor();
-		//new Thread(tskMonitor,"Fatek-PLC-monitor").start();
+		new Thread(tskMonitor,"Fatek-PLC-monitor").start();
 	}
 	//------------------------------------------//
 	

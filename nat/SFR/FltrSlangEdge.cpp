@@ -212,7 +212,7 @@ extern int test_sfr(
 	int idxMTF50 = 0;
 	for(int i = 0; i<bin_len/2; i++) {
 		double v_frq, v_sfr;
-		double freq, fd_scale;
+		double freq, fd_scale=1.;
 
 		freq = M_PI * Freq[i];
 

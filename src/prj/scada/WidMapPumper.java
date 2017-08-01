@@ -4,26 +4,61 @@ import java.util.ArrayList;
 
 import eu.hansolo.medusa.Gauge;
 import eu.hansolo.medusa.GaugeBuilder;
+import javafx.beans.property.IntegerProperty;
+import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.scene.control.Label;
 import javafx.scene.input.MouseEvent;
 import eu.hansolo.medusa.Gauge.SkinType;
+import narl.itrc.DevBase;
 import narl.itrc.WidDiagram;
 
 public class WidMapPumper extends WidDiagram {
 
-	private DevFatek dev = null;
-	
-	public WidMapPumper(DevFatek device){
-		dev = device;
+	public WidMapPumper(){
 		default_layout();
 	}
-	//-----------------------------------------//
 	
+	public void hookPart(DevFatek dev){
+		tower_lamp.eventInit(dev);//trick~~~
+	}	
+	//-----------------------------------------//
+		
 	private ItmPart tower_lamp = new ItmPart(CATE_TOWER, 7.5, 2){
+		private IntegerProperty Y29, Y30, Y31;
+		private ChangeListener<Number> event = new ChangeListener<Number>(){
+			@Override
+			public void changed(
+				ObservableValue<? extends Number> observable, 
+				Number oldValue,
+				Number newValue
+			) {
+				clear();
+				draw(0);
+				if(Y29.get()==1){
+					draw(3);//red light
+				}
+				if(Y30.get()==1){
+					draw(2);//yellow light
+				}
+				if(Y31.get()==1){
+					draw(1);//green light
+				}
+			}
+		};
 		@Override
-		protected void eventInit(){
-			clickable = false;		
+		public void eventInit(DevBase device){			
+			if(device==null){
+				clickable = false;
+			}else{
+				DevFatek dev = (DevFatek)device;
+				Y29 = dev.getMarker("Y0029");
+				Y30 = dev.getMarker("Y0030");
+				Y31 = dev.getMarker("Y0031");
+				Y29.addListener(event);
+				Y30.addListener(event);
+				Y31.addListener(event);
+			}
 		}
 		@Override
 		public void handle(MouseEvent event) {
@@ -38,7 +73,7 @@ public class WidMapPumper extends WidDiagram {
 	
 	private ItmPart ar_valve0 = new ItmPart(CATE_VALVE, 2, 1){
 		@Override
-		protected void eventInit(){
+		public void eventInit(DevBase device){
 			addLabel("Ar ",2,2);			
 		}
 		@Override
@@ -48,7 +83,7 @@ public class WidMapPumper extends WidDiagram {
 	};
 	private ItmPart ar_valve1 = new ItmPart(CATE_VALVE, 4, 1){
 		@Override
-		protected void eventInit(){
+		public void eventInit(DevBase device){
 			addLabel("GV1",4,2);
 		}
 		@Override
@@ -59,7 +94,7 @@ public class WidMapPumper extends WidDiagram {
 	
 	private ItmPart o2_valve0 = new ItmPart(CATE_VALVE, 2, 4){
 		@Override
-		protected void eventInit(){
+		public void eventInit(DevBase device){
 			addLabel("O2",2,5);
 		}
 		@Override
@@ -69,7 +104,7 @@ public class WidMapPumper extends WidDiagram {
 	};
 	private ItmPart o2_valve1 = new ItmPart(CATE_VALVE, 4, 4){
 		@Override
-		protected void eventInit(){
+		public void eventInit(DevBase device){
 			addLabel("GV2",4,5);
 		}
 		@Override
@@ -80,7 +115,7 @@ public class WidMapPumper extends WidDiagram {
 	
 	private ItmPart n2_valve0 = new ItmPart(CATE_VALVE, 2, 7){
 		@Override
-		protected void eventInit(){
+		public void eventInit(DevBase device){
 			addLabel("N2",2,8);
 		}
 		@Override
@@ -90,7 +125,7 @@ public class WidMapPumper extends WidDiagram {
 	};
 	private ItmPart n2_valve1 = new ItmPart(CATE_VALVE, 4, 7){
 		@Override
-		protected void eventInit(){
+		public void eventInit(DevBase device){
 			addLabel("GV3",4,8);
 		}
 		@Override
@@ -101,7 +136,7 @@ public class WidMapPumper extends WidDiagram {
 	
 	private ItmPart brk_valve = new ItmPart(CATE_VALVE, 18, 7){
 		@Override
-		protected void eventInit(){
+		public void eventInit(DevBase device){
 			addLabel("VV",18,8);
 		}
 		@Override
@@ -112,7 +147,7 @@ public class WidMapPumper extends WidDiagram {
 	
 	private ItmPart r_valve = new ItmPart(CATE_VALVE, 13, 15){
 		@Override
-		protected void eventInit(){
+		public void eventInit(DevBase device){
 			addLabel("RV",13,16);
 		}
 		@Override
@@ -132,7 +167,7 @@ public class WidMapPumper extends WidDiagram {
 	
 	private ItmPart m_valve1 = new ItmPart(CATE_VALVE, 13, 12){
 		@Override
-		protected void eventInit(){
+		public void eventInit(DevBase device){
 			addLabel("MV1",13,13);
 		}
 		@Override
@@ -153,7 +188,7 @@ public class WidMapPumper extends WidDiagram {
 	};
 	private ItmPart f_valve1 = new ItmPart(CATE_VALVE, 7, 12){
 		@Override
-		protected void eventInit(){
+		public void eventInit(DevBase device){
 			addLabel("FV1",7,13);
 		}
 		@Override
@@ -164,7 +199,7 @@ public class WidMapPumper extends WidDiagram {
 	
 	private ItmPart m_valve2 = new ItmPart(CATE_VALVE, 13, 18){
 		@Override
-		protected void eventInit(){
+		public void eventInit(DevBase device){
 			addLabel("MV2",13,19);
 		}
 		@Override
@@ -179,7 +214,7 @@ public class WidMapPumper extends WidDiagram {
 	};	
 	private ItmPart f_valve2 = new ItmPart(CATE_VALVE, 7, 18){
 		@Override
-		protected void eventInit(){
+		public void eventInit(DevBase device){
 			addLabel("FV2",7,19);
 		}
 		@Override
@@ -187,8 +222,10 @@ public class WidMapPumper extends WidDiagram {
 			pipe_switch(flag,"#8-18","#6-16","#6-17","#6-18");
 		}
 	};
+	//-----------------------------------------//
 	
 	private void default_layout(){
+		
 		mapPart.put("chuck",chuck_sub);
 		mapPart.put("tower",tower_lamp);
 		
