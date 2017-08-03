@@ -1,7 +1,6 @@
 package prj.scada;
 
 import java.io.File;
-import java.util.Arrays;
 
 import com.jfoenix.controls.JFXTabPane;
 
@@ -33,9 +32,9 @@ public class PanSputter extends PanBase {
 		customStyle = "-fx-background-color: white;";
 	}
 	
-	private DevSQM160 devSQM160 = new DevSQM160();
+	//private DevSQM160 devSQM160 = new DevSQM160();
 	
-	private DevSPIK2000 devSPIK2K = new DevSPIK2000();
+	//private DevSPIK2000 devSPIK2K = new DevSPIK2000();
 	
 	private DevFatek devPLC = new DevFatek();
 
@@ -58,8 +57,8 @@ public class PanSputter extends PanBase {
 	@Override
 	protected void eventShown(WindowEvent e){
 		devPLC.startMonitor("R01000-40", "X0000-24", "Y0000-40");
-		root.setLeft(lay_gauge());
 		mapper.hookPart(devPLC);
+		root.setLeft(lay_gauge());		
 		//watcher.setCycleCount(Timeline.INDEFINITE);
 		//watcher.play();
 	}
@@ -135,8 +134,10 @@ public class PanSputter extends PanBase {
 			//tower lamp - red light
 			if(devPLC.getMarker("Y0029").get()==0){
 				devPLC.setNode(1, "M0029", 3);
+				devPLC.setNode(1, "M0028", 3);
 			}else{
 				devPLC.setNode(1, "M0029", 4);
+				devPLC.setNode(1, "M0028", 4);
 			}	
 		});
 		
@@ -152,10 +153,10 @@ public class PanSputter extends PanBase {
 		
 		final Button btnTest3 = PanBase.genButton2("測試-3",null);
 		btnTest3.setOnAction(event->{
-			if(devPLC.getMarker("Y0031").get()==0){
-				devPLC.setNode(1, "M0031", 3);
+			if(devPLC.getMarker("Y0022").get()==0){
+				devPLC.setNode(1, "M0022", 3);
 			}else{
-				devPLC.setNode(1, "M0031", 4);
+				devPLC.setNode(1, "M0022", 4);
 			}
 		});
 		

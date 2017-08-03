@@ -129,7 +129,7 @@ public class PanEntry extends PanBase {
 		}
 	}	
 	
-	private static double coffDecay = 0.97716;	
+	//private static double coffDecay = 0.97716;	
 	private static double coffDelta = 700.;//unit is "mm"
 	private static double coffBound = 0.025;
 	private static double coffStdCV = 3.5;//unit is '%'

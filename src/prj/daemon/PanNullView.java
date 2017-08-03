@@ -1,9 +1,6 @@
 package prj.daemon;
 
-import java.math.BigDecimal;
-
 import javafx.scene.Node;
-import narl.itrc.DevTTY;
 import narl.itrc.PanBase;
 
 /**

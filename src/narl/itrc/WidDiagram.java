@@ -1,35 +1,32 @@
 package narl.itrc;
 
 import java.util.HashMap;
+
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
+
 import javafx.event.EventHandler;
+
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.util.Duration;
 
-public class WidDiagram extends StackPane {
-	
-	protected static final int TILE_SIZE = 40;
+public class WidDiagram extends AnchorPane {
 
-	private double width=20*TILE_SIZE, height=20*TILE_SIZE; 
+	private static final int TILE_SIZE = 40;
+
+	private static final int DEFAULT_GRID = 20;
 	
-	private Canvas blue_p = new Canvas();//show blueprint
-	private Canvas ground = new Canvas();//draw background	
-	private Canvas cursor = new Canvas();//draw cursor
+	private double width = DEFAULT_GRID*TILE_SIZE;
+	private double height= DEFAULT_GRID*TILE_SIZE; 
 	
-	private AnchorPane pegged = new AnchorPane();//speical layout for hooking!!!
-	
-	private final GraphicsContext gc_ground = ground.getGraphicsContext2D();
-	private final GraphicsContext gc_cursor = cursor.getGraphicsContext2D();
+	//private AnchorPane pegged = new AnchorPane();//speical layout for hooking!!!
 	
 	public WidDiagram(){
 		init();
@@ -37,251 +34,222 @@ public class WidDiagram extends StackPane {
 	
 	private void init(){
 		
-		gc_cursor.setFill(Color.TRANSPARENT);
-		gc_cursor.setStroke(Color.YELLOWGREEN);
-		gc_cursor.setLineWidth(2);
-	
-		watcher.setCycleCount(Timeline.INDEFINITE);
-		
-		blue_p.setWidth(width);
-		blue_p.setHeight(height);
-		ground.setWidth(width);
-		ground.setHeight(height);
-		cursor.setWidth(width);
-		cursor.setHeight(height);
-
-		//pegged.getStyleClass().add("decorate2-border");
-		pegged.setPickOnBounds(true);
-		pegged.setPrefSize(width, height);
-		//pegged.getChildren().add(toolbox);
-		
 		loadPumpTile();
 		
-		draw_blue_print();
-		init_tool_box();
+		watcher.setCycleCount(Timeline.INDEFINITE);
+		
+		//setPickOnBounds(false);
+		setPrefSize(width, height);
+		
+		//setPickOnBounds(true);
+		//setPrefSize(width, height);
 		
 		getStyleClass().add("pad-small");
-		getChildren().addAll(blue_p,ground,pegged,cursor);
-				
-		editMode(false);
-	}
-		
-	protected Label addLabel(String title,int gx,int gy){
-		Label txt = new Label(title);
-		txt.setStyle("-fx-font-size: 23px;");
-		AnchorPane.setLeftAnchor(txt, (double)(gx*TILE_SIZE + TILE_SIZE));//why???
-		AnchorPane.setTopAnchor (txt, (double)(gy*TILE_SIZE));		
-		pegged.getChildren().add(txt);
-		return txt;
-	}
-	
-	private void draw_blue_print(){
-
-		GraphicsContext gc = blue_p.getGraphicsContext2D();
-		
-		Image img = new Image(WidDiagram.class.getResourceAsStream("/narl/itrc/res/tile/blueprint.png"));
-		
-		int step_w = (int)img.getWidth();
-		int step_h = (int)img.getHeight();
-		
-		for(int sh=0; sh<height; sh+=step_h){
-			for(int sw=0; sw<width; sw+=step_w){
-				gc.drawImage(img, sw, sh);
-			}
-		}
-	}
-	
-	private HBox toolbox= new HBox();
-	
-	private void init_tool_box(){
-		toolbox.setStyle(
-			"-fx-background-color: palegreen; "+
-			"-fx-padding: 13;"+
-			"-fx-spacing: 7; "+
-			"-fx-background-radius: 10; "+		
-			"-fx-effect: dropshadow(three-pass-box, black, 10, 0, 0, 0);"		
-		);
-		
-		Button btnSave = new Button("Save");
-		btnSave.setOnAction(event->{
-			Misc.logv("debug!!!");
-		});
-		//btnSave.setPrefSize(32., 32.);
-		
-		Button btnLoad = new Button("Load");
-		//btnLoad.setPrefSize(32., 32.);
-		
-		toolbox.getChildren().addAll(btnSave,btnLoad);
-		
-		AnchorPane.setLeftAnchor(toolbox, width/4.);
-		AnchorPane.setBottomAnchor(toolbox, 17.);
-	}
-
-	public void editMode(boolean flag){
-		if(flag==true){
-			watcher.pause();
-			toolbox.setVisible(true);
-			cursor.setOnMouseMoved(null);
-			cursor.setOnMouseClicked(null);
-		}else{
-			watcher.play();
-			toolbox.setVisible(false);
-			cursor.setOnMouseMoved(eventUserMove);			
-			cursor.setOnMouseClicked(eventUserClick);
-		}
-		blue_p.setVisible(flag);
+		//getChildren().addAll(pegged);
 	}
 	//----------------------------------------//
 	
-	private EventHandler<MouseEvent> eventEditMove = new EventHandler<MouseEvent>(){
-		@Override
-		public void handle(MouseEvent event) {
-		}
-	};
-	
-	private EventHandler<MouseEvent> eventEditClick = new EventHandler<MouseEvent>(){
-		@Override
-		public void handle(MouseEvent event) {
-		}
-	};
-	
-	private EventHandler<MouseEvent> eventUserMove = new EventHandler<MouseEvent>(){
-		@Override
-		public void handle(MouseEvent event) {
-			//show cursor???
-			final int cx = (int)(event.getX());
-			final int cy = (int)(event.getY());
-		}
-	};
-	
-	private EventHandler<MouseEvent> eventUserClick = new EventHandler<MouseEvent>(){
-		@Override
-		public void handle(MouseEvent event) {
-			final int cx = (int)(event.getX());
-			final int cy = (int)(event.getY());
-			mapPart.forEach((name,itm)->{
-				if(itm.clickable==false){
-					//some symbol is special, they don't need click event~~
-					return;
-				}
-				if(itm.contains(cx, cy)==true){
-					if(itm.flag!=0){
-						itm.flag = 0;
-					}else{
-						if(itm.face.length<=1){
-							itm.flag = 0;
-						}else{
-							itm.flag = 1;
-						}
-					}
-					itm.redraw();
-					itm.handle(event);
-					return;
-				}
-			});
-		}
-	};
-	//----------------------------------------//
-	
-	public abstract class ItmPart implements EventHandler<MouseEvent> {
+	protected abstract class ItemTile extends StackPane {
 		
-		public Image[]  face = null;		
-		public double[] loca = {0.,0.};//x,y coordinate...
-		public int      flag = 0;
+		protected Image[]  face = null;		
+		protected double[] loca = {0.,0.};//x,y coordinate...
 		
-		public boolean clickable = true;
+		protected int indx = 0;//indicate which face~~~~
 		
-		public ItmPart(){
-			eventInit(null);
-		}
-
-		public ItmPart(String category){
-			this(category,0,0);
+		private Canvas ground = new Canvas();
+		private Canvas cursor = new Canvas();
+		
+		public ItemTile(){
+			cursor.setWidth(TILE_SIZE);
+			cursor.setHeight(TILE_SIZE);
+			init();
 		}
 		
-		public ItmPart(String category,int gx, int gy){
-			this(category,(double)gx,(double)gy);
+		public ItemTile(String category, double gx, double gy){
+			locate(category,gx,gy);
+			init();
 		}
 		
-		public ItmPart(String category,double gx, double gy){
-			face = faces.get(category);			
-			if(
-				face.length==1 ||
-				category.contains("pipe")==true ||
-				category.contains("wall")==true
-			){
-				clickable = false;
-			}
+		public ItemTile locate(String category,double gx, double gy){
 			loca[0] = gx * TILE_SIZE;
 			loca[1] = gy * TILE_SIZE;
-			eventInit(null);
+			face = lstFace.get(category);
+			double ww = face[0].getWidth();
+			double hh = face[0].getHeight();
+			setPrefSize(ww, hh);
+			ground.setWidth(ww);
+			ground.setHeight(hh);			
+			cursor.setWidth(ww);
+			cursor.setHeight(hh);
+			AnchorPane.setLeftAnchor(this, loca[0]);
+			AnchorPane.setTopAnchor(this, loca[1]);
+			draw(-1);
+			return this;
 		}
 		
-		public void eventInit(DevBase device){			
+		private void init(){
+			getChildren().addAll(ground,cursor);			
+			cursor.setVisible(false);
 		}
 		
-		private void makeup(){
-			if(face.length<=2){
-				return;
-			}			
-			if(flag==0){
-				return;
-			}
-			redraw();
-			flag++;
-			if(flag>=face.length){
-				flag = 1;//reset~~~~
-			}
+		protected void prepare_cursor(){
+			int stk = 1;
+			GraphicsContext dc = cursor.getGraphicsContext2D();
+			dc.setFill(Color.TRANSPARENT);
+			dc.setStroke(Color.CORNFLOWERBLUE);
+			dc.setLineWidth(stk);
+			dc.strokeRoundRect(
+				stk, stk, 
+				cursor.getWidth()-stk*2, 
+				cursor.getHeight()-stk*2, 
+				TILE_SIZE/5,
+				TILE_SIZE/5 
+			);
+			setOnMouseEntered(e->{
+				cursor.setVisible(true);
+			});
+			setOnMouseExited(e->{
+				cursor.setVisible(false);
+			});
 		}
 		
-		public boolean contains(int x, int y){
-			int width = (int)(face[0].getWidth());
-			int height= (int)(face[0].getHeight());
-			if( 
-				loca[0]<=x && x<=(loca[0]+width ) &&
-				loca[1]<=y && y<=(loca[1]+height)
-			){
-				return true;
-			}
-			return false;
-		}
-		
-		public void clear(){
-			gc_ground.clearRect(
-				loca[0]+1., 
-				loca[1]+1., 
+		public ItemTile clear(){
+			ground.getGraphicsContext2D().clearRect(
+				1., 1., 
 				face[0].getWidth()-1.,
 				face[0].getHeight()-1.
 			);
+			return this;
 		}
 		
-		public void draw(int idx){
-			gc_ground.drawImage(
-				face[idx],
-				loca[0], loca[1]
-			);
+		public ItemTile draw(int idx){
+			if(0<=idx && idx<face.length){
+				indx = idx;
+			}			
+			ground.getGraphicsContext2D().drawImage(face[indx],0, 0);
+			return this;
 		}
 		
-		public void redraw(){
+		public ItemTile redraw(){
 			clear();
-			draw(flag);
+			draw(-1);
+			return this;
+		}
+		
+		abstract public void makeup();
+	};
+	
+	protected abstract class ItemToggle extends ItemTile 
+		implements EventHandler<MouseEvent>
+	{
+		public ItemToggle(){
+			super();
+			setOnMouseClicked(this);
+			prepare_cursor();
+		}
+		
+		public ItemToggle(String category, double gx, double gy){
+			super();
+			locate(category,gx,gy);	
+			setOnMouseClicked(this);
+			prepare_cursor();
+		}
+		
+		private boolean applyMakeup = false;//remember update this in GUI event
+		
+		public void applyMakeup(){
+			if(applyMakeup==true){
+				indx = 0;//stop animation~~~
+				applyMakeup = false;
+			}else{
+				indx = 1;//start animation~~~
+				applyMakeup = true;
+			}
+			redraw();
+		}
+		
+		protected boolean isMakeup(){
+			return applyMakeup;
+		}
+		
+		@Override
+		public void makeup() {
+			if(applyMakeup==false){
+				return;
+			}
+			indx++;
+			if(indx>=face.length){
+				indx = 1;
+			}
+			redraw();
 		}
 	};
-	protected HashMap<String,ItmPart> mapPart = new HashMap<String,ItmPart>();
+
+	protected class ItemBrick extends ItemTile {
 		
-	protected void redraw(){
-		mapPart.forEach((name,itm)->itm.redraw());
+		public ItemBrick(String category, double gx, double gy){
+			locate(category,gx,gy);
+		}
+		
+		@Override
+		public void makeup() {
+			//Do nothing, brick don't need GUI event.
+			//User must show face manually.
+		}
+	}
+	
+	private HashMap<String,ItemTile> lstItm  = new HashMap<String,ItemTile>(); 
+	
+	protected ItemTile getItem(String name){
+		return lstItm.get(name);
+	}
+	
+	protected WidDiagram addItem(String name,ItemTile itm){
+		lstItm.put(name, itm);
+		//pegged.getChildren().add(itm);
+		getChildren().add(itm);
+		return this;
+	}
+	
+	protected WidDiagram addItem(String name,String category, double gx, double gy){
+		ItemBrick itm = new ItemBrick(category,gx,gy);
+		lstItm.put(name, itm);
+		//pegged.getChildren().add(itm);
+		getChildren().add(itm);
+		return this;
+	}
+	
+	protected WidDiagram addBrick(String category, double gx, double gy){
+		//pegged.getChildren().add(new ItemBrick(category,gx,gy));
+		getChildren().add(new ItemBrick(category,gx,gy));
+		return this;
+	}
+	
+	protected Label addLabel(String title,double gx,double gy){
+		Label txt = new Label(title);
+		//txt.setStyle("-fx-font-size: 23px;-fx-border-color: #3375FF;");
+		txt.setStyle("-fx-font-size: 23px;");
+		AnchorPane.setLeftAnchor(txt, gx*TILE_SIZE);//why???
+		AnchorPane.setTopAnchor (txt, gy*TILE_SIZE);		
+		//pegged.getChildren().add(txt);
+		getChildren().add(txt);
+		return txt;
+	}
+
+
+	protected void redrawAll(){
+		lstItm.forEach((name,obj)->obj.redraw());
 	}
 	
 	private final Timeline watcher = new Timeline(new KeyFrame(
 		Duration.millis(200),
 		event->{
-			mapPart.forEach((name,itm)->itm.makeup());
+			lstItm.forEach((name,obj)->obj.makeup());
 		}
 	));
 	//----------------------------------------//
 	
-	protected HashMap<String,Image[]> faces  = new HashMap<String,Image[]>();
+	protected HashMap<String,Image[]> lstFace  = new HashMap<String,Image[]>();
 
 	protected static final String CATE_WALL_A = "wall_1";
 	protected static final String CATE_WALL_B = "wall_2";
@@ -321,7 +289,7 @@ public class WidDiagram extends StackPane {
 	
 	protected void loadPumpTile(){
 		
-		faces.clear();
+		lstFace.clear();
 		
 		final String[][] cate = {
 			{CATE_TOWER  , "tower-1", "tower-2", "tower-3", "tower-4"},
@@ -373,7 +341,7 @@ public class WidDiagram extends StackPane {
 			for(int j=1; j<=cnt; j++){
 				imgs[j-1] = new Image(WidDiagram.class.getResourceAsStream(path+cate[i][j]+".png"));
 			}
-			faces.put(cate[i][0],imgs);
+			lstFace.put(cate[i][0],imgs);
 		}		
 	}
 	//----------------------------------------//

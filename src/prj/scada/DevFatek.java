@@ -91,62 +91,88 @@ public class DevFatek extends DevTTY {
 	public static final int VAL_ENABLE  = 2;
 	public static final int VAL_SET     = 3;
 	public static final int VAL_RESET   = 4;
+
+	private StringProperty lastError = new SimpleStringProperty("");//error code After last command
 	
+	private  byte[] transact(byte[] buf,byte beg, byte end){
+		byte[] res = null;
+		synchronized(this){
+			writeBuf(buf);
+			res = readPack(STX,ETX);
+		}
+		if(res!=null){
+			final int code = res[HDR-1];
+			final Runnable event = new Runnable(){
+				@Override
+				public void run() {
+					switch(code){
+					case '0': lastError.set("通訊正常"); break;
+					case '2': lastError.set("不合法的數值表示"); break;
+					case '4': lastError.set("不合法的命令格式"); break;
+					case '5': lastError.set("階梯圖偵錯碼不符合，無法啟動"); break;
+					case '6': lastError.set("非法ID，無法啟動"); break;
+					case '7': lastError.set("語法錯誤，無法啟動"); break;
+					case '9': lastError.set("由階梯圖無法啟動"); break;
+					case 'A': lastError.set("非法地址"); break;
+					default: lastError.set(String.format("%s-(%c)",TXT_UNKNOW,(char)(code))); break;
+					}
+				}			
+			};
+			if(Application.isEventThread()==true){
+				event.run();
+			}else{
+				Application.invokeAndWait(event);
+			}
+		}
+		return res;
+	} 
+		
 	private final byte[] cmd_buf = new byte[LEN];
 	
 	public byte[] getSysInf(int idx){
 		wrapper(idx,0x40,cmd_buf);
-		writeBuf(cmd_buf);
-		//Finally, retrieve feedback
-		byte[] info = readPack(STX,ETX);
-		event_last_error(info[HDR-1]);
-		event_inf( hex2val(info[HDR+0],info[HDR+1]) );		
-		return info;
+		byte[] buf = transact(cmd_buf,STX,ETX);
+		event_inf( hex2val(buf[HDR+0],buf[HDR+1]) );		
+		return buf;
 	}
 	
 	public byte[] getSysAll(int idx){
 		wrapper(idx,0x53,cmd_buf);
-		writeBuf(cmd_buf);
-		//Finally, retrieve feedback
-		byte[] info = readPack(STX,ETX);
-		event_last_error(info[HDR-1]);
-		event_inf( hex2val(info[HDR+0], info[HDR+1]) );
-		event_typ( hex2val(info[HDR+2], info[HDR+3]) );
-		event_nio( info[HDR+4], info[HDR+5] );
-		event_ver( info[HDR+6], info[HDR+7] );
+		byte[] buf = transact(cmd_buf,STX,ETX);
+		event_inf( hex2val(buf[HDR+0], buf[HDR+1]) );
+		event_typ( hex2val(buf[HDR+2], buf[HDR+3]) );
+		event_nio( buf[HDR+4], buf[HDR+5] );
+		event_ver( buf[HDR+6], buf[HDR+7] );
 		event_var(
-			hex2val(info[HDR+ 8], info[HDR+ 9], info[HDR+10], info[HDR+11]),
-			hex2val(info[HDR+12], info[HDR+13], info[HDR+14], info[HDR+15]),
-			hex2val(info[HDR+16], info[HDR+17], info[HDR+18], info[HDR+19]),
-			hex2val(info[HDR+20], info[HDR+21], info[HDR+22], info[HDR+23]),
-			hex2val(info[HDR+24], info[HDR+25], info[HDR+26], info[HDR+27]),
-			hex2val(info[HDR+28], info[HDR+29], info[HDR+30], info[HDR+31]),
-			hex2val(info[HDR+32], info[HDR+33], info[HDR+34], info[HDR+35]),
-			hex2val(info[HDR+36], info[HDR+37], info[HDR+38], info[HDR+39]),
-			hex2val(info[HDR+40], info[HDR+41], info[HDR+42], info[HDR+43]),
-			hex2val(info[HDR+44], info[HDR+45], info[HDR+46], info[HDR+47]),
-			hex2val(info[HDR+48], info[HDR+49], info[HDR+50], info[HDR+51]),
-			hex2val(info[HDR+52], info[HDR+53], info[HDR+54], info[HDR+55])
+			hex2val(buf[HDR+ 8], buf[HDR+ 9], buf[HDR+10], buf[HDR+11]),
+			hex2val(buf[HDR+12], buf[HDR+13], buf[HDR+14], buf[HDR+15]),
+			hex2val(buf[HDR+16], buf[HDR+17], buf[HDR+18], buf[HDR+19]),
+			hex2val(buf[HDR+20], buf[HDR+21], buf[HDR+22], buf[HDR+23]),
+			hex2val(buf[HDR+24], buf[HDR+25], buf[HDR+26], buf[HDR+27]),
+			hex2val(buf[HDR+28], buf[HDR+29], buf[HDR+30], buf[HDR+31]),
+			hex2val(buf[HDR+32], buf[HDR+33], buf[HDR+34], buf[HDR+35]),
+			hex2val(buf[HDR+36], buf[HDR+37], buf[HDR+38], buf[HDR+39]),
+			hex2val(buf[HDR+40], buf[HDR+41], buf[HDR+42], buf[HDR+43]),
+			hex2val(buf[HDR+44], buf[HDR+45], buf[HDR+46], buf[HDR+47]),
+			hex2val(buf[HDR+48], buf[HDR+49], buf[HDR+50], buf[HDR+51]),
+			hex2val(buf[HDR+52], buf[HDR+53], buf[HDR+54], buf[HDR+55])
 		);
-		return info;
+		return buf;
 	}
 	
 	public String testEcho(int idx,String txt){
 		byte[] buf = new byte[LEN+txt.length()];
 		pave_txt(txt,buf,HDR);
 		wrapper(idx,0x4E,buf);
-		writeBuf(buf);
-		return byte2txt(readPack(STX,ETX));
+		buf = transact(cmd_buf,STX,ETX);
+		return byte2txt(buf);
 	}
 	
 	public void makeSwitch(int idx,boolean flag){
 		byte[] buf = new byte[LEN+1];
 		buf[HDR+0] = (byte)((flag)?('1'):('0'));
 		wrapper(idx,0x41,buf);
-		writeBuf(buf);
-		//Finally, retrieve feedback
-		buf = readPack(STX,ETX);
-		event_last_error(buf[HDR-1]);
+		transact(buf,STX,ETX);
 	}
 	
 	public void setNode(int idx,String name,int argv){
@@ -154,10 +180,7 @@ public class DevFatek extends DevTTY {
 		buf[HDR+0] = val2hex_L(argv);
 		pave_txt(name,buf,HDR+1);
 		wrapper(idx,0x42,buf);
-		writeBuf(buf);
-		//Finally, retrieve feedback
-		buf = readPack(STX,ETX);
-		event_last_error(buf[HDR-1]);
+		transact(buf,STX,ETX);
 	}
 	
 	public void setNode(int idx,String name,int... argv){
@@ -170,10 +193,7 @@ public class DevFatek extends DevTTY {
 			buf[off+i] = val2hex_L(argv[i]);
 		}	
 		wrapper(idx,0x45,buf);
-		writeBuf(buf);
-		//Finally, retrieve feedback
-		buf = readPack(STX,ETX);
-		event_last_error(buf[HDR-1]);
+		buf = transact(buf,STX,ETX);
 	}
 	
 	public int getNodeEnable(int idx,String name){
@@ -196,10 +216,7 @@ public class DevFatek extends DevTTY {
 		buf[HDR+1] = val2hex_L(cnt);
 		pave_txt(name,buf,HDR+2);	
 		wrapper(idx,cmd,buf);
-		writeBuf(buf);
-		//Finally, retrieve feedback
-		buf = readPack(STX,ETX);
-		event_last_error(buf[HDR-1]);
+		buf = transact(buf,STX,ETX);
 		int[] resp = new int[cnt];
 		for(int i=0; i<cnt; i++){
 			resp[i] = hex2val(buf[HDR+i]);
@@ -238,10 +255,7 @@ public class DevFatek extends DevTTY {
 			}
 		}
 		wrapper(idx,0x47,buf);
-		writeBuf(buf);
-		//Finally, retrieve feedback
-		buf = readPack(STX,ETX);
-		event_last_error(buf[HDR-1]);
+		buf = transact(buf,STX,ETX);
 		return (char)(buf[HDR-1]);
 	}
 	
@@ -252,10 +266,7 @@ public class DevFatek extends DevTTY {
 		buf[HDR+1] = val2hex_L(cnt);
 		pave_txt(name,buf,HDR+2);	
 		wrapper(idx,0x46,buf);
-		writeBuf(buf);
-		//Finally, retrieve feedback
-		buf = readPack(STX,ETX);
-		event_last_error(buf[HDR-1]);
+		buf = transact(buf,STX,ETX);
 		int[] resp = new int[cnt];
 		for(int i=0, j=HDR; i<cnt; i++, j+=d_size){
 			if(d_size==4){
@@ -323,10 +334,7 @@ public class DevFatek extends DevTTY {
 			}
 		}
 		wrapper(idx,0x49,buf);
-		writeBuf(buf);
-		//Finally, retrieve feedback
-		buf = readPack(STX,ETX);
-		event_last_error(buf[HDR-1]);
+		buf = transact(buf,STX,ETX);
 		return (char)(buf[HDR-1]);
 	}
 	
@@ -342,13 +350,10 @@ public class DevFatek extends DevTTY {
 		for(int i=0,off=HDR+2; i<cnt; i++){
 			off = pave_txt(name[i],buf,off);
 		}		
-		wrapper(idx,0x48,buf);
-		//Finally, retrieve feedback
-		buf = readPack(STX,ETX);
+		buf = transact(buf,STX,ETX);
 		if(buf==null){
 			return null;
 		}
-		event_last_error(buf[HDR-1]);
 		int[] resp = new int[cnt];
 		for(int i=0, off=HDR; i<cnt; i++){
 			int size = name[i].length();
@@ -569,32 +574,6 @@ public class DevFatek extends DevTTY {
 		}
 	}
 	
-	private StringProperty lastError = new SimpleStringProperty("");//error code After last command
-	
-	private void event_last_error(final byte code){
-		final Runnable event = new Runnable(){
-			@Override
-			public void run() {
-				switch(code){
-				case '0': lastError.set("通訊正常"); break;
-				case '2': lastError.set("不合法的數值表示"); break;
-				case '4': lastError.set("不合法的命令格式"); break;
-				case '5': lastError.set("階梯圖偵錯碼不符合，無法啟動"); break;
-				case '6': lastError.set("非法ID，無法啟動"); break;
-				case '7': lastError.set("語法錯誤，無法啟動"); break;
-				case '9': lastError.set("由階梯圖無法啟動"); break;
-				case 'A': lastError.set("非法地址"); break;
-				default: lastError.set(String.format("%s-(%c)",TXT_UNKNOW,(char)(code))); break;
-				}
-			}			
-		};
-		if(Application.isEventThread()==true){
-			event.run();
-		}else{
-			Application.invokeAndWait(event);
-		}
-	}
-
 	private class TskMonitor extends Task<Void>{
 		private int[] val;
 		private IntegerProperty[] prop;
@@ -743,7 +722,7 @@ public class DevFatek extends DevTTY {
 			lstMark.add(new Marker(tkn));
 		}
 		tskMonitor = new TskMonitor();
-		new Thread(tskMonitor,"Fatek-PLC-monitor").start();
+		//new Thread(tskMonitor,"Fatek-PLC-monitor").start();
 	}
 	//------------------------------------------//
 	

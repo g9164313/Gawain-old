@@ -50,7 +50,7 @@ public class DevSQM160 extends DevTTY {
 
 	private class TypeFilm {
 		
-		public int number = 0; //it is just an index.
+		//public int number = 0; //it is just an index.
 		public StringProperty  name = new SimpleStringProperty("???");//name, only 8-character
 		public DoubleProperty  density = new SimpleDoubleProperty(0.50);//0.50~99.99 g/cm³
 		public IntegerProperty tooling = new SimpleIntegerProperty(33); //10 to 399, unit is '%'
@@ -106,6 +106,7 @@ public class DevSQM160 extends DevTTY {
 		 */
 		public StringProperty propUnitThick = new SimpleStringProperty("kÅ");
 				
+		@SuppressWarnings("unused")
 		private void update_display(){
 			switch(mode_display){
 			case 0:
@@ -139,6 +140,7 @@ public class DevSQM160 extends DevTTY {
 		/**
 		 * 10 to 399 (%), crystal tooling for each sensor.
 		 */
+		@SuppressWarnings("unused")
 		public IntegerProperty[] tooling = {
 			new SimpleIntegerProperty(10),
 			new SimpleIntegerProperty(10),
