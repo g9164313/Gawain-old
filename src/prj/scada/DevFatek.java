@@ -209,7 +209,11 @@ public class DevFatek extends DevTTY {
 	public int[] getNodeStatus(int idx,String name,int cnt){		
 		return get_node(idx,0x44,name,cnt);
 	}
-		
+	
+	public int getNodeStatus(int idx,String name){
+		return get_node(idx,0x44,name,1)[0];
+	}
+	
 	private int[] get_node(int idx,int cmd,String name,int cnt){
 		byte[] buf = new byte[LEN+2+name.length()];
 		buf[HDR+0] = val2hex_H(cnt);
@@ -258,7 +262,7 @@ public class DevFatek extends DevTTY {
 		buf = transact(buf,STX,ETX);
 		return (char)(buf[HDR-1]);
 	}
-	
+
 	public int[] getRegister(int idx,String name,int cnt){
 		int d_size = (name.length()>=7)?(8):(4);
 		byte[] buf = new byte[LEN+2+name.length()];
@@ -281,6 +285,9 @@ public class DevFatek extends DevTTY {
 			}
 		}
 		return resp;
+	}	
+	public int getRegister(int idx,String name){
+		return getRegister(idx,name,1)[0];
 	}
 	
 	public char set(int idx,Object... argv){
@@ -712,7 +719,7 @@ public class DevFatek extends DevTTY {
 	 * It will monitor register from R01000 to R01047.<p>
 	 * @param token - 
 	 */
-	public void startMonitor(String... token){
+	public void startMonitor(boolean starter,String... token){
 		if(tskMonitor!=null){
 			if(tskMonitor.isRunning()==true){
 				return;
@@ -722,7 +729,9 @@ public class DevFatek extends DevTTY {
 			lstMark.add(new Marker(tkn));
 		}
 		tskMonitor = new TskMonitor();
-		//new Thread(tskMonitor,"Fatek-PLC-monitor").start();
+		if(starter==true){
+			new Thread(tskMonitor,"Fatek-PLC-monitor").start();
+		}
 	}
 	//------------------------------------------//
 	

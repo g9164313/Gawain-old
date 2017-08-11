@@ -424,8 +424,9 @@ inline int pry_down_size(int a){
 }
 
 inline Mat norm_32f(const Mat& src){
-    Mat dst;
-    normalize(src, dst, 0., 255., NORM_MINMAX);
+    Mat tmp,dst;
+    normalize(src, tmp, 0., 255., NORM_MINMAX);
+    tmp.convertTo(dst,CV_8UC1);
     return dst;
 }
 

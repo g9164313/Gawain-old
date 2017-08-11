@@ -341,7 +341,7 @@ public class Misc {
 	}	
 	
 	public static String num2prefix(double num){
-		return num2prefix(num,2);
+		return num2prefix(num,0);
 	}
 	
 	public static String num2prefix(double num,int pow){

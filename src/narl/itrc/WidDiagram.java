@@ -4,15 +4,17 @@ import java.util.HashMap;
 
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
-
 import javafx.event.EventHandler;
 
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.util.Duration;
@@ -37,6 +39,7 @@ public class WidDiagram extends AnchorPane {
 		loadPumpTile();
 		
 		watcher.setCycleCount(Timeline.INDEFINITE);
+		watcher.play();
 		
 		//setPickOnBounds(false);
 		setPrefSize(width, height);
@@ -95,6 +98,11 @@ public class WidDiagram extends AnchorPane {
 		protected void prepare_cursor(){
 			int stk = 1;
 			GraphicsContext dc = cursor.getGraphicsContext2D();
+			dc.clearRect(
+				0, 0, 
+				cursor.getWidth(), 
+				cursor.getHeight()
+			);
 			dc.setFill(Color.TRANSPARENT);
 			dc.setStroke(Color.CORNFLOWERBLUE);
 			dc.setLineWidth(stk);
@@ -168,6 +176,16 @@ public class WidDiagram extends AnchorPane {
 			redraw();
 		}
 		
+		public void applyMakeup(boolean flag){
+			applyMakeup = flag;
+			if(applyMakeup==false){
+				indx = 0;//stop animation~~~
+			}else{
+				indx = 1;//start animation~~~
+			}
+			redraw();
+		}
+		
 		protected boolean isMakeup(){
 			return applyMakeup;
 		}
@@ -185,6 +203,106 @@ public class WidDiagram extends AnchorPane {
 		}
 	};
 
+	protected abstract class ItemSlider extends ItemTile 
+		implements EventHandler<MouseEvent>
+	{
+		public ItemSlider(){
+			super();
+			setOnMouseClicked(this);
+			prepare_cursor();
+			prepare_field();
+		}		
+		public ItemSlider(
+			String category, 
+			double gx, double gy
+		){
+			this(category, gx,gy, gx,gy);
+		}
+		public ItemSlider(
+			String category,
+			double gx1, double gy1,
+			double gx2, double gy2
+		){
+			super();
+			locate(category,gx1,gy1);
+			setOnMouseClicked(this);
+			prepare_cursor();
+			prepare_field();
+			setPanel(gx2,gy2);
+		}		
+		private HBox lay;
+		private TextField txtVal;
+		private void prepare_field(){
+			Button btnDW = new Button("<");
+			btnDW.setOnAction(e->{
+				if((val-stp)<min){
+					return;
+				}
+				val-=stp;
+				eventChanged(val);
+				txtVal.setText(""+val);
+			});
+			Button btnUp = new Button(">");
+			btnUp.setOnAction(e->{
+				if(max<(val+stp)){
+					return;
+				}
+				val+=stp;
+				eventChanged(val);
+				txtVal.setText(""+val);
+			});
+			txtVal = new TextField();			
+			txtVal.setPrefWidth(TILE_SIZE);
+			txtVal.setOnAction(e->{
+				String txt = txtVal.getText();
+				try{
+					int _v = Integer.valueOf(txt);
+					if(min<=_v && _v<=max){
+						val = _v;
+						eventChanged(val);
+					}				
+				}catch(NumberFormatException h){
+					//do nothing, we will take back the origin value~~~
+				}
+				txtVal.setText(""+val);
+			});
+			lay = new HBox();			
+			lay.setVisible(false);
+			//lay.setStyle(
+			//	"-fx-background-color: palegreen; "+
+			//	"-fx-padding: 13;"+
+			//	"-fx-spacing: 7; "+
+			//	"-fx-background-radius: 10; "+		
+			//	"-fx-effect: dropshadow(three-pass-box, black, 10, 0, 0, 0);"		
+			//);
+			lay.setStyle(
+				"-fx-background-color: palegreen; "+
+				"-fx-padding: 4;"+
+				"-fx-background-radius: 5; "+		
+				"-fx-effect: dropshadow(three-pass-box, black, 10, 0, 0, 0);"		
+			);
+			lay.getChildren().addAll(btnDW,txtVal,btnUp);			
+			WidDiagram.this.getChildren().add(lay);			
+		}
+		public void setPanel(double gx, double gy){
+			AnchorPane.setLeftAnchor(lay, gx * TILE_SIZE);
+			AnchorPane.setTopAnchor (lay, gy * TILE_SIZE);
+		}
+		public int val=0, min=0, max=100, stp=1;
+		
+		public abstract void eventChanged(int newVal);			
+		public abstract void eventReload();		
+		@Override
+		public void handle(MouseEvent event) {
+			boolean flag = !lay.isVisible();
+			if(flag==true){
+				eventReload();
+				txtVal.setText(""+val);
+			}
+			lay.setVisible(flag);
+		}		
+	}
+	
 	protected class ItemBrick extends ItemTile {
 		
 		public ItemBrick(String category, double gx, double gy){
@@ -260,10 +378,13 @@ public class WidDiagram extends AnchorPane {
 	protected static final String CATE_WALL_G = "wall_7";
 	protected static final String CATE_WALL_H = "wall_8";
 	
-	protected static final String CATE_CHUCKA = "chuck_a";
-	protected static final String CATE_CHUCKB = "chuck_b";
-	protected static final String CATE_TOWER  = "tower-lamp";
-	protected static final String CATE_BATTLE = "battle";
+	
+	protected static final String CATE_CHUCKA   = "chuck_a";
+	protected static final String CATE_CHUCKB   = "chuck_b";
+	protected static final String CATE_BAFFLE_A = "baffle_a";
+	protected static final String CATE_BAFFLE_B = "baffle_b";	
+	protected static final String CATE_BATTLE   = "battle";
+	protected static final String CATE_TOWER    = "tower-lamp";
 	
 	protected static final String CATE_PIPE_A = "pipe2_1";
 	protected static final String CATE_PIPE_B = "pipe2_2";
@@ -292,10 +413,16 @@ public class WidDiagram extends AnchorPane {
 		lstFace.clear();
 		
 		final String[][] cate = {
-			{CATE_TOWER  , "tower-1", "tower-2", "tower-3", "tower-4"},
-			//--------------//
+			
 			{CATE_CHUCKA , "chuck-a1", "chuck-a2", "chuck-a3", "chuck-a4", "chuck-a5", "chuck-a6" },
 			{CATE_CHUCKB , "chuck-b1", "chuck-b2", "chuck-b3", "chuck-b4", "chuck-b5", "chuck-b6" },
+			//--------------//
+			{CATE_BAFFLE_A , "baffle-a1", "baffle-a2" },
+			{CATE_BAFFLE_B , "baffle-b1", "baffle-b2" },
+			//--------------//
+			{CATE_BATTLE , "battle"},
+			//--------------//
+			{CATE_TOWER  , "tower-1", "tower-2", "tower-3", "tower-4"},
 			//--------------//
 			{CATE_WALL_A , "wall-a"},
 			{CATE_WALL_B , "wall-b"},
@@ -305,9 +432,7 @@ public class WidDiagram extends AnchorPane {
 			{CATE_WALL_F , "wall-f"},
 			{CATE_WALL_G , "wall-g"},
 			{CATE_WALL_H , "wall-h"},
-			//--------------//
-			{CATE_BATTLE , "battle"},
-			//--------------//
+			//--------------//			
 			{CATE_PIPE_A, "pipe-a0", "pipe-a1"},
 			{CATE_PIPE_B, "pipe-b0", "pipe-b1"},
 			{CATE_PIPE_C, "pipe-c0", "pipe-c1"},

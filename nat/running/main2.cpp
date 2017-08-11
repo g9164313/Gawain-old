@@ -57,20 +57,94 @@ Point findRedCross(Mat& img){
 	return loc;
 }
 
-#define MACRO_CHECK(tag,per) {\
-	roi = gray(tag); \
-	idx = test_sfr(roi, scale, frq, sfr); \
-	idx = (int)(frq.size()*per); \
-	val = (int)(sfr[idx]*10000); \
-	printf("%d\t",val); \
-	sprintf(txt,"%d",val); \
-	putText(img, txt, Point(tag.x,tag.y)+off, FONT_HERSHEY_COMPLEX, 1., clr); \
+Rect findCornerBoard(
+	const Mat& src,
+	Point& ce,
+	float degree,
+	int roiW, int roiH
+){
+
+	float rad = src.rows/2;
+	float cox = rad*cos((degree*M_PI)/180);
+	float siy = rad*sin((degree*M_PI)/180) * -1.;
+	Point pol(ce.x+cox,ce.y+siy);
+	Rect roi;
+	roi.x = pol.x - roiW;
+	roi.y = pol.y - roiH;
+	roi.width = roiW*2;
+	roi.height= roiH*2;
+	valid_roi(roi,src);
+
+	Mat img = src(roi);
+	Mat edg;
+	preCornerDetect(img,edg,5);
+	dilate(edg, edg, Mat());
+
+	Point loca;
+	minMaxLoc(edg, NULL, NULL, NULL, &loca);
+
+	loca.x += roi.x;
+	loca.y += roi.y;
+
+	if(loca.x<(src.cols/2)){
+		//right
+		roi.x = loca.x - roiW/2 - 10;
+	}else{
+		//left
+		roi.x = loca.x - roiW/2 + 10;
+	}
+
+	if(loca.y<(src.rows/2)){
+		//top
+		roi.y = loca.y + 11;
+	}else{
+		//bottom
+		roi.y = loca.y - roiH - 11;
+	}
+	roi.width = roiW;
+	roi.height= roiH;
+
+	//Mat tmp = src(roi);
+	//Mat tmp;
+	//cvtColor(src,tmp,COLOR_GRAY2BGR);
+	//rectangle(tmp,roi,Scalar(0,255,0));
+	//imwrite("cc.png",tmp);
+	//circle(tmp,loca,3,Scalar(0,255,0));
+	//imwrite("cc.png",tmp);
+	return roi;
 }
 
-void check_all_mtf(const char* name, const char* out_dir){
+void calculate_mtf(
+	Mat& src,
+	Mat& ova,
+	const Rect& roi,
+	float scale,
+	float cutoff,
+	bool flag
+) {
+	Mat img = src(roi);
+	if(flag==true){
+		//GaussianBlur(img, _img, Size(3,3), 0.3, 8.0);
+		//imwrite("cc1.png",img);
+		unsharpen(img, 0.7, 0.3);
+		//imwrite("cc2.png",img);
+	}
+	vector<double> frq, sfr;
+	int idx = test_sfr(img, scale, frq, sfr);
+	idx = (int)(frq.size()*cutoff);
+	int val = (int)(sfr[idx]*10000);
+
+	printf("%d\t",val);
 
 	Point off(5,30);
 	Scalar clr(0,255,255);
+	char txt[100];
+	sprintf(txt,"%d",val);
+	putText(ova, txt, Point(roi.x,roi.y)+off, FONT_HERSHEY_COMPLEX, 1., clr);
+	rectangle(ova, roi, clr);
+}
+
+void check_all_mtf(const char* name, const char* out_dir){
 
 	Mat img = imread(name);
 	Mat gray = imread(name,IMREAD_GRAYSCALE);
@@ -85,44 +159,20 @@ void check_all_mtf(const char* name, const char* out_dir){
 		return;
 	}
 
-	//first test~~~
-	/*Rect cent (aa.x- 27, aa.y+ 13, 48, 60);
-	Rect lf_tp(aa.x-285, aa.y-176, 48, 60);
-	Rect lf_bm(aa.x-285, aa.y+105, 48, 60);
-	Rect rh_tp(aa.x+238, aa.y-168, 48, 60);
-	Rect rh_bm(aa.x+238, aa.y+107, 48, 60);*/
-
-	//second test~~~
-	/*Rect cent (aa.x- 44, aa.y+ 13, 78, 111);
-	Rect lf_tp(aa.x-256, aa.y-181, 54, 60);
-	Rect lf_bm(aa.x-262, aa.y+118, 54, 60);
-	Rect rh_tp(aa.x+209, aa.y-177, 54, 60);
-	Rect rh_bm(aa.x+213, aa.y+122, 54, 60);*/
-
 	//third test~~~
-	Rect cent (aa.x- 28, aa.y+ 11, 48, 60);
-	Rect lf_tp(aa.x-249, aa.y-157, 48, 60);
-	Rect lf_bm(aa.x-253, aa.y+ 87, 48, 60);
-	Rect rh_tp(aa.x+208, aa.y-150, 48, 60);
-	Rect rh_bm(aa.x+208, aa.y+ 90, 48, 60);
+	Rect centr (aa.x - 30, aa.y + 11, 48, 60);
+	Rect lf_tp = findCornerBoard(gray, aa,  90+55, 48, 60);
+	Rect lf_bm = findCornerBoard(gray, aa, 180+35, 48, 60);
+	Rect rh_tp = findCornerBoard(gray, aa,  35   , 48, 60);
+	Rect rh_bm = findCornerBoard(gray, aa, -35   , 48, 60);
 
-	rectangle(img,cent,clr);
-	rectangle(img,lf_tp ,clr);
-	rectangle(img,lf_bm ,clr);
-	rectangle(img,rh_tp ,clr);
-	rectangle(img,rh_bm ,clr);
+	double scale = (1./6.6)*1000.;
 
-	int idx,val;
-	char txt[100];
-	double scale = (1./5.)*1000.;
-	vector<double> frq, sfr;
-	Mat roi;
-
-	MACRO_CHECK(cent,0.5);
-	MACRO_CHECK(lf_tp,0.5);
-	MACRO_CHECK(rh_tp,0.5);
-	MACRO_CHECK(lf_bm,0.5);
-	MACRO_CHECK(rh_bm,0.5);
+	calculate_mtf(gray,img,centr,scale,0.5,false);
+	calculate_mtf(gray,img,lf_tp,scale,0.5,true);
+	calculate_mtf(gray,img,rh_tp,scale,0.5,true);
+	calculate_mtf(gray,img,lf_bm,scale,0.5,true);
+	calculate_mtf(gray,img,rh_bm,scale,0.5,true);
 	printf("\n");
 
 	if(out_dir!=NULL){
@@ -135,6 +185,7 @@ void check_all_mtf(const char* name, const char* out_dir){
 			fs_name.find_last_of("/")+1,
 			fs_name.length()
 		);
+		char txt[100];
 		sprintf(txt,"%s/%s.png",out_dir,fs_name.c_str());
 		imwrite(txt,img);
 	}else{
@@ -149,7 +200,7 @@ void check_all_mtf(const char* name, const char* out_dir){
 	printf("===[%ld]===\n",frq.size());*/
 }
 
-int main(int argc, char* argv[]){
+int main_tmp(int argc, char* argv[]){
 
 	const char* name = "./fisheye-test3/20170615_13_54_15_CurrentImage.bmp";
 
@@ -185,11 +236,11 @@ int main(int argc, char* argv[]){
 }
 
 
-int main_tmp(int argc, char* argv[]){
+int main(int argc, char* argv[]){
 
-#define DIR_NAME "fisheye-test3"
+#define DIR_NAME "fisheye-test4"
 
-	const char* name = "./fisheye-test3/20170615_13_54_15_CurrentImage.bmp";
+	//const char* name = "./fisheye-test3/20170615_13_54_15_CurrentImage.bmp";
 	//check_all_mtf(name,"./"DIR_NAME"/result");
 	//return 1;
 

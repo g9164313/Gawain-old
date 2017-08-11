@@ -4,7 +4,6 @@ import java.io.File;
 
 import com.jfoenix.controls.JFXTabPane;
 
-import eu.hansolo.medusa.Gauge;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.scene.Node;
@@ -56,21 +55,11 @@ public class PanSputter extends PanBase {
 	
 	@Override
 	protected void eventShown(WindowEvent e){
-		devPLC.startMonitor("R01000-40", "X0000-24", "Y0000-40");
+		//devPLC.startMonitor(true,"R01000-40", "X0000-24", "Y0000-40");
+		devPLC.startMonitor(false,"R01000-40", "X0000-24", "Y0000-40");
 		mapper.hookPart(devPLC);
-		root.setLeft(lay_gauge());		
-		//watcher.setCycleCount(Timeline.INDEFINITE);
-		//watcher.play();
 	}
-	
-	private Timeline watcher = new Timeline(new KeyFrame(
-		Duration.millis(1000), event->{
-			//System.out.println("period check~~~");
-			//mapper.refresh();
-			//System.out.println("測試!!");
-		}
-	));
-	
+
 	BorderPane root = new BorderPane();
 	
 	@Override
@@ -119,10 +108,8 @@ public class PanSputter extends PanBase {
 				dia.showAndWait();
 				return;
 			}
-			watcher.pause();
 			btnExec.eval(nameScript);//When fail, what should we do?
 		},end_event->{
-			watcher.play();
 		});
 
 		final Button btnEdit = PanBase.genButton2("編輯",null);
@@ -172,54 +159,6 @@ public class PanSputter extends PanBase {
 		lay.add(btnTest1, 0, 4, 3, 1);
 		lay.add(btnTest2, 0, 5, 3, 1);
 		lay.add(btnTest3, 0, 6, 3, 1);
-		return lay;
-	}
-	
-	private Node lay_gauge(){
-		
-		mapper.addGauge("Ar 流量", "sccm", 0., 10000., devPLC.getMarker("R1000"));
-		mapper.addGauge("O2 流量", "sccm", 0., 10000., devPLC.getMarker("R1001"));
-		mapper.addGauge("N2 流量", "sccm", 0., 10000., devPLC.getMarker("R1002"));
-			
-		mapper.addGauge("絕對氣壓", "mTorr", 0., 10000., devPLC.getMarker("R1004"));
-		mapper.addGauge("腔體氣壓", "Torr", 0., 10000., devPLC.getMarker("R1024"));				
-		mapper.addGauge("腔體溫度", "°C", 0., 100., devPLC.getMarker("R1032").divide(10.f));
-		mapper.addGauge("基板溫度", "°C", 0., 100., devPLC.getMarker("R1007").divide(10.f));
-		
-		mapper.addGauge("CP1 氣壓", "Torr", 0., 10000., devPLC.getMarker("R1025"));
-		mapper.addGauge("CP1 溫度", "K", 0., 30., devPLC.getMarker("R1028"));
-		mapper.addGauge("CP2 氣壓", "Torr", 0., 10000., devPLC.getMarker("R1035"));		
-		mapper.addGauge("CP2 溫度", "K", 0., 30., devPLC.getMarker("R1034"));
-		
-		mapper.addGauge("加熱器電流", "A", 0., 1., devPLC.getMarker("R1026"));	
-		mapper.addGauge("MP 電流", "A", 0., 1., devPLC.getMarker("R1027"));	
-		
-		Gauge[] gag = mapper.listGauge();
-		
-		GridPane lay0 = new GridPane();
-		lay0.addRow(0, gag[ 0], gag[11]);
-		lay0.addRow(1, gag[ 1]);
-		lay0.addRow(2, gag[ 2]);
-
-		GridPane lay1 = new GridPane();
-		lay1.addRow(0, gag[ 3], gag[ 4]);
-		lay1.addRow(1, gag[ 5], gag[ 6]);
-		
-		GridPane lay2 = new GridPane();
-		lay2.addRow(0, gag[ 7], gag[ 9]);
-		lay2.addRow(1, gag[ 8], gag[10]);
-		lay2.addRow(2, gag[12]);
-		
-		JFXTabPane lay = new JFXTabPane();
-		Tab[] tab = {
-			new Tab("進氣/其他"),
-			new Tab("腔體"),
-			new Tab("壓縮機")
-		};
-		tab[0].setContent(lay0);
-		tab[1].setContent(lay1);
-		tab[2].setContent(lay2);
-		lay.getTabs().addAll(tab);
 		return lay;
 	}
 	
