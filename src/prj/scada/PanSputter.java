@@ -4,8 +4,6 @@ import java.io.File;
 
 import com.jfoenix.controls.JFXTabPane;
 
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
 import javafx.scene.Node;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
@@ -17,7 +15,6 @@ import javafx.scene.layout.GridPane;
 
 import javafx.stage.FileChooser;
 import javafx.stage.WindowEvent;
-import javafx.util.Duration;
 import narl.itrc.BoxLogger;
 import narl.itrc.BtnScript;
 import narl.itrc.Misc;
@@ -55,8 +52,8 @@ public class PanSputter extends PanBase {
 	
 	@Override
 	protected void eventShown(WindowEvent e){
-		//devPLC.startMonitor(true,"R01000-40", "X0000-24", "Y0000-40");
-		devPLC.startMonitor(false,"R01000-40", "X0000-24", "Y0000-40");
+		devPLC.startMonitor(true,"R01000-40", "X0000-24", "Y0000-40");
+		//devPLC.startMonitor(false,"R01000-40", "X0000-24", "Y0000-40");
 		mapper.hookPart(devPLC);
 	}
 

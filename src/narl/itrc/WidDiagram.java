@@ -5,7 +5,7 @@ import java.util.HashMap;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.event.EventHandler;
-
+import javafx.scene.Node;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
@@ -42,11 +42,9 @@ public class WidDiagram extends AnchorPane {
 		watcher.play();
 		
 		//setPickOnBounds(false);
-		setPrefSize(width, height);
-		
-		//setPickOnBounds(true);
-		//setPrefSize(width, height);
-		
+		setPickOnBounds(true);
+		setPrefSize(width, height);		
+
 		getStyleClass().add("pad-small");
 		//getChildren().addAll(pegged);
 	}
@@ -240,7 +238,7 @@ public class WidDiagram extends AnchorPane {
 				}
 				val-=stp;
 				eventChanged(val);
-				txtVal.setText(""+val);
+				update_text();
 			});
 			Button btnUp = new Button(">");
 			btnUp.setOnAction(e->{
@@ -249,10 +247,10 @@ public class WidDiagram extends AnchorPane {
 				}
 				val+=stp;
 				eventChanged(val);
-				txtVal.setText(""+val);
+				update_text();
 			});
 			txtVal = new TextField();			
-			txtVal.setPrefWidth(TILE_SIZE);
+			txtVal.setPrefWidth(TILE_SIZE*1.7);
 			txtVal.setOnAction(e->{
 				String txt = txtVal.getText();
 				try{
@@ -264,7 +262,7 @@ public class WidDiagram extends AnchorPane {
 				}catch(NumberFormatException h){
 					//do nothing, we will take back the origin value~~~
 				}
-				txtVal.setText(""+val);
+				update_text();
 			});
 			lay = new HBox();			
 			lay.setVisible(false);
@@ -282,33 +280,34 @@ public class WidDiagram extends AnchorPane {
 				"-fx-effect: dropshadow(three-pass-box, black, 10, 0, 0, 0);"		
 			);
 			lay.getChildren().addAll(btnDW,txtVal,btnUp);			
-			WidDiagram.this.getChildren().add(lay);			
+			WidDiagram.this.getChildren().add(lay);
 		}
 		public void setPanel(double gx, double gy){
 			AnchorPane.setLeftAnchor(lay, gx * TILE_SIZE);
 			AnchorPane.setTopAnchor (lay, gy * TILE_SIZE);
 		}
-		public int val=0, min=0, max=100, stp=1;
+		public float val=0, min=0, max=100, stp=1;
 		
-		public abstract void eventChanged(int newVal);			
+		public abstract void eventChanged(float newVal);			
 		public abstract void eventReload();		
 		@Override
 		public void handle(MouseEvent event) {
 			boolean flag = !lay.isVisible();
 			if(flag==true){
 				eventReload();
-				txtVal.setText(""+val);
+				update_text();
 			}
 			lay.setVisible(flag);
-		}		
+		}
+		private void update_text(){
+			txtVal.setText(String.format("%.1f", val));
+		}
 	}
 	
 	protected class ItemBrick extends ItemTile {
-		
 		public ItemBrick(String category, double gx, double gy){
 			locate(category,gx,gy);
 		}
-		
 		@Override
 		public void makeup() {
 			//Do nothing, brick don't need GUI event.
@@ -345,6 +344,11 @@ public class WidDiagram extends AnchorPane {
 	
 	protected Label addLabel(String title,double gx,double gy){
 		Label txt = new Label(title);
+		addLabel(txt, gx, gy);
+		return txt;
+	}
+
+	protected Label addLabel(Label txt,double gx,double gy){		
 		//txt.setStyle("-fx-font-size: 23px;-fx-border-color: #3375FF;");
 		txt.setStyle("-fx-font-size: 23px;");
 		AnchorPane.setLeftAnchor(txt, gx*TILE_SIZE);//why???
@@ -353,7 +357,19 @@ public class WidDiagram extends AnchorPane {
 		getChildren().add(txt);
 		return txt;
 	}
-
+	
+	protected void bringup_slider(){
+		int cnt = getChildren().size();
+		for(int i=0; i<cnt; i++){			
+			Node nd = getChildren().get(i);
+			if((nd instanceof ItemSlider)==false){
+				continue;
+			}			
+			ItemSlider itm = (ItemSlider)nd;			
+			getChildren().remove(itm.lay);			
+			getChildren().add(itm.lay);
+		}		
+	}
 
 	protected void redrawAll(){
 		lstItm.forEach((name,obj)->obj.redraw());
@@ -381,9 +397,12 @@ public class WidDiagram extends AnchorPane {
 	
 	protected static final String CATE_CHUCKA   = "chuck_a";
 	protected static final String CATE_CHUCKB   = "chuck_b";
+	protected static final String CATE_BURNER_A = "burner-dc-a";
+	protected static final String CATE_BURNER_C = "burner-rf-c";
 	protected static final String CATE_BAFFLE_A = "baffle_a";
 	protected static final String CATE_BAFFLE_B = "baffle_b";	
 	protected static final String CATE_BATTLE   = "battle";
+	protected static final String CATE_ICE      = "ice";	
 	protected static final String CATE_TOWER    = "tower-lamp";
 	
 	protected static final String CATE_PIPE_A = "pipe2_1";
@@ -417,8 +436,13 @@ public class WidDiagram extends AnchorPane {
 			{CATE_CHUCKA , "chuck-a1", "chuck-a2", "chuck-a3", "chuck-a4", "chuck-a5", "chuck-a6" },
 			{CATE_CHUCKB , "chuck-b1", "chuck-b2", "chuck-b3", "chuck-b4", "chuck-b5", "chuck-b6" },
 			//--------------//
-			{CATE_BAFFLE_A , "baffle-a1", "baffle-a2" },
-			{CATE_BAFFLE_B , "baffle-b1", "baffle-b2" },
+			{CATE_BURNER_A,"burner-a1", "burner-a2", "burner-a3", "burner-a4", },
+			{CATE_BURNER_C,"burner-c1", "burner-c2", "burner-c3", "burner-c4", },
+			//--------------//
+			{CATE_BAFFLE_A,"baffle-a1", "baffle-a2" },
+			{CATE_BAFFLE_B,"baffle-b1", "baffle-b2" },
+			//--------------//
+			{CATE_ICE     ,"ice"},
 			//--------------//
 			{CATE_BATTLE , "battle"},
 			//--------------//
