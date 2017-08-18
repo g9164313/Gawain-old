@@ -2,6 +2,8 @@ package prj.scada;
 
 import eu.hansolo.medusa.Gauge;
 import eu.hansolo.medusa.GaugeBuilder;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.beans.binding.NumberBinding;
 import javafx.beans.property.FloatProperty;
 import javafx.beans.property.IntegerProperty;
@@ -10,8 +12,12 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.scene.control.Label;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.media.MediaPlayer.Status;
+import javafx.util.Duration;
 import eu.hansolo.medusa.Gauge.SkinType;
 import narl.itrc.Misc;
 import narl.itrc.WidDiagram;
@@ -64,7 +70,7 @@ public class WidMapPumper extends WidDiagram {
 	//01 40 <-- PLC 讀取
 	public void hookPart(DevFatek dev){
 		//trick, we will manually initial all parts again.....
-		tower_lamp.hookRelay(dev);
+		towerLamp.hookRelay(dev);
 		
 		Arv.hookRelay(dev, 9);		
 		O2v.hookRelay(dev, 10);		
@@ -89,7 +95,7 @@ public class WidMapPumper extends WidDiagram {
 		
 		baffle.hookRelay(dev, 38);
 		
-		burner_dc1.hookRelay(dev, 128, 34);
+		burner_dc1.hookRelay(dev, 128, 34, 1112);
 		burner_dc1.attr[0].bind(dev.getMarker("R1010").multiply(1));
 		burner_dc1.attr[1].bind(dev.getMarker("R1011").multiply(1));
 		burner_dc1.attr[2].bind(dev.getMarker("R1012").multiply(1));
@@ -140,10 +146,10 @@ public class WidMapPumper extends WidDiagram {
 		return dev.getMarker("R1000").divide(8192.f).multiply(100.f);
 	}
 	private NumberBinding prop_Press_O2(DevFatek dev){
-		return dev.getMarker("R1001").divide(8192.f).multiply(100.f);
+		return dev.getMarker("R1001").divide(8192.f).multiply(40.f);
 	}
 	private NumberBinding prop_Press_N2(DevFatek dev){
-		return dev.getMarker("R1002").divide(8192.f).multiply(100.f);
+		return dev.getMarker("R1002").divide(8192.f).multiply(100.f);//scale may be wrong~~~
 	}
 	
 	private NumberBinding prop_Press_CH1(DevFatek dev){
@@ -239,14 +245,25 @@ public class WidMapPumper extends WidDiagram {
 					draw(1);//green light
 				}
 			}
-		};	
+		};
+		private DevFatek dev;
 		public void hookRelay(DevFatek dev){
+			this.dev = dev;
 			Y29 = dev.getMarker("Y0029");
 			Y30 = dev.getMarker("Y0030");
 			Y31 = dev.getMarker("Y0031");
 			Y29.addListener(event);
 			Y30.addListener(event);
 			Y31.addListener(event);
+		}
+		//public void showRed(){
+		//	dev.setNode(1, "M0029", 3, 4, 4);
+		//}
+		public void setYellow(){
+			dev.setNode(1, "M0029", 0, 1, 0);
+		}
+		public void setGreen(){
+			dev.setNode(1, "M0029", 0, 0, 1);
 		}
 	};
 	
@@ -378,6 +395,7 @@ public class WidMapPumper extends WidDiagram {
 	private class ItemBurnner extends ItemToggle {
 		public ItemBurnner(String category,double gx, double gy){
 			super(category,gx,gy);
+			biasAdjust.setCycleCount(Timeline.INDEFINITE);			
 		}
 		public Indicator[] attr = {
 			new Indicator(),
@@ -387,7 +405,7 @@ public class WidMapPumper extends WidDiagram {
 			new Indicator(),
 		};
 		private DevFatek dev;
-		private String pulsRelay, ctrlRelay;
+		private String pulsRelay, ctrlRelay, biasRegist;
 		private IntegerProperty nodeValue;
 		private final ChangeListener<Number> nodeEvent = new ChangeListener<Number>(){
 			@Override
@@ -405,22 +423,54 @@ public class WidMapPumper extends WidDiagram {
 				applyMakeup(flag);
 			}
 		};
-		public void hookRelay(DevFatek dev, int ex_idx, int idx){
+		public void hookRelay(DevFatek dev, int pulsIdx, int ctrlIdx, int biasIdx){
 			this.dev = dev;
-			pulsRelay = String.format("M%04d",ex_idx);
-			ctrlRelay = String.format("M%04d",idx);
-			nodeValue = dev.getMarker(String.format("Y%04d",idx));
+			pulsRelay = String.format("M%04d",pulsIdx);
+			ctrlRelay = String.format("M%04d",ctrlIdx);
+			biasRegist= String.format("R%05d",biasIdx);
+			nodeValue = dev.getMarker(String.format("Y%04d",ctrlIdx));
 			nodeValue.addListener(nodeEvent);
 			nodeEvent.changed(null, null, null);
 		}		
+		
+		public int biasMax = 200;
+		public int biasStp = 5;
+		public int biasCnt = 0;//When we start, we must set this first~~~
+		private EventHandler<ActionEvent> biasAdjustEvent = new EventHandler<ActionEvent>(){
+			@Override
+			public void handle(ActionEvent event) {
+				if(biasRegist==null || dev==null){
+					return;
+				}
+				if((biasCnt+biasStp)>biasMax){
+					biasAdjust.pause();											
+					return;
+				}
+				biasCnt+=biasStp;
+				dev.setRegister(1, biasRegist, biasCnt);
+				Misc.logv("writing - (%d)",biasCnt);
+			}
+		};
+		private Timeline biasAdjust = new Timeline(new KeyFrame(
+			Duration.seconds(0.25),
+			biasAdjustEvent
+		));
 		@Override
 		public void handle(MouseEvent event) {
-			if(nodeValue.get()==0){
-				dev.setNode(1, pulsRelay, 3);
-				dev.setNode(1, ctrlRelay, 3);
+			if(biasAdjust.getStatus().equals(Status.PLAYING) || nodeValue.get()!=0 ){
+				biasAdjust.pause();				
+				dev.setNode(1, ctrlRelay, 0);
+				//dev.setNode(1, pulsRelay, 4);
+				towerLamp.setGreen();
+				Misc.logv("DC1: -off-");
 			}else{				
-				dev.setNode(1, ctrlRelay, 4);
-				dev.setNode(1, pulsRelay, 4);
+				//biasAdjustEvent.handle(null);//why??
+				//dev.setNode(1, pulsRelay, 3);								
+				dev.setNode(1, ctrlRelay, 1);
+				biasCnt = 0;
+				biasAdjust.play();	
+				towerLamp.setYellow();
+				Misc.logv("DC1: -on-");
 			}
 			//applyMakeup();//test~~~~
 		}
@@ -474,13 +524,20 @@ public class WidMapPumper extends WidDiagram {
 		){
 			super(CATE_BATTLE, gx1,gy1, gx2,gy2);
 		}
+		private float scale = 100.f;
+		public ItmBattle setScale(float sv){
+			scale = sv;
+			return this;
+		}
 		@Override
 		public void eventChanged(float newVal) {
-			dev.setRegister(1, tkn[0], Math.round((newVal*8192)/100) );
+			newVal = (newVal * 8192) / scale;
+			dev.setRegister(1, tkn[0], Math.round(newVal));
 		}
 		@Override
 		public void eventReload() {
-			val = ((dev.getRegister(1,tkn[1]))*100)/8192.f;
+			int v = dev.getRegister(1,tkn[1]);
+			val = (v*scale)/8192.f;
 		}
 	};	
 	private class ItmChiller extends ItmSNode {
@@ -552,7 +609,7 @@ public class WidMapPumper extends WidDiagram {
 		create_gauge("離心機電流", "A", 0., 5.);			
 	}*/
 	
-	private ItmTowerLamp tower_lamp = new ItmTowerLamp(7.5, 2);
+	private ItmTowerLamp towerLamp = new ItmTowerLamp(7.5, 2);
 	
 	private Indicator tempChamber2 = new Indicator("腔體溫度", "°C", 0., 30.);
 	private Indicator tempChiller  = new Indicator("冰水機", "°C", 0., 30.);
@@ -575,8 +632,8 @@ public class WidMapPumper extends WidDiagram {
 	private ItemBurnner burner_dc1 = new ItemBurnner(CATE_BURNER_A, 7.5, 7.5);
 	private ItemBurnner burner_rf1 = new ItemBurnner(CATE_BURNER_C, 10 , 7.5);
 
-	private ItmSNode Arb = new ItmBattle(0,2, 0.7,3).setRange(0, 50, 1);
-	private ItmSNode O2b = new ItmBattle(0,5, 0.7,6).setRange(0, 50, 1);
+	private ItmSNode Arb = new ItmBattle(0,2, 0.7,3).setScale(100.f).setRange(0, 50, 1);
+	private ItmSNode O2b = new ItmBattle(0,5, 0.7,6).setScale(40.f).setRange(0, 50, 1);
 	private ItmSNode N2b = new ItmBattle(0,8, 0.7,9).setRange(0, 50, 1);
 	
 	private ItmSNode chiller = new ItmChiller(15.5,8).setRange(0, 25, 1);
@@ -632,12 +689,12 @@ public class WidMapPumper extends WidDiagram {
 		addLabel(presChamber1.txt,18,3);		
 		addLabel(presChamber2.txt,13.5,3);
 		
-		addItem("tower",tower_lamp);
+		addItem("tower",towerLamp);
 		
 		addItem("burner-dc1",burner_dc1);
-		burner_dc1.attr[0].set("DC1功率", "W", 0, 200);
-		burner_dc1.attr[1].set("DC1電壓", "V", 0, 200);
-		burner_dc1.attr[2].set("DC1電流","mA", 0, 200);
+		burner_dc1.attr[0].set("DC1功率", "W", 0, 500);
+		burner_dc1.attr[1].set("DC1電壓", "V", 0, 5000);
+		burner_dc1.attr[2].set("DC1電流","mA", 0, 500);
 		addLabel(burner_dc1.attr[0].txt, 7.5, 5);
 		addLabel(burner_dc1.attr[1].txt, 7.5, 6);
 		addLabel(burner_dc1.attr[2].txt, 7.5, 7);

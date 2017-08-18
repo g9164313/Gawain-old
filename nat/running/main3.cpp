@@ -208,7 +208,7 @@ void shape_gain(Mat& dat){
 }
 
 
-int main(int argc, char* argv[]) {
+int main1(int argc, char* argv[]) {
 
 
 	Mat src = imread("reg-xxr.bmp");
@@ -266,7 +266,7 @@ int main2(int argc, char* argv[]) {
 }
 //-------------------------------//
 
-int main1(int argc, char* argv[]) {
+int main3(int argc, char* argv[]) {
 
 	long width = (1<<15);
 	long height= (1<<15);
@@ -322,7 +322,7 @@ int main1(int argc, char* argv[]) {
 
 //--------------------------------------------//
 
-int example_main(int argc, char** argv){
+int main4(int argc, char** argv){
 
     Mat Img = imread("F:\\ImagesForTest\\lena.jpg", 0); // Source image
     Img.convertTo(Img, CV_32FC1, 1.0 / 255.0);
@@ -351,6 +351,55 @@ int example_main(int argc, char** argv){
 
     return 0;
 }
+//------------------------------//
+
+struct RAW_HEAD {
+	uint32_t type;
+	uint32_t rows;
+	uint32_t cols;
+	uint32_t tileFlag;
+	uint32_t tileRows;
+	uint32_t tileCols;
+};
+
+int main(int argc, char** argv){
+	//try to read some old file
+
+	FILE* fd = fopen("pano.3.raw","r");
+
+	RAW_HEAD hd;
+
+	fread(&hd,sizeof(hd),1,fd);
+
+	size_t total = hd.cols*hd.rows;
+
+	uint8_t* buf = new uint8_t[total];
+
+	for(int j=0; j<hd.tileRows; j++){
+
+		for(int i=0; i<hd.tileCols; i++){
+
+			fread(buf,total,1,fd);
+
+			Mat img(hd.rows,hd.cols,hd.type,buf);
+
+			char name[100];
+			sprintf(name,"./pano/img+%02d+%02d.png",i,j);
+			imwrite(name,img);
+
+			cout<<"dump "<<name<<endl;
+		}
+	}
+
+	delete buf;
+
+	fclose(fd);
+
+	cout<<"done"<<endl;
+
+	return 0;
+}
+
 
 
 

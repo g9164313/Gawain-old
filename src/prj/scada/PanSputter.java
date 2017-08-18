@@ -70,7 +70,7 @@ public class PanSputter extends PanBase {
 		});		
 		root.setCenter(mapper);
 		root.setRight(lay_action());
-		root.setBottom(lay_inform());
+		//root.setBottom(lay_inform());
 		return root;
 	}
 	
@@ -125,23 +125,14 @@ public class PanSputter extends PanBase {
 			}	
 		});
 		
-		final Button btnTest2 = PanBase.genButton2("測試-2",null);
+		final Button btnTest2 = PanBase.genButton2("SPIK2K-on",null);
 		btnTest2.setOnAction(event->{
-			//tower lamp - yellow light
-			if(devPLC.getMarker("Y0030").get()==0){
-				devPLC.setNode(1, "M0030", 3);
-			}else{
-				devPLC.setNode(1, "M0030", 4);
-			}
+			devPLC.setNode(1, "M0128", 3);
 		});
 		
-		final Button btnTest3 = PanBase.genButton2("測試-3",null);
+		final Button btnTest3 = PanBase.genButton2("SPIK2K-off",null);
 		btnTest3.setOnAction(event->{
-			if(devPLC.getMarker("Y0022").get()==0){
-				devPLC.setNode(1, "M0022", 3);
-			}else{
-				devPLC.setNode(1, "M0022", 4);
-			}
+			devPLC.setNode(1, "M0128", 4);
 		});
 		
 		final Button btnPLC = PanBase.genButton2("PLC 設定",null);
