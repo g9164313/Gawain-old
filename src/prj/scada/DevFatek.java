@@ -639,6 +639,26 @@ public class DevFatek extends DevTTY {
 	};
 	private Task<Void> tskMonitor;
 	
+	/**
+	 * token present node list, like "R01000-47". <p>
+	 * It will monitor register from R01000 to R01047.<p>
+	 * @param token - 
+	 */
+	public void startMonitor(boolean starter,String... token){
+		if(tskMonitor!=null){
+			if(tskMonitor.isRunning()==true){
+				return;
+			}
+		}
+		for(String tkn:token){
+			lstMark.add(new Marker(tkn));
+		}
+		tskMonitor = new TskMonitor();
+		if(starter==true){
+			new Thread(tskMonitor,"Monitor-Fatek-PLC").start();
+		}
+	}
+	
 	private static class Marker {
 		private String name;
 		private int size = 0;
@@ -712,26 +732,6 @@ public class DevFatek extends DevTTY {
 			}
 		}		
 		return null;
-	}
-	
-	/**
-	 * token present node list, like "R01000-47". <p>
-	 * It will monitor register from R01000 to R01047.<p>
-	 * @param token - 
-	 */
-	public void startMonitor(boolean starter,String... token){
-		if(tskMonitor!=null){
-			if(tskMonitor.isRunning()==true){
-				return;
-			}
-		}
-		for(String tkn:token){
-			lstMark.add(new Marker(tkn));
-		}
-		tskMonitor = new TskMonitor();
-		if(starter==true){
-			new Thread(tskMonitor,"Fatek-PLC-monitor").start();
-		}
 	}
 	//------------------------------------------//
 	

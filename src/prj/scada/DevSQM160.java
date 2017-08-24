@@ -14,9 +14,6 @@ import javafx.beans.property.SimpleFloatProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
-import javafx.concurrent.Task;
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -27,7 +24,7 @@ import javafx.scene.control.Spinner;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import narl.itrc.DevTTY;
-import narl.itrc.Misc;
+import narl.itrc.Gawain;
 import narl.itrc.PanBase;
 
 /**
@@ -37,7 +34,154 @@ import narl.itrc.PanBase;
  *
  */
 public class DevSQM160 extends DevTTY {
+	
+	public DevSQM160(String path) {
+		this();
+		connect(path);
+	}
 
+	public DevSQM160() {
+	}
+	
+	/**
+	 * connect TTY port and prepare to send commands.<p>
+	 * @param path - device name or full name
+	 * @return TRUE-success,<p> FALSE-fail to open TTY port
+	 */
+	public boolean connect(String path){
+		return (open(path)>0L)?(true):(false);
+	}
+	
+	/**
+	 * Convenient way to connect device.It is same as 'connect(path)', but path is got from property file.
+	 * @return - true/false
+	 */
+	public boolean connect(){
+		String path = Gawain.prop.getProperty("DevSQM160", null);
+		if(path==null){
+			return false;
+		}
+		return connect(path);
+	}
+	
+	/**
+	 * just close TTY device
+	 */
+	public void disconnect(){
+		close();
+	}
+	//--------------------------------//
+		
+	public String exec(String cmd){
+		send_command(cmd);
+		return have_response();
+	}
+	
+	public String exec(String cmd,boolean sync){
+		send_command(cmd,sync);
+		return have_response();
+	}
+	
+	private void send_command(String cmd){
+		send_command(cmd,true);
+	}
+	
+	private void send_command(String cmd,boolean sync){
+		char len = (char) (cmd.length() + 34);
+		cmd = len + cmd;
+		short val = calc_CRC(cmd.toCharArray());
+		char crc1 = (char)(crcLow(val));
+		char crc2 = (char)(crcHigh(val));
+		cmd = cmd + crc1 + crc2;
+		if(sync==true){
+			cmd = '!' + cmd;
+		}
+		writeTxt(cmd);
+	}
+	
+	private String have_response(){
+		char tkn;
+		short val1,val2;
+		
+		//first, wait 'Sync' character
+		do{
+			tkn = readChar();
+		}while(tkn!='!');
+		
+		//second byte is the length of response message.
+		tkn = readChar();
+		val2 = (short)(tkn-34-1);
+		String resp = "";
+		for(val1=0; val1<val2; val1++){
+			tkn = readChar();
+			resp = resp + tkn;
+		}
+		
+		//get the final CRC code
+		tkn = readChar();
+		val1 = (short) (val1 + (int)tkn - 34);
+		tkn = readChar();
+		val2 = (short) (val1 + (int)tkn - 34);
+		val2 = (short)(val2 << 8);
+		
+		val1 = (short)(val2 | val1);
+		val2 = calc_CRC(resp.toCharArray());
+		
+		if(val1!=val2){
+			//how to deal with this condition????
+		}
+		return resp;
+	}
+	
+	/**
+	 * calculate CRC value, Attention, Message only contains length and  
+	 * @param msg - command, excluding Sync and CRC
+	 * @return CRC value
+	 */
+	private short calc_CRC(char[] msg) {
+		short crc = 0;
+		short tmpCRC;
+		if (msg.length > 0) {
+			crc = (short) 0x3fff;
+			for (int jx=0; jx<msg.length; jx++) {
+				crc = (short) (crc ^ (short) msg[jx]);
+				for (int ix = 0; ix < 8; ix++) {
+					tmpCRC = crc;
+					crc = (short) (crc >> 1);
+					if ((tmpCRC & 0x1) == 1) {
+						crc = (short) (crc ^ 0x2001);
+					}
+				}
+				crc = (short) (crc & 0x3fff);
+			}
+		}
+		return crc;
+	}
+
+	private byte crcLow(short crc) {
+		byte val = (byte) ((crc & 0x7f) + 34);
+		return val;
+	}
+	
+	private byte crcHigh(short crc) {
+		byte val = (byte) (((crc >> 7) & 0x7f) + 34);
+		return val;
+	}
+	//--------------------------------//
+
+	@Override
+	protected boolean taskStart(){
+		return true;
+	}
+	@Override
+	protected boolean taskLooper(){
+		return true;
+	}
+	public void startMonitor(){
+		super.startMonitor("Monitor-SQM160",500L);
+	}
+	//--------------------------------//
+	
 	/**
 	 * we can get information about thickness, rate, frequency for each sensor. <p>
 	 */
@@ -169,192 +313,7 @@ public class DevSQM160 extends DevTTY {
 		public BooleanProperty propEtch = new SimpleBooleanProperty(false);//'0' indicate Etch mode is OFF.
 	};
 	private TypeSystem system = new TypeSystem();//this structure includes all system parameters
-		
-	public DevSQM160(String path) {
-		this();
-		connect(path);
-	}
-
-	public DevSQM160() {
-	}
 	
-	/**
-	 * connect TTY port and prepare to send commands.<p>
-	 * @param path - device name or full name
-	 * @return TRUE-success,<p> FALSE-fail to open TTY port
-	 */
-	public boolean connect(String path){
-		if(open(path,"19200,8n1")<=0L){
-			return false;
-		}
-		//dig up information~~~
-		return (open(path)>0L)?(true):(false);
-	}
-	
-	/**
-	 * just close TTY device
-	 */
-	public void disconnect(){
-		close();
-	}
-
-	/**
-	 * keep the last command which user send~~~
-	 */
-	private StringProperty propLastCommand = new SimpleStringProperty("");
-	
-	/**
-	 * keep the last command status~~~
-	 */
-	private StringProperty propLastStatus = new SimpleStringProperty("");
-	
-	/**
-	 * keep the last message from device~~~
-	 */
-	private StringProperty propLastMessage = new SimpleStringProperty("");
-	
-	/**
-	 * Implement SQM-160 communications protocol.<p>
-	 * Exclude 'sync' character, length and CRC.<p>
-	 * It will synchronize fetch response packet.<p>
-	 * @param cmd - just command, excluding 'sync' character, length and CRC
-	 * @return
-	 */
-	public String exec(String cmd) {
-		send_command(cmd);
-		update_response(have_response());		
-		return propLastMessage.get();
-	}
-
-	private Task<String> tskExec = null;
-	/**
-	 * Implement SQM-160 communications protocol.<p>
-	 * It is same as "exec", but response is taken by another thread.<p>
-	 * Just an a-synchronize response process.<p>
-	 * @param cmd - just command, excluding 'sync' character, length and CRC
-	 * @param event - callback event
-	 * @return
-	 */
-	public void exec(
-		String cmd,
-		EventHandler<ActionEvent> event
-	) {
-		send_command(cmd);
-		
-		if(tskExec!=null){
-			if(tskExec.isRunning()==true){
-				Misc.logw("DevSQM160-exec is running");
-				return;
-			}
-		}		
-		tskExec = new Task<String>(){
-			@Override
-			protected String call() throws Exception {
-			
-				return null;
-			}
-		};
-		tskExec.setOnSucceeded(e->{
-			update_response(tskExec.valueProperty().get());
-			event.handle(new ActionEvent(propLastMessage.get(),null));
-		});
-		new Thread(tskExec,"DevSQM160-exec").start();
-	}
-	
-	private void send_command(String cmd){
-		
-		char tkn = (char) (cmd.length() + 34);
-		
-		cmd = "!" + tkn + cmd;
-		
-		short val = calcCrc(cmd.toCharArray());
-		
-		char crc1 = (char)(crcLow(val));
-		
-		char crc2 = (char)(crcHigh(val));
-		
-		cmd = cmd + crc1  + crc2;
-		
-		propLastCommand.set(cmd);
-		
-		writeTxt(cmd);
-	}
-	
-	private String have_response(){
-		char tkn;
-		short val1,val2;
-		
-		//first, wait 'Sync' character
-		do{
-			tkn = readChar();
-		}while(tkn!='!');
-		
-		//second byte is the length of response message.
-		tkn = readChar();
-		val2 = (short)(tkn-34);
-		String resp = "";
-		for(val1=0; val1<val2; val1++){
-			tkn = readChar();
-			resp = resp + tkn;
-		}
-		
-		//get the final CRC code
-		tkn = readChar();			
-		val1 = (short) (val1 + (int)tkn - 34);
-		tkn = readChar();
-		val2 = (short) (val1 + (int)tkn - 34);
-		val2 = (short)(val2 << 8);
-		
-		val1 = (short)(val2 | val1);
-		val2 = calcCrc(resp.toCharArray());
-		
-		if(val1!=val2){
-			//how to deal with this condition????
-		}
-		return resp;
-	}
-	
-	private void update_response(String resp){
-		switch(resp.charAt(0)){
-		case 'A': propLastStatus.set("Normal response"); break;
-		case 'C': propLastStatus.set("Invalid command - "+propLastCommand.get()); break;
-		case 'D': propLastStatus.set("Problem with data command"); break; 
-		}
-		propLastMessage.set(resp.substring(1));
-	}
-	
-	private short calcCrc(char[] str) {
-		short crc = 0;
-		short tmpCRC;
-		int length = 1 + str[1] - 34;
-		if (length > 0) {
-			crc = (short) 0x3fff;
-			for (int jx = 1; jx <= length; jx++) {
-				crc = (short) (crc ^ (short) str[jx]);
-				for (int ix = 0; ix < 8; ix++) {
-					tmpCRC = crc;
-					crc = (short) (crc >> 1);
-					if ((tmpCRC & 0x1) == 1) {
-						crc = (short) (crc ^ 0x2001);
-					}
-				}
-				crc = (short) (crc & 0x3fff);
-			}
-		}
-		return crc;
-	}
-
-	private byte crcLow(short crc) {
-		byte val = (byte) ((crc & 0x7f) + 34);
-		return val;
-	}
-	
-	private byte crcHigh(short crc) {
-		byte val = (byte) (((crc >> 7) & 0x7f) + 34);
-		return val;
-	}
-	//--------------------------------//
-
 	/**
 	 * Film name, it must be changed manually~~~~
 	 */
@@ -469,8 +428,7 @@ public class DevSQM160 extends DevTTY {
 			final int BTN_SIZE = 100;
 			
 			Label txtStatus = new Label();
-			txtStatus.textProperty().bind(propLastStatus);
-			
+
 			Button btn1 = PanBase.genButton3("更新", "sync.png");
 			btn1.setPrefWidth(BTN_SIZE);
 			btn1.setOnAction(event->{
@@ -610,8 +568,7 @@ public class DevSQM160 extends DevTTY {
 		private void bottom_ctrl(GridPane root){
 			
 			Label txtStatus = new Label();
-			txtStatus.textProperty().bind(propLastStatus);
-			
+
 			final int BTN_SIZE = 100;
 			Button btn1 = PanBase.genButton3("更新", "sync.png");
 			btn1.setPrefWidth(BTN_SIZE);

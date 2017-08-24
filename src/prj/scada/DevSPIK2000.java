@@ -1,19 +1,10 @@
 package prj.scada;
 
-import javafx.beans.property.IntegerProperty;
-import javafx.beans.property.SimpleIntegerProperty;
-import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.property.StringProperty;
-import javafx.geometry.Orientation;
-import javafx.geometry.Pos;
+import javafx.concurrent.Task;
 import javafx.scene.Node;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.Separator;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
-import javafx.stage.WindowEvent;
 import narl.itrc.DevTTY;
+import narl.itrc.Gawain;
 import narl.itrc.PanBase;
 
 /**
@@ -34,16 +25,22 @@ public class DevSPIK2000 extends DevTTY {
 	 * @return TRUE-success,<p> FALSE-fail to open TTY port
 	 */
 	public boolean connect(String path){
-		if(open(path,"19200,8n1")<=0L){
-			return false;
-		}
-		return true;
+		return (open(path)>0L)?(true):(false);
 	}
 	
-	/**
-	 * just close TTY device
-	 */
-	public void disconnect(){
+	public boolean connect(){
+		String path = Gawain.prop.getProperty("DevSPIK2K", null);
+		if(path==null){
+			return false;
+		}
+		return connect(path);
+	}
+	
+	@Override	
+	protected void eventTurnOff(){
+		if(core!=null){
+			core.cancel();
+		}
 		close();
 	}
 	//--------------------------------//
@@ -56,85 +53,81 @@ public class DevSPIK2000 extends DevTTY {
 	//[ F   ] - status, ??
 	//[ M   ] - measurement, just a read-only register??
 	//[ P   ] - preserve ??
-	
-	public StringProperty stat_Operation1 = new SimpleStringProperty();	
-	public StringProperty stat_Operation2 = new SimpleStringProperty();
+	//private int[] variable = new int[50]; 
 	
 	/**
 	 * Address --> 02
 	 * Range--> 0:Serial1, 1:Serial2, 2:HMS-module, 3:Dualport-RAM 
 	 */
-	public IntegerProperty prop_ComState = new SimpleIntegerProperty();
+
+	//public IntegerProperty meas_DC2_P_Act  = new SimpleIntegerProperty();
 	
-	public StringProperty stat_Error = new SimpleStringProperty();
+	//private static final byte STX = 0x02;
+	//private static final byte ETX = 0x03;
+	//private static final byte DLE = 0x10;
+	//private static final byte NAK = 0x15;
+	//private static final byte REV = (byte)0xFF;
 	
-	public IntegerProperty prop_Puls_Pos  = new SimpleIntegerProperty();
-	public IntegerProperty prop_Pause_Pos = new SimpleIntegerProperty();
-	public IntegerProperty prop_Puls_Neg  = new SimpleIntegerProperty();
-	public IntegerProperty prop_Pause_Neg = new SimpleIntegerProperty();
+	public void getVariable(int addr,int cnt){
+		/*final byte[] buf = { 
+			0x00, 0x00,
+			'E', 'D',
+			0x00, 0x13,
+			0x00, 0x07,
+			REV, REV,
+			DLE, ETX,
+			(byte) 0xA5
+		};
+		writeBuf(buf);
+		//writeByte(DLE);
+		byte[] res = readBuf();		
+		//writeByte(DLE);*/
+		return;
+	}
 	
-	public IntegerProperty prop_ARC_Level_Pos = new SimpleIntegerProperty();
-	public IntegerProperty prop_ARC_Level_Neg = new SimpleIntegerProperty();
-	public IntegerProperty prop_ARC_Delay     = new SimpleIntegerProperty();
-	public IntegerProperty prop_ARC_Overflow  = new SimpleIntegerProperty();
-	public IntegerProperty prop_ARC_Intervall = new SimpleIntegerProperty();
-	
-	public IntegerProperty prop_DC1_V_Set  = new SimpleIntegerProperty();
-	public IntegerProperty prop_DC1_I_Set  = new SimpleIntegerProperty();
-	public IntegerProperty prop_DC1_P_Set  = new SimpleIntegerProperty();
-	public IntegerProperty prop_DC2_V_Set  = new SimpleIntegerProperty();
-	public IntegerProperty prop_DC2_I_Set  = new SimpleIntegerProperty();
-	public IntegerProperty prop_DC2_P_Set  = new SimpleIntegerProperty();
-	
-	public IntegerProperty meas_ARC_count  = new SimpleIntegerProperty();
-	public IntegerProperty meas_DC1_V_Act  = new SimpleIntegerProperty();
-	public IntegerProperty meas_DC1_I_Act  = new SimpleIntegerProperty();
-	public IntegerProperty meas_DC1_P_Act  = new SimpleIntegerProperty();
-	public IntegerProperty meas_DC2_V_Act  = new SimpleIntegerProperty();
-	public IntegerProperty meas_DC2_I_Act  = new SimpleIntegerProperty();
-	public IntegerProperty meas_DC2_P_Act  = new SimpleIntegerProperty();
-	
-	private final double TXT_SIZE = 77.;
-	private final String TXT_DC1 = "--- DC 1 ---";
-	private final String TXT_DC2 = "--- DC 2 ---";
-	
-	@Override
-	protected Node eventLayout(PanBase pan) {
+	public int getVariable(int addr){
+		int res = 0;;
 		
+		return res;
+	}
+	
+	/*private void waitFor(byte tkn){
+		Byte res=null;
+		for(;;){
+			res = readOneByte();
+			if(res!=null){
+				if(res==tkn){
+					break;
+				}
+			}			
+		}
+	}*/
+	
+	private class TskMonitor extends Task<Long>{
+		private long tick = 0;
+		@Override
+		protected Long call() throws Exception {
+			
+			updateValue(++tick);
+			return 0L;
+		}
+	};
+	private TskMonitor core; 
+	
+	public void startMonitor(){
+		core = new TskMonitor();
+		new Thread(core,"SPIK-monitor").start();
+	}
+
+	@Override
+	protected Node eventLayout(PanBase pan) {		
 		GridPane root = new GridPane();//show all sensor
 		root.getStyleClass().add("grid-medium");
 		
-		Label val;
-		
-		val = new Label();
-		val.setPrefWidth(TXT_SIZE);
-		val.textProperty().bind(stat_Operation1);
-		root.add(new Label("Mode："), 0, 1);
-		root.add(val, 1, 1);
-		
-		val = new Label();
-		val.setPrefWidth(TXT_SIZE);
-		val.textProperty().bind(stat_Operation2);
-		root.add(new Label("State："), 0, 2);
-		root.add(val, 1, 2);
-		
-		val = new Label();
-		val.setPrefWidth(TXT_SIZE);
-		val.textProperty().bind(stat_Error);
-		root.add(new Label("Error："), 0, 3);
-		root.add(val, 1, 3);
-		
-		Button btn1 = PanBase.genButton2("設定裝置","");
-		btn1.setMaxWidth(Double.MAX_VALUE);
-		btn1.setOnAction(e->{ panSetting.popup(); });
-		root.add(btn1, 0, 4, 2, 1);
-		
-		root.add(new Separator(Orientation.VERTICAL), 2, 0, 1, 5);
-		root.add(gen_inform(), 3, 0, 5, 5);
 		return root;
 	}
 	
-	private GridPane gen_inform(){
+	/*private GridPane gen_inform(){
 		
 		GridPane root = new GridPane();//show all sensor
 		root.getStyleClass().add("grid-medium");
@@ -176,9 +169,9 @@ public class DevSPIK2000 extends DevTTY {
 		root.add(txtMeas[6], 2, 3);
 		root.add(txtMeas[7], 2, 4);
 		return root;
-	}
+	}*/
 	
-	private class PanSetting extends PanBase {
+	/*private class PanSetting extends PanBase {
 		
 		public PanSetting(){
 			propTitle.set("SPIK-2000 設定畫面");
@@ -249,5 +242,5 @@ public class DevSPIK2000 extends DevTTY {
 			return root;
 		}
 	};
-	private PanSetting panSetting = new PanSetting();
+	private PanSetting panSetting = new PanSetting();*/
 }

@@ -2,20 +2,16 @@ package prj.scada;
 
 import java.io.File;
 
-import com.jfoenix.controls.JFXTabPane;
-
 import javafx.scene.Node;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.Tab;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 
 import javafx.stage.FileChooser;
 import javafx.stage.WindowEvent;
-import narl.itrc.BoxLogger;
 import narl.itrc.BtnScript;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
@@ -28,46 +24,47 @@ public class PanSputter extends PanBase {
 		customStyle = "-fx-background-color: white;";
 	}
 	
-	//private DevSQM160 devSQM160 = new DevSQM160();
-	
-	//private DevSPIK2000 devSPIK2K = new DevSPIK2000();
-	
 	private DevFatek devPLC = new DevFatek();
-
-	private WidMapPumper mapper = new WidMapPumper();
+	private DevSQM160 devSQM = new DevSQM160();
+	private DevSPIK2000 devSPIK = new DevSPIK2000();
+		
+	private WidMapPID mapper = new WidMapPID();
 	
-	private String nameScript = Misc.pathSock+"test.js";
-
 	private BtnScript btnExec = new BtnScript("執行",this);
-
+	private String nameScript = Misc.pathSock+"test.js";
+	
 	@Override
 	protected void eventShowing(WindowEvent e){		
 		//hook each action of indicator, motor, valve or pump
-		if(devPLC.connect()==false){
-			Misc.logv("fail to connect PLC(%s)\n",devPLC.getName());
+		if(devPLC.connect()==true){
+			Misc.logv("connect FATEK PLC...");
 		}else{
-			Misc.logv("connect FATEK PLC device...");
+			Misc.logv("fail to connect PLC(%s)",devPLC.getName());
+		}
+		if(devSQM.connect()==true){
+			Misc.logv("connect SQM160...");
+		}else{
+			Misc.logv("fail to connect SQM160(%s)",devSQM.getName());
+		}
+		if(devSPIK.connect()==true){
+			Misc.logv("connect SPIK2000A...");
+		}else{
+			Misc.logv("fail to connect SPIK2000A(%s)",devSPIK.getName());
 		}
 	}
 	
 	@Override
 	protected void eventShown(WindowEvent e){
-		devPLC.startMonitor(true,"R01000-40", "X0000-24", "Y0000-40");
-		//devPLC.startMonitor(false,"R01000-40", "X0000-24", "Y0000-40");
+		devPLC.startMonitor(true,"R01000-40","X0000-24","Y0000-40","Y0120-8");
+		//devPLC.startMonitor(false,"R01000-40","X0000-24","Y0000-40","Y0120-8");
+		devSQM.startMonitor();
 		mapper.hookPart(devPLC);
 	}
 
 	BorderPane root = new BorderPane();
 	
 	@Override
-	public Node eventLayout(PanBase pan) {
-		
-		Button btn = new Button("test");
-		btn.setMaxWidth(Double.MAX_VALUE);
-		btn.setOnAction(event->{
-			//spinning(true);
-			Misc.logv("---check---");
-		});		
+	public Node eventLayout(PanBase pan) {		
 		root.setCenter(mapper);
 		root.setRight(lay_action());
 		//root.setBottom(lay_inform());
@@ -113,29 +110,31 @@ public class PanSputter extends PanBase {
 		btnEdit.setOnAction(event->{
 		});
 
-		final Button btnTest1 = PanBase.genButton2("測試-1",null);
+		final Button btnTest1 = PanBase.genButton2("test-1",null);
 		btnTest1.setOnAction(event->{
 			//tower lamp - red light
-			if(devPLC.getMarker("Y0029").get()==0){
+			/*if(devPLC.getMarker("Y0029").get()==0){
 				devPLC.setNode(1, "M0029", 3);
 				devPLC.setNode(1, "M0028", 3);
 			}else{
 				devPLC.setNode(1, "M0029", 4);
 				devPLC.setNode(1, "M0028", 4);
-			}	
+			}*/
+			String msg = devSQM.exec("@");
+			System.out.println("==>"+msg);
 		});
 		
-		final Button btnTest2 = PanBase.genButton2("SPIK2K-on",null);
+		final Button btnTest2 = PanBase.genButton2("test-2",null);
 		btnTest2.setOnAction(event->{
-			devPLC.setNode(1, "M0128", 3);
+			devSPIK.getVariable(-1,-1);
 		});
 		
-		final Button btnTest3 = PanBase.genButton2("SPIK2K-off",null);
+		final Button btnTest3 = PanBase.genButton2("test-3",null);
 		btnTest3.setOnAction(event->{
 			devPLC.setNode(1, "M0128", 4);
 		});
 		
-		final Button btnPLC = PanBase.genButton2("PLC 設定",null);
+		final Button btnPLC = PanBase.genButton2("PLC setting",null);
 		btnPLC.setOnAction(event->{
 			devPLC.showConsole("Fatek PLC");
 		});
@@ -150,7 +149,7 @@ public class PanSputter extends PanBase {
 		return lay;
 	}
 	
-	private Node lay_inform(){
+	/*private Node lay_inform(){
 		JFXTabPane lay = new JFXTabPane();
 		lay.setPrefHeight(200.);
 		Tab tab = new Tab();
@@ -158,5 +157,5 @@ public class PanSputter extends PanBase {
 		tab.setContent(new BoxLogger());
 		lay.getTabs().add(tab);
 		return lay;
-	}	
+	}*/	
 }

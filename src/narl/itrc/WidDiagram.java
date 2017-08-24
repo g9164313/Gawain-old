@@ -8,13 +8,10 @@ import javafx.event.EventHandler;
 import javafx.scene.Node;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.util.Duration;
@@ -28,9 +25,13 @@ public class WidDiagram extends AnchorPane {
 	private double width = DEFAULT_GRID*TILE_SIZE;
 	private double height= DEFAULT_GRID*TILE_SIZE; 
 	
-	//private AnchorPane pegged = new AnchorPane();//speical layout for hooking!!!
-	
 	public WidDiagram(){
+		init();
+	}
+	
+	public WidDiagram(int gridWidth, int gridHeight){
+		width = gridWidth *TILE_SIZE;
+		height= gridHeight*TILE_SIZE;
 		init();
 	}
 	
@@ -202,13 +203,14 @@ public class WidDiagram extends AnchorPane {
 	};
 
 	protected abstract class ItemSlider extends ItemTile 
-		implements EventHandler<MouseEvent>
+		implements EventHandler<MouseEvent>, FieldNumSlider.EventHook
 	{
+		protected FieldNumSlider field = new FieldNumSlider(this);
+		
 		public ItemSlider(){
 			super();
 			setOnMouseClicked(this);
 			prepare_cursor();
-			prepare_field();
 		}		
 		public ItemSlider(
 			String category, 
@@ -225,82 +227,16 @@ public class WidDiagram extends AnchorPane {
 			locate(category,gx1,gy1);
 			setOnMouseClicked(this);
 			prepare_cursor();
-			prepare_field();
-			setPanel(gx2,gy2);
+			
+			field.txt.setPrefWidth(TILE_SIZE*1.7);
+			WidDiagram.this.getChildren().add(field);			
+			AnchorPane.setLeftAnchor(field, gx2*TILE_SIZE);
+			AnchorPane.setTopAnchor (field, gy2*TILE_SIZE);
 		}		
-		private HBox lay;
-		private TextField txtVal;
-		private void prepare_field(){
-			Button btnDW = new Button("<");
-			btnDW.setOnAction(e->{
-				if((val-stp)<min){
-					return;
-				}
-				val-=stp;
-				eventChanged(val);
-				update_text();
-			});
-			Button btnUp = new Button(">");
-			btnUp.setOnAction(e->{
-				if(max<(val+stp)){
-					return;
-				}
-				val+=stp;
-				eventChanged(val);
-				update_text();
-			});
-			txtVal = new TextField();			
-			txtVal.setPrefWidth(TILE_SIZE*1.7);
-			txtVal.setOnAction(e->{
-				String txt = txtVal.getText();
-				try{
-					int _v = Integer.valueOf(txt);
-					if(min<=_v && _v<=max){
-						val = _v;
-						eventChanged(val);
-					}				
-				}catch(NumberFormatException h){
-					//do nothing, we will take back the origin value~~~
-				}
-				update_text();
-			});
-			lay = new HBox();			
-			lay.setVisible(false);
-			//lay.setStyle(
-			//	"-fx-background-color: palegreen; "+
-			//	"-fx-padding: 13;"+
-			//	"-fx-spacing: 7; "+
-			//	"-fx-background-radius: 10; "+		
-			//	"-fx-effect: dropshadow(three-pass-box, black, 10, 0, 0, 0);"		
-			//);
-			lay.setStyle(
-				"-fx-background-color: palegreen; "+
-				"-fx-padding: 4;"+
-				"-fx-background-radius: 5; "+		
-				"-fx-effect: dropshadow(three-pass-box, black, 10, 0, 0, 0);"		
-			);
-			lay.getChildren().addAll(btnDW,txtVal,btnUp);			
-			WidDiagram.this.getChildren().add(lay);
-		}
-		public void setPanel(double gx, double gy){
-			AnchorPane.setLeftAnchor(lay, gx * TILE_SIZE);
-			AnchorPane.setTopAnchor (lay, gy * TILE_SIZE);
-		}
-		public float val=0, min=0, max=100, stp=1;
-		
-		public abstract void eventChanged(float newVal);			
-		public abstract void eventReload();		
+
 		@Override
 		public void handle(MouseEvent event) {
-			boolean flag = !lay.isVisible();
-			if(flag==true){
-				eventReload();
-				update_text();
-			}
-			lay.setVisible(flag);
-		}
-		private void update_text(){
-			txtVal.setText(String.format("%.1f", val));
+			field.reload();
 		}
 	}
 	
@@ -314,6 +250,34 @@ public class WidDiagram extends AnchorPane {
 			//User must show face manually.
 		}
 	}
+	
+	protected abstract class TextSlider extends Label
+		implements FieldNumSlider.EventHook
+	{
+		public FieldNumSlider field = new FieldNumSlider(this);
+		
+		public TextSlider(double gx, double gy){
+			this(gx,gy,gx+1,gy);
+		}
+		public TextSlider(
+			double gx1, double gy1,
+			double gx2, double gy2
+		){	
+			setOnMouseClicked(e->{
+				field.reload();
+			});
+			
+			setStyle("-fx-font-size: 19px;");
+			AnchorPane.setLeftAnchor(this, gx1*TILE_SIZE);
+			AnchorPane.setTopAnchor(this, gy1*TILE_SIZE);
+			WidDiagram.this.getChildren().add(this);
+			
+			field.txt.setPrefWidth(TILE_SIZE*1.7);
+			AnchorPane.setLeftAnchor(field, gx2*TILE_SIZE);
+			AnchorPane.setTopAnchor (field, gy2*TILE_SIZE);
+			WidDiagram.this.getChildren().add(field);
+		}
+	};
 	
 	private HashMap<String,ItemTile> lstItm  = new HashMap<String,ItemTile>(); 
 	
@@ -350,10 +314,9 @@ public class WidDiagram extends AnchorPane {
 
 	protected Label addLabel(Label txt,double gx,double gy){		
 		//txt.setStyle("-fx-font-size: 23px;-fx-border-color: #3375FF;");
-		txt.setStyle("-fx-font-size: 23px;");
+		txt.setStyle("-fx-font-size: 19px;");
 		AnchorPane.setLeftAnchor(txt, gx*TILE_SIZE);//why???
-		AnchorPane.setTopAnchor (txt, gy*TILE_SIZE);		
-		//pegged.getChildren().add(txt);
+		AnchorPane.setTopAnchor (txt, gy*TILE_SIZE);
 		getChildren().add(txt);
 		return txt;
 	}
@@ -362,12 +325,17 @@ public class WidDiagram extends AnchorPane {
 		int cnt = getChildren().size();
 		for(int i=0; i<cnt; i++){			
 			Node nd = getChildren().get(i);
-			if((nd instanceof ItemSlider)==false){
-				continue;
+			FieldNumSlider fd = null;
+			if((nd instanceof ItemSlider)==true){
+				fd = ((ItemSlider)nd).field;
+			}else if((nd instanceof TextSlider)==true){
+				fd = ((TextSlider)nd).field;
 			}			
-			ItemSlider itm = (ItemSlider)nd;			
-			getChildren().remove(itm.lay);			
-			getChildren().add(itm.lay);
+			if(fd!=null){
+				//Then,Z-order will be top!!!
+				getChildren().remove(fd);			
+				getChildren().add(fd);
+			}			
 		}		
 	}
 

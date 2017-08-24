@@ -32,6 +32,7 @@ public class DevTTY extends DevBase {
 	
 	@Override
 	void eventShutdown() {
+		stopMonitor();
 		eventTurnOff();
 		close();
 	}
@@ -233,6 +234,18 @@ public class DevTTY extends DevBase {
 	//-----------------------//
 	
 	/**
+	 * Like readByte(), but it will return null!!!
+	 * @return - null or byte value
+	 */
+	public Byte readOneByte(){
+		final byte[] buf = implRead(1);
+		if(buf==null){
+			return null;
+		}
+		return buf[0];
+	}
+	
+	/**
 	 * Read just one byte data<p>
 	 * This is blocking method!!!.<p>
 	 * @return byte from TTY device
@@ -244,7 +257,7 @@ public class DevTTY extends DevBase {
 		}
 		return buf[0];
 	}
-	
+		
 	/**
 	 * Read just one character<p>
 	 * This is blocking method!!!.<p>
@@ -436,6 +449,15 @@ public class DevTTY extends DevBase {
 		return txt;		
 	}
 	//------------------------------------//
+	
+	/**
+	 * Write byate data via terminal-port.<p>
+	 * @param buf - context data
+	 */
+	public void writeByte(byte cc){
+		final byte[] buf = { cc };
+		implWrite(buf);
+	}
 	
 	/**
 	 * Write byate data via terminal-port.<p>

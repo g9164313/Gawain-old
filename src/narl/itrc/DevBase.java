@@ -5,6 +5,7 @@ import com.sun.glass.ui.Application;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.concurrent.Task;
 import javafx.scene.Node;
 import javafx.scene.layout.Pane;
 
@@ -43,6 +44,7 @@ public abstract class DevBase extends Pane implements Gawain.GlobalHook {
 	 */
 	@Override
 	public void shutdown() {
+		stopMonitor();
 		eventShutdown();
 	}
 	
@@ -101,5 +103,76 @@ public abstract class DevBase extends Pane implements Gawain.GlobalHook {
 	/**
 	 * In this point, device can release its resource!!! <p>
 	 */
-	abstract void eventShutdown();
+	abstract void eventShutdown();	
+	//---------------------------//
+	
+	private final long DEFAULT_DELAY = 250L;
+	
+	private long taskDelay = DEFAULT_DELAY;//millisecond
+	
+	private class TaskMonitor extends Task<Long>{
+		@Override
+		protected Long call() throws Exception {
+			if(taskStart()==false){
+				return -1L;
+			}
+			long tk1, tk2;
+			while(isCancelled()==false){
+				tk1 = System.currentTimeMillis();
+				boolean goon = taskLooper();				
+				tk2 = System.currentTimeMillis();
+				updateValue(tk2-tk1);
+				if(goon==false){
+					break;
+				}
+				//delay, for next turn~~~~
+				tk1 = System.currentTimeMillis();
+				tk2 = 0L;
+				while(tk2<taskDelay){
+					tk2 = System.currentTimeMillis() - tk1;
+					updateProgress(tk2,taskDelay);
+				}
+			}
+			taskFinal();
+			return -2L;
+		}
+	}
+	
+	protected boolean taskStart(){
+		return false;
+	}
+	
+	protected boolean taskLooper(){
+		return false;
+	}
+	
+	protected void taskFinal(){
+	}
+	
+	private Task<Long> tskMonitor;
+	
+	protected void startMonitor(String name){
+		startMonitor(name,DEFAULT_DELAY);
+	}
+	
+	protected void startMonitor(String name,long delay){		
+		if(tskMonitor!=null){
+			if(tskMonitor.isDone()==false){
+				return;
+			}
+		}
+		taskDelay = delay;
+		tskMonitor = new TaskMonitor();
+		new Thread(tskMonitor,name).start();
+	}
+	
+	protected void stopMonitor(){
+		if(tskMonitor!=null){
+			if(tskMonitor.isDone()==false){
+				tskMonitor.cancel();
+			}
+		}
+	}
+	//---------------------------//
+	
 }

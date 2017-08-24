@@ -22,9 +22,10 @@ import eu.hansolo.medusa.Gauge.SkinType;
 import narl.itrc.Misc;
 import narl.itrc.WidDiagram;
 
-public class WidMapPumper extends WidDiagram {
+public class WidMapPID extends WidDiagram {
 
-	public WidMapPumper(){
+	public WidMapPID(){
+		super(18,16);
 		default_layout();		
 		redrawAll();
 	}
@@ -62,10 +63,11 @@ public class WidMapPumper extends WidDiagram {
 	//R1026 --> 加熱器電流
 	//R1027 --> 離心機電流
 	//%%%SCCM 設定 R1100-Ar, R1101-O2, R1102-N2, 
-	//暫存器 R01138 寫入 00FA (???)
+	//暫存器 R01138 寫入 00FA 或 00B4(???)
 	//CRV1(這是什麼？) <---> M(Y)23 
 	//CRV2(這是什麼？) <---> M(Y)21
-	
+	//APC 設定 M(Y)122 --> on:氣壓固定, off:位置固定
+	//APC 設定 R1104(R1004):氣壓數值(固定點一位), R1105(R1005):蝴蝶閥位置 
 	//01 41 1 <-- PLC RUN
 	//01 40 <-- PLC 讀取
 	public void hookPart(DevFatek dev){
@@ -81,9 +83,10 @@ public class WidMapPumper extends WidDiagram {
 		gv3.hookRelay(dev, 36);	
 		
 		mv1.hookRelay(dev, 4);
-		mv2.hookRelay(dev, 14);
-		
+		apc.hookRelay(dev, 122, 1104, 1105);
 		fv1.hookRelay(dev, 1);
+		
+		mv2.hookRelay(dev, 14);		
 		fv2.hookRelay(dev, 13);
 		
 		rv.hookRelay(dev, 3);
@@ -149,7 +152,7 @@ public class WidMapPumper extends WidDiagram {
 		return dev.getMarker("R1001").divide(8192.f).multiply(40.f);
 	}
 	private NumberBinding prop_Press_N2(DevFatek dev){
-		return dev.getMarker("R1002").divide(8192.f).multiply(100.f);//scale may be wrong~~~
+		return dev.getMarker("R1002").divide(8192.f).multiply(4.f);
 	}
 	
 	private NumberBinding prop_Press_CH1(DevFatek dev){
@@ -257,7 +260,7 @@ public class WidMapPumper extends WidDiagram {
 			Y31.addListener(event);
 		}
 		//public void showRed(){
-		//	dev.setNode(1, "M0029", 3, 4, 4);
+		//	dev.setNode(1, "M0029", 1, 0, 0);
 		//}
 		public void setYellow(){
 			dev.setNode(1, "M0029", 0, 1, 0);
@@ -372,7 +375,7 @@ public class WidMapPumper extends WidDiagram {
 			nodeValue.addListener(nodeEvent);
 			nodeEvent.changed(null, null, null);
 		}
-		private DevFatek dev;
+		protected DevFatek dev;
 		@Override
 		public void handle(MouseEvent event) {
 			if(nodeValue.get()==0){
@@ -384,6 +387,7 @@ public class WidMapPumper extends WidDiagram {
 			//eventChanged(isMakeup());//test~~~~
 		}
 	};
+	
 	private class ItemChuck extends ItemSwitch {
 		public ItemChuck(double gx, double gy){
 			super(CATE_CHUCKB,gx,gy);
@@ -448,25 +452,26 @@ public class WidMapPumper extends WidDiagram {
 				}
 				biasCnt+=biasStp;
 				dev.setRegister(1, biasRegist, biasCnt);
-				Misc.logv("writing - (%d)",biasCnt);
+				//Misc.logv("writing - (%d)",biasCnt);
 			}
 		};
 		private Timeline biasAdjust = new Timeline(new KeyFrame(
-			Duration.seconds(0.25),
+			Duration.seconds(1),
 			biasAdjustEvent
 		));
 		@Override
 		public void handle(MouseEvent event) {
 			if(biasAdjust.getStatus().equals(Status.PLAYING) || nodeValue.get()!=0 ){
 				biasAdjust.pause();				
-				dev.setNode(1, ctrlRelay, 0);
-				//dev.setNode(1, pulsRelay, 4);
+				dev.setNode(1, ctrlRelay, 4);
+				dev.setNode(1, pulsRelay, 4);
+				dev.setRegister(1, biasRegist, 0);//turn off power!!!
 				towerLamp.setGreen();
 				Misc.logv("DC1: -off-");
-			}else{				
-				//biasAdjustEvent.handle(null);//why??
-				//dev.setNode(1, pulsRelay, 3);								
-				dev.setNode(1, ctrlRelay, 1);
+			}else{
+				//check voltage???
+				dev.setNode(1, pulsRelay, 3);								
+				dev.setNode(1, ctrlRelay, 3);
 				biasCnt = 0;
 				biasAdjust.play();	
 				towerLamp.setYellow();
@@ -476,14 +481,14 @@ public class WidMapPumper extends WidDiagram {
 		}
 	};
 	
-	private class ItmSNode extends ItemSlider {
-		public ItmSNode(
+	private class ItmSlider extends ItemSlider {
+		public ItmSlider(
 			String category, 
 			double gx, double gy
 		){
 			super(category, gx,gy, gx+1.1,gy);
 		}	
-		public ItmSNode(
+		public ItmSlider(
 			String category, 
 			double gx1, double gy1, 
 			double gx2, double gy2
@@ -501,10 +506,10 @@ public class WidMapPumper extends WidDiagram {
 			this.dev = dev;
 			tkn[0] = tkn[1] = reg;
 		}
-		public ItmSNode setRange(int minVal, int maxVal, int stpVal){
-			min = minVal;
-			max = maxVal;
-			stp = stpVal;
+		public ItmSlider setRange(int minVal, int maxVal, float stpVal){
+			field.min = minVal;
+			field.max = maxVal;
+			field.stp = stpVal;
 			return this;
 		}
 		@Override
@@ -517,7 +522,7 @@ public class WidMapPumper extends WidDiagram {
 		public void eventReload() {
 		}
 	};	
-	private class ItmBattle extends ItmSNode {
+	private class ItmBattle extends ItmSlider {
 		public ItmBattle(
 			double gx1, double gy1, 
 			double gx2, double gy2
@@ -537,10 +542,10 @@ public class WidMapPumper extends WidDiagram {
 		@Override
 		public void eventReload() {
 			int v = dev.getRegister(1,tkn[1]);
-			val = (v*scale)/8192.f;
+			field.val = (v*scale)/8192.f;
 		}
 	};	
-	private class ItmChiller extends ItmSNode {
+	private class ItmChiller extends ItmSlider {
 		public ItmChiller(double gx, double gy) {
 			super(CATE_ICE, gx, gy);
 		}
@@ -550,39 +555,26 @@ public class WidMapPumper extends WidDiagram {
 		}
 		@Override
 		public void eventReload() {
-			val = (float)(dev.getRegister(1,tkn[1]))/10.f;
+			field.val = (float)(dev.getRegister(1,tkn[1]))/10.f;
 		}
 	};
 	
-	
 	private class ItmValve extends ItemSwitch {
 		public ItmValve(String name,double gx, double gy){
-			init(name,name,gx,gy);
-		}
-		public ItmValve(String name,String title,double gx, double gy){
-			init(name,title,gx,gy);
-		}		
-		private void init(String name,String title,double gx, double gy){
-			if(name.charAt(0)=='@'){				
-				locate(CATE_VALVE_BL,gx,gy);
-				name = name.substring(1);
-			}else{
-				locate(CATE_VALVE,gx,gy);
-			}
+			this(name,"",gx,gy);
+		}	
+		private ItmValve(String name,String title,double gx, double gy){
+			locate(CATE_VALVE,gx,gy);
 			prepare_cursor();
-			if(title!=null){
-				if(title.length()!=0){
-					addLabel(name, gx, gy+1);
-				}
+			if(title.length()!=0){
+				addLabel(title, gx, gy+1);
 			}
 		}
-		
 		private String[] lstPipeName = null;		
 		public ItmValve setPipe(String... lstToken){
 			lstPipeName = lstToken;
 			return this;
-		}		
-		
+		}
 		@Override 
 		protected void eventChanged(boolean flag){
 			//show the state of the connected pipes
@@ -601,93 +593,153 @@ public class WidMapPumper extends WidDiagram {
 			redraw();
 		}
 	};
+	
+	private class ItmValveB extends ItemSwitch {
+		
+		private class ItmField extends TextSlider {
+			public String regName = null;
+			public float scale = 1.f;
+			public ItmField(
+				double gx1, double gy1,
+				double gx2, double gy2
+			) {
+				super(gx1, gy1, gx2, gy2);
+				setVisible(false);
+				setText("???");			
+			}
+			@Override
+			public void eventReload() {
+				if(regName==null){
+					return;
+				}
+				field.val = dev.getRegister(1, regName) * scale;
+			}
+			@Override
+			public void eventChanged(float newVal) {
+				if(regName==null){
+					return;
+				}
+				int regValue = (int)(field.val/scale);
+				dev.setRegister(1, regName, regValue);
+				Misc.logv("change %s(%d)", regName, regValue);
+			}
+		};
+		public ItmField pres,step;
+		
+		//public ItmValveB(String name,double gx,double gy){
+		//	this(name,"",gx,gy);
+		//}
+		public ItmValveB(String name,String title,double gx,double gy){
+			locate(CATE_VALVE_BL,gx,gy);
+			prepare_cursor();
+			if(title.length()!=0){
+				addLabel(title, gx, gy+1);
+			}
+			
+			gx = gx + 0.4;
+			double gy1 = gy - 0.8;
+			double gy2 = gy1 - 1.;
+			
+			pres = new ItmField(gx,gy1,gx,gy2);
+			pres.scale = 0.1f;
+			pres.field.setRange(0, 50, 0.1);
+			
+			step = new ItmField(gx,gy1,gx,gy2);
+			step.scale = 1f;
+			step.field.setRange(0, 1000, 10);
+		}
+		public void hookRelay(DevFatek dev, int idx0, int idx1, int idx2){
+			pres.regName = String.format("R%05d",idx1);
+			step.regName = String.format("R%05d",idx2);
+			pres.textProperty().bind(dev.getMarker("R1005").asString("自動調節(%d)"));
+			step.textProperty().bind(dev.getMarker("R1005").asString("閥門位置：%d"));
+			hookRelay(dev, idx0);			
+		}
+		protected void eventChanged(boolean flag){
+			pres.setVisible(flag);			
+			step.setVisible(!flag);
+		}
+	}
 	//----------------------------------------
-	/*
-	private void prepare_gauge(){
-
-		create_gauge("加熱器電流", "A", 0., 5.);	
-		create_gauge("離心機電流", "A", 0., 5.);			
-	}*/
-	
-	private ItmTowerLamp towerLamp = new ItmTowerLamp(7.5, 2);
-	
-	private Indicator tempChamber2 = new Indicator("腔體溫度", "°C", 0., 30.);
-	private Indicator tempChiller  = new Indicator("冰水機", "°C", 0., 30.);
 	
 	private Indicator presChamber1 = new Indicator("絕對氣壓","mTorr",0., 750.);
 	private Indicator presChamber2 = new Indicator("腔體氣壓","Torr", 0., 750.);
 	
-	private Indicator presAr = new Indicator("Ar進氣", "sccm", 0, 100);//?? max and min ??
-	private Indicator presO2 = new Indicator("O2進氣", "sccm", 0, 100);
-	private Indicator presN2 = new Indicator("N2進氣", "sccm", 0, 100);
+	private Indicator presAr = new Indicator("Ar進氣", "sccm", 0, 50);//?? max and min ??
+	private Indicator presO2 = new Indicator("O2進氣", "sccm", 0, 50);
+	private Indicator presN2 = new Indicator("N2進氣", "sccm", 0, 50);
 	
 	private Indicator tempCP1 = new Indicator("CP1溫度", "K", 0, 273);
 	private Indicator tempCP2 = new Indicator("CP2溫度", "K", 0, 273);
 	private Indicator presCP1 = new Indicator("CP2氣壓", "Torr", 0, 3);
 	private Indicator presCP2 = new Indicator("CP2氣壓", "Torr", 0, 3);
 	
-	private ItemChuck chuck = new ItemChuck(11., 1.5);
-	private ItemSwitch baffle= new ItemSwitch(CATE_BAFFLE_A, 11, 3);
+	private ItmTowerLamp towerLamp = new ItmTowerLamp(7.5, 0.5);
 	
-	private ItemBurnner burner_dc1 = new ItemBurnner(CATE_BURNER_A, 7.5, 7.5);
-	private ItemBurnner burner_rf1 = new ItemBurnner(CATE_BURNER_C, 10 , 7.5);
-
-	private ItmSNode Arb = new ItmBattle(0,2, 0.7,3).setScale(100.f).setRange(0, 50, 1);
-	private ItmSNode O2b = new ItmBattle(0,5, 0.7,6).setScale(40.f).setRange(0, 50, 1);
-	private ItmSNode N2b = new ItmBattle(0,8, 0.7,9).setRange(0, 50, 1);
+	private ItemChuck chuck = new ItemChuck(11., 0.5);
+	private ItemSwitch baffle= new ItemSwitch(CATE_BAFFLE_A, 11, 2);
 	
-	private ItmSNode chiller = new ItmChiller(15.5,8).setRange(0, 25, 1);
+	private ItemBurnner burner_dc1 = new ItemBurnner(CATE_BURNER_A, 7.5, 6.5);
+	private ItemBurnner burner_rf1 = new ItemBurnner(CATE_BURNER_C, 10 , 6.5);
+	
+	private Indicator tempChamber2 = new Indicator("腔體溫度", "°C", 0., 30.);
+	private Indicator tempChiller  = new Indicator("冰水機", "°C", 0., 30.);
+	
+	private ItmSlider Arb = new ItmBattle(0,2, 0.7,3).setScale(100.f).setRange(0, 50, 1f);
+	private ItmSlider O2b = new ItmBattle(0,5, 0.7,6).setScale(40.f).setRange(0, 10, 1f);
+	private ItmSlider N2b = new ItmBattle(0,8, 0.7,9).setScale(4.f).setRange(0, 5, 0.1f);
+	
+	private ItmSlider chiller = new ItmChiller(15.5,7).setRange(0, 25, 1);
 
-	private ItmValve Arv= new ItmValve("Ar", null, 2, 1).setPipe("#0-1","#1-1","#3-1");
-	private ItmValve gv1= new ItmValve("GV1", 4, 1).setPipe("#3-1","#5-1","#5-2","#5-3");
+	private ItmValve Arv= new ItmValve("Ar", 2, 1).setPipe("#0-1","#1-1","#3-1");
+	private ItmValve gv1= new ItmValve("GV1","GV1", 4, 1).setPipe("#3-1","#5-1","#5-2","#5-3");
 		
-	private ItmValve O2v= new ItmValve("O2", null, 2, 4).setPipe("#0-4","#1-4","#3-4");
-	private ItmValve gv2= new ItmValve("GV2", 4, 4).setPipe("#3-4","#5-4","#6-4");
+	private ItmValve O2v= new ItmValve("O2", 2, 4).setPipe("#0-4","#1-4","#3-4");
+	private ItmValve gv2= new ItmValve("GV2","GV2", 4, 4).setPipe("#3-4","#5-4","#6-4");
 	
-	private ItmValve N2v= new ItmValve("N2", null, 2, 7).setPipe("#0-7","#1-7","#3-7");
-	private ItmValve gv3= new ItmValve("GV3", 4, 7).setPipe("#3-7","#5-7","#5-6","#5-5");
+	private ItmValve N2v= new ItmValve("N2", 2, 7).setPipe("#0-7","#1-7","#3-7");
+	private ItmValve gv3= new ItmValve("GV3","GV3", 4, 7).setPipe("#3-7","#5-7","#5-6","#5-5");
 	
-	private ItmValve vv = new ItmValve("VV", 18, 6).setPipe("#17-6","#19-6");
+	private ItmValve vv = new ItmValve("VV", 18, 5).setPipe("#17-5","#19-5");
 
-	private ItmValve rv = new ItmValve("RV", 13, 15).setPipe(
-		"#5-15","#6-15","#7-15","#8-15",
-		"#9-15","#10-15","#11-15","#12-15",
-		"#14-15"
+	private ItmValve rv = new ItmValve("RV", 13, 10).setPipe(
+		"#6-12", "#6-11", "#6-10", "#7-10",
+		"#8-10", "#9-10", "#10-10", "#11-10",
+		"#12-10","#14-10"
 	);
 	
-	private ItmValve mv1 = new ItmValve("MV1", 13, 12).setPipe("#12-12","#14-12");
-	private ItmValve fv1 = new ItmValve("FV1", 7, 12).setPipe("#6-14","#6-13","#6-12","#8-12");
-
-	private ItmValve mv2 = new ItmValve("MV2", 13, 18).setPipe("#11-18","#10-18","#12-18","#14-18");
-	private ItmValve fv2 = new ItmValve("FV2", 7, 18).setPipe("#8-18","#6-16","#6-17","#6-18");
+	private ItmValve  mv1 = new ItmValve("MV1", 13, 13).setPipe("#10-13","#12-13","#14-13");	
+	private ItmValveB apc = new ItmValveB("APC", "APC", 11, 13);
+	private ItemSwitch c_pump1= new ItemSwitch(CATE_C_PUMP, 9, 13);
+	private ItmValve  fv1 = new ItmValve("FV1", 7, 13).setPipe("#5-13","#6-13","#8-13");
 	
-	private ItmValve apc = new ItmValve("@", 11, 12).setPipe("#10-12","#12-12");
-	
-	private ItemSwitch m_pump = new ItemSwitch(CATE_M_PUMP, 4, 15);
-	private ItemSwitch c_pump1= new ItemSwitch(CATE_C_PUMP, 9, 12);
-	private ItemSwitch c_pump2= new ItemSwitch(CATE_C_PUMP, 9, 18);
+	private ItmValve  mv2 = new ItmValve("MV2", 13, 16).setPipe("#10-16","#11-16","#12-16","#14-16");	
+	private ItemSwitch c_pump2= new ItemSwitch(CATE_C_PUMP, 9, 16);
+	private ItmValve  fv2 = new ItmValve("FV2", 7, 16).setPipe("#8-16","#6-14","#6-15","#6-16");
+		
+	private ItemSwitch m_pump1 = new ItemSwitch(CATE_M_PUMP, 4, 13);	
 	//----------------------------------------
 	
 	private void default_layout(){
 		//prepare_gauge();
 		addBrick(
-			CATE_WALL_A+"#7-1",
-			CATE_WALL_B+"#8-1" ,CATE_WALL_B+"#9-1" ,CATE_WALL_B+"#10-1",CATE_WALL_B+"#11-1",
-			CATE_WALL_B+"#12-1",CATE_WALL_B+"#13-1",CATE_WALL_B+"#14-1",CATE_WALL_B+"#15-1",
-			CATE_WALL_C+"#16-1",
-			CATE_WALL_D+"#16-2",CATE_WALL_D+"#16-3",CATE_WALL_D+"#16-4",CATE_WALL_D+"#16-5",
-			CATE_WALL_D+"#16-6",CATE_WALL_D+"#16-7",CATE_WALL_D+"#16-8",
-			CATE_WALL_E+"#16-9",
-			CATE_WALL_F+"#15-9",CATE_WALL_F+"#14-9",CATE_WALL_F+"#13-9",CATE_WALL_F+"#12-9",
-			CATE_WALL_F+"#11-9",CATE_WALL_F+"#10-9",CATE_WALL_F+"#9-9" ,CATE_WALL_F+"#8-9",
-			CATE_WALL_G+"#7-9" ,
-			CATE_WALL_H+"#7-8" ,CATE_WALL_H+"#7-7" ,CATE_WALL_H+"#7-6" ,CATE_WALL_H+"#7-5",
-			CATE_WALL_H+"#7-4" ,CATE_WALL_H+"#7-3" ,CATE_WALL_H+"#7-2"
+			CATE_WALL_A+"#7-0",
+			CATE_WALL_B+"#8-0" ,CATE_WALL_B+"#9-0" ,CATE_WALL_B+"#10-0",CATE_WALL_B+"#11-0",
+			CATE_WALL_B+"#12-0",CATE_WALL_B+"#13-0",CATE_WALL_B+"#14-0",CATE_WALL_B+"#15-0",
+			CATE_WALL_C+"#16-0",
+			CATE_WALL_D+"#16-1",CATE_WALL_D+"#16-2",CATE_WALL_D+"#16-3",CATE_WALL_D+"#16-4",
+			CATE_WALL_D+"#16-5",CATE_WALL_D+"#16-6",CATE_WALL_D+"#16-7",
+			CATE_WALL_E+"#16-8",
+			CATE_WALL_F+"#15-8",CATE_WALL_F+"#14-8",CATE_WALL_F+"#13-8",CATE_WALL_F+"#12-8",
+			CATE_WALL_F+"#11-8",CATE_WALL_F+"#10-8",CATE_WALL_F+"#9-8" ,CATE_WALL_F+"#8-8",
+			CATE_WALL_G+"#7-8" ,
+			CATE_WALL_H+"#7-7" ,CATE_WALL_H+"#7-6" ,CATE_WALL_H+"#7-5" ,CATE_WALL_H+"#7-4",
+			CATE_WALL_H+"#7-3" ,CATE_WALL_H+"#7-2" ,CATE_WALL_H+"#7-1"
 		);
-		addItem(CATE_GAUGE+"#17-3",CATE_PIPE_F+"#17-4");
-		addLabel(tempChamber2.txt,18,2);		
-		addLabel(presChamber1.txt,18,3);		
-		addLabel(presChamber2.txt,13.5,3);
+		addItem(CATE_GAUGE+"#17-2",CATE_PIPE_F+"#17-3");
+		addLabel(tempChamber2.txt,18,1);		
+		addLabel(presChamber1.txt,18,2);		
+		addLabel(presChamber2.txt,13.5,2);
 		
 		addItem("tower",towerLamp);
 		
@@ -695,20 +747,20 @@ public class WidMapPumper extends WidDiagram {
 		burner_dc1.attr[0].set("DC1功率", "W", 0, 500);
 		burner_dc1.attr[1].set("DC1電壓", "V", 0, 5000);
 		burner_dc1.attr[2].set("DC1電流","mA", 0, 500);
-		addLabel(burner_dc1.attr[0].txt, 7.5, 5);
-		addLabel(burner_dc1.attr[1].txt, 7.5, 6);
-		addLabel(burner_dc1.attr[2].txt, 7.5, 7);
+		addLabel(burner_dc1.attr[0].txt, 7.5, 4);
+		addLabel(burner_dc1.attr[1].txt, 7.5, 5);
+		addLabel(burner_dc1.attr[2].txt, 7.5, 6);
 		
 		addItem("burner-rf1",burner_rf1);
 		
 		addItem("chuck",chuck);
-		addLabel(chuck.temp.txt,14,2);
-		addLabel(chuck.rota.txt, 9,2);	
+		addLabel(chuck.temp.txt,14,1);
+		addLabel(chuck.rota.txt, 9,1);	
 		
 		addItem("baffle",baffle);
 		
 		addItem("ice",chiller);
-		addLabel(tempChiller.txt, 15, 7);
+		addLabel(tempChiller.txt, 15, 6);
 				
 		addLabel("Ar", 0.2, 3);
 		addItem("Ar-battle",Arb);
@@ -753,70 +805,68 @@ public class WidMapPumper extends WidDiagram {
 		
 		addItem("破真空閥",vv);
 		addItem(
-			CATE_PIPE_A+"#17-6",
-			CATE_PIPE_A+"#19-6"
+			CATE_PIPE_A+"#17-5",
+			CATE_PIPE_A+"#19-5"
 		);
-
+		
+		addItem(
+			CATE_PIPE_B+"#15-9",
+			CATE_PIPE_J+"#15-10",
+			CATE_PIPE_B+"#15-11",
+			CATE_PIPE_B+"#15-12",
+			CATE_PIPE_J+"#15-13",
+			CATE_PIPE_B+"#15-14",
+			CATE_PIPE_B+"#15-15",
+			CATE_PIPE_F+"#15-16"			
+		);//pipe for motor~~~
+		
+		addItem("R-valve",rv);	
+		addItem("MP",m_pump1);		
+		addItem(
+			CATE_PIPE_B+"#6-12",
+			CATE_PIPE_B+"#6-11",			
+			CATE_PIPE_D+"#6-10",
+			CATE_PIPE_A+"#7-10",
+			CATE_PIPE_A+"#8-10",
+			CATE_PIPE_A+"#9-10",
+			CATE_PIPE_A+"#10-10",
+			CATE_PIPE_A+"#11-10",
+			CATE_PIPE_A+"#12-10",
+			CATE_PIPE_A+"#14-10"			
+		);
+				
 		addItem("M-valve1",mv1);
 		addItem("APC-valve",apc);
 		addItem("CP1",c_pump1);
 		addItem("F-valve1",fv1);
 		addItem(			
-			CATE_PIPE_A+"#14-12",	
-			CATE_PIPE_A+"#12-12",
-			CATE_PIPE_A+"#10-12",
-			CATE_PIPE_G+"#8-12",
-			CATE_GAUGE +"#8-11",
-			CATE_PIPE_D+"#6-12",
-			CATE_PIPE_B+"#6-13",
-			CATE_PIPE_B+"#6-14"
+			CATE_PIPE_A+"#5-13",
+			CATE_PIPE_K+"#6-13",
+			CATE_GAUGE +"#8-12",
+			CATE_PIPE_G+"#8-13",
+			CATE_PIPE_A+"#10-13",
+			CATE_PIPE_A+"#12-13",
+			CATE_PIPE_A+"#14-13"
 		);
-		addLabel(tempCP1.txt,9,10);
-		addLabel(presCP1.txt,9,11);
-		
-		addItem("R-valve",rv);		
-		addItem("MP",m_pump);		
-		addItem(
-			CATE_PIPE_A+"#5-15",
-			CATE_PIPE_K+"#6-15",
-			CATE_PIPE_A+"#7-15",
-			CATE_PIPE_A+"#8-15",
-			CATE_PIPE_A+"#9-15",
-			CATE_PIPE_A+"#10-15",
-			CATE_PIPE_A+"#11-15",
-			CATE_PIPE_A+"#12-15",
-			CATE_PIPE_A+"#14-15"
-		);
+		addLabel(presCP1.txt,9,12.2);
+		addLabel(tempCP1.txt,9,14);
 		
 		addItem("M-valve2",mv2);
 		addItem("CP2",c_pump2);
 		addItem("F-valve2",fv2);
-		addItem(			
-			CATE_PIPE_A+"#14-18",
-			CATE_PIPE_A+"#12-18",
-			CATE_PIPE_A+"#10-18",
-			CATE_PIPE_A+"#11-18",			
-			CATE_PIPE_G+"#8-18",
-			CATE_GAUGE +"#8-17",
-			CATE_PIPE_C+"#6-18",
-			CATE_PIPE_B+"#6-17",
-			CATE_PIPE_B+"#6-16"
-		);
-		addLabel(tempCP2.txt,9,16);
-		addLabel(presCP2.txt,9,17);
-		
-		//pipe for motor~~~
 		addItem(
-			CATE_PIPE_B+"#15-10",
-			CATE_PIPE_B+"#15-11",
-			CATE_PIPE_J+"#15-12",
-			CATE_PIPE_B+"#15-13",
-			CATE_PIPE_B+"#15-14",
-			CATE_PIPE_J+"#15-15",
-			CATE_PIPE_B+"#15-16",
-			CATE_PIPE_B+"#15-17",
-			CATE_PIPE_F+"#15-18"			
+			CATE_PIPE_B+"#6-14",
+			CATE_PIPE_B+"#6-15",
+			CATE_PIPE_C+"#6-16",
+			CATE_GAUGE +"#8-15",
+			CATE_PIPE_G+"#8-16",
+			CATE_PIPE_A+"#11-16",
+			CATE_PIPE_A+"#10-16",
+			CATE_PIPE_A+"#12-16",
+			CATE_PIPE_A+"#14-16"
 		);
+		addLabel(presCP2.txt,9,15.2);
+		addLabel(tempCP2.txt,9,17);
 		
 		bringup_slider();
 	}
