@@ -14,9 +14,9 @@ import narl.itrc.PanBase;
  * @author qq
  *
  */
-public class DevSPIK2000 extends DevTTY {
+public class DevSPIK2K extends DevTTY {
 
-	public DevSPIK2000(){		
+	public DevSPIK2K(){		
 	}
 	
 	/**

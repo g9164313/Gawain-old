@@ -26,12 +26,22 @@ public class FieldNumSlider extends HBox {
 		prepare();
 	}
 	
+	public FieldNumSlider setHook(EventHook h){
+		hook = h;
+		return this;
+	}
+	
+
 	public FieldNumSlider setRange(
 		double minimum, 
 		double maximum, 
 		double stepper
 	){
-		return setRange(minimum,minimum,maximum,stepper);
+		//don't change the current value~~~
+		min = (float)minimum;
+		max = (float)maximum;
+		stp = (float)stepper;
+		return this;
 	}
 	public FieldNumSlider setRange(
 		double current,
@@ -108,6 +118,13 @@ public class FieldNumSlider extends HBox {
 			update_text();
 		}
 		setVisible(flag);
+	}
+	
+	public void refresh(){
+		if(hook!=null){ 
+			hook.eventReload();
+		}
+		update_text();
 	}
 	
 	private void update_text(){

@@ -47,8 +47,6 @@ public class BtnScript extends JFXButton {
 		thiz = obj;
 	}
 	
-	
-	
 	/**
 	 * let this object provide all functions
 	 */
@@ -67,8 +65,9 @@ public class BtnScript extends JFXButton {
 			BufferedReader stream = new BufferedReader(new FileReader(file));
 			result = parser.eval(stream);
 			return result;
-		} catch (ScriptException e) {
-			System.out.println(e.getMessage());
+		} catch (ScriptException e) {			
+			Misc.loge(e.getMessage());
+			//System.out.println(e.getMessage());
 			//e.printStackTrace();
 			return result;
 		}
@@ -139,7 +138,7 @@ public class BtnScript extends JFXButton {
 			}
 		});
 		
-		new Thread(task,"==Eval-Script==").start();		
+		new Thread(task,"nashorn-core").start();		
 		return true;
 	}
 	
@@ -154,12 +153,10 @@ public class BtnScript extends JFXButton {
 		onActionProperty().set(beg_event);
 		hook = end_event;
 	}
-		
-	/**
-	 * blocking delay function for parse
-	 * @param ms - millisecond
-	 */
+	//----------------------------------
+	
+	//Basic API
 	public void delay(long millisec){
 		Misc.delay(millisec);
-	}	
+	}
 }

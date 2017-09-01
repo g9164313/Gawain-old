@@ -584,7 +584,7 @@ public class DevFatek extends DevTTY {
 	private class TskMonitor extends Task<Void>{
 		private int[] val;
 		private IntegerProperty[] prop;
-		private final long PERIOD = 200L;//millisecond;
+		private final long PERIOD = 500L;//millisecond;
 		@Override
 		protected Void call() throws Exception {
 			makeSwitch(0x01,true);//RUN!!!
@@ -644,7 +644,7 @@ public class DevFatek extends DevTTY {
 	 * It will monitor register from R01000 to R01047.<p>
 	 * @param token - 
 	 */
-	public void startMonitor(boolean starter,String... token){
+	public void startMonitor(String... token){
 		if(tskMonitor!=null){
 			if(tskMonitor.isRunning()==true){
 				return;
@@ -654,7 +654,7 @@ public class DevFatek extends DevTTY {
 			lstMark.add(new Marker(tkn));
 		}
 		tskMonitor = new TskMonitor();
-		if(starter==true){
+		if(PanSputter.DBG==false){
 			new Thread(tskMonitor,"Monitor-Fatek-PLC").start();
 		}
 	}

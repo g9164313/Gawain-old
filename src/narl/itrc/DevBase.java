@@ -163,6 +163,7 @@ public abstract class DevBase extends Pane implements Gawain.GlobalHook {
 		}
 		taskDelay = delay;
 		tskMonitor = new TaskMonitor();
+		
 		new Thread(tskMonitor,name).start();
 	}
 	

@@ -25,6 +25,7 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import narl.itrc.DevTTY;
 import narl.itrc.Gawain;
+import narl.itrc.Misc;
 import narl.itrc.PanBase;
 
 /**
@@ -171,10 +172,11 @@ public class DevSQM160 extends DevTTY {
 
 	@Override
 	protected boolean taskStart(){
-		return true;
+		return isOpen();
 	}
 	@Override
 	protected boolean taskLooper(){
+		
 		return true;
 	}
 	public void startMonitor(){
@@ -198,7 +200,7 @@ public class DevSQM160 extends DevTTY {
 		public StringProperty  name = new SimpleStringProperty("???");//name, only 8-character
 		public DoubleProperty  density = new SimpleDoubleProperty(0.50);//0.50~99.99 g/cm³
 		public IntegerProperty tooling = new SimpleIntegerProperty(33); //10 to 399, unit is '%'
-		public FloatProperty  z_ratio = new SimpleFloatProperty(0.1f); //0.10 to 0.999
+		public FloatProperty   z_ratio = new SimpleFloatProperty(0.1f); //0.10 to 0.999
 		public DoubleProperty  final_thick= new SimpleDoubleProperty(0.000);  //0.000 to 9999.000 kÅ
 		public DoubleProperty  setpoint1  = new SimpleDoubleProperty(0.000);//0.000 to 9999.000 kÅ
 		public StringProperty  setpoint2  = new SimpleStringProperty("00:00");//00:00 to 99:59, time format, mm:ss
@@ -447,149 +449,7 @@ public class DevSQM160 extends DevTTY {
 			root.add(lay0, 1, 9, 7, 1);
 		}
 	};	
-	private PanSetFilm panSetting1 = new PanSetFilm();
-		
-	private class PanSetSystem extends PanBase {
 
-		public PanSetSystem(){
-			propTitle.set(TXT_SETTING2);
-		}
-
-		@Override
-		public Node eventLayout(PanBase pan) {
-			GridPane root = new GridPane();
-			root.getStyleClass().add("grid-medium");			
-			section_1(root);
-			section_2(root);
-			section_3(root);
-			bottom_ctrl(root);
-			return root;
-		}
-
-		private void section_1(GridPane root){
-			JFXCheckBox chkSimulation = new JFXCheckBox("模擬");
-			chkSimulation.selectedProperty().bindBidirectional(system.propSimulate);
-			
-			JFXCheckBox chkEtch = new JFXCheckBox("蝕刻模式");
-			chkEtch.selectedProperty().bindBidirectional(system.propEtch);
-			
-			JFXCheckBox chkResolution = new JFXCheckBox("高解析度");
-			chkResolution.selectedProperty().bindBidirectional(system.propResolution);
-			
-			Spinner<Number> spnFilter = new Spinner<Number>(1,20,1);
-			spnFilter.setPrefWidth(SPIN_SIZE);
-			spnFilter.getStyleClass().add(Spinner.STYLE_CLASS_SPLIT_ARROWS_HORIZONTAL);
-			spnFilter.getValueFactory().valueProperty().bindBidirectional(system.rate_filter);
-			
-			Spinner<Number> spnTimebase = new Spinner<Number>(0.,99.,1.);
-			spnTimebase.setPrefWidth(SPIN_SIZE);
-			spnTimebase.getStyleClass().add(Spinner.STYLE_CLASS_SPLIT_ARROWS_HORIZONTAL);
-			spnTimebase.getValueFactory().valueProperty().bindBidirectional(system.timebase);
-			
-			root.add(chkSimulation,         0, 1, 2, 1);
-			root.add(chkEtch      ,         0, 2, 2, 1);
-			root.add(chkResolution,         0, 3, 2, 1);
-			root.add(new Label("Filter"),   0, 4);
-			root.add(spnFilter,             1, 4);
-			root.add(new Label("Timebase"), 0, 5);
-			root.add(spnTimebase,           1, 5);
-			root.add(new Separator(Orientation.VERTICAL), 2, 0, 1, 7);
-		}
-		
-		private void section_2(GridPane root){
-			
-			Spinner<Number> spnMinThick = new Spinner<Number>(0.,9999.,1.);
-			spnMinThick.setPrefWidth(SPIN_SIZE);
-			spnMinThick.getStyleClass().add(Spinner.STYLE_CLASS_SPLIT_ARROWS_HORIZONTAL);
-			spnMinThick.getValueFactory().valueProperty().bindBidirectional(system.thick[0]);
-			
-			Spinner<Number> spnMaxThick = new Spinner<Number>(0.,9999.,1.);
-			spnMaxThick.setPrefWidth(SPIN_SIZE);
-			spnMaxThick.getStyleClass().add(Spinner.STYLE_CLASS_SPLIT_ARROWS_HORIZONTAL);
-			spnMaxThick.getValueFactory().valueProperty().bindBidirectional(system.thick[1]);
-			
-			Spinner<Number> spnMinRate = new Spinner<Number>(-99.,999.,1.);
-			spnMinRate.setPrefWidth(SPIN_SIZE);
-			spnMinRate.getStyleClass().add(Spinner.STYLE_CLASS_SPLIT_ARROWS_HORIZONTAL);
-			spnMinRate.getValueFactory().valueProperty().bindBidirectional(system.rate[0]);
-			
-			Spinner<Number> spnMaxRate = new Spinner<Number>(-99.,999.,1.);
-			spnMaxRate.setPrefWidth(SPIN_SIZE);
-			spnMaxRate.getStyleClass().add(Spinner.STYLE_CLASS_SPLIT_ARROWS_HORIZONTAL);
-			spnMaxRate.getValueFactory().valueProperty().bindBidirectional(system.rate[1]);
-			
-			Spinner<Number> spnMinFreq = new Spinner<Number>(1.,6.4,0.1f);
-			spnMinFreq.setPrefWidth(SPIN_SIZE);
-			spnMinFreq.getStyleClass().add(Spinner.STYLE_CLASS_SPLIT_ARROWS_HORIZONTAL);
-			spnMinFreq.getValueFactory().valueProperty().bindBidirectional(system.freq[0]);
-			
-			Spinner<Number> spnMaxFreq = new Spinner<Number>(1.,6.4,0.1f);
-			spnMaxFreq.setPrefWidth(SPIN_SIZE);
-			spnMaxFreq.getStyleClass().add(Spinner.STYLE_CLASS_SPLIT_ARROWS_HORIZONTAL);
-			spnMaxFreq.getValueFactory().valueProperty().bindBidirectional(system.freq[1]);
-			
-			Label[] txtTitle = {
-				new Label("類比輸出"),
-				new Label("最小厚度（kÅ）"),
-				new Label("最大厚度（kÅ）"),
-				new Label("最小速率（Å/s）"),
-				new Label("最大速率（Å/s）"),
-				new Label("最小頻率（Hz）"),
-				new Label("最大頻率（Hz）"),
-			};
-			
-			root.add(txtTitle[0], 3, 0, 3,1);
-			root.add(txtTitle[1], 3, 1);
-			root.add(spnMinThick, 4, 1);
-			root.add(txtTitle[2], 3, 2);
-			root.add(spnMaxThick, 4, 2);
-			root.add(txtTitle[3], 3, 3);
-			root.add(spnMinRate,  4, 3);
-			root.add(txtTitle[4], 3, 4);
-			root.add(spnMaxRate,  4, 4);
-			root.add(txtTitle[5], 3, 5);
-			root.add(spnMinFreq,  4, 5);
-			root.add(txtTitle[6], 3, 6);
-			root.add(spnMaxFreq,  4, 6);
-			root.add(new Separator(Orientation.VERTICAL), 5, 0, 1, 7);
-		}
-		
-		private void section_3(GridPane root){
-			root.add(new Label("X Tooling"), 6, 0, 3, 1);
-			for(int i=0; i<6; i++){
-				Spinner<Integer> spnTool = new Spinner<Integer>(10,399,1);
-				spnTool.setPrefWidth(SPIN_SIZE);
-				spnTool.getStyleClass().add(Spinner.STYLE_CLASS_SPLIT_ARROWS_HORIZONTAL);
-				root.add(new Label("Crystal-1"), 6, i+1);
-				root.add(spnTool, 7, i+1);
-			}
-		}
-
-		private void bottom_ctrl(GridPane root){
-			
-			Label txtStatus = new Label();
-
-			final int BTN_SIZE = 100;
-			Button btn1 = PanBase.genButton3("更新", "sync.png");
-			btn1.setPrefWidth(BTN_SIZE);
-			btn1.setOnAction(event->{
-				
-			});
-			Button btn2 = PanBase.genButton3("套用", "check.png");
-			btn2.setPrefWidth(BTN_SIZE);
-			btn2.setOnAction(event->{
-				
-			});
-			
-			HBox lay0 = new HBox(btn1,btn2);
-			lay0.setAlignment(Pos.BASELINE_RIGHT);
-			lay0.getStyleClass().add("hbox-small");
-			root.add(txtStatus, 0, 9);
-			root.add(lay0, 1, 9, 7, 1);
-		}
-	};
-	private PanSetSystem panSetting2 = new PanSetSystem();
-	
 	@Override
 	protected Node eventLayout(PanBase pan) {
 
@@ -670,12 +530,10 @@ public class DevSQM160 extends DevTTY {
 		
 		Button btnSetFilm = PanBase.genButton2(TXT_SETTING1,"");
 		btnSetFilm.setMaxWidth(Double.MAX_VALUE);
-		btnSetFilm.setOnAction(event->panSetting1.popup());
 		
 		Button btnSetSystem = PanBase.genButton2(TXT_SETTING2,"");
 		btnSetSystem.setMaxWidth(Double.MAX_VALUE);
-		btnSetSystem.setOnAction(event->panSetting2.popup());
-		
+
 		root.addRow(0, txtTitleFilm, txtNameFilm);
 		root.addRow(1, txtNameThick, txtAvgThick, txtUnitThick);
 		root.addRow(2, txtNameRate , txtAvgRate , txtUnitRate );
@@ -684,6 +542,10 @@ public class DevSQM160 extends DevTTY {
 		
 		root.add(new Separator(Orientation.VERTICAL), 4, 0, 1, 5);
 		root.add(panSensor, 5, 0, 6, 6);
+		
+		root.sceneProperty().addListener((obv,val1,val2)->{
+			Misc.logv("flag = (%B) --> (%B) ", val1, val2);
+		});
 		return root;
 	}
 }

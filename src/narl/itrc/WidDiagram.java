@@ -18,7 +18,7 @@ import javafx.util.Duration;
 
 public class WidDiagram extends AnchorPane {
 
-	private static final int TILE_SIZE = 40;
+	protected static final int TILE_SIZE = 40;
 
 	private static final int DEFAULT_GRID = 20;
 	
@@ -92,6 +92,14 @@ public class WidDiagram extends AnchorPane {
 		private void init(){
 			getChildren().addAll(ground,cursor);			
 			cursor.setVisible(false);
+		}
+		
+		public double getGridX(){
+			return loca[0] / TILE_SIZE;
+		}
+		
+		public double getGridY(){
+			return loca[1] / TILE_SIZE;
 		}
 		
 		protected void prepare_cursor(){
