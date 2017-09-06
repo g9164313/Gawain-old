@@ -32,7 +32,7 @@ public class DevTTY extends DevBase {
 	
 	@Override
 	void eventShutdown() {
-		stopMonitor();
+		stopTaskMonitor();
 		eventTurnOff();
 		close();
 	}

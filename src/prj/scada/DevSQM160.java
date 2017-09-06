@@ -3,15 +3,10 @@ package prj.scada;
 import com.jfoenix.controls.JFXCheckBox;
 import com.jfoenix.controls.JFXComboBox;
 import com.jfoenix.controls.JFXTextField;
+import com.sun.glass.ui.Application;
 
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.FloatProperty;
-import javafx.beans.property.IntegerProperty;
-import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleFloatProperty;
-import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.geometry.Orientation;
@@ -20,13 +15,17 @@ import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
-import javafx.scene.control.Spinner;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import narl.itrc.BoxValFloat;
+import narl.itrc.BoxValInteger;
 import narl.itrc.DevTTY;
 import narl.itrc.Gawain;
+import narl.itrc.GrpToogle;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
+import narl.itrc.PanDecorate;
 
 /**
  * INFICON SQM-160 Multi-Film Rate/Thickness Monitor
@@ -72,32 +71,55 @@ public class DevSQM160 extends DevTTY {
 		close();
 	}
 	//--------------------------------//
-		
+	
+	private final String STA_A = "Command understood, normal response";
+	private final String STA_C = "Invalid command";
+	private final String STA_D = "Problem with data in command";
+	private final String STA_X = "--------";
+	private String lastCommand = "";
+	//private String lastResponse= "";
+	private String lastStatus  = STA_X;
+	
+	private StringProperty propLastStatus = new SimpleStringProperty(STA_X);
+	
+	public String[] exec_arg(String cmd){
+		String txt = exec(cmd);
+		return txt.split("\\s+");
+	}
+	
 	public String exec(String cmd){
-		send_command(cmd);
-		return have_response();
+		return exec(cmd,true);
 	}
-	
 	public String exec(String cmd,boolean sync){
+		if(PanSputter.DBG==true){
+			return "";
+		}
 		send_command(cmd,sync);
-		return have_response();
+		String res = have_response();
+		if(Application.isEventThread()==true){
+			//lastResponse = res;
+			propLastStatus.set(String.format("%s - (%s)", lastStatus, lastCommand));
+		}
+		return res;
 	}
-	
-	private void send_command(String cmd){
-		send_command(cmd,true);
-	}
-	
+
 	private void send_command(String cmd,boolean sync){
+		if(Application.isEventThread()==true){
+			lastCommand = cmd;
+		}
 		char len = (char) (cmd.length() + 34);
 		cmd = len + cmd;
 		short val = calc_CRC(cmd.toCharArray());
-		char crc1 = (char)(crcLow(val));
-		char crc2 = (char)(crcHigh(val));
-		cmd = cmd + crc1 + crc2;
 		if(sync==true){
 			cmd = '!' + cmd;
-		}
+		}		
 		writeTxt(cmd);
+		//It is strange!!!, we must send command first, then put CRC
+		byte[] buf = {
+			(byte)(crcLow(val)),
+			(byte)(crcHigh(val))
+		};
+		writeBuf(buf);
 	}
 	
 	private String have_response(){
@@ -115,6 +137,15 @@ public class DevSQM160 extends DevTTY {
 		String resp = "";
 		for(val1=0; val1<val2; val1++){
 			tkn = readChar();
+			if(val1==0){
+				//the first character is response status~~~
+				switch(tkn){
+				case 'A': lastStatus= STA_A; break;
+				case 'C': lastStatus= STA_C; break;
+				case 'D': lastStatus= STA_D; break;
+				default: lastStatus = STA_X; break;
+				}
+			}
 			resp = resp + tkn;
 		}
 		
@@ -159,393 +190,394 @@ public class DevSQM160 extends DevTTY {
 		return crc;
 	}
 
-	private byte crcLow(short crc) {
-		byte val = (byte) ((crc & 0x7f) + 34);
+	private short crcLow(short crc) {
+		short val = (short) ((crc & 0x7f) + 34);
 		return val;
 	}
 	
-	private byte crcHigh(short crc) {
-		byte val = (byte) (((crc >> 7) & 0x7f) + 34);
+	private short crcHigh(short crc) {
+		short val = (short) (((crc >> 7) & 0x7f) + 34);
 		return val;
 	}
 	//--------------------------------//
-
-	@Override
+	/*@Override
 	protected boolean taskStart(){
 		return isOpen();
 	}
 	@Override
 	protected boolean taskLooper(){
-		
+		final String rate = exec("M").substring(1).trim();
+		final String thick= exec("O").substring(1).trim();
+		avgRate = Float.valueOf(rate);
+		avgThick= Float.valueOf(thick);
+		Misc.invoke(event->{
+			propAvgRate.set(rate);
+			propAvgThick.set(thick);
+		});
 		return true;
+	}*/
+	@Override
+	protected void timeLooper(){
+		final String rate = exec("M").substring(1).trim();
+		final String thick= exec("O").substring(1).trim();
+		avgRate = Float.valueOf(rate);
+		avgThick= Float.valueOf(thick);
+		propAvgRate.set(rate);
+		propAvgThick.set(thick);
 	}
 	public void startMonitor(){
-		super.startMonitor("Monitor-SQM160",500L);
+		//super.startTaskMonitor("Monitor-SQM160", 1000);
+		super.startTimeMonitor(1000);
 	}
 	//--------------------------------//
 	
-	/**
-	 * we can get information about thickness, rate, frequency for each sensor. <p>
-	 */
-	private class TypeSensor {
-		public BooleanProperty propEnable = new SimpleBooleanProperty(true);
-		public StringProperty propThick = new SimpleStringProperty("0");
-		public StringProperty propRate = new SimpleStringProperty("0");
-		public StringProperty propFreq = new SimpleStringProperty("0");
+	private void refresh_film(int idx){
+		String res = exec(String.format("A%d?", idx));
+		if(res.length()<=8){
+			clear_info_flim();
+			return;//it must be debug-mode
+		}
+		String name = res.substring(1,8);
+		String[] arg= res.substring(8).trim().split("\\s+");
+
+		boxFilmName.setText(name);
+		boxDensity.set(Float.valueOf(arg[0]));
+		boxFilmTooling.set(Integer.valueOf(arg[1]));
+		boxZRatio.set(Float.valueOf(arg[2]));
+		boxFinalThick.set(Float.valueOf(arg[3]));
+		boxSetPoint1.set(Float.valueOf(arg[4]));
+		boxSetPoint2.set(Integer.valueOf(arg[5]));
+		int flag = Integer.valueOf(arg[6]);
+		for(int i=0; i<6; i++){
+			if((flag&(1<<i))!=0){
+				chkSensor[i].setSelected(true);
+			}else{
+				chkSensor[i].setSelected(false);
+			}
+		}
+	}
+	private void clear_info_flim(){
+		boxFilmName.setText("???");
+		boxDensity.clear();
+		boxFilmTooling.clear();
+		boxZRatio.clear();
+		boxFinalThick.clear();
+		boxSetPoint1.clear();
+		boxSetPoint2.clear();
+		for(int i=0; i<6; i++){
+			chkSensor[i].setSelected(false);
+		}
+	}
+	private void rewrite_flim(){
+		int idx = 1+cmbFilmIdx.getSelectionModel().getSelectedIndex();
+		String name = boxFilmName.getText()
+			.toUpperCase();
+		if(name.length()<=8){
+			int cnt = 8 - name.length();
+			for(int i=0; i<cnt; i++){
+				name = name + " ";
+			}
+		}else{
+			name = name.substring(0,8);
+		}
+		int flag = 0;
+		for(int i=0; i<6; i++){
+			if(chkSensor[i].isSelected()==true){
+				flag = flag | (1<<i);
+			}
+		}
+		String cmd = String.format(
+			"A%d%s %.2f %d %.3f %.3f %.3f %d %d",
+			idx, name,
+			boxDensity.get(),
+			boxFilmTooling.get(),
+			boxZRatio.get(),
+			boxFinalThick.get(),
+			boxSetPoint1.get(),
+			boxSetPoint2.get(),
+			flag
+		);
+		exec(cmd);//update film information
+	}
+	
+	private void refresh_sys1(){
+		String[] arg = exec_arg("B?");
+		if(arg.length==1){
+			return;
+		}
+		boxTimeBase.set(Float.valueOf(arg[1]));
+		chkSimulateMode.setSelected((Integer.valueOf(arg[2])==0)?(false):(true));		
+		grpDiaplayMode.select(Integer.valueOf(arg[3]));		
+		chkRateResolution.setSelected((Integer.valueOf(arg[4])==0)?(false):(true));
+		boxRateFilter.set(Integer.valueOf(arg[5]));
+		for(int i=0; i<boxCrystalTooling.length; i++){
+			boxCrystalTooling[i].set(Integer.valueOf(arg[6+i]));
+		}
+	}
+	private void rewrite_sys1(){
+		String cmd = String.format(
+			"B %.2f %d %d %d %d %d %d %d %d %d %d",
+			boxTimeBase.get(),
+			(chkSimulateMode.isSelected()==true)?(1):(0),
+			grpDiaplayMode.getSelectIndx(),
+			(chkRateResolution.isSelected()==true)?(1):(0),
+			boxRateFilter.get(),
+			boxCrystalTooling[0].get(),
+			boxCrystalTooling[1].get(),
+			boxCrystalTooling[2].get(),
+			boxCrystalTooling[3].get(),
+			boxCrystalTooling[4].get(),
+			boxCrystalTooling[5].get()
+		);
+		exec(cmd);//update SYS-1 information
+	}
+	
+	private void refresh_sys2(){
+		String[] arg = exec_arg("C?");
+		if(arg.length==1){
+			return;
+		}
+		boxMinFreq.set(Float.valueOf(arg[1]));
+		boxMaxFreq.set(Float.valueOf(arg[2]));
+		boxMinRate.set(Float.valueOf(arg[3]));
+		boxMatRate.set(Float.valueOf(arg[4]));
+		boxMinThick.set(Float.valueOf(arg[5]));
+		boxMaxThick.set(Float.valueOf(arg[6]));
+		chkEtchMode.setSelected((Integer.valueOf(arg[7])==0)?(false):(true));
+	}
+
+	private void rewrite_sys2(){		
+		String cmd = String.format(
+			"C %.3f %.3f %.3f %.3f %.3f %.3f %d",
+			boxMinFreq.get(),
+			boxMaxFreq.get(),
+			boxMinRate.get(),
+			boxMatRate.get(),
+			boxMinThick.get(),
+			boxMaxThick.get(),
+			(chkEtchMode.isSelected()==true)?(1):(0)
+		);
+		exec(cmd);//update SYS-2 information
+	}
+	//--------------------------------//
+	
+	private float avgRate, avgThick;
+	//private FloatProperty propAvgRate = new SimpleFloatProperty();
+	//private FloatProperty propAvgThick= new SimpleFloatProperty();
+	private StringProperty propAvgRate = new SimpleStringProperty(); 
+	private StringProperty propAvgThick= new SimpleStringProperty();
+	
+	private Node layout_info_meas(){
+		
+		Label[] txt = {
+			new Label("平均速率："), new Label(),
+			new Label("平均厚度："), new Label(),
+		};
+		txt[1].textProperty().bind(propAvgRate);
+		txt[3].textProperty().bind(propAvgThick);
+		
+		final GridPane root = new GridPane();
+		root.getStyleClass().add("grid-medium");
+		root.addRow(0, txt[0], txt[1]);
+		root.addRow(1, txt[2], txt[3]);
+		return PanDecorate.group("Measurement", root);
+	}
+	
+	private JFXComboBox<String> cmbFilmIdx = new JFXComboBox<String>();
+	
+	private JFXTextField  boxFilmName = new JFXTextField();
+	private BoxValFloat   boxDensity = new BoxValFloat(0.5f,2).setRange(0.50f, 99.99f);
+	private BoxValInteger boxFilmTooling = new BoxValInteger().setRange(10, 399);
+	private BoxValFloat   boxZRatio = new BoxValFloat(0.1f,3).setRange(0.10f, 9.999f);
+	private BoxValFloat   boxFinalThick= new BoxValFloat(0.f,3).setRange(0.000f, 9999.000f);
+	private BoxValFloat   boxSetPoint1 = new BoxValFloat(0.f,3).setRange(0.000f, 9999.000f);
+	private BoxValInteger boxSetPoint2 = new BoxValInteger().setRange(0, 9959);
+	private JFXCheckBox[] chkSensor = {
+		new JFXCheckBox("Sensor-1"), new JFXCheckBox("Sensor-2"), new JFXCheckBox("Sensor-3"),
+		new JFXCheckBox("Sensor-4"), new JFXCheckBox("Sensor-5"), new JFXCheckBox("Sensor-6"),
 	};
-
-	private class TypeFilm {
+	
+	private Button btnFilmRefresh= PanBase.genButton3("更新",null);
+	private Button btnFilmRewrite= PanBase.genButton3("套用",null);
+	private Button btnFilmActive = PanBase.genButton3("指定",null);
+	
+	private Node layout_info_flim(){
 		
-		//public int number = 0; //it is just an index.
-		public StringProperty  name = new SimpleStringProperty("???");//name, only 8-character
-		public DoubleProperty  density = new SimpleDoubleProperty(0.50);//0.50~99.99 g/cm³
-		public IntegerProperty tooling = new SimpleIntegerProperty(33); //10 to 399, unit is '%'
-		public FloatProperty   z_ratio = new SimpleFloatProperty(0.1f); //0.10 to 0.999
-		public DoubleProperty  final_thick= new SimpleDoubleProperty(0.000);  //0.000 to 9999.000 kÅ
-		public DoubleProperty  setpoint1  = new SimpleDoubleProperty(0.000);//0.000 to 9999.000 kÅ
-		public StringProperty  setpoint2  = new SimpleStringProperty("00:00");//00:00 to 99:59, time format, mm:ss
-		public byte use_sensor = 0x00;//one-bit present one sensor, LSB bit-0 is sensor.1
-		
-		public TypeFilm(){			
-			for(int i=0; i<sensor.length; i++){
-				sensor[i] = new TypeSensor();
-			}
-			update_sensor();
+		for(int i=1; i<=99; i++){
+			cmbFilmIdx.getItems().add(String.format("Film-%d",i));
 		}
-
-		private TypeSensor[] sensor = new TypeSensor[6];
+		cmbFilmIdx.getSelectionModel().select(0);
+		cmbFilmIdx.setOnAction(e->{
+			int idx = 1+cmbFilmIdx.getSelectionModel().getSelectedIndex();
+			refresh_film(idx);
+		});
 		
-		public void update_sensor(){
-			for(int i=0; i<sensor.length; i++){
-				int flag = (use_sensor & (0x01<<i));
-				if(flag!=0){
-					sensor[i].propEnable.set(true);
-				}else{
-					sensor[i].propEnable.set(false);
-				}
+		final GridPane root = new GridPane();
+		root.getStyleClass().add("grid-medium");
+		
+		btnFilmRefresh.setOnAction(e->{
+			int idx = 1+cmbFilmIdx.getSelectionModel().getSelectedIndex();
+			refresh_film(idx);
+		});
+		
+		btnFilmActive.setOnAction(e->{
+			int idx = 1+cmbFilmIdx.getSelectionModel().getSelectedIndex();
+			exec(String.format("D%d",idx));
+		});
+		
+		btnFilmRewrite.setOnAction(e->{
+			rewrite_flim();
+			//btnFilmRefresh.getOnAction().handle(null);
+		});
+		
+		root.add(cmbFilmIdx    , 0, 0);
+		root.add(boxFilmName   , 0, 1);
+		root.add(btnFilmRefresh, 0, 2);	
+		root.add(btnFilmRewrite, 0, 3);
+		root.add(btnFilmActive , 0, 4);			
+		root.add(new Separator(Orientation.VERTICAL), 1, 0, 1, 6);		
+		root.add(new Label("Density(g/cm³)")        , 2, 0); root.add(boxDensity    , 3, 0);
+		root.add(new Label("Film Tooling(%)")       , 2, 1); root.add(boxFilmTooling, 3, 1);
+		root.add(new Label("Z-Ratio")               , 2, 2); root.add(boxZRatio     , 3, 2);
+		root.add(new Label("Final Thickness(kÅ)")   , 2, 3); root.add(boxFinalThick , 3, 3);
+		root.add(new Label("Thickness setpoint(kÅ)"), 2, 4); root.add(boxSetPoint1  , 3, 4);
+		root.add(new Label("Time Setpoint(mm:ss)")  , 2, 5); root.add(boxSetPoint2  , 3, 5);
+		root.add(new Separator(Orientation.VERTICAL), 4, 0, 1, 6);
+		root.add(chkSensor[0], 5, 0); 
+		root.add(chkSensor[1], 5, 1);
+		root.add(chkSensor[2], 5, 2); 
+		root.add(chkSensor[3], 5, 3);
+		root.add(chkSensor[4], 5, 4); 
+		root.add(chkSensor[5], 5, 5);
+		
+		root.sceneProperty().addListener((obv,oldVal,newVal)->{
+			if(newVal==null){
+				return;//not showing....
 			}
-		}
+			refresh_film(0);//Use '0' to query the current film~~~			
+		});
+		return PanDecorate.group("Film Setting", root);
+	}
+	
+	//system information - 1
+	private BoxValFloat boxTimeBase = new BoxValFloat(0.1f,2).setRange(0.1f, 2.f);
+	private JFXCheckBox chkSimulateMode = new JFXCheckBox("Simulation Mode");
+	private GrpToogle grpDiaplayMode = new GrpToogle(
+		"Å/s，kÅ",
+		"nm/s，μm",
+		"Hz",
+		"μg/cm²/s，μg/cm²"
+	);
+	private JFXCheckBox chkRateResolution = new JFXCheckBox("High Rate Resolution");
+	private BoxValInteger boxRateFilter = new BoxValInteger().setRange(1, 20);	
+	private BoxValInteger[] boxCrystalTooling = {
+		new BoxValInteger().setRange(10, 399),
+		new BoxValInteger().setRange(10, 399),
+		new BoxValInteger().setRange(10, 399),
+		new BoxValInteger().setRange(10, 399),
+		new BoxValInteger().setRange(10, 399),
+		new BoxValInteger().setRange(10, 399),
 	};
-	private TypeFilm film = new TypeFilm();
-
-	private class TypeSystem {
-		//below lines are system-1 parameter
-		/**
-		 * 0.10 to 2.00 second, timebase
-		 */
-		public DoubleProperty timebase = new SimpleDoubleProperty(0.1);		
-		/**
-		 * '0' indicate simulation is OFF.
-		 */
-		public BooleanProperty propSimulate = new SimpleBooleanProperty(false);
-		
-		/**
-		 * 0 to 3, indicating rate or thickness unit.
-		 */
-		public int mode_display = 0;
-		/**
-		 * The rate unit for sensor.It can be Å/s, nm/s, Hz, μg/cm²/s.<p>
-		 */
-		public StringProperty propUnitRate = new SimpleStringProperty("A/s");
-		/**
-		 * The thickness unit for sensor.It can be kÅ, μm, Hz, μg/cm².<p>
-		 */
-		public StringProperty propUnitThick = new SimpleStringProperty("kÅ");
-				
-		@SuppressWarnings("unused")
-		private void update_display(){
-			switch(mode_display){
-			case 0:
-				propUnitRate.set("Å/s");
-				propUnitThick.set("kÅ");
-				break;
-			case 1:
-				propUnitRate.set("nm/s");
-				propUnitThick.set("μm");
-				break;
-			case 2:
-				propUnitRate.set("Hz");
-				propUnitThick.set("Hz");
-				break;
-			case 3:
-				propUnitRate.set("μg/cm²/s");
-				propUnitThick.set("μg/cm²");
-				break;
-			}
-		}
-		
-		/**
-		 * 0 indicates low resolution(0.1Å/s), 1 indicates high display (0.01Å/s)
-		 */
-		public BooleanProperty propResolution = new SimpleBooleanProperty(false);
-		
-		/**
-		 * 1 to 20, ?? readings
-		 */
-		public IntegerProperty rate_filter = new SimpleIntegerProperty(1);
-		/**
-		 * 10 to 399 (%), crystal tooling for each sensor.
-		 */
-		@SuppressWarnings("unused")
-		public IntegerProperty[] tooling = {
-			new SimpleIntegerProperty(10),
-			new SimpleIntegerProperty(10),
-			new SimpleIntegerProperty(10),
-			new SimpleIntegerProperty(10),
-			new SimpleIntegerProperty(10),
-			new SimpleIntegerProperty(10),
-			new SimpleIntegerProperty(10)
-		};		
-		//below lines are system-2 parameter
-		public DoubleProperty[] freq = {
-			new SimpleDoubleProperty(1),
-			new SimpleDoubleProperty(6.400)
-		};//range is 1.000 to 6.400 MHz, min and max.
-		
-		public IntegerProperty[]   rate = {
-			new SimpleIntegerProperty(-99),
-			new SimpleIntegerProperty(999)
-		};//range is -99 to 999 Å/s, min and max.
-		
-		public DoubleProperty[] thick= {
-			new SimpleDoubleProperty(0.),
-			new SimpleDoubleProperty(9999.)
-		};//range is 0.000 to 9999 kÅ, min and max
-		
-		public BooleanProperty propEtch = new SimpleBooleanProperty(false);//'0' indicate Etch mode is OFF.
-	};
-	private TypeSystem system = new TypeSystem();//this structure includes all system parameters
 	
-	/**
-	 * Film name, it must be changed manually~~~~
-	 */
-	private SimpleStringProperty propNameFilm = new SimpleStringProperty("???");
+	//system information - 2 	
+	private BoxValFloat boxMinFreq = new BoxValFloat(1f,3).setRange(1.f, 6.4f);
+	private BoxValFloat boxMaxFreq = new BoxValFloat(1f,3).setRange(1.f, 6.4f);
+	private BoxValFloat boxMinRate = new BoxValFloat(0f,3).setRange(-99f, 999f);
+	private BoxValFloat boxMatRate = new BoxValFloat(0f,3).setRange(-99f, 999f);
+	private BoxValFloat boxMinThick= new BoxValFloat(0f,3).setRange(0.f, 9999f);
+	private BoxValFloat boxMaxThick= new BoxValFloat(0f,3).setRange(0.f, 9999f);
+	private JFXCheckBox chkEtchMode = new JFXCheckBox("Etch Mode");
 	
-	/**
-	 * We can read a average thickness value from device.<p>
-	 */
-	private SimpleStringProperty propAvgThick = new SimpleStringProperty("0");
+	private Node layout_info_sys(){
 
-	/**
-	 * We can read a average rate value from device.<p>
-	 */
-	private SimpleStringProperty propAvgRate = new SimpleStringProperty("0");
-	
-	private final String TXT_SETTING1 = "設定薄膜";
-	private final String TXT_SETTING2 = "設定裝置";	
-	private final int SPIN_SIZE = 120;
-	private final int TBOX_SIZE = 80;
-	
-	private class PanSetFilm extends PanBase {
+		final GridPane root = new GridPane();
+		root.getStyleClass().add("grid-medium");
+
+		root.add(new Label("Time Base(sec)"), 0, 0); root.add(boxTimeBase      , 1, 0, 1, 1);
+		root.add(new Label("Rate Filter")   , 0, 1); root.add(boxRateFilter    , 1, 1, 1, 1);
+		root.add(chkSimulateMode  , 0, 2, 2, 1);
+		root.add(chkRateResolution, 0, 3, 2, 1);
+		root.add(new Separator(Orientation.VERTICAL), 2, 0, 1, 7);
+		root.add(new Label("--Display Mode--"), 3, 0);
+		root.add(grpDiaplayMode, 3, 1, 1, 6);
+		root.add(new Separator(Orientation.VERTICAL), 4, 0, 1, 7);
+		root.add(new Label("Crystal Tooling-1"), 5, 0); root.add(boxCrystalTooling[0], 6, 0, 1, 1);
+		root.add(new Label("Crystal Tooling-2"), 5, 1); root.add(boxCrystalTooling[1], 6, 1, 1, 1);
+		root.add(new Label("Crystal Tooling-3"), 5, 2); root.add(boxCrystalTooling[2], 6, 2, 1, 1);
+		root.add(new Label("Crystal Tooling-4"), 5, 3); root.add(boxCrystalTooling[3], 6, 3, 1, 1);
+		root.add(new Label("Crystal Tooling-5"), 5, 4); root.add(boxCrystalTooling[4], 6, 4, 1, 1);
+		root.add(new Label("Crystal Tooling-6"), 5, 5); root.add(boxCrystalTooling[5], 6, 5, 1, 1);
+		root.add(new Separator(Orientation.VERTICAL), 7, 0, 1, 7);
+		root.add(chkEtchMode, 8, 0, 2, 1);
+		root.add(new Label("Min Freq(MHz)"), 8, 1); root.add(boxMinFreq , 9, 1, 1, 1);
+		root.add(new Label("Max Freq(MHz)"), 8, 2); root.add(boxMaxFreq , 9, 2, 1, 1);
+		root.add(new Label("Min Rate(Å/s)"), 8, 3); root.add(boxMinRate , 9, 3, 1, 1);
+		root.add(new Label("Max Rate(Å/s)"), 8, 4); root.add(boxMatRate , 9, 4, 1, 1);
+		root.add(new Label("Min Thick(kÅ)"), 8, 5); root.add(boxMinThick, 9, 5, 1, 1);
+		root.add(new Label("Max Thick(kÅ)"), 8, 6); root.add(boxMaxThick, 9, 6, 1, 1);
 		
-		public PanSetFilm(){
-			propTitle.set(TXT_SETTING1);
-		}
+		root.sceneProperty().addListener((obv,oldVal,newVal)->{
+			if(newVal==null){
+				return;//not showing....
+			}			
+			refresh_sys1();
+			refresh_sys2();
+		});
+		return PanDecorate.group("System Infomation", root);
+	}
+	
+	private Node layout_ctrl(){
 		
-		@Override
-		public Node eventLayout(PanBase pan) {
-			GridPane root = new GridPane();
-			root.getStyleClass().add("grid-medium");
-			
-			JFXComboBox<Integer> cmbNumber = new JFXComboBox<Integer>();
-			cmbNumber.setPrefWidth(SPIN_SIZE);
-			for(int i=1; i<=99; i++){
-				cmbNumber.getItems().add(i);
-			}
-			cmbNumber.setOnAction(event->{
-				//change 
-			});
-			
-			JFXTextField boxName = new JFXTextField();
-			boxName.setPrefWidth(TBOX_SIZE);
-			boxName.textProperty().bindBidirectional(film.name);
-			
-			Spinner<Number> spnDensity = new Spinner<Number>(0.5, 99.99, 1.);
-			spnDensity.setPrefWidth(SPIN_SIZE);
-			spnDensity.getStyleClass().add(Spinner.STYLE_CLASS_SPLIT_ARROWS_HORIZONTAL);
-			spnDensity.getValueFactory().valueProperty().bindBidirectional(film.density);
-
-			Spinner<Number> spnTooling = new Spinner<Number>(10, 399, 1);
-			spnTooling.setPrefWidth(SPIN_SIZE);
-			spnTooling.getStyleClass().add(Spinner.STYLE_CLASS_SPLIT_ARROWS_HORIZONTAL);
-			spnTooling.getValueFactory().valueProperty().bindBidirectional(film.tooling);
-			
-			Spinner<Float> spnZRatio = PanBase.genSpinnerFloat(0.1f, 9.999f, 0.001f, film.z_ratio);
-			spnZRatio.setPrefWidth(SPIN_SIZE);
-			spnZRatio.getStyleClass().add(Spinner.STYLE_CLASS_SPLIT_ARROWS_HORIZONTAL);
-
-			Spinner<Number> spnFinalThick = new Spinner<Number>(0., 9999., 1.);
-			spnFinalThick.setPrefWidth(SPIN_SIZE);
-			spnFinalThick.getStyleClass().add(Spinner.STYLE_CLASS_SPLIT_ARROWS_HORIZONTAL);
-			spnFinalThick.getValueFactory().valueProperty().bindBidirectional(film.final_thick);
-			
-			Spinner<Number> spnSetpoint1 = new Spinner<Number>(0., 9999., 1.);
-			spnSetpoint1.setPrefWidth(SPIN_SIZE);
-			spnSetpoint1.getStyleClass().add(Spinner.STYLE_CLASS_SPLIT_ARROWS_HORIZONTAL);
-			spnSetpoint1.getValueFactory().valueProperty().bindBidirectional(film.setpoint1);
-			
-			JFXTextField boxSetpoint2 = new JFXTextField();
-			boxSetpoint2.setPrefWidth(TBOX_SIZE);
-			boxSetpoint2.textProperty().bindBidirectional(film.setpoint2);
-			//TODO: boxSetpoint2.getValueFactory().valueProperty().bindBidirectional(film.setpoint2);
-			
-			for(int i=0; i<film.sensor.length; i++){
-				JFXCheckBox chkSensor = new JFXCheckBox("Sensor-"+i);
-				chkSensor.selectedProperty().bindBidirectional(film.sensor[i].propEnable);
-				root.add(chkSensor, 3, i+1);
-			}
-			
-			Label[] txtTitle = {
-				new Label("編號/名稱"),
-				new Label("Density（g/cm³）"),
-				new Label("Tooling（%）"),
-				new Label("Z-Ratio"),
-				new Label("Final Thickness"),				
-				new Label("最終厚度（kÅ）"),
-				new Label("最終時間（mm:ss）"),
-			};
-			
-			root.add(txtTitle[0]  , 0, 0);
-			root.add(cmbNumber    , 1, 0);
-			root.add(boxName      , 2, 0, 2, 1);
-			root.add(txtTitle[1]  , 0, 1);
-			root.add(spnDensity   , 1, 1);
-			root.add(txtTitle[2]  , 0, 2);
-			root.add(spnTooling   , 1, 2);
-			root.add(txtTitle[3]  , 0, 3);
-			root.add(spnZRatio    , 1, 3);
-			root.add(txtTitle[4]  , 0, 4);
-			root.add(spnFinalThick, 1, 4);			
-			root.add(txtTitle[5]  , 0, 5);
-			root.add(spnSetpoint1 , 1, 5);			
-			root.add(txtTitle[6]  , 0, 6);
-			root.add(boxSetpoint2 , 1, 6);			
-			root.add(new Separator(Orientation.VERTICAL), 2, 1, 1, 6);
-			
-			bottom_ctrl(root);			
-			return root;
+		final Button[] btn = {
+			PanBase.genButton3("更新系統",null),
+			PanBase.genButton3("套用系統",null),
+			PanBase.genButton3("重設時間",null),
+			PanBase.genButton3("重設結果",null),
+			PanBase.genButton3("恢復預設",null)
+		};
+		for(int i=0; i<btn.length; i++){
+			HBox.setHgrow(btn[i], Priority.ALWAYS);
 		}
-
-		private void bottom_ctrl(GridPane root){
-			final int BTN_SIZE = 100;
-			
-			Label txtStatus = new Label();
-
-			Button btn1 = PanBase.genButton3("更新", "sync.png");
-			btn1.setPrefWidth(BTN_SIZE);
-			btn1.setOnAction(event->{
-				
-			});
-			Button btn2 = PanBase.genButton3("套用", "check.png");
-			btn2.setPrefWidth(BTN_SIZE);
-			btn2.setOnAction(event->{
-				
-			});
-			
-			HBox lay0 = new HBox(btn1,btn2);
-			lay0.setAlignment(Pos.BASELINE_RIGHT);
-			lay0.getStyleClass().add("hbox-small");
-			root.add(txtStatus, 0, 9);
-			root.add(lay0, 1, 9, 7, 1);
-		}
-	};	
-
+		btn[0].setOnAction(e->{
+			refresh_sys1();
+			refresh_sys2();
+		});
+		btn[1].setOnAction(e->{
+			rewrite_sys1();
+			rewrite_sys2();
+		});
+		btn[2].setOnAction(e->{
+			exec("T");
+		});
+		btn[3].setOnAction(e->{
+			exec("S");			
+		});
+		btn[4].setOnAction(e->{
+			exec("Z");
+			refresh_sys1();
+			refresh_sys2();
+		});
+		
+		HBox root = new HBox();
+		root.getStyleClass().add("hbox-small");
+		root.setAlignment(Pos.BASELINE_CENTER);
+		root.getChildren().addAll(btn);
+		return root;
+	}
+	//---------------------------------------------//
+	
 	@Override
 	protected Node eventLayout(PanBase pan) {
 
-		final int DISP_SIZE = 53;
-		
-		GridPane panSensor = new GridPane();//show all sensor
-		panSensor.getStyleClass().add("grid-small");
-		
-		Label txtName1 = new Label("厚度");
-		txtName1.setPrefWidth(DISP_SIZE);
-		
-		Label txtName2 = new Label("速率");
-		txtName2.setPrefWidth(DISP_SIZE);
-		
-		Label txtName3 = new Label("頻率");
-		txtName3.setPrefWidth(DISP_SIZE);
-		
-		panSensor.addRow(0, new Label(), txtName1,txtName2, txtName3 );
-		
-		for(int i=0; i<film.sensor.length; i++){
-			
-			Label txtName = new Label(String.format("編號%d)  ", i+1));
-			txtName.visibleProperty().bind(film.sensor[i].propEnable);
-			
-			Label txtVal1 = new Label();
-			txtVal1.textProperty().bind(film.sensor[i].propThick);
-			txtVal1.visibleProperty().bind(film.sensor[i].propEnable);
-			
-			Label txtVal2 = new Label();
-			txtVal2.textProperty().bind(film.sensor[i].propRate);
-			txtVal2.visibleProperty().bind(film.sensor[i].propEnable);
-			
-			Label txtVal3 = new Label();
-			txtVal3.textProperty().bind(film.sensor[i].propFreq);
-			txtVal3.visibleProperty().bind(film.sensor[i].propEnable);
-			
-			panSensor.addRow(i+1, txtName, txtVal1, txtVal2, txtVal3);
-		}
-
-		GridPane root = new GridPane();
-		root.getStyleClass().add("grid-medium");
-
-		final String DISP_STYLE = "-fx-font-size: 17px;";
-		
-		Label txtTitleFilm = new Label("薄膜名稱：");
-		txtTitleFilm.setStyle(DISP_STYLE);
-		txtTitleFilm.textProperty().bind(film.name);
-		
-		Label txtNameFilm = new Label("");
-		txtNameFilm.setStyle(DISP_STYLE);
-		txtNameFilm.textProperty().bind(propNameFilm);
-		
-		Label txtNameThick = new Label("平均厚度：");
-		txtNameThick.setStyle(DISP_STYLE);
-		
-		Label txtAvgThick = new Label();	
-		txtAvgThick.textProperty().bind(propAvgThick);
-		txtAvgThick.setAlignment(Pos.BASELINE_RIGHT);
-		txtAvgThick.setPrefWidth(DISP_SIZE);
-		txtAvgThick.setStyle(DISP_STYLE);
-		
-		Label txtUnitThick = new Label();
-		txtUnitThick.textProperty().bind(system.propUnitThick);
-		txtUnitThick.setStyle(DISP_STYLE);
-		
-		Label txtNameRate =new Label("平均速率：");
-		txtNameRate.setStyle(DISP_STYLE);
-		
-		Label txtAvgRate = new Label();		
-		txtAvgRate.textProperty().bind(propAvgRate);
-		txtAvgRate.setAlignment(Pos.BASELINE_RIGHT);
-		txtAvgRate.setPrefWidth(DISP_SIZE);
-		txtAvgRate.setStyle(DISP_STYLE);
-		
-		Label txtUnitRate = new Label();
-		txtUnitRate.textProperty().bind(system.propUnitRate);
-		txtUnitRate.setStyle(DISP_STYLE);
-		
-		Button btnSetFilm = PanBase.genButton2(TXT_SETTING1,"");
-		btnSetFilm.setMaxWidth(Double.MAX_VALUE);
-		
-		Button btnSetSystem = PanBase.genButton2(TXT_SETTING2,"");
-		btnSetSystem.setMaxWidth(Double.MAX_VALUE);
-
-		root.addRow(0, txtTitleFilm, txtNameFilm);
-		root.addRow(1, txtNameThick, txtAvgThick, txtUnitThick);
-		root.addRow(2, txtNameRate , txtAvgRate , txtUnitRate );
-		root.add(btnSetFilm  , 0, 3, 3, 1);
-		root.add(btnSetSystem, 0, 4, 3, 1);
-		
-		root.add(new Separator(Orientation.VERTICAL), 4, 0, 1, 5);
-		root.add(panSensor, 5, 0, 6, 6);
-		
-		root.sceneProperty().addListener((obv,val1,val2)->{
-			Misc.logv("flag = (%B) --> (%B) ", val1, val2);
-		});
+		Label txtStatus = new Label();
+		txtStatus.textProperty().bind(propLastStatus);
+				
+		final GridPane root = new GridPane();		
+		root.add(layout_info_flim(), 0, 0, 1, 1);
+		root.add(layout_info_meas(), 1, 0, 1, 1);
+		root.add(layout_info_sys() , 0, 1, 2, 1);
+		root.add(txtStatus         , 0, 2, 2, 1);
+		root.add(layout_ctrl()     , 0, 3, 2, 1);
 		return root;
 	}
 }

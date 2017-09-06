@@ -69,7 +69,7 @@ public class PanSputter extends PanBase {
 		mapper.hookPart(devPLC);
 	}
 	
-	public static boolean DBG = true;
+	public static boolean DBG = false;
 	
 	@Override
 	public Node eventLayout(PanBase pan) {

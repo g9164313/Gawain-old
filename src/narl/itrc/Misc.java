@@ -754,7 +754,7 @@ public class Misc {
 		trim2Val(txt.substring(idx+1),pos,'x',2);		
 		return true;
 	}
-
+	
 	/**
 	 * parse text which contains geometry information.
 	 * @param txt - format {x}_{y}@{width}x{height}

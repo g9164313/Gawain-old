@@ -16,11 +16,11 @@ public class PanNullView extends PanBase {
 	
 	@Override
 	public Node eventLayout(PanBase pan) {
-		return dev.build("test-panel");		
+		return null;
 	}
 	//-----------------------//
 	
 	//private DevNanoPZ dev = new DevNanoPZ();
 	//private DevTTY dev = new DevTTY();
-	private DevLK_G5000 dev = new DevLK_G5000();
+	//private DevLK_G5000 dev = new DevLK_G5000();
 }

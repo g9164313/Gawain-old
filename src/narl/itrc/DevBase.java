@@ -2,14 +2,16 @@ package narl.itrc;
 
 import com.sun.glass.ui.Application;
 
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.concurrent.Task;
 import javafx.scene.Node;
-import javafx.scene.layout.Pane;
+import javafx.util.Duration;
 
-public abstract class DevBase extends Pane implements Gawain.GlobalHook {
+public abstract class DevBase implements Gawain.GlobalHook {
 
 	public DevBase(){
 		Gawain.hook(this);
@@ -44,7 +46,7 @@ public abstract class DevBase extends Pane implements Gawain.GlobalHook {
 	 */
 	@Override
 	public void shutdown() {
-		stopMonitor();
+		stopTaskMonitor();
 		eventShutdown();
 	}
 	
@@ -62,10 +64,10 @@ public abstract class DevBase extends Pane implements Gawain.GlobalHook {
 	 * @return self instance
 	 */
 	public DevBase build(final String title){
-		if(getChildren().isEmpty()==true){
-			Node nd = eventLayout(null);
-			getChildren().add(nd);
-			getStyleClass().add("decorate1-border");
+		//if(getChildren().isEmpty()==true){
+		//	Node nd = eventLayout(null);
+		//	getChildren().add(nd);
+		//	getStyleClass().add("decorate1-border");
 			//setMaxWidth(Double.MAX_VALUE);
 			/*if(nd!=null){
 				if(title!=null){
@@ -74,7 +76,7 @@ public abstract class DevBase extends Pane implements Gawain.GlobalHook {
 			}else{
 				Misc.logw("No control-view");
 			}*/			
-		}
+		//}
 		return this;
 	}
 	
@@ -151,11 +153,11 @@ public abstract class DevBase extends Pane implements Gawain.GlobalHook {
 	
 	private Task<Long> tskMonitor;
 	
-	protected void startMonitor(String name){
-		startMonitor(name,DEFAULT_DELAY);
+	protected void startTaskMonitor(String name){
+		startTaskMonitor(name,DEFAULT_DELAY);
 	}
 	
-	protected void startMonitor(String name,long delay){		
+	protected void startTaskMonitor(String name,long delay){		
 		if(tskMonitor!=null){
 			if(tskMonitor.isDone()==false){
 				return;
@@ -167,7 +169,7 @@ public abstract class DevBase extends Pane implements Gawain.GlobalHook {
 		new Thread(tskMonitor,name).start();
 	}
 	
-	protected void stopMonitor(){
+	protected void stopTaskMonitor(){
 		if(tskMonitor!=null){
 			if(tskMonitor.isDone()==false){
 				tskMonitor.cancel();
@@ -176,4 +178,18 @@ public abstract class DevBase extends Pane implements Gawain.GlobalHook {
 	}
 	//---------------------------//
 	
+	private Timeline timMonitor;
+	
+	protected void timeLooper(){
+	}
+	
+	protected void startTimeMonitor(long millisec){		
+		timMonitor = new Timeline(new KeyFrame(
+			Duration.millis(millisec),
+			event->timeLooper()
+		));
+		timMonitor.setCycleCount(Timeline.INDEFINITE);	
+		timMonitor.play();
+	}
+	//---------------------------//
 }
