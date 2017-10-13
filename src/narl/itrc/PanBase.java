@@ -98,6 +98,24 @@ public abstract class PanBase {
 	//------------------------//
 	
 	/**
+	 * prepare a stage, panel.no show!!!
+	 * @return self
+	 */
+	public PanBase prepare(){
+		return prepare(create_stage(null));
+	}
+	
+	/**
+	 * prepare a stage, panel.no show!!!
+	 * @return self
+	 */
+	public PanBase prepare(Stage stg){
+		init_panel();		
+		init_stage(stg);
+		return this;
+	}
+	
+	/**
 	 * present a new panel, but no-blocking
 	 * @return self
 	 */
@@ -112,8 +130,8 @@ public abstract class PanBase {
 	 */
 	public PanBase appear(Stage stg){
 		stage = stg;
-		init_panel();		
-		init_stage(stg).show();
+		prepare(stg);
+		stg.show();
 		return this;
 	}
 	
@@ -130,8 +148,8 @@ public abstract class PanBase {
 	 */
 	public void standby(Stage stg){
 		stage = stg;
-		init_panel();		
-		init_stage(stg).showAndWait();
+		prepare(stg);
+		stg.showAndWait();
 	}
 
 	/**
@@ -179,34 +197,7 @@ public abstract class PanBase {
 	//------------------------//
 		
 	public abstract Node eventLayout(PanBase self);
-	
-	private void init_scene(Parent root){		
-		scene = new Scene(root);
-		//load a default style...
-		scene.getStylesheets().add(Gawain.class.getResource("res/styles.css").toExternalForm());				
-		//if user give us a URL, try to load a custom style file....
-		if(customCSS!=null){			
-			scene.getStylesheets().add(customCSS.toExternalForm());
-		}
-		//capture some short-key
-		scene.setOnKeyPressed(eventHookPress);
-	}
 
-	private void init_panel(){
-		//first initialization...
-		//require children generate GUI-layout
-		if(root!=null){
-			return;
-		}
-		root = eventLayout(this);
-		//At this time, we should have stage~~~~
-		StackPane _root = new StackPane(root,panTask);
-		if(customStyle!=null){
-			_root.setStyle(customStyle);
-		}		
-		init_scene(_root);
-	}
-	
 	private void init_dialog(
 		final EventHandler<ActionEvent> eventCancel,
 		final EventHandler<ActionEvent> eventConfirm
@@ -289,6 +280,33 @@ public abstract class PanBase {
 			break;
 		}
 		return stg;
+	}
+	
+	private void init_panel(){
+		//first initialization...
+		//require children generate GUI-layout
+		if(root!=null){
+			return;
+		}
+		root = eventLayout(this);
+		//At this time, we should have stage~~~~
+		StackPane _root = new StackPane(root,panTask);
+		if(customStyle!=null){
+			_root.setStyle(customStyle);
+		}		
+		init_scene(_root);
+	}
+	
+	private void init_scene(Parent root){		
+		scene = new Scene(root);
+		//load a default style...
+		scene.getStylesheets().add(Gawain.class.getResource("res/styles.css").toExternalForm());				
+		//if user give us a URL, try to load a custom style file....
+		if(customCSS!=null){			
+			scene.getStylesheets().add(customCSS.toExternalForm());
+		}
+		//capture some short-key
+		scene.setOnKeyPressed(eventHookPress);
 	}
 	//------------------------//
 

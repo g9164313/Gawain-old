@@ -92,7 +92,7 @@ public class CamFlyCapture extends CamBundle {
 	private native void implShowCtrl(CamBundle cam);
 	
 	@Override
-	public void showSetting(ImgPreview prv) {
+	public void showSetting(ImgPreview1 prv) {
 		implShowCtrl(this);
 	}
 }

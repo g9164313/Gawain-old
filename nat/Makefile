@@ -70,7 +70,7 @@ LIB_MULTICAM := -L$(ROOT_MULTICAM) -lMultiCam
 ####  configuration  ####
 #########################
 
-CC=g++ 
+CC=g++ -DENABLE_LOG
 
 CC_FLAG = -g -I. -I./vision -I./SFR -I$(DIR_JNI) -I$(DIR_JNI)/linux
 CC_FLAG += -DVISION $(shell pkg-config --cflags opencv) 
@@ -128,7 +128,7 @@ endif
 	
 
 #$(TARGET_EXE):  ./running/main2.cpp ./running/misc.cpp ./util_cv.cpp $(CORE_FILE) $(LIB_SFRISO)
-$(TARGET_EXE):  ./running/main3.cpp
+$(TARGET_EXE):  ./running/main-xx1.cpp
 #$(TARGET_EXE):  ./running/main-glance.cpp
 #$(TARGET_EXE):  $(wildcard ./traincascade/*.cpp)
 #$(TARGET_EXE):  ./running/FlyCap2.cpp

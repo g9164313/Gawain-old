@@ -70,11 +70,11 @@ public abstract class CamBundle {
 	
 	/**
 	 * Overload function, it will override configuration again.<p>
-	 * @param txtConfig - pass configuration to camera. 
+	 * @param txt - pass configuration to camera. 
 	 */
-	public void setup(String txtConfig){
-		if(txtConfig!=null){
-			this.txtConfig = txtConfig;
+	public void setup(String txt){
+		if(txt!=null){
+			this.txtConfig = txt;
 		}		
 		setup();
 	}
@@ -101,7 +101,7 @@ public abstract class CamBundle {
 	 * generate a panel to set camera options
 	 * @return a panel, it will be the part of control layout
 	 */
-	public abstract void showSetting(ImgPreview prv);
+	public abstract void showSetting(ImgPreview1 prv);
 
 	public native void saveImage(String name);
 	

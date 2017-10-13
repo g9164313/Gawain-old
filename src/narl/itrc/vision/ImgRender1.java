@@ -9,21 +9,24 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.concurrent.Task;
 import narl.itrc.Gawain;
 
-public class ImgRender implements Gawain.GlobalHook {
+public class ImgRender1 implements Gawain.EventHook {
 	
-	public ImgRender(CamBundle... list){		
+	public ImgRender1(CamBundle... list){		
 		this();
 		addPreview(list);		
 	}
 
-	public ImgRender(){
+	public ImgRender1(){
 		Gawain.hook(this);
 	}
-	
+
+	@Override
+	public void kickoff() {
+	}
 	@Override
 	public void shutdown() {
 		stop();
-		for(ImgPreview prv:lstPreview){
+		for(ImgPreview1 prv:lstPreview){
 			prv.bundle.close();
 		}				
 	}
@@ -31,12 +34,12 @@ public class ImgRender implements Gawain.GlobalHook {
 	
 	private ImgFilter fltr = null;
 	
-	private ArrayList<ImgPreview> lstPreview = new ArrayList<ImgPreview>();
+	private ArrayList<ImgPreview1> lstPreview = new ArrayList<ImgPreview1>();
 
 	private Task<Integer> looper;
 
 	private void loopInit(){
-		for(ImgPreview prv:lstPreview){
+		for(ImgPreview1 prv:lstPreview){
 			if(prv.bundle!=null){
 				if(prv.bundle.isReady()==false){
 					prv.bundle.setup();
@@ -49,11 +52,11 @@ public class ImgRender implements Gawain.GlobalHook {
 	 * main body, repeatedly, fetch picture and render it~~~
 	 */
 	private void loopBody(){		
-		for(ImgPreview prv:lstPreview){
+		for(ImgPreview1 prv:lstPreview){
 			prv.fetchBuff();
 		}
 		cook_data();
-		for(ImgPreview prv:lstPreview){
+		for(ImgPreview1 prv:lstPreview){
 			prv.fetchInfo();
 		}
 		Application.invokeAndWait(eventShowData);
@@ -78,7 +81,7 @@ public class ImgRender implements Gawain.GlobalHook {
 	private final Runnable eventShowData = new Runnable(){
 		@Override
 		public void run() {
-			for(ImgPreview prv:lstPreview){
+			for(ImgPreview1 prv:lstPreview){
 				prv.rendering();//Here!! we update pictures
 			}
 			if(fltr!=null){
@@ -126,7 +129,7 @@ public class ImgRender implements Gawain.GlobalHook {
 	 * start to play video stream.It must be called by GUI-event.<p>
 	 * @return self
 	 */
-	public ImgRender play(){
+	public ImgRender1 play(){
 		if(looper!=null){
 			if(looper.isDone()==false){
 				return this;
@@ -142,7 +145,7 @@ public class ImgRender implements Gawain.GlobalHook {
 	 * It must be called by GUI-event, and it is a blocking function.<p>
 	 * @return self
 	 */
-	public ImgRender stop(){	
+	public ImgRender1 stop(){	
 		if(looper==null){
 			return this;
 		}
@@ -164,7 +167,7 @@ public class ImgRender implements Gawain.GlobalHook {
 	 * It must be called by GUI-event, and it is a blocking function.<p>
 	 * @return self
 	 */
-	public ImgRender pause(){	
+	public ImgRender1 pause(){	
 		if(looper!=null){
 			if(looper.isDone()==false){
 				return stop();
@@ -204,9 +207,9 @@ public class ImgRender implements Gawain.GlobalHook {
 	public int getSize(){
 		return lstPreview.size();
 	}
-	public ImgRender addPreview(CamBundle... list){
+	public ImgRender1 addPreview(CamBundle... list){
 		for(CamBundle bnd:list){			
-			lstPreview.add(new ImgPreview(bnd,this));
+			lstPreview.add(new ImgPreview1(bnd,this));
 		}
 		return this;
 	}
@@ -216,7 +219,7 @@ public class ImgRender implements Gawain.GlobalHook {
 		}
 		return lstPreview.get(idx).bundle;
 	}
-	public ImgPreview getPreview(int idx){
+	public ImgPreview1 getPreview(int idx){
 		if(idx>=lstPreview.size()){
 			return null;
 		}
@@ -230,7 +233,7 @@ public class ImgRender implements Gawain.GlobalHook {
 		return true;
 	}
 	
-	public ImgRender attach(ImgFilter filter){
+	public ImgRender1 attach(ImgFilter filter){
 		if(fltr!=null){
 			//if we already had filter, just reset it again!!!
 			fltr = null;
@@ -244,7 +247,7 @@ public class ImgRender implements Gawain.GlobalHook {
 	}
 	//--------------------------------------------//
 	
-	public ImgRender snap(String name){
+	public ImgRender1 snap(String name){
 		int pos = name.lastIndexOf(File.separatorChar);
 		if(pos<0){
 			//set default path~~~
@@ -263,7 +266,7 @@ public class ImgRender implements Gawain.GlobalHook {
 		return attach(fltrSnap);
 	}
 	
-	public ImgRender execIJ(ImgPreview pv){
+	public ImgRender1 execIJ(ImgPreview1 pv){
 		fltrExecIJ.prvIndex = lstPreview.indexOf(pv);
 		return attach(fltrExecIJ);
 	}

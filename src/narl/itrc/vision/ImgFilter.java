@@ -29,12 +29,12 @@ public abstract class ImgFilter implements
 	
 	public AtomicInteger state = new AtomicInteger(STA_IDLE);
 	
-	protected ImgRender rndr = null;
+	protected ImgRender1 rndr = null;
 	
 	public ImgFilter(){		
 	}
 	
-	public ImgFilter(ImgRender render){
+	public ImgFilter(ImgRender1 render){
 		rndr = render;
 	}
 	
@@ -46,7 +46,7 @@ public abstract class ImgFilter implements
 		}
 	}
 	
-	protected void refreshData(final ArrayList<ImgPreview> list){
+	protected void refreshData(final ArrayList<ImgPreview1> list){
 		
 		if(Application.isEventThread()==true){			
 			return;
@@ -55,7 +55,7 @@ public abstract class ImgFilter implements
 		final Runnable eventUpdate = new Runnable(){
 			@Override
 			public void run() {
-				for(ImgPreview prv:list){
+				for(ImgPreview1 prv:list){
 					prv.rendering();
 				}
 			}
@@ -63,7 +63,7 @@ public abstract class ImgFilter implements
 		Application.invokeAndWait(eventUpdate);
 		
 		//get the next image~~~
-		for(ImgPreview prv:list){
+		for(ImgPreview1 prv:list){
 			prv.fetchBuff();
 			prv.fetchInfo();
 		}				
@@ -81,7 +81,7 @@ public abstract class ImgFilter implements
 	 * @param list - the list of preview
 	 * @return true - we done, take off.<p> false- keep this in queue.<p>
 	 */
-	public abstract void cookData(ArrayList<ImgPreview> list);//this invoked by render-thread
+	public abstract void cookData(ArrayList<ImgPreview1> list);//this invoked by render-thread
 	
 	/**
 	 * this invoked by GUI-thread.<p>
@@ -90,6 +90,6 @@ public abstract class ImgFilter implements
 	 * @param list - the list of preview
 	 * @return true - we done, take off.<p> false- keep this in queue.<p>
 	 */
-	public abstract boolean showData(ArrayList<ImgPreview> list);//this invoked by GUI thread	
+	public abstract boolean showData(ArrayList<ImgPreview1> list);//this invoked by GUI thread	
 };
 

@@ -125,7 +125,7 @@ public class CamDummy extends CamBundle {
 	
 	private PanDummy pan = new PanDummy(this);//setting panel
 	@Override
-	public void showSetting(ImgPreview prv) {
+	public void showSetting(ImgPreview1 prv) {
 		pan.appear();
 	}
 	

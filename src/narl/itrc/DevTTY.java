@@ -29,10 +29,10 @@ public class DevTTY extends DevBase {
 	 */
 	protected void eventTurnOff(){		
 	}
-	
+
 	@Override
-	void eventShutdown() {
-		stopTaskMonitor();
+	public void eventShutdown() {
+		//stopTaskMonitor();
 		eventTurnOff();
 		close();
 	}

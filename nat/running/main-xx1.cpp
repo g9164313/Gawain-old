@@ -1,478 +1,484 @@
-#include <sys/ipc.h>
-#include <sys/msg.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 #include <global.hpp>
-#include <algorithm>
-#include "../util_ipc.hpp"
+#include <zlib.h>
+#include "opencv2/opencv_modules.hpp"
+#include "opencv2/stitching/detail/blenders.hpp"
 
+//below lines comes from https://stackoverflow.com/questions/40713929/weiner-deconvolution-using-opencv
+//thanks, Andrey Smorodov
 
-//--------------------------------------//
-
-extern short sfrProc(
-	double *farea, unsigned short size_x, int *nrows,
-	double **freq,
-	double **sfr,
-	int *len,
-	double *slope, int *numcycles,
-	int *pcnt2,
-	double *off,
-	double *R2,
-	int version,
-	int iterate,
-	int user_angle
-);
-
-int main(int argc, char* argv[]) {
-
-	Mat edg = imread("./aaa.pgm",IMREAD_GRAYSCALE);
-
-	Mat dat;
-	edg.convertTo(dat,CV_64FC1);
-
-	double *gray_v;
-	int size_x, size_y;
-
-	double *Freq = NULL;
-	double *Disp = NULL;
-	int bin_len;
-	double slope;
-	int numcycles = 0;
-	int center;
-	double off, R2;
-	int g_version = 0;
-
-	gray_v = (double*)dat.ptr();
-	size_x = dat.cols;
-	size_y = dat.rows;
-
-	short err = sfrProc(
-		gray_v, size_x, &size_y,
-		&Freq,
-		&Disp,
-		&bin_len,
-		&slope, &numcycles,
-		&center,
-		&off,
-		&R2,
-		g_version,
-		0,
-		0
-	);
-
-
-	double scale = 200;// pixel per mm
-
-	for(int i = 0; i<bin_len/2; i++) {
-		double frq, sfr;
-		double freq, fd_scale;
-
-		freq = M_PI * Freq[i];
-
-		if (g_version & 4){
-			freq /= 2.0; /* [-1 0 1] */
-		}else{
-			freq /= 4.0; /* [-1 1] */
-		}
-
-		if (freq == 0.0){
-			fd_scale = 1.0;
-		}else{
-			fd_scale = freq / sin(freq);
-		}
-
-		frq = Freq[i] * scale;
-		sfr = Disp[i] * fd_scale;
-
-		printf("%9.6f   \t%f\n", frq, sfr);
-
-		if(Freq[i] > 0.5){
-			break;
-		}
-	}
-
-	free(Freq);
-	free(Disp);
-	return 0;
-}
-//--------------------------------------//
-
-/**
- * Parameter for AOI. Their meanings are : <p>
- * 0: Binary Threshold.<p>
- * 1: Canny Threshold.<p>
- * 2: Canny Threshold, but only offset value.<p>
- * 3: Canny Aperture.<p>
- * 4: Dilate Size.<p>
- * 5: Approximates Epsilon.<p>
- */
-/*#define PARAM_SIZE 6
-static int param[PARAM_SIZE] = {
-	100,
-	300,50,5,
-	5,7
-};
-
-static Mat getEdge(Mat& img,vector<vector<Point> >& cts){
-	Mat nod1,nod2;
-	Canny(
-		img,nod1,
-		param[1],
-		param[1]+param[2],
-		param[3],
-		true
-	);
-	if(param[4]!=1){
-		Mat kern = getStructuringElement(
-			MORPH_ELLIPSE,
-			Size(param[4],param[4]),
-			Point(-1,-1)
-		);
-		dilate(nod1,nod2,kern);
-	}else{
-		nod2 = nod1;
-	}
-	Mat tmp;
-	nod2.copyTo(tmp);
-	circle(tmp,Point(568,464),25,Scalar::all(0),-1);
-	findContours(
-		tmp,cts,
-		RETR_LIST,CHAIN_APPROX_SIMPLE
-	);
-	return nod2;
+void Recomb(Mat &src, Mat &dst){
+    int cx = src.cols >> 1;
+    int cy = src.rows >> 1;
+    Mat tmp;
+    tmp.create(src.size(), src.type());
+    src(Rect( 0,  0, cx, cy)).copyTo(tmp(Rect(cx, cy, cx, cy)));
+    src(Rect(cx, cy, cx, cy)).copyTo(tmp(Rect(0, 0, cx, cy)));
+    src(Rect(cx,  0, cx, cy)).copyTo(tmp(Rect(0, cy, cx, cy)));
+    src(Rect( 0, cy, cx, cy)).copyTo(tmp(Rect(cx, 0, cx, cy)));
+    dst = tmp;
 }
 
-extern void drawImage(Mat& overlay,const Mat& src);
-extern void drawEdgeMap(Mat& overlay,const Mat& edge);
-extern void drawContour(
-	Mat& overlay,
-	vector<vector<Point> >& cts
-);
-extern void drawRectangle(
-	Mat& overlay,
-	Point center,
-	int width,
-	int height,
-	const Scalar& color,
-	int thickness=1,
-	int lineType=LINE_8
-);
-extern void drawPolyline(
-	Mat& overlay,
-	vector<Point>& cts,
-	bool closed,
-	int thickness=1,
-	int lineType=LINE_8
-);
+void convolveDFT(Mat& A, Mat& B, Mat& C)
+{
+    // reallocate the output array if needed
+    C.create(abs(A.rows - B.rows) + 1, abs(A.cols - B.cols) + 1, A.type());
 
-static vector<Point> shaprRect,shapeCross;
+    Size dftSize;
+    // compute the size of DFT transform
+    dftSize.width = getOptimalDFTSize(A.cols + B.cols - 1);
+    dftSize.height = getOptimalDFTSize(A.rows + B.rows - 1);
 
-extern void init_shape();
-extern void init_template();
+    // allocate temporary buffers and initialize them with 0's
+    Mat tempA(dftSize, A.type(), Scalar::all(0));
+    Mat tempB(dftSize, B.type(), Scalar::all(0));
 
-extern float matchRect(
-	Mat& image,
-	const Mat& ground,
-	int thres,
-	Point& location
-);
+    // copy A and B to the top-left corners of tempA and tempB, respectively
+    Mat roiA(tempA, Rect(0, 0, A.cols, A.rows));
+    A.copyTo(roiA);
+    Mat roiB(tempB, Rect(0, 0, B.cols, B.rows));
+    B.copyTo(roiB);
 
-int main(int argc, char* argv[]) {
-	init_template();
-	init_shape();
+    // now transform the padded A & B in-place;
+    // use "nonzeroRows" hint for faster processing
+    dft(tempA, tempA, 0, A.rows);
+    dft(tempB, tempB, 0, A.rows);
 
-	Mat gnd1 = imread("./gg5/back1.png",IMREAD_GRAYSCALE);
-	Mat gnd2 = imread("./gg5/back2.png",IMREAD_GRAYSCALE);
+    // multiply the spectrums;
+    // the function handles packed spectrum representations well
+    mulSpectrums(tempA, tempB, tempA, 0);
+    // transform the product back from the frequency domain.
+    // Even though all the result rows will be non-zero,
+    // you need only the first C.rows of them, and thus you
+    // pass nonzeroRows == C.rows
 
-	const char* name = "./gg5/snap1_006.png";
-	const char* o_name = "result.png";
-
-	//char name[500];
-	//char o_name[500];
-	//for(int i=1; i<=20; i++){
-		//sprintf(name,"./gg5/snap1_%03d.png",i);
-		//sprintf(o_name,"./result_%03d.png",i);
-
-		Mat img = imread(name,IMREAD_GRAYSCALE);
-		Mat ova = Mat::zeros(img.size(),CV_8UC4);
-		drawImage(ova,img);
-
-		Point loca;
-		float val = matchRect(img,gnd1,128,loca);
-		drawRectangle(ova,loca,418,418,Scalar(255,0,0),3);
-		drawRectangle(ova,loca,140,140,Scalar(255,0,0),3);
-		cout<<"the result of "<<o_name<<" is "<<val<<endl;
-
-		imwrite(o_name,ova);
-	//}
-	return 0;
+    dft(tempA, tempA, DFT_INVERSE + DFT_SCALE);
+    // now copy the result back to C.
+    C = tempA(Rect((dftSize.width - A.cols) / 2, (dftSize.height - A.rows) / 2, A.cols, A.rows)).clone();
+    // all the temporary buffers will be deallocated automatically
 }
-//--------------------------------------//
 
-int main_kkk(int argc, char* argv[]){
-	//generate color mapping~~~~
-	Mat src(1,256,CV_8UC1);
-	Mat dst(1,256,CV_8UC3);
-	for(int i=0; i<256; i++){
-		src.at<uint8_t>(0,i) = i;
-	}
-	//cout<<src<<endl;
-	applyColorMap(src,dst,COLORMAP_JET);
-	cout<<"static Scalar mapJetColor[]={"<<endl<<"\t";
-	for(int i=0; i<256; i+=32){
-		Vec3b pix = dst.at<Vec3b>(0,i);
-		printf("Scalar(%3d,%3d,%3d,255), ",pix[2],pix[1],pix[0]);
-		if(i%4==3){
-			printf("\n\t");
-		}
-	}
-	cout<<"};"<<endl;
-	//cout<<dst<<endl;
-	return 0;
+//----------------------------------------------------------
+// Compute Re and Im planes of FFT from Image
+//----------------------------------------------------------
+void ForwardFFT(Mat &Src, Mat *FImg)
+{
+    int M = getOptimalDFTSize(Src.rows);
+    int N = getOptimalDFTSize(Src.cols);
+    Mat padded;
+    copyMakeBorder(Src, padded, 0, M - Src.rows, 0, N - Src.cols, BORDER_CONSTANT, Scalar::all(0));
+    Mat planes[] = { Mat_<double>(padded), Mat::zeros(padded.size(), CV_64FC1) };
+    Mat complexImg;
+    merge(planes, 2, complexImg);
+    dft(complexImg, complexImg);
+    split(complexImg, planes);
+    // crop result
+    planes[0] = planes[0](Rect(0, 0, Src.cols, Src.rows));
+    planes[1] = planes[1](Rect(0, 0, Src.cols, Src.rows));
+    FImg[0] = planes[0].clone();
+    FImg[1] = planes[1].clone();
 }
-//--------------------------------------//
+//----------------------------------------------------------
+// Compute image from Re and Im parts of FFT
+//----------------------------------------------------------
+void InverseFFT(Mat *FImg, Mat &Dst)
+{
+    Mat complexImg;
+    merge(FImg, 2, complexImg);
+    dft(complexImg, complexImg, DFT_INVERSE + DFT_SCALE);
+    split(complexImg, FImg);
+    Dst = FImg[0];
+}
+//----------------------------------------------------------
+// wiener Filter
+//----------------------------------------------------------
+void wienerFilter(Mat &src, Mat &dst, Mat &_h, double k)
+{
+    //---------------------------------------------------
+    // Small epsilon to avoid division by zero
+    //---------------------------------------------------
+    const double eps = 1E-8;
+    //---------------------------------------------------
+    int ImgW = src.size().width;
+    int ImgH = src.size().height;
+    //--------------------------------------------------
+    Mat Yf[2];
+    ForwardFFT(src, Yf);
+    //--------------------------------------------------
+    Mat h = Mat::zeros(ImgH, ImgW, CV_64FC1);
 
-/*extern "C" int IsBlurred(
-	const uint8_t* const luminance,
-	const int width,
-	const int height,
-	float* blur,
-	float* extent
-);
-int main2(int argc, char* argv[]) {
+    int padx = h.cols - _h.cols;
+    int pady = h.rows - _h.rows;
 
-	//cout<<"load "<<argv[1]<<endl;
+    copyMakeBorder(_h, h,
+    	pady / 2, pady - pady / 2,
+		padx / 2, padx - padx / 2,
+		BORDER_CONSTANT,
+		Scalar::all(0)
+    );
 
-	//Mat img = imread(argv[1],IMREAD_GRAYSCALE);
-	//Mat img = imread("aaa.pgm",IMREAD_GRAYSCALE);
-	//Mat img = imread("test1.jpg",IMREAD_GRAYSCALE);
-	//Mat img = imread("test2.png",IMREAD_GRAYSCALE);
-	Mat img = imread("test5.png",IMREAD_GRAYSCALE);
-
-	float parm[2]={0.f,0.f};
-	IsBlurred(
-		img.ptr(),
-		img.cols,
-		img.rows,
-		parm+0,
-		parm+1
-	);
-	cout<<"@ blur="<<parm[0]<<" @ "<<parm[1]<<endl;
-	return 1;
-}*/
+    Mat Hf[2];
+    ForwardFFT(h, Hf);
 
 
+    //--------------------------------------------------
+    Mat Fu[2];
+    Fu[0] = Mat::zeros(ImgH, ImgW, CV_64FC1);
+    Fu[1] = Mat::zeros(ImgH, ImgW, CV_64FC1);
 
-/*extern void cutter(Mat& src,Mat& dst,int dw,int dh);
+    complex<double> a;
+    complex<double> b;
+    complex<double> c;
 
-int main2(int argc, char* argv[]) {
+    double Hf_Re;
+    double Hf_Im;
+    double Phf;
+    double hfz;
+    double hz;
+    double A;
 
-	String tmpDir("/home/qq/labor/aaa/gpm2/temp");
-	String srcDir("/home/qq/labor/aaa/gpm2/chip1");
-	vector<string> name;
-	list_dir(srcDir.c_str(),name);
+    for (int i = 0; i < h.rows; i++)
+    {
+        for (int j = 0; j < h.cols; j++)
+        {
+            Hf_Re = Hf[0].at<double>(i, j);
+            Hf_Im = Hf[1].at<double>(i, j);
+            Phf = Hf_Re*Hf_Re + Hf_Im*Hf_Im;
+            hfz = (Phf < eps)*eps;
+            hz = (h.at<double>(i, j) > 0);
+            A = Phf / (Phf + hz + k);
+            a = complex<double>(Yf[0].at<double>(i, j), Yf[1].at<double>(i, j));
+            b = complex<double>(Hf_Re + hfz, Hf_Im + hfz);
+            c = a / b; // Deconvolution :) other work to avoid division by zero
+            Fu[0].at<double>(i, j) = (c.real()*A);
+            Fu[1].at<double>(i, j) = (c.imag()*A);
+        }
+    }
+    InverseFFT(Fu, dst);
+    Recomb(dst, dst);
+}
 
-	cout<<"pass.1:"<<endl;
-	int width=0,height=0;
-	for(size_t i=0; i<name.size(); i++){
-		cout<<"process "<<name[i];
-		string path=srcDir+"/"+name[i];
-		Mat img = imread(path,IMREAD_ANYDEPTH|IMREAD_GRAYSCALE);
-		Mat obj;
-		//double tt = (double)getTickCount();
-		cutter(img,obj,-1,-1);
-		//tt = (((double)getTickCount() - tt)/getTickFrequency())*1000;
-		//cout<<"extimate:"<<tt<<"ms"<<endl;
-		//cout<<"obj size="<<obj.size()<<endl;
-		width +=obj.size().width;
-		height+=obj.size().height;
-		//path=tmpDir+"/"+name[i];
-		//imwrite(path,obj);
+void shape_gain(Mat& dat){
+
+	Mat plan[] ={
+		Mat_<double>(dat),
+		Mat::zeros(dat.size(), CV_64FC1)
+	};
+	//cout<<"cc1="<<plan[0]<<endl;
+
+	Mat comp;
+	merge(plan, 2, comp);
+	dft(comp, comp);
+	split(comp, plan);
+
+	//cout<<"cc3="<<plan[0]<<endl;
+	//cout<<"cc4="<<plan[1]<<endl;
+	//plan[0] = plan[0].mul(shape);
+	//plan[1] = plan[1].mul(shape);
+
+	int nn = plan[0].cols;
+	int n  = plan[0].cols/2;
+
+	//double DC1 = plan[0].at<double>(0,0);//keep this~~~
+	//double AC1 = plan[0].at<double>(0,n);
+
+	//cout<<"val=[";
+	for(int i=1; i<n; i++){
+		//double scale = 1 - abs( (i-(n-1)/2.) / (n/2.) );
+		double idx = (i)/((double)n);
+		double val = sin(M_PI*idx)/(M_PI*idx);
+		//cout<<val<<",";
+		//plan[0].at<double>(0,i) = plan[0].at<double>(0,i)*2.3;
+		plan[0].at<double>(0,i) = val;
 	}
-	width = width / name.size();
-	height= height/ name.size();
+	//cout<<"]"<<endl;
 
-	cout<<"pass.2:"<<endl;
-	Ptr<BackgroundSubtractorMOG2> mog2 = createBackgroundSubtractorMOG2(name.size(),50,false);
-	Mat msk;
-	for(size_t i=0; i<name.size(); i++){
-		cout<<"cutting & model"<<name[i];
-		//Mat img = imread(srcDir+"/"+name[i],IMREAD_ANYDEPTH|IMREAD_GRAYSCALE);
-		Mat obj;
-		//cutter(img,obj,width,height);
-		//imwrite(tmpDir+"/"+name[i],obj);
-		double tt = (double)getTickCount();
-			mog2->apply(obj,msk);
-		tt = (((double)getTickCount() - tt)/getTickFrequency())*1000;
-		cout<<"estimate:"<<tt<<"ms"<<endl;
-	}
-	mog2->getBackgroundImage(msk);
-	mog2->clear();
-	imwrite(tmpDir+"/model.tif",msk);
-	mog2->save("model.xml");
+	//plan[0].at<double>(0,0) = DC1;
+	//plan[0].at<double>(0,n) = AC1;
 
-	cout<<"pass.3:"<<endl;//test sample~~~
-	string samDir("/home/qq/labor/aaa/gpm2/20150309/BottomSide");
-	string dffDir("/home/qq/labor/aaa/gpm2/xxxx");
-	list_dir(samDir.c_str(),name);
-	for(size_t i=0; i<name.size(); i++){
-		cout<<"cutting & model"<<name[i];
-		//Mat img = imread(samDir+"/"+name[i],IMREAD_ANYDEPTH|IMREAD_GRAYSCALE);
-		Mat obj;
-		//cutter(img,obj,width,height);
-		double tt = (double)getTickCount();
-			mog2->apply(obj,msk,0);
-		tt = (((double)getTickCount() - tt)/getTickFrequency())*1000;
-		cout<<"estimate:"<<tt<<"ms"<<endl;
-		char buff[500];
-		sprintf(buff,"%04ld-aaa.tif",i);
-		imwrite(dffDir+"/"+buff,obj);
-		sprintf(buff,"%04ld-bbb.tif",i);
-		imwrite(dffDir+"/"+buff,msk);
-	}
-	return 0;
-}*/
-//--------------------------------------------------------------//
 
-/*NAT_EXPORT int tearTileNxN(
-	const char* nameDst,
-	const char* nameSrc,
-	long tid,
-	long cntX,long cntY,
-	int scale,
-	int grid
-);
-NAT_EXPORT void tearTileByGid(const char* nameSrc,int gx,int gy,const char* nameDst);
-NAT_EXPORT void panoramaTile(FILE* fdSrc,FILE* fdDst);
-extern void gridMake(
-	FILE* fdSrc,
-	const char* imgPano,
-	int scale,
-	FILE* fdDst,
-	const char* imgGrid
-);
-extern void gridMeas(FILE* fdDst,const char* ymlMap,FILE* fdSrc);
+	//Mat chk;
+	//plan[0].convertTo(chk,CV_16S);
+	//cout<<"cc2="<<chk<<endl;
+
+	merge(plan, 2, comp);
+	idft(comp, comp, DFT_SCALE);
+	split(comp, plan);
+	plan[0].convertTo(dat,CV_8UC1);
+	//cout<<"cc3="<<dat<<endl;
+
+	return;
+}
 
 
 int main1(int argc, char* argv[]) {
 
-	RawHead hd;
-	const char* name1 = "grab.6.raw";
-	const char* name2 = "pano.6.raw";
-	const char* name21= "pano.6.jpg";
-	const char* name3 = "grid.6.raw";
-	const char* name31= "grid.6.png";
-	const char* name4 = "meas.6.raw";
-	const char* name41= "meas.6.png";
-	double t;
 
-	//Mat edg1;
-	//Canny(img,edg1,128,128);
-	//imwrite("ggyy2.png",edg1);
+	Mat src = imread("reg-xxr.bmp");
+	Mat chn[3];
+	split(src,chn);
 
-	/*fdSrc = fopen(name1,"rb");
-	fdDst = fopen(name2,"wb+");
-	fseek(fdSrc,0L,SEEK_SET);
-	fread(&hd,sizeof(hd),1,fdDst);
-	t = (double)getTickCount();
-	panoramaTile(fdSrc,fdDst);
-	t = ((double)getTickCount() - t)/getTickFrequency();
-	cout<<"extimate:"<<t<<"sec"<<endl;
-	fclose(fdSrc);
-	fclose(fdDst);
-	tearTileNxN(name21,name2,0,-1,-1,-1,0);*/
+	for(int c=0; c<3; c++){
+		Mat img = chn[c];
+		for(int i=0; i<img.rows; i++){
+			Mat line = img.row(i);
+			/*for(int j=0; j<line.cols; j+=16){
+				Mat sect = line.colRange(j,j+16);
+				shape_gain(sect,tri);
+			}*/
+			shape_gain(line);
+		}
+	}
 
-	/*fdSrc = fopen(name2,"rb");
-	fdDst = fopen(name3,"wb+");
-	fread(&hd,sizeof(hd),1,fdSrc);
-	cout<<"make grid"<<endl;
-	t = (double)getTickCount();
-	gridMake(
-		fdSrc,name21,1,
-		fdDst,name31
-	);
-	t = ((double)getTickCount() - t)/getTickFrequency();
-	cout<<"extimate:"<<t<<"sec"<<endl;
-	fclose(fdSrc);
-	fclose(fdDst);
-	tearTileNxN(name31,name3,0,-1,-1,-1,0);
-	//tearTileByGid(name3,0,3,"grid.tif");*/
+	merge(chn, 3, src);
+	//imwrite("reg-xxx.png",src(Rect(1617,73,103,63)));
+	imwrite("reg-xxy.bmp",src);
+	return 0;
+}
+//-------------------------------//
 
-	/*fdSrc = fopen(name3,"rb");
-	fdDst = fopen(name4,"wb+");
-	cout<<"measure grid"<<endl;
-	t = (double)getTickCount();
-	gridMeas(fdDst,"meas.yml",fdSrc);
-	t = ((double)getTickCount() - t)/getTickFrequency();
-	cout<<"extimate:"<<t<<"sec"<<endl;
-	fclose(fdSrc);
-	fclose(fdDst);
-	tearTileNxN(name41,name4,0,-1,-1,-1,0);
+int main2(int argc, char* argv[]) {
+
+	//test writing speed
+	for(int i=1;i<=5; i++){
+
+		long width = (1<<(i+10));
+
+		void* buf = malloc(width*width);
+
+		Mat img(width,width,CV_8UC1,buf);
+		img = img * 0;
+		//randu(img,Scalar(0),Scalar(255));
+
+		char name[60];
+		sprintf(name,"volbin-%d.tif",i);
+
+		cout<<"write "<<name<<", size="<<(width*width)<<"bytes."<<endl;
+
+		TICK_BEG
+
+		imwrite(name,img);
+
+		TICK_END("I/O")
+
+		free(buf);
+
+		cout<<endl;
+	}
+	return 0;
+}
+//-------------------------------//
+
+int main3(int argc, char* argv[]) {
+
+	long width = (1<<15);
+	long height= (1<<15);
+	void* buf = malloc(width*height);
+
+	double accumTick = 0.;
+
+	const int TEST_ROUND=5;
+
+	for(int i=0; i<TEST_ROUND; i++){
+
+		Mat img(height,width,CV_8UC1,buf);
+
+		randu(img,Scalar(0),Scalar(255));
+
+		/*long cnt;
+		TICK_BEG
+		threshold(img,img,200.,0.,THRESH_TOZERO);
+		cnt = countNonZero(img);
+		long size = (width*height)/1000000;
+		cout<<"size="<<width<<"x"<<height<<"="<<size<<"MByte"<<endl;
+		cout<<"result="<<cnt<<endl;
+		TICK_END2("count",accumTick)*/
+
+		//TICK_BEG
+		//vector<uchar> buf(512*1024*1024);
+		/*vector<uchar> buf;
+		buf.reserve(512*1024*1024);
+		imencode(".tiff",img,buf);
+		long size = buf.size()/1000000;
+		cout<<"compressed size:"<<size<<"MByte"<<endl;
+		buf.clear();*/
+		//TICK_END("encode")
+
+		cout<<endl;
+	}
+
+	accumTick = accumTick/TEST_ROUND;
+
+	cout<<endl<<"average time="<<accumTick<<"sec"<<endl;
+
+	free(buf);
+	//Mat ref = imread("qq0.png",IMREAD_GRAYSCALE);
+	//Mat src = imread("qq3.png",IMREAD_GRAYSCALE);
+	//TICK_BEG
+	//registration(ref,src);
+	//TICK_END("regist")
+	//imwrite("aa1.png",ref);
+	//imwrite("aa2.png",src);
+	//imposition("aa3.png",ref,src);
+	return 0;
+}
+
+//--------------------------------------------//
+
+int main4(int argc, char** argv){
+
+    Mat Img = imread("F:\\ImagesForTest\\lena.jpg", 0); // Source image
+    Img.convertTo(Img, CV_32FC1, 1.0 / 255.0);
+
+    Mat kernel = imread("F:\\ImagesForTest\\Point.jpg", 0); // PSF
+    //resize(kernel, kernel, Size(), 0.5, 0.5);
+
+    kernel.convertTo(kernel, CV_32FC1, 1./255.);
+
+    float kernel_sum = cv::sum(kernel)[0];
+    kernel /= kernel_sum;
+
+    int width = Img.cols;
+    int height= Img.rows;
+    Mat resim;
+    convolveDFT(Img, kernel, resim);
+
+    //Mat resim2;
+    //kernel.convertTo(kernel, CV_64FC1);
+    //wienerFilter(resim, resim2, kernel, 0.01); // Apply filter
+
+    //imshow("Kernel", kernel * 255);
+    //imshow("Image", Img);
+    //imshow("Result", resim);
+    //cvWaitKey(0);
+
+    return 0;
+}
+//------------------------------//
+
+struct RAW_HEAD {
+	uint32_t type;
+	uint32_t rows;
+	uint32_t cols;
+	uint32_t tileFlag;
+	uint32_t tileRows;
+	uint32_t tileCols;
+};
+
+int main5(int argc, char** argv){
+	//try to read some old file
+
+	FILE* fd = fopen("pano.1.raw","r");
+
+	RAW_HEAD hd;
+
+	fread(&hd,sizeof(hd),1,fd);
+
+	size_t total = hd.cols*hd.rows;
+
+	uint8_t* buf = new uint8_t[total];
+
+	for(int j=0; j<hd.tileRows; j++){
+
+		for(int i=0; i<hd.tileCols; i++){
+
+			fread(buf,total,1,fd);
+
+			Mat img(hd.rows,hd.cols,hd.type,buf);
+
+			char name[100];
+			if(j%2==0){
+				sprintf(name,"./pano/img+%02d+%02d.tiff",j,i);
+			}else{
+				sprintf(name,"./pano/img+%02d+%02d.tiff",j,hd.tileCols-1-i);
+			}
+			imwrite(name,img);
+
+			cout<<"dump "<<name<<endl;
+		}
+	}
+
+	delete buf;
+
+	fclose(fd);
+
+	cout<<"done"<<endl;
 
 	return 0;
 }
-//--------------------------------------------------------------//
+//------------------------------//
 
-static RNG rng(-1);
-static Scalar randomColor(){
-  int d1,d2;
-  int rr = rng.uniform(90,165);
-  d1 = rng.uniform(rr,255);
-  d2 = rng.uniform(0,rr);
-  int gg = rr+std::max(d1-rr,rr-d2);
-  d1 = rng.uniform(rr,255);
-  d2 = rng.uniform(0,rr);
-  int bb = rr+std::max(d1-rr,rr-d2);
-  return Scalar(bb,gg,rr);
-}
- */
+#include "opencv2/stitching.hpp"
 
-/*
- void filterHanning(Mat& src,const int quarter){
-	Mat _src;
-	src.convertTo(_src,CV_32FC1);
-	Size area;
-	if(quarter<=0 || 4<quarter){
-		area.width = src.cols;
-		area.height= src.rows;
-	}else{
-		area.width = src.cols*2;
-		area.height= src.rows*2;
-	}
-	Mat hann,_han;
-	createHanningWindow(hann,area,CV_32F);
-	switch(quarter){
-	case 1:
-		_han = hann(Rect(
-			src.cols,0,
-			src.cols,src.rows
-		));
-		break;
-	case 2:
-		_han = hann(Rect(
-			0,0,
-			src.cols,src.rows
-		));
-		break;
-	case 3:
-		_han = hann(Rect(
-			0,src.rows,
-			src.cols,src.rows
-		));
-		break;
-	case 4:
-		_han = hann(Rect(
-			src.cols,src.rows,
-			src.cols,src.rows
-		));
-		break;
-	default:
-		_han = hann;
-		break;
-	}
-	multiply(_src,_han,_src);
-	_src.convertTo(src,CV_8UC1);
-	//normalize(_src,src,0,255,NORM_MINMAX,CV_8UC1);
+using namespace cv::detail;
+
+static double rateFrame(Mat& frame){
+
+    unsigned long int sum = 0;
+    unsigned long int size = frame.cols * frame.rows;
+    Mat edges;
+    cvtColor(frame, edges, CV_BGR2GRAY);
+    GaussianBlur(edges, edges, Size(7, 7), 1.5, 1.5);
+    imwrite("cc1.png",edges);
+
+    Canny(edges, edges, 0, 30, 3);
+    imwrite("cc2.png",edges);
+
+    MatIterator_<uchar> it, end;
+    for (
+    	it = edges.begin<uchar>(), end = edges.end<uchar>();
+    	it != end;
+    	++it
+	){
+        sum += (*it != 0);
+    }
+    return (double) sum / (double) size;
 }
-*/
+
+int main(int argc, char** argv){
+
+	//Mat aa1 = imread("./aa1.jpg");
+	Mat aa1 = imread("./artificial-1.png");
+	Mat aa2 = imread("./aa2.jpg");
+	Mat aa3 = imread("./aa2.jpg");
+
+
+	double rate = rateFrame(aa1);
+	cout<<"%%%"<<rate<<endl;
+
+	/*Mat pano;
+	vector<Mat> imgs;
+	imgs.push_back(aa1);
+	imgs.push_back(aa2);
+	imgs.push_back(aa3);
+	Stitcher stitcher = Stitcher::createDefault(false);
+	Stitcher::Status status = stitcher.stitch(imgs, pano);
+
+	imwrite("cc3.png",pano);
+
+	/*aa1.convertTo(aa1_s, CV_16SC3);
+	aa2.convertTo(aa2_s, CV_16SC3);
+
+	Mat aa1_s, aa2_s, dst, dst_m;
+	Mat msk1 = Mat::ones(aa1.size(), CV_8UC1);
+	Mat msk2 = Mat::ones(aa2.size(), CV_8UC1);
+
+	//FeatherBlender qq;
+	MultiBandBlender qq;
+
+	Mat edg;
+	Canny(aa1,edg,500,1000);
+
+	qq.prepare(Rect(0,0,aa1.cols,aa1.rows*2));
+	//qq.feed(aa1_s,msk1,Point(0,0));
+	//qq.feed(aa2_s,msk2,Point(0,1213));
+	qq.feed(aa1,msk1,Point(0,0));
+	qq.feed(aa2,msk2,Point(0,0));
+	qq.blend(dst,dst_m);
+
+	imwrite("cc3.png",dst);*/
+
+	return 0;
+}
+
+
 

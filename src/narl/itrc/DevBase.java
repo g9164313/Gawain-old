@@ -1,5 +1,7 @@
 package narl.itrc;
 
+import java.util.concurrent.ConcurrentLinkedQueue;
+
 import com.sun.glass.ui.Application;
 
 import javafx.animation.KeyFrame;
@@ -8,10 +10,13 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.concurrent.Task;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.scene.Node;
+import javafx.scene.control.Control;
 import javafx.util.Duration;
 
-public abstract class DevBase implements Gawain.GlobalHook {
+public abstract class DevBase implements Gawain.EventHook {
 
 	public DevBase(){
 		Gawain.hook(this);
@@ -41,45 +46,37 @@ public abstract class DevBase implements Gawain.GlobalHook {
 	}
 	
 	/**
+	 * Invoke this event when we need to prepare something, just one time.<p>
+	 * And this is invoked by GUI-thread
+	 */
+	@Override
+	public void kickoff() {
+	}
+	
+	/**
 	 * Invoke a event to close device or release resources.<p>
 	 * This will be invoked at the end of program.<p>
 	 */
 	@Override
 	public void shutdown() {
-		stopTaskMonitor();
+		taskFinish();
 		eventShutdown();
 	}
-	
+		
 	/**
-	 * Request the layout of console panel.<p>
-	 * @return self instance
+	 * All devices need a view(console) to control its behaviors.<p>
+	 * So, override this method to generate a control-view.
+	 * @return
 	 */
-	public DevBase build(){
-		return build("");
+	protected Node eventLayout(PanBase pan){
+		return null;
 	}
-	
+
 	/**
-	 * Request the layout of console panel with boards.<p>
-	 * @param title - the title of panel, or null (it will not have board)
-	 * @return self instance
+	 * In this point, device can release its resource!!! <p>
 	 */
-	public DevBase build(final String title){
-		//if(getChildren().isEmpty()==true){
-		//	Node nd = eventLayout(null);
-		//	getChildren().add(nd);
-		//	getStyleClass().add("decorate1-border");
-			//setMaxWidth(Double.MAX_VALUE);
-			/*if(nd!=null){
-				if(title!=null){
-					nd = PanDecorate.group(title,nd);
-				}				
-			}else{
-				Misc.logw("No control-view");
-			}*/			
-		//}
-		return this;
-	}
-	
+	public abstract void eventShutdown();	
+
 	public PanBase showConsole(){
 		return showConsole("");
 	}
@@ -92,104 +89,144 @@ public abstract class DevBase implements Gawain.GlobalHook {
 			}
 		}.appear();
 	}
-		
-	/**
-	 * All devices need a view(console) to control its behaviors.<p>
-	 * So, override this method to generate a control-view.
-	 * @return
-	 */
-	protected Node eventLayout(PanBase pan){
-		return null;
-	}
-	
-	/**
-	 * In this point, device can release its resource!!! <p>
-	 */
-	abstract void eventShutdown();	
 	//---------------------------//
 	
-	private final long DEFAULT_DELAY = 250L;
+	private ConcurrentLinkedQueue<TaskEvent> taskQueue;
 	
-	private long taskDelay = DEFAULT_DELAY;//millisecond
+	private Task<Long> taskLoop;
 	
-	private class TaskMonitor extends Task<Long>{
+	private TaskEvent taskUsual = null;//repeated-routine
+	
+	private class TaskCore extends Task<Long>{
 		@Override
 		protected Long call() throws Exception {
-			if(taskStart()==false){
+			if(taskInit()==true){
 				return -1L;
 			}
-			long tk1, tk2;
-			while(isCancelled()==false){
+			
+			long tk0, tk1, tk2;
+			tk0 = System.currentTimeMillis();
+			while(isCancelled()==false){					
+				if(Application.GetApplication()==null){
+					taskFinal();
+					return -2L;
+				}
 				tk1 = System.currentTimeMillis();
-				boolean goon = taskLooper();				
+				
+				TaskEvent e = taskQueue.poll();				
+				if(e!=null){
+					e.fireEvent();
+				}else if(taskUsual!=null){
+					taskUsual.fireEvent();
+				}
+
 				tk2 = System.currentTimeMillis();
-				updateValue(tk2-tk1);
-				if(goon==false){
-					break;
-				}
-				//delay, for next turn~~~~
-				tk1 = System.currentTimeMillis();
-				tk2 = 0L;
-				while(tk2<taskDelay){
-					tk2 = System.currentTimeMillis() - tk1;
-					updateProgress(tk2,taskDelay);
-				}
+				updateValue(tk2-tk0);				
+				updateProgress(tk2-tk1,5000L);
 			}
 			taskFinal();
-			return -2L;
+			return -4L;
 		}
 	}
 	
-	protected boolean taskStart(){
-		return false;
-	}
-	
-	protected boolean taskLooper(){
+	protected boolean taskInit(){
 		return false;
 	}
 	
 	protected void taskFinal(){
 	}
-	
-	private Task<Long> tskMonitor;
-	
-	protected void startTaskMonitor(String name){
-		startTaskMonitor(name,DEFAULT_DELAY);
+
+	public void setUsual(TaskEvent event){
+		taskUsual = event;
+	}
+	public void setUsual(
+		EventHandler<ActionEvent> pro
+	){
+		taskUsual = new TaskEvent(null,pro,null);
+	}
+	public void setUsual(
+		EventHandler<ActionEvent> pro, 
+		EventHandler<ActionEvent> epi
+	){
+		taskUsual = new TaskEvent(null,pro,epi);
 	}
 	
-	protected void startTaskMonitor(String name,long delay){		
-		if(tskMonitor!=null){
-			if(tskMonitor.isDone()==false){
+	public void addEvent(TaskEvent e){
+		if(e.node!=null){
+			taskQueue.forEach(obj->{
+				if(obj.node.equals(e.node)==true){
+					return;
+				}
+			});
+		}
+		taskQueue.add(e);
+	}
+	public void addEvent(
+		EventHandler<ActionEvent> pro
+	){
+		addEvent(new TaskEvent(null,pro,null));
+	}
+	public void addEvent(
+		Control nod,
+		EventHandler<ActionEvent> pro
+	){
+		addEvent(new TaskEvent(nod,pro,null));
+	}
+	public void addEvent(
+		Control nod,
+		EventHandler<ActionEvent> pro, 
+		EventHandler<ActionEvent> epi
+	){
+		addEvent(new TaskEvent(nod,pro,epi));
+	}
+	
+	public void taskLaunch(String name){
+		if(taskQueue!=null){
+			taskQueue.clear();
+		}else{
+			taskQueue= new ConcurrentLinkedQueue<TaskEvent>();
+		}
+		if(taskLoop!=null){
+			if(taskLoop.isDone()==false){
 				return;
 			}
 		}
-		taskDelay = delay;
-		tskMonitor = new TaskMonitor();
-		
-		new Thread(tskMonitor,name).start();
+		//task may be in finished-state, just regenerate it again~~~ 
+		taskLoop = new TaskCore();		
+		new Thread(taskLoop,name).start();		
 	}
 	
-	protected void stopTaskMonitor(){
-		if(tskMonitor!=null){
-			if(tskMonitor.isDone()==false){
-				tskMonitor.cancel();
+	public void taskFinish(){
+		if(taskLoop!=null){
+			if(taskLoop.isDone()==false){
+				taskLoop.cancel();
 			}
 		}
 	}
 	//---------------------------//
 	
-	private Timeline timMonitor;
+	private Timeline timMonitor = null;
 	
 	protected void timeLooper(){
 	}
 	
-	protected void startTimeMonitor(long millisec){		
+	protected void startTimeMonitor(long millisec){
+		if(timMonitor!=null){
+			timMonitor.stop();
+		}
 		timMonitor = new Timeline(new KeyFrame(
 			Duration.millis(millisec),
 			event->timeLooper()
 		));
 		timMonitor.setCycleCount(Timeline.INDEFINITE);	
 		timMonitor.play();
+	}
+	
+	protected void pauseTimeMonitor(){
+		if(timMonitor==null){
+			return;
+		}
+		timMonitor.pause();
 	}
 	//---------------------------//
 }

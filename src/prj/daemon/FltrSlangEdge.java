@@ -19,12 +19,12 @@ import narl.itrc.PanBase;
 import narl.itrc.PanDecorate;
 import narl.itrc.vision.CamBundle;
 import narl.itrc.vision.ImgFilter;
-import narl.itrc.vision.ImgPreview;
-import narl.itrc.vision.ImgRender;
+import narl.itrc.vision.ImgPreview1;
+import narl.itrc.vision.ImgRender1;
 
 public class FltrSlangEdge extends ImgFilter {
 
-	public FltrSlangEdge(ImgRender render){
+	public FltrSlangEdge(ImgRender1 render){
 		super(render);
 	}
 		
@@ -48,9 +48,9 @@ public class FltrSlangEdge extends ImgFilter {
 	private double fitRatio;
 
 	@Override
-	public void cookData(ArrayList<ImgPreview> list) {
+	public void cookData(ArrayList<ImgPreview1> list) {
 		frq = sfr = null;//clear these variables~~~
-		ImgPreview prv = list.get(0);
+		ImgPreview1 prv = list.get(0);
 		int[] roi = prv.getMark(0);
 		roi[2] = roi[2] - roi[2]%2;//even width
 		roi[3] = roi[3] - roi[3]%2;//even height
@@ -58,7 +58,7 @@ public class FltrSlangEdge extends ImgFilter {
 	}
 
 	@Override
-	public boolean showData(ArrayList<ImgPreview> list) {
+	public boolean showData(ArrayList<ImgPreview1> list) {
 		if(frq!=null && sfr!=null){
 			ctrl.setSeries(frq,sfr);
 		}else{

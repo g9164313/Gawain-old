@@ -19,10 +19,10 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.ArcType;
 import narl.itrc.Misc;
 
-public class ImgPreview extends BorderPane {
+public class ImgPreview1 extends BorderPane {
 	
 	public CamBundle bundle = null;
-	public ImgRender render = null;
+	public ImgRender1 render = null;
 	
 	/**
 	 * This image data came from camera-bundle.<p>
@@ -46,7 +46,7 @@ public class ImgPreview extends BorderPane {
 	 */
 	private Canvas board = new Canvas();//show ROI
 	
-	public ImgPreview(CamBundle bnd,ImgRender rnd){
+	public ImgPreview1(CamBundle bnd,ImgRender1 rnd){
 		bundle = bnd;
 		render = rnd;		
 		init_layout();

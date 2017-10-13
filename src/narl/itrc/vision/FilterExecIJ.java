@@ -10,16 +10,16 @@ import narl.itrc.PanBase;
 public class FilterExecIJ extends ImgFilter {
 	
 	@Override
-	public void cookData(ArrayList<ImgPreview> list) {
+	public void cookData(ArrayList<ImgPreview1> list) {
 		String name = Misc.pathSock+File.separator+"temp.png";
-		ImgPreview prv = list.get(prvIndex);
+		ImgPreview1 prv = list.get(prvIndex);
 		CamBundle bnd = prv.bundle;
 		bnd.saveImage(name);
 		execIJ(name);
 	}
 	
 	@Override
-	public boolean showData(ArrayList<ImgPreview> list) {
+	public boolean showData(ArrayList<ImgPreview1> list) {
 		return true;
 	}
 	

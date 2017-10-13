@@ -13,7 +13,7 @@ import narl.itrc.vision.BlkRender;
 import narl.itrc.vision.CamDummy;
 import narl.itrc.vision.CamVidcap;
 import narl.itrc.vision.CamXIMEA;
-import narl.itrc.vision.ImgRender;
+import narl.itrc.vision.ImgRender1;
 
 /**
  * Test camera bundle and represent it as template
@@ -21,24 +21,19 @@ import narl.itrc.vision.ImgRender;
  *
  */
 @SuppressWarnings("unused")
-public class PanImgRender extends PanBase {
+public class PanTestVision extends PanBase {
 
-	public PanImgRender(){
+	public PanTestVision(){
 		//final String testFile = ":/home/qq/labor/opencv-3.1/contrib/modules/text/samples/scenetext_segmented_word%02d.jpg";
 		//final String testFile = "/home/qq/labor/bang/edge.pgm";
 		final String testFile = "/home/qq/labor/bang/edge-1.png";
-		rndr = new ImgRender(new CamDummy(testFile));
+		rndr = new ImgRender1(new CamDummy(testFile));
 		//rndr.getPreview(0).setROI(100, 100, 900, 1900);
 		rndr.getPreview(0).setROI(348, 684, 537, 741);
 		//rndr = new ImgRender(new CamVidcap("FILE:0:"+testFile));
-		//rndr = new ImgRender(new CamVidcap("0"));
-		//rndr = new ImgRender(new CamVidcap("VFW:0"));
-		//rndr = new ImgRender(new CamMulticam("ral12288-FULL"));
-		//rndr = new ImgRender(new CamFlyCapture());
-		//rndr = new ImgRender(new CamXIMEA());
 	}
 	
-	protected ImgRender rndr;//don't assign object. Let inheritance object create instance~~
+	protected ImgRender1 rndr;//don't assign object. Let inheritance object create instance~~
 
 	@Override
 	protected void eventShown(WindowEvent e){
@@ -78,7 +73,7 @@ public class PanImgRender extends PanBase {
 		});
 		
 		final Button btnClose = PanBase.genButton1("離開","close.png");	
-		btnClose.setOnAction(event->PanImgRender.this.dismiss());
+		btnClose.setOnAction(event->PanTestVision.this.dismiss());
 				
 		return PanBase.fillVBox(
 			chkPlaying, 

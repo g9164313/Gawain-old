@@ -8,8 +8,8 @@ import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
 import narl.itrc.vision.ImgFilter;
-import narl.itrc.vision.ImgPreview;
-import narl.itrc.vision.ImgRender;
+import narl.itrc.vision.ImgPreview1;
+import narl.itrc.vision.ImgRender1;
 
 public class FilterIsBlur extends ImgFilter {
 
@@ -21,12 +21,12 @@ public class FilterIsBlur extends ImgFilter {
 	private native void implCookData(long ptrMatx);
 	
 	@Override
-	public void cookData(ArrayList<ImgPreview> list) {
+	public void cookData(ArrayList<ImgPreview1> list) {
 		//TODO:implCookData(list.get(0).getMatx());
 	}
 
 	@Override
-	public boolean showData(ArrayList<ImgPreview> list) {
+	public boolean showData(ArrayList<ImgPreview1> list) {
 		txtParm[0].setText(String.format("%2.1f%%", parmBlur*100.f));
 		txtParm[1].setText(String.format("%.4f", parmExtend));
 		return true;//we done
@@ -37,7 +37,7 @@ public class FilterIsBlur extends ImgFilter {
 		new Label()
 	};
 	
-	public Pane getPanel(final ImgRender rndr){		
+	public Pane getPanel(final ImgRender1 rndr){		
 		GridPane lay0 = new GridPane();
 		lay0.getStyleClass().add("grid-small");
 		

@@ -138,7 +138,7 @@ public class CamVidcap extends CamBundle {
 	}
 	
 	@Override
-	public void showSetting(ImgPreview prv) {
+	public void showSetting(ImgPreview1 prv) {
 		switch (capDomain) {
 		default:
 		case CAP_ANY: new PanAny(this);

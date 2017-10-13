@@ -91,7 +91,7 @@ public class CamXIMEA extends CamBundle {
 	private PanXIMEA pan = new PanXIMEA(this);
 	
 	@Override
-	public void showSetting(ImgPreview prv) {
+	public void showSetting(ImgPreview1 prv) {
 		pan.appear();
 	}
 }

@@ -78,6 +78,6 @@ public class CamPylon extends CamBundle {
 	};*/
 	
 	@Override
-	public void showSetting(ImgPreview prv) {
+	public void showSetting(ImgPreview1 prv) {
 	}
 }

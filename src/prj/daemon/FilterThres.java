@@ -3,7 +3,7 @@ package prj.daemon;
 import java.util.ArrayList;
 
 import narl.itrc.vision.ImgFilter;
-import narl.itrc.vision.ImgPreview;
+import narl.itrc.vision.ImgPreview1;
 
 public class FilterThres extends ImgFilter {
 
@@ -12,13 +12,13 @@ public class FilterThres extends ImgFilter {
 	}
 	
 	@Override
-	public void cookData(ArrayList<ImgPreview> list) {
+	public void cookData(ArrayList<ImgPreview1> list) {
 		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
-	public boolean showData(ArrayList<ImgPreview> list) {
+	public boolean showData(ArrayList<ImgPreview1> list) {
 		// TODO Auto-generated method stub
 		return false;
 	}

@@ -13,11 +13,11 @@ public class FilterSnap extends ImgFilter {
 	public String[] snapName = {"","",""};
 	public AtomicInteger snapIndx = new AtomicInteger(0);
 	@Override
-	public void cookData(ArrayList<ImgPreview> list) {
+	public void cookData(ArrayList<ImgPreview1> list) {
 		int idx = snapIndx.incrementAndGet();
 		for(int i=0; i<list.size(); i++){
 			//first save the entire image
-			ImgPreview prv = list.get(i);
+			ImgPreview1 prv = list.get(i);
 			CamBundle bnd = prv.bundle;
 			bnd.saveImage(String.format(
 				"%s%s%d_%03d%s",
@@ -42,7 +42,7 @@ public class FilterSnap extends ImgFilter {
 		}	
 	}
 	@Override
-	public boolean showData(ArrayList<ImgPreview> list) {
+	public boolean showData(ArrayList<ImgPreview1> list) {
 		PanBase.notifyInfo("Render",
 		String.format(
 			"儲存影像(%d) %s",

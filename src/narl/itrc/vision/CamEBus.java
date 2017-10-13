@@ -38,6 +38,6 @@ public class CamEBus extends CamBundle {
 	}
 
 	@Override
-	public void showSetting(ImgPreview prv) {
+	public void showSetting(ImgPreview1 prv) {
 	}
 }

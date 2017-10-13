@@ -16,9 +16,9 @@ public class DevModbus extends DevBase {
 	public DevModbus(String path){
 		open(path);
 	}
-	
+
 	@Override
-	void eventShutdown() {
+	public void eventShutdown() {
 		close();		
 	}
 	//---------------------//

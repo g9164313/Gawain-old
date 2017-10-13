@@ -42,26 +42,32 @@ import narl.itrc.nat.Loader;
 
 public class Gawain extends Application {
 	
-	public interface GlobalHook {
+	public interface EventHook {
 		/**
-		 * Callback, when program is shutdown.<p>
+		 * The main panel is visible.<p>
+		 * User can prepare everything at this moment.<p>
+		 */
+		public void kickoff();
+		/**
+		 * When program is shutdown.<p>
+		 * Everything is destroyed.<p>
 		 */
 		public void shutdown();		
 	}
 	
-	private static ArrayList<GlobalHook> hook = new ArrayList<GlobalHook>();
+	private static ArrayList<EventHook> hook = new ArrayList<EventHook>();
 	
-	public static void hook(GlobalHook h){
+	public static void hook(EventHook h){
 		if(hook.contains(h)==true){
 			return;
 		}
 		hook.add(h);
 	}
-	
+	private static void hookShown(){
+		for(EventHook h:hook){ h.kickoff(); }
+	}
 	private static void hookShutdown(){
-		for(GlobalHook h:hook){
-			h.shutdown();
-		}
+		for(EventHook h:hook){ h.shutdown(); }
 	}
 	//--------------------------------------------//
 	
@@ -179,17 +185,17 @@ public class Gawain extends Application {
 	}
 	//--------------------------------------------//
 	
-	private static PanBase parent = null;
+	private static PanBase panRoot = null;
 	
 	public static Window getMainWindow(){
-		if(parent==null){
+		if(panRoot==null){
 			return null;
 		}
-		return parent.getScene().getWindow();
+		return panRoot.getScene().getWindow();
 	}
 	
 	public static boolean isMainWindow(PanBase pan){
-		return pan.equals(parent);
+		return pan.equals(panRoot);
 	}
 	
 	@Override
@@ -208,8 +214,11 @@ public class Gawain extends Application {
 			//Class cl = Class.forName(className);
 			//Constructor con = cl.getConstructor(Param1Type.class);
 			//obj = con.newInstance(param1,param2);
-			parent = (PanBase)obj;			
-			parent.appear(primaryStage);
+			panRoot = (PanBase)obj;			
+			panRoot.appear(primaryStage);
+			//panRoot.prepare();
+			//panRoot.getStage().show();
+			hookShown();
 			//Misc.logv("啟動 launch [%s]",name);//show the first message for box-logger
 		} catch (
 			InstantiationException | 

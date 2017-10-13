@@ -22,7 +22,7 @@ import narl.itrc.PanBase;
  * @author qq
  *
  */
-public class BlkRender extends BorderPane implements Gawain.GlobalHook {
+public class BlkRender extends BorderPane implements Gawain.EventHook {
 
 	public CamBundle bundle;
 	
@@ -32,6 +32,9 @@ public class BlkRender extends BorderPane implements Gawain.GlobalHook {
 		init_layout();
 	}
 
+	@Override
+	public void kickoff() {
+	}
 	@Override
 	public void shutdown() {
 		if(looper!=null){
