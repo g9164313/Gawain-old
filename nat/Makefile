@@ -3,7 +3,9 @@ DIR_JNI=/home/qq/.local/jdk8/include
 
 TARGET_EXE=gawain
 
-TARGET_SO=libspringboard.so
+CORE_SO=libspringboard.so
+
+VISION_SO=libvision.so
 	
 #### Pleora eBus ####
 
@@ -97,15 +99,14 @@ LD_LIBS += $(LIB_XIMEA)
 #CORE_FILE = util_jni.cpp DevTTY.cpp
 CORE_FILE = util_jni.cpp DevTTY.cpp 
 
-VISION_FILE =  ./vision/CamBundle.cpp util_cv.cpp registration.cpp
+VISION_FILE =  ./vision/CamBundle.cpp util_cv.cpp
+VISION_FILE += ./vision/CamVidcap.cpp 
+#VISION_FILE += ./vision/CamMulticam.cpp 
+#VISION_FILE += ./vision/CamFlyCapture.cpp
+#VISION_FILE += ./vision/CamXIMEA.cpp
 
 #IMG_FILTER =
 LIB_SFRISO = ./SFR/FltrSlangEdge.cpp ./SFR/sfr_iso.c 
-
-#DEV_CAMERA = ./vision/CamVidcap.cpp 
-#DEV_CAMERA += ./vision/CamMulticam.cpp 
-#DEV_CAMERA += ./vision/CamFlyCapture.cpp
-#DEV_CAMERA += ./vision/CamXIMEA.cpp
 
 #PRJ_CUSTOM = PrjLetterpress.cpp
 ########################
@@ -114,14 +115,25 @@ OBJECTS = $(SOURCES:.cpp=.o)
 
 CHECK_EXEC := $(word 2,$(shell pgrep -f "narl.itrc.Gawain"))
 
-$(TARGET_SO): $(CORE_FILE)
+$(CORE_SO): $(CORE_FILE)
 	$(CC) -fPIC -shared -o $@ $^ $(LD_LIBS) $(CC_FLAG)
 	cp -rf $@ ../bin/narl/itrc/nat
 	cp -rf $@ ../src/narl/itrc/nat
-	#cp -rf $@ /home/qq/.local/bin/gawain
 ifeq ($(CHECK_EXEC),)
-	@echo "no process, so we ovewrite it~~"
-	cp -rf $@ ~/.gawain/$@
+	@echo "no process is running, so we move it~~"
+	#cp -rf $@ ~/.gawain/$@
+	mv -f $@ ~/.gawain/$@
+else
+	@echo "process is running!!!"
+endif
+
+$(VISION_SO): $(VISION_FILE) 
+	$(CC) -fPIC -shared -o $@ $^ $(LD_LIBS) $(CC_FLAG)
+	cp -rf $@ ../bin/narl/itrc/nat
+	cp -rf $@ ../src/narl/itrc/nat
+ifeq ($(CHECK_EXEC),)
+	@echo "no process is running, so we move it~~"
+	mv -f $@ ~/.gawain/$@
 else
 	@echo "process is running!!!"
 endif
@@ -134,9 +146,9 @@ $(TARGET_EXE):  ./running/main-xx1.cpp
 #$(TARGET_EXE):  ./running/FlyCap2.cpp
 	$(CC) -o $@ $^ $(CC_FLAG) $(LD_LIBS)
 
-#all: $(TARGET_SO)
-all: $(TARGET_EXE)
-#all: $(TARGET_EXE) $(TARGET_SO) 
+all: $(CORE_SO) $(VISION_SO)
+#all: $(TARGET_EXE)
+#all: $(TARGET_EXE) $(CORE_SO) 
 
 clean:
 	rm -rf $(TARGET_EXE) $(TARGET_SO) $(DIR_SRC)/*.o ./*.o

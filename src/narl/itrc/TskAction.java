@@ -8,7 +8,6 @@ import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.util.Duration;
-import narl.itrc.vision.ImgFilter;
 
 public abstract class TskAction implements EventHandler<ActionEvent> {
 
@@ -194,8 +193,6 @@ public abstract class TskAction implements EventHandler<ActionEvent> {
 				for(Object obj:lst){
 					if(obj instanceof TskAction){
 						((TskAction)obj).isTrigger = false;//reset it for next turn~~~~
-					}else if(obj instanceof ImgFilter){
-						((ImgFilter)obj).isTrigger = false;//reset it for next turn~~~~
 					}
 				}
 			}
@@ -224,19 +221,6 @@ public abstract class TskAction implements EventHandler<ActionEvent> {
 						return;//we are still waiting~~~~
 					}
 					act.isTrigger = false;
-					
-				}else if(obj instanceof ImgFilter){
-					
-					ImgFilter fltr = (ImgFilter)obj;
-					if(fltr.isTrigger==false){
-						fltr.isTrigger = true;
-						fltr.handle(event);
-						return;
-					}
-					if(fltr.state.get()!=ImgFilter.STA_IDLE){
-						return;//we are still waiting~~~~
-					}
-					fltr.isTrigger = false;//for next turn~~~~
 					
 				}else if(obj instanceof EventHandler<?>){
 					((EventHandler<ActionEvent>)obj).handle(event);

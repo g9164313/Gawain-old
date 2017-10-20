@@ -7,10 +7,6 @@ public class CamVidcap extends CamBundle {
 	public CamVidcap() {
 	}
 
-	public CamVidcap(String config) {
-		super(config);
-	}
-
 	private static final int 
 		CAP_ANY = 0, // autodetect
 		CAP_VFW = 200, // platform native,V4L, V4L2
@@ -79,14 +75,9 @@ public class CamVidcap extends CamBundle {
 	 */
 	private int capIndex = 0;
 	
-	/**
-	 * This variable is only for CAP_IMAGES, name must have leading zero!!!
-	 */
-	private String capConfig = Misc.pathRoot + "img1_%03d.png";
 		
 	private native void implSetup(CamBundle cam);
 	private native void implFetch(CamBundle cam);
-	private native long implBulk(CamBundle cam,long addr);
 	private native void implClose(CamBundle cam);
 
 	public native boolean setProp(CamBundle cam,int id, double val);
@@ -96,30 +87,7 @@ public class CamVidcap extends CamBundle {
 	
 	@Override
 	public void setup() {
-		// e.g: "winrt:0", open the first camera via WinRT
-		String[] args = txtConfig.split(":");
-		try {
-			capDomain= CAP_ANY;
-			capIndex = 0;
-			switch(args.length){
-			default:
-			case 3:				
-				capDomain= name2value(args[0].trim());
-				capIndex = Integer.valueOf(args[1].trim());
-				capConfig= args[2].trim();
-				break;
-			case 2:
-				capDomain= name2value(args[0].trim());
-				capIndex = Integer.valueOf(args[1].trim());
-				break;
-			case 1:
-				capIndex = Integer.valueOf(args[0].trim());
-				break;
-			}
-			implSetup(this);
-		} catch (NumberFormatException e) {
-			Misc.loge("Wrong configure - " + txtConfig);
-		}
+		implSetup(this);
 	}
 
 	@Override
@@ -128,22 +96,7 @@ public class CamVidcap extends CamBundle {
 	}
 	
 	@Override
-	public long bulk(long addr) {
-		return implBulk(this,addr);
-	}
-
-	@Override
 	public void close() {
 		implClose(this);
 	}
-	
-	@Override
-	public void showSetting(ImgPreview1 prv) {
-		switch (capDomain) {
-		default:
-		case CAP_ANY: new PanAny(this);
-		case CAP_VFW: new PanVFW(this);			
-		}
-	}
-	// -----------------------//
 }

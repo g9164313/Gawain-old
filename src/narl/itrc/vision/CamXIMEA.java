@@ -5,10 +5,6 @@ public class CamXIMEA extends CamBundle {
 	public CamXIMEA(){		
 	}
 	
-	public CamXIMEA(String conf){
-		super(conf);
-	}
-
 	private native void implSetup(CamBundle cam);
 	private native void implFetch(CamBundle cam);
 	private native void implClose(CamBundle cam);
@@ -78,20 +74,7 @@ public class CamXIMEA extends CamBundle {
 	}
 
 	@Override
-	public long bulk(long addr) {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-	
-	@Override
 	public void close() {
 		implClose(this);
-	}
-
-	private PanXIMEA pan = new PanXIMEA(this);
-	
-	@Override
-	public void showSetting(ImgPreview1 prv) {
-		pan.appear();
 	}
 }

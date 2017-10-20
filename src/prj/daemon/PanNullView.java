@@ -4,10 +4,13 @@ import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
+import javafx.stage.WindowEvent;
 import narl.itrc.BoxLogger;
 import narl.itrc.DevBase;
-import narl.itrc.Misc;
 import narl.itrc.PanBase;
+import narl.itrc.vision.CamBundle;
+import narl.itrc.vision.CamVidcap;
+import narl.itrc.vision.DevRender;
 
 /**
  * It is just for testing device or observing view.
@@ -19,51 +22,46 @@ public class PanNullView extends PanBase {
 	public PanNullView(){
 	}
 
+	private CamVidcap vidcap = new CamVidcap();
+	
+	private DevRender render = new DevRender(vidcap);
+	
+	@Override
+	protected void eventShown(WindowEvent e){
+		
+		render.launchTask("cam-render");
+		
+		//dev.setUsual(e1->{
+		//	Misc.delay(1000);
+		//	Misc.logv("usual routine...");
+		//});
+		//dev.launchTask("dev-null");		
+	}
+	//-----------------------//
+	
 	@Override
 	public Node eventLayout(PanBase pan) {
-		
-		dev.taskLaunch("dev-null");
-		dev.setUsual(e1->{
-			Misc.delay(1000);
-			Misc.logv("usual routine...");
-		});
 		
 		final BoxLogger box = new BoxLogger();
 		box.setPrefHeight(120);
 		
 		final BorderPane lay0 = new BorderPane();		
+		lay0.setBottom(box);
+		lay0.setCenter(vidcap);
+		
 		final BorderPane lay1 = new BorderPane();
-		
-		lay1.setBottom(box);
-		
-		lay0.setRight(layout_action());
-		lay0.setCenter(lay1);	
-		return lay0;
+		lay1.setRight(layout_action());
+		lay1.setCenter(lay0);	
+		return lay1;
 	}
-	//-----------------------//
 	
-	private class DevNullTest extends DevBase {
-		public DevNullTest(){			
-		}
-		@Override
-		public void eventShutdown() {
-		}
-	};
-	
-	private DevNullTest dev = new DevNullTest(); 
-	
-	//private DevNanoPZ dev = new DevNanoPZ();
-	//private DevTTY dev = new DevTTY();
-	//private DevLK_G5000 dev = new DevLK_G5000();
-		
 	private Node layout_action(){
 		
-
 		final Button btn1 = PanBase.genButton2("test-1",null);
 		btn1.setOnAction(e->{
-			dev.addEvent(btn1, e1->{
-				Misc.logv("~~button click~~");
-			});
+			//dev.addEvent(btn1, e1->{
+			//	Misc.logv("~~button click~~");
+			//});
 		});
 		
 		GridPane lay = new GridPane();

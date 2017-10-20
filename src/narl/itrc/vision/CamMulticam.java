@@ -18,7 +18,7 @@ import narl.itrc.Misc;
 public class CamMulticam extends CamBundle {
 
 	public CamMulticam(String nameConfig){
-		super(nameConfig);		
+		//super(nameConfig);		
 		indxMcBoard = 0;//how to pack this in configure name
 		String path = "";
 		if(Misc.isPOSIX()==true){
@@ -74,18 +74,8 @@ public class CamMulticam extends CamBundle {
 	}
 
 	@Override
-	public long bulk(long addr) {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-	
-	@Override
 	public void close() { 
 		implClose(this);
-	}
-
-	@Override
-	public void showSetting(ImgPreview1 prv) {
 	}	
 	//----------------------------------------//
 	

@@ -9,14 +9,13 @@ public class CamFlyCapture extends CamBundle {
 	 *     "s:12345" - match serial number.<p>
 	 */
 	public CamFlyCapture(String conf){
-		super(conf);
+		//super(conf);
 	}
 	
 	/**
 	 * just get the first camera
 	 */
 	public CamFlyCapture(){
-		super("");
 	}
 	
 	private native void implSetup(CamBundle cam,int index,boolean isSeral);
@@ -25,7 +24,7 @@ public class CamFlyCapture extends CamBundle {
 		
 	@Override
 	public void setup() {
-		int indx = 0;
+		/*int indx = 0;
 		boolean flag = false;
 		
 		String conf = txtConfig;
@@ -52,7 +51,7 @@ public class CamFlyCapture extends CamBundle {
 			}
 		}
 		
-		implSetup(this,indx,flag);
+		implSetup(this,indx,flag);*/
 	}
 
 	@Override
@@ -60,12 +59,6 @@ public class CamFlyCapture extends CamBundle {
 		implFetch(this);
 	}
 
-	@Override
-	public long bulk(long addr) {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-	
 	@Override
 	public void close() {
 		implClose(this);
@@ -90,9 +83,4 @@ public class CamFlyCapture extends CamBundle {
 	private long ptrDlgCtrl = 0;
 	
 	private native void implShowCtrl(CamBundle cam);
-	
-	@Override
-	public void showSetting(ImgPreview1 prv) {
-		implShowCtrl(this);
-	}
 }

@@ -1,177 +1,248 @@
 package narl.itrc.vision;
 
-import java.io.ByteArrayInputStream;
+import com.sun.glass.ui.Application;
 
-import javafx.scene.image.Image;
+import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.SimpleIntegerProperty;
+import javafx.geometry.Orientation;
+import javafx.scene.control.ScrollBar;
+import javafx.scene.image.ImageView;
+import javafx.scene.image.PixelFormat;
+import javafx.scene.image.WritableImage;
+import javafx.scene.input.MouseButton;
+import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.Pane;
+import javafx.scene.layout.StackPane;
+import narl.itrc.Misc;
 
-public abstract class CamBundle {
+public abstract class CamBundle extends StackPane {
 
 	public CamBundle(){
+		init();
 	}
 	
-	public CamBundle(String txt){
-		txtConfig= txt;		
-	}	
-	//-------------------------//
+	public CamBundle(int zoomWidth, int zoomHeight){
+		zoomSizeW = zoomWidth;
+		zoomSizeH = zoomHeight;
+		init();
+	}
+	//--------------------------------//
+	
+	private final int Min_Zoom_Width = 640;	
+	private final int Min_Zoom_Height= 480;
 	
 	/**
-	 * configuration, the meaning of value is dependent on devices.<p>
-	 * Meaning of this variable is depend on device.<p> 
+	 * This will be used in native code.<p>
 	 */
-	public String txtConfig = "";
-
+	@SuppressWarnings("unused") private int zoomLocaX = 0;
+	
 	/**
-	 * The pointer to a context for whatever devices.<p>
-	 * this pointer show whether device is ready.<p>
+	 * This will be used in native code.<p>
+	 */
+	@SuppressWarnings("unused") private int zoomLocaY = 0;
+	
+	private int zoomSizeW = Min_Zoom_Width;
+	
+	private int zoomSizeH = Min_Zoom_Height;
+	
+	/**
+	 * This will be used in native code.<p>
+	 */
+	@SuppressWarnings("unused") private int zoomScale = 1;
+	
+	private ImageView zoomView = new ImageView();
+	
+	private WritableImage zoomImage;
+		
+	private ScrollBar zoomLoca[] = {
+		new ScrollBar(),
+		new ScrollBar()
+	};
+	
+	private void init(){
+		
+		zoomImage = new WritableImage(zoomSizeW,zoomSizeH);
+		
+		zoomView.setImage(zoomImage);
+
+		final AnchorPane overlay = new AnchorPane();
+		overlay.getChildren().add(create_control_item());
+		overlay.getChildren().addAll(init_zoom_loca());
+				
+		//setStyle("-fx-background-color: skyblue;");
+		setMinSize(Min_Zoom_Width, Min_Zoom_Height);
+		
+		//widthProperty().addListener((obs, oldVal, newVal)->{
+			//int val = newVal.intValue();
+			//zoomInfo[2] = val;
+			//screenView.setFitWidth(val);
+		//});		
+		//heightProperty().addListener((obs, oldVal, newVal)->{
+			//int val = newVal.intValue();
+			//screenSize[3] = val;
+			//screenView.setFitHeight(val);
+		//});
+		
+		setOnMouseMoved(event->{
+			
+		});
+		setOnMouseClicked(event->{
+			
+			MouseButton btn = event.getButton();
+			
+			boolean flag = overlay.visibleProperty().get();
+			
+			if(btn==MouseButton.PRIMARY){
+				//Misc.logv("left-click");
+				if(flag==false){
+					return;
+				}
+			}else if(btn==MouseButton.SECONDARY){
+				//Misc.logv("right-click");
+				//show cursor???
+				//overlay.setVisible(!flag);
+			}
+		});
+		
+		getChildren().addAll(zoomView,overlay);
+	}
+	
+	private Pane create_control_item(){
+		GridPane lay = new GridPane();
+		lay.setStyle(
+			"-fx-background-color: palegreen;"+
+			"-fx-padding: 13;"+
+			"-fx-spacing: 7;"+
+			"-fx-background-radius: 10;"+		
+			"-fx-effect: dropshadow(three-pass-box, black, 10, 0, 0, 0);"
+		);
+		lay.setMinSize(48, 200);		
+		AnchorPane.setTopAnchor(lay, 13.);
+		AnchorPane.setLeftAnchor(lay,13.);
+		return lay;
+	}
+	
+	private ScrollBar[] init_zoom_loca(){
+				
+		zoomLoca[0].setOrientation(Orientation.HORIZONTAL);
+		zoomLoca[0].setMin(0.f);
+		zoomLoca[0].setValue(0.);
+		zoomLoca[0].setMax(0.);
+		zoomLoca[0].valueProperty().addListener((obv,oldVal,newVal)->{
+			zoomLocaX = newVal.intValue();
+			//TODO: update screen
+		});
+				
+		zoomLoca[1].setOrientation(Orientation.VERTICAL);
+		zoomLoca[1].setMin(0.f);
+		zoomLoca[1].setValue(0.);
+		zoomLoca[1].setMax(0.);
+		zoomLoca[1].valueProperty().addListener((obv,oldVal,newVal)->{
+			zoomLocaY = newVal.intValue();
+			//TODO: update screen
+		});
+		
+		AnchorPane.setLeftAnchor(zoomLoca[0], 0.);
+		AnchorPane.setRightAnchor(zoomLoca[0],16.);
+		AnchorPane.setBottomAnchor(zoomLoca[0],0.);
+		
+		AnchorPane.setTopAnchor(zoomLoca[1], 0.);
+		AnchorPane.setBottomAnchor(zoomLoca[1],16.);
+		AnchorPane.setRightAnchor(zoomLoca[1],0.);
+		
+		return zoomLoca;
+	}
+	
+	/*	HBox lay = new HBox();
+	lay.setStyle(
+		"-fx-background-color: palegreen; "+
+		"-fx-padding: 13;"+
+		"-fx-spacing: 7; "+
+		"-fx-background-radius: 10; "+		
+		"-fx-effect: dropshadow(three-pass-box, black, 10, 0, 0, 0);"		
+	);
+	 */
+	//--------------------------------//
+	
+	/**
+	 * Point to a context for whatever devices.<p>
+	 * This pointer also shows whether bundle is ready.<p>
+	 * !!! This variable is changed by native code !!! <p>
 	 */
 	private long ptrCntx = 0;
 	
-	/**
-	 * 
-	 * The pointer to memory buffer created by malloc().<p>
-	 * This pointer can be zero, it is dependent on device.<p>
-	 * Do we use this for memory-mapping? <p> 
-	 */
-	private long ptrBuff = 0;
-	
-	/**
-	 * How to interpret buffer geometry.<p>
-	 * It can be changed when each fetch routine.<p>
-	 */
-	private int bufType = 0;
-	
-	/**
-	 * How to interpret buffer size - width.<p>
-	 * It can be changed when each fetch routine.<p>
-	 */
 	private int bufSizeW = 0;
 	
-	/**
-	 * How to interpret buffer size - height.<p>
-	 * It can be changed when each fetch routine.<p>
-	 */
 	private int bufSizeH = 0;
+
+	private int bufCvFmt= 0;
 	
 	/**
-	 * 'Image file' for 'ptrBuff'，data is encoded by compressor.<p>
-	 * Format may be PNG, JPG or TIFF.<p>
+	 * check whether bundle is valid.<p>
+	 * It also means device is ready.<p> 
+	 * @return TRUE or FALSE
 	 */
-	private byte[] imgBuff = null;
-	
-	/**
-	 * It is also a PNG image file. Overlay with grabbed image.<p>
-	 */
-	private byte[] imgInfo = null;
+	public boolean isReady(){
+		return (ptrCntx==0)?(false):(true);
+	}
 
 	/**
-	 * prepare and initialize camera, the instance will be keep in 'ptrCntx'.<p>
+	 * prepare and initialize camera, the instance will be hold in 'ptrCntx'.<p>
 	 */
 	public abstract void setup();
 	
 	/**
-	 * Overload function, it will override configuration again.<p>
-	 * @param txt - pass configuration to camera. 
-	 */
-	public void setup(String txt){
-		if(txt!=null){
-			this.txtConfig = txt;
-		}		
-		setup();
-	}
-	
-	/**
-	 * just fetch image from camera
+	 * just fetch image from camera, 'imgBuff' will be re-assign image data.<p>
 	 */
 	public abstract void fetch();
 	
 	/**
-	 * special feature,just transfer data, but no decode.<p>
-	 * @param addr - memory pool address
-	 * @return the next memory address
-	 */
-	public abstract long bulk(long addr);
-	
-	/**
-	 * close camera and release everything.<p>
-	 * remember 'ptrCntx' will be overwrite.<p>
+	 * close camera and release context.<p>
 	 */
 	public abstract void close();
-	
-	/**
-	 * generate a panel to set camera options
-	 * @return a panel, it will be the part of control layout
-	 */
-	public abstract void showSetting(ImgPreview1 prv);
 
-	public native void saveImage(String name);
-	
-	public native void saveImageROI(String name,int[] roi);
-	
-	public native void loadImage(String name,int flag);
-	//-----------------------------//
-	
-	protected void setContext(long val){
-		ptrCntx = val;
+	protected void setupBuffer(int cvtype, int width,int height){
+		//PixelWriter wr = bufImage.getPixelWriter();
+		//wr.setPixels(0, 0, 100, 100, com.sun.prism.PixelFormat.BYTE_ALPHA, buffer, scanlineStride);		
 	}
 	
-	/**
-	 * image is encoded by compressor.<p>
-	 * @return  javaFX image
-	 */
-	public Image getImgBuff(){ 
-		return get_image(imgBuff); 
-	}
-	
-	/**
-	 * overlay image.<p>
-	 * @return  javaFX image
-	 */
-	public Image getImgInfo(){
-		return get_image(imgInfo); 
-	}
-	
-	private Image get_image(byte[] arr){
-		if(arr==null){
-			return null;
+	protected IntegerProperty propFPS = new SimpleIntegerProperty(0);
+	private int countFrame=0, countTick;
+	private Runnable updateFPS = new Runnable(){
+		@Override
+		public void run() {
+			int val = (countFrame*1000)/countTick;
+			propFPS.set(val);
+			Misc.logv("FPS=%d",val);
+			countFrame = 0;//reset for next turn~~~~
 		}
-		return new Image(new ByteArrayInputStream(arr));
-	}
+	};
 	
-	/**
-	 * clear overlay information
-	 */
-	public void clearImgInfo(){		
-		imgInfo = null;
-	}
-	
-	/**
-	 * some setup procedure takes too long time like GigE-Vision.<p>
-	 * So, we need thread to setup camera.
-	 */
-	private Thread thdSetup;
-	public void asynSetup(String txtConfig){
-		if(thdSetup!=null){
-			if(thdSetup.isAlive()==true){
-				return;
-			}
+	protected void fetchCallback(byte[] buffImage, int width, int height){
+		if(zoomImage==null){
+			return;
+		}
+		zoomImage.getPixelWriter().setPixels(
+			0, 0, 
+			width, height, 
+			PixelFormat.getByteRgbInstance(), 
+			buffImage, 
+			0, width*3
+		);
+		
+		if(countFrame==0){
+			countTick = (int)System.currentTimeMillis();
 		}		
-		thdSetup = new Thread(new Runnable(){
-			@Override
-			public void run() {
-				setup(txtConfig);
+		countFrame+=1;
+		if(countFrame>=10){
+			countTick = (int)System.currentTimeMillis() - countTick;
+			if(Application.isEventThread()==true){
+				updateFPS.run();
+			}else{
+				Application.invokeAndWait(updateFPS);
 			}
-		},"cam-setup");
-	}
-	
-	public boolean isReady(){
-		return (ptrCntx==0)?(false):(true);
-	}
-	
-	protected boolean isFilled(){
-		if(imgBuff==null){
-			return false;
 		}
-		return true;
 	}
 }
 

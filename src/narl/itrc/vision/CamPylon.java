@@ -17,7 +17,7 @@ public class CamPylon extends CamBundle {
 	
 	@Override
 	public void setup() {
-		implSetup(CamPylon.this,txtConfig);
+		//implSetup(CamPylon.this,txtConfig);
 	}
 
 	@Override
@@ -25,12 +25,6 @@ public class CamPylon extends CamBundle {
 		implFetch(this);
 	}
 
-	@Override
-	public long bulk(long addr) {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-	
 	@Override
 	public void close() {
 		implClose(this);
@@ -76,8 +70,4 @@ public class CamPylon extends CamBundle {
 			return null;
 		}
 	};*/
-	
-	@Override
-	public void showSetting(ImgPreview1 prv) {
-	}
 }

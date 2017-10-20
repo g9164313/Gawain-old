@@ -1,5 +1,6 @@
 package narl.itrc;
 
+import java.util.ArrayList;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import com.sun.glass.ui.Application;
@@ -59,10 +60,15 @@ public abstract class DevBase implements Gawain.EventHook {
 	 */
 	@Override
 	public void shutdown() {
-		taskFinish();
+		finishTask();
 		eventShutdown();
 	}
-		
+	
+	/**
+	 * In this point, device can release its resource!!! <p>
+	 */
+	public abstract void eventShutdown();
+	
 	/**
 	 * All devices need a view(console) to control its behaviors.<p>
 	 * So, override this method to generate a control-view.
@@ -71,11 +77,6 @@ public abstract class DevBase implements Gawain.EventHook {
 	protected Node eventLayout(PanBase pan){
 		return null;
 	}
-
-	/**
-	 * In this point, device can release its resource!!! <p>
-	 */
-	public abstract void eventShutdown();	
 
 	public PanBase showConsole(){
 		return showConsole("");
@@ -93,13 +94,14 @@ public abstract class DevBase implements Gawain.EventHook {
 	
 	private ConcurrentLinkedQueue<TaskEvent> taskQueue;
 	
+	private ArrayList<TaskEvent> taskUsual = new ArrayList<TaskEvent>();//repeated-routine
+	
 	private Task<Long> taskLoop;
-	
-	private TaskEvent taskUsual = null;//repeated-routine
-	
+		
 	private class TaskCore extends Task<Long>{
 		@Override
 		protected Long call() throws Exception {
+			
 			if(taskInit()==true){
 				return -1L;
 			}
@@ -117,7 +119,9 @@ public abstract class DevBase implements Gawain.EventHook {
 				if(e!=null){
 					e.fireEvent();
 				}else if(taskUsual!=null){
-					taskUsual.fireEvent();
+					taskUsual.forEach(obj->{
+						obj.fireEvent();
+					});
 				}
 
 				tk2 = System.currentTimeMillis();
@@ -136,19 +140,23 @@ public abstract class DevBase implements Gawain.EventHook {
 	protected void taskFinal(){
 	}
 
-	public void setUsual(TaskEvent event){
-		taskUsual = event;
+	public void addUsual(TaskEvent event){
+		taskUsual.add(event);
 	}
-	public void setUsual(
+	public void addUsual(
 		EventHandler<ActionEvent> pro
 	){
-		taskUsual = new TaskEvent(null,pro,null);
+		addUsual(new TaskEvent(null,pro,null));
 	}
-	public void setUsual(
+	public void addUsual(
 		EventHandler<ActionEvent> pro, 
 		EventHandler<ActionEvent> epi
 	){
-		taskUsual = new TaskEvent(null,pro,epi);
+		addUsual(new TaskEvent(null,pro,epi));
+	}
+	
+	public void delUsual(TaskEvent event){
+		taskUsual.remove(event);
 	}
 	
 	public void addEvent(TaskEvent e){
@@ -180,7 +188,7 @@ public abstract class DevBase implements Gawain.EventHook {
 		addEvent(new TaskEvent(nod,pro,epi));
 	}
 	
-	public void taskLaunch(String name){
+	public void launchTask(String name){
 		if(taskQueue!=null){
 			taskQueue.clear();
 		}else{
@@ -196,7 +204,7 @@ public abstract class DevBase implements Gawain.EventHook {
 		new Thread(taskLoop,name).start();		
 	}
 	
-	public void taskFinish(){
+	public void finishTask(){
 		if(taskLoop!=null){
 			if(taskLoop.isDone()==false){
 				taskLoop.cancel();

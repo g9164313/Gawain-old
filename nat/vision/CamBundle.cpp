@@ -13,11 +13,6 @@
 #define VISION
 #endif
 
-Mat prepare_data(JNIEnv * env,jobject bundle){
-	MACRO_PREPARE
-	return Mat(height,width,type,buff);
-}
-
 /**
  * set a overlay picture to indicate information
  * @param bnd - just 'bundle'
@@ -204,19 +199,70 @@ void drawPolyline(
 }
 //----------------------------//
 
+extern "C" void FetchCallback(
+	JNIEnv * env,
+	jobject thiz,
+	jobject bundle,
+	const Mat& data
+){
+	jclass b_clzz = env->GetObjectClass(bundle);
+	int zoomLocaX = env->GetIntField(bundle, env->GetFieldID(b_clzz,"zoomLocaX","I"));
+	int zoomLocaY = env->GetIntField(bundle, env->GetFieldID(b_clzz,"zoomLocaY","I"));
+	int zoomSizeW = env->GetIntField(bundle, env->GetFieldID(b_clzz,"zoomSizeW","I"));
+	int zoomSizeH = env->GetIntField(bundle, env->GetFieldID(b_clzz,"zoomSizeH","I"));
+	int zoomScale = env->GetIntField(bundle, env->GetFieldID(b_clzz,"zoomScale","I"));
+
+	//project image data to another coordinate space~~
+	Mat src,dst;
+	if(2<=zoomScale){
+		//enlarge size
+	}else if(zoomScale<=-2){
+		//shrink size
+	}else{
+		//same size~~~
+	}
+	src = data(Rect(zoomLocaX,zoomLocaY,zoomSizeW,zoomSizeH));
+
+	switch(src.channels()){
+	case 3:
+		cvtColor(src,dst,COLOR_BGR2RGB);
+		break;
+	case 1:
+		cvtColor(src,dst,COLOR_GRAY2RGB);
+		break;
+	default:
+		return;
+	}
+
+	jsize buff_size = dst.cols * dst.rows * 3;
+	jbyteArray buffImage = env->NewByteArray(buff_size);
+
+	env->SetByteArrayRegion(
+		buffImage,
+		0, buff_size,
+		(jbyte*) dst.data
+	);
+	jmethodID id = env->GetMethodID(b_clzz,"fetchCallback","([BII)V");
+	env->CallVoidMethod(
+		bundle, id,
+		buffImage, dst.cols, dst.rows
+	);
+	env->DeleteLocalRef(buffImage);
+}
+
 extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_CamBundle_saveImage(
 	JNIEnv * env,
 	jobject bundle,
 	jstring jname
 ){
-	MACRO_PREPARE
-	if(buff==NULL){
-		return;
-	}
-	Mat img(height,width,type,buff);
-	char name[500];
-	jstrcpy(env,jname,name);
-	imwrite(name,img);
+	//MACRO_PREPARE
+	//if(buff==NULL){
+	//	return;
+	//}
+	//Mat img(height,width,type,buff);
+	//char name[500];
+	//jstrcpy(env,jname,name);
+	//imwrite(name,img);
 }
 
 extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_CamBundle_saveImageROI(
@@ -225,7 +271,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_CamBundle_saveImageROI(
 	jstring jname,
 	jintArray jroi
 ){
-	MACRO_PREPARE
+	/*MACRO_PREPARE
 	if(buff==NULL){
 		return;
 	}
@@ -238,7 +284,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_CamBundle_saveImageROI(
 	char name[500];
 	jstrcpy(env,jname,name);
 	imwrite(name,_img);
-	env->ReleaseIntArrayElements(jroi,roi,0);
+	env->ReleaseIntArrayElements(jroi,roi,0);*/
 }
 
 extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_CamBundle_loadImage(
@@ -247,14 +293,14 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_CamBundle_loadImage(
 	jstring jname,
 	int flag
 ){
-	MACRO_PREPARE
+	/*MACRO_PREPARE
 	char name[500];
 	jstrcpy(env,jname,name);
 	Mat img = imread(name,flag);
 	if(img.empty()==true){
 		return;
 	}
-	MACRO_FETCH_COPY(img)
+	MACRO_FETCH_COPY(img)*/
 	//MACRO_RESET_FIELD(0L,img.cols,img.rows,img.type())
 	//set_img_array(env,bundle,idImgBuff,img,"imgBuff",".png");
 }
