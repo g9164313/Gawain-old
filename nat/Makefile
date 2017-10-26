@@ -133,6 +133,7 @@ $(VISION_SO): $(VISION_FILE)
 	cp -rf $@ ../src/narl/itrc/nat
 ifeq ($(CHECK_EXEC),)
 	@echo "no process is running, so we move it~~"
+	#cp -rf $@ ~/.gawain/$@
 	mv -f $@ ~/.gawain/$@
 else
 	@echo "process is running!!!"

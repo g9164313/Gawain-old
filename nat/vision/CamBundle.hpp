@@ -32,6 +32,15 @@
 
 #define MACRO_SETUP_END(cntx,width,height,format) MACRO_FIELD_SET(cntx,width,height,format)
 
+extern "C" void setupCallback(
+	JNIEnv * env,
+	jobject bundle,
+	void* context,
+	int width,
+	int height,
+	int format
+);
+
 //-----------------------------------------------------------------------//
 
 #define MACRO_FETCH_BEG \
@@ -39,7 +48,7 @@
 	MACRO_FIELD_PREP \
 	if(cntx==NULL){ return; } \
 
-extern "C" void FetchCallback(
+extern "C" void fetchCallback(
 	JNIEnv * env,
 	jobject thiz,
 	jobject bundle,

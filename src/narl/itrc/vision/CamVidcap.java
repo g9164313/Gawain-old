@@ -1,15 +1,67 @@
 package narl.itrc.vision;
 
-import narl.itrc.Misc;
-
 public class CamVidcap extends CamBundle {
 
 	public CamVidcap() {
 	}
 
+	public CamVidcap(String name) {
+		if(
+			name.endsWith(".avi")==true || 
+			name.endsWith(".mp4")==true 
+		){
+			capDomain = CAP_FFMPEG;
+		}else{
+			capDomain = CAP_IMAGES;
+		}
+		capIndex = 0;
+	}
+	//-----------------------//
+	
+
+	/**
+	 * The type of camera source
+	 */
+	private int capDomain = CAP_ANY;
+	
+	/**
+	 * Camera index
+	 */
+	private int capIndex = 0;
+	
+	/**
+	 * This variable is used only for CAP_IMAGES or CAP_FFMPEG
+	 */
+	private String seqName = null;
+	
+	private native void implSetup(CamBundle cam);
+	private native void implFetch(CamBundle cam);
+	private native void implClose(CamBundle cam);
+
+	public native boolean setProp(CamBundle cam,int id, double val);
+	public native double  getProp(CamBundle cam,int id);
+
+	public int getIndex(){ return capIndex; }
+	
+	@Override
+	public void setup() {
+		implSetup(this);
+	}
+
+	@Override
+	public void fetch() {
+		implFetch(this);
+	}
+	
+	@Override
+	public void close() {
+		implClose(this);
+	}
+	//-----------------------//
+	
 	private static final int 
-		CAP_ANY = 0, // autodetect
-		CAP_VFW = 200, // platform native,V4L, V4L2
+		CAP_ANY = 0, // auto-detect
+		CAP_VFW = 200, // platform native, V4L, V4L2
 		CAP_FIREWARE = 300, // IEEE 1394 drivers
 		CAP_QT = 500, // QuickTime
 		CAP_UNICAP = 600, // Unicap drivers
@@ -30,7 +82,7 @@ public class CamVidcap extends CamBundle {
 		CAP_FFMPEG = 1900, // FFMPEG
 		CAP_IMAGES = 2000; // OpenCV Image Sequence (e.g. img_%02d.jpg)
 
-	private int name2value(String name){
+	private static int name2value(String name){
 		int val = CAP_ANY;//default domain~~
 		if (
 			name.equalsIgnoreCase("IMAGES") == true ||
@@ -63,40 +115,5 @@ public class CamVidcap extends CamBundle {
 			val = CAP_XIAPI;		
 		}
 		return val;
-	}
-
-	/**
-	 * The type of camera source
-	 */
-	private int capDomain = CAP_ANY;
-	
-	/**
-	 * Camera index
-	 */
-	private int capIndex = 0;
-	
-		
-	private native void implSetup(CamBundle cam);
-	private native void implFetch(CamBundle cam);
-	private native void implClose(CamBundle cam);
-
-	public native boolean setProp(CamBundle cam,int id, double val);
-	public native double getProp(CamBundle cam,int id);
-
-	public int getIndex(){ return capIndex; }
-	
-	@Override
-	public void setup() {
-		implSetup(this);
-	}
-
-	@Override
-	public void fetch() {
-		implFetch(this);
-	}
-	
-	@Override
-	public void close() {
-		implClose(this);
 	}
 }

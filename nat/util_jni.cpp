@@ -232,19 +232,20 @@ void callThreadJoin(JNIEnv* env,jobject thiz,const char* name){
 #endif
 
 
-void log_msg(JNIEnv* env,const char* name,const char* txt){
+void log_msg(JNIEnv* env,const char* name,const char* msg){
 	jclass clzz = env->FindClass("narl/itrc/Misc");
 	jmethodID mid = env->GetStaticMethodID(
 		clzz,
 		name,
 		"(Ljava/lang/String;[Ljava/lang/Object;)V"
 	);
+	jstring j_msg = env->NewStringUTF(msg);
 	env->CallStaticVoidMethod(
 		clzz,
 		mid,
-		env->NewStringUTF(txt),
-		NULL
+		j_msg
 	);
+	env->DeleteLocalRef(j_msg);
 }
 
 void logv(JNIEnv* env,const char* fmt,...){
@@ -263,6 +264,22 @@ void loge(JNIEnv* env,const char* fmt,...){
 }
 //--------------------------------//
 
+extern "C" JNIEXPORT jlong Java_narl_itrc_Misc_realloc__J(
+	JNIEnv* env,
+	jclass  clzz,
+	jlong   ptr,
+	jlong   len
+){
+	return (jlong)realloc((void*)ptr,(size_t)len);
+}
+
+extern "C" JNIEXPORT void Java_narl_itrc_Misc_free__J(
+	JNIEnv* env,
+	jclass  clzz,
+	jlong   ptr
+){
+	free((void*)ptr);
+}
 
 NAT_EXPORT void dummy(){
 	//stupid Virtual C++ need this to generate a library!!!!

@@ -24,6 +24,8 @@ public class PanNullView extends PanBase {
 
 	private CamVidcap vidcap = new CamVidcap();
 	
+	//private ImgPreview prv = new ImgPreview(800,600);
+	
 	private DevRender render = new DevRender(vidcap);
 	
 	@Override
@@ -51,6 +53,7 @@ public class PanNullView extends PanBase {
 		
 		final BorderPane lay1 = new BorderPane();
 		lay1.setRight(layout_action());
+		//lay1.setLeft(layout_action());
 		lay1.setCenter(lay0);	
 		return lay1;
 	}

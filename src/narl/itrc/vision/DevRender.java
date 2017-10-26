@@ -9,7 +9,9 @@ public class DevRender extends DevBase {
 	public DevRender(CamBundle bnd){
 		bundle = bnd;
 		addUsual(event->{
-			bundle.fetch();
+			if(bundle.ctrlPlay==true){
+				bundle.fetch();
+			}
 		});
 	}
 	

@@ -12,38 +12,34 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_CamVidcap_implSetup(
 	jobject thiz,
 	jobject bundle
 ){
-	MACRO_SETUP_BEG
-
-	jclass _clzz = env->GetObjectClass(thiz);
-	jint dom = env->GetIntField(thiz,env->GetFieldID(_clzz,"capDomain","I"));
-	jint idx = env->GetIntField(thiz,env->GetFieldID(_clzz,"capIndex","I"));
+	jclass s_clzz = env->GetObjectClass(thiz);
+	jint dom = env->GetIntField(thiz,env->GetFieldID(s_clzz,"capDomain","I"));
+	jint idx = env->GetIntField(thiz,env->GetFieldID(s_clzz,"capIndex" ,"I"));
 
 	VideoCapture* vid = new VideoCapture();
-	vid->open(dom+idx);
+	cout<<"capId="<<dom<<"+"<<idx<<endl;
 
-	/*if(dom==CAP_IMAGES){
-		jstring j_name = (jstring)env->GetObjectField(
-			thiz,
-			env->GetFieldID(_clzz,"capConfig","Ljava/lang/String;")
-		);
-		char txtName[500];
-		jstrcpy(env,j_name,txtName);
-		vid->open(txtName,dom);
-		logv(env,"[VID] image sequence:%s",txtName);
+	if(dom==CAP_IMAGES){
+		char seqName[500];
+		getJString(env,thiz,"seqName",seqName);
+		vid->open(seqName,dom);
+		//logv(env,"[VIDCAP] image sequence:%s",seqName);
 	}else{
-		logv(env,"[VID] capId=%d+%d",dom,idx);
-	}*/
-
+		vid->open(dom+idx);
+		//logv(env,"[VIDCAP] capId = %d+%d",dom,idx);
+	}
 	if(vid->isOpened()==false){
-		logv(env,"[VID] fail to open device");
+		//logv(env,"[VIDCAP] fail to open device");
 		return;
 	}
 
-	int width = vid->get(CAP_PROP_FRAME_WIDTH);
-	int height= vid->get(CAP_PROP_FRAME_HEIGHT);
-	int format= vid->get(CAP_PROP_FORMAT);
-
-	MACRO_SETUP_END(vid,width,height,format);
+	setupCallback(
+		env,bundle,
+		vid,
+		vid->get(CAP_PROP_FRAME_WIDTH),
+		vid->get(CAP_PROP_FRAME_HEIGHT),
+		vid->get(CAP_PROP_FORMAT)
+	);
 }
 
 extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_CamVidcap_implFetch(
@@ -60,7 +56,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_CamVidcap_implFetch(
 	Mat img;
 	vid.retrieve(img);
 
-	FetchCallback(env,thiz,bundle,img);
+	fetchCallback(env,thiz,bundle,img);
 }
 
 extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_CamVidcap_implClose(

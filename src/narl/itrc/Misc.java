@@ -966,6 +966,12 @@ public class Misc {
 		}
 		return dst;
 	}
+	//--------------------------//
+
+	public final static String TXT_UNKNOW = "？？？";
+	
+	public native long realloc(long size);
+	public native void free(long ptr);
 }
 
 
