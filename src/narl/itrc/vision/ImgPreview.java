@@ -2,6 +2,8 @@ package narl.itrc.vision;
 
 import com.sun.glass.ui.Application;
 
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -24,6 +26,7 @@ import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
+import javafx.util.Duration;
 import narl.itrc.Misc;
 
 public class ImgPreview extends StackPane {
@@ -140,19 +143,20 @@ public class ImgPreview extends StackPane {
 		//gg.setStrokeWidth(2);
 		//overlay[0].getChildren().add(gg);
 		
-		for(AnchorPane pan:overlay){			
+		for(AnchorPane pan:overlay){
+			//pan.setStyle("-fx-border-color: mediumorchid; -fx-border-width: 4px;");//for debug
 			pan.setMaxSize(Control.USE_PREF_SIZE, Control.USE_PREF_SIZE);
 			pan.setMinSize(Control.USE_PREF_SIZE, Control.USE_PREF_SIZE);
 			pan.setPrefSize(width, height);
 			//StackPane.setAlignment(pan, Pos.TOP_LEFT);
-			pan.setStyle("-fx-border-color: mediumorchid; -fx-border-width: 4px;");
+			
 		}
-		//lay0.setStyle("-fx-border-color: olive; -fx-border-width: 4px;");		
+		//lay0.setStyle("-fx-border-color: olive; -fx-border-width: 4px;");//for debug
 		lay0.getChildren().addAll(overlay);
 		lay0.setPrefSize(width,height);
 		lay0.setOnMouseMoved(eventCursorMove);
 		
-		//lay1.setStyle("-fx-border-color: blueviolet; -fx-border-width: 4px;");
+		//lay1.setStyle("-fx-border-color: blueviolet; -fx-border-width: 4px;");//for debug
 		lay1.setContent(lay0);
 		lay1.setStyle("-fx-background: lightskyblue;");
 		//lay1.setMouseTransparent(true);
@@ -165,12 +169,14 @@ public class ImgPreview extends StackPane {
 		
 		//lay2.setStyle("-fx-border-color: red; -fx-border-width: 4px;");
 		lay2.getChildren().addAll(layCtrl);
+		lay2.setPickOnBounds(false);
 		lay2.setOnMouseMoved(eventCursorMove);
 		lay2.setOnMouseClicked(eventCursorClick);
 		
 		//setEventDispatcher(lay2.getEventDispatcher());
 		getChildren().addAll(lay1,lay2);
 
+		
 		/*widthProperty().addListener((obs, oldVal, newVal)->{
 			int val = newVal.intValue();
 			lay1.setMinViewportWidth(val);
@@ -337,7 +343,7 @@ public class ImgPreview extends StackPane {
 			Application.invokeAndWait(_init_buff);
 		}
 	}
-	
+
 	/*	HBox lay = new HBox();
 	lay.setStyle(
 		"-fx-border-color: red;"+

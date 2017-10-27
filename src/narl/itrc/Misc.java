@@ -28,40 +28,45 @@ import javafx.util.Duration;
 
 public class Misc {
 
+	private static String log_msg(String pfx,String fmt,Object... arg){
+		long tick = System.currentTimeMillis();
+		return String.format("[%tH:%tM:%tS.%tL]%s",tick,tick,tick,tick,pfx)+String.format(fmt+"\n", arg);
+	}
+	
 	/**
-	 * just show messages, like 'stdout'
+	 * just show messages, it is like 'stdout'
 	 * @param fmt - pass through 'printf()' 
 	 * @param arg - pass through 'printf()'
 	 */
 	public static void logv(String fmt,Object... arg){
-		String txt = log_txt("[VERBOSE] ",fmt,arg);
+		String txt = log_msg("[VERBOSE] ",fmt,arg);
 		System.out.print(txt);
 	}
 
 	/**
-	 * just show messages, like 'stdout'
+	 * just show messages, it is like 'stdout'
 	 * @param fmt - pass through 'printf()' 
 	 * @param arg - pass through 'printf()'
 	 */
 	public static void logw(String fmt,Object... arg){
-		String txt = log_txt("[WARN   ] ",fmt,arg);
+		String txt = log_msg("[WARN   ] ",fmt,arg);
 		System.out.print(txt);
 	}
 	
 	/**
-	 * just show messages, like 'stderr'
+	 * just show messages, it is like 'stderr'
 	 * @param fmt - pass through 'printf()' 
 	 * @param arg - pass through 'printf()'
 	 */
 	public static void loge(String fmt,Object... arg){
-		String txt = log_txt("[ERROR  ] ",fmt,arg);
+		String txt = log_msg("[ERROR  ] ",fmt,arg);
 		System.err.print(txt);
 	}
+
+	public final static String TXT_UNKNOW = "？？？";
 	
-	private static String log_txt(String pfx,String fmt,Object... arg){
-		long tick = System.currentTimeMillis();
-		return String.format("[%tH:%tM:%tS.%tL]%s",tick,tick,tick,tick,pfx)+String.format(fmt+"\n", arg);
-	}
+	public static native long realloc(long ptr,long len);
+	public static native long free(long ptr);//always return '0'
 	
 	//Should we deprecate this function???
 	/*public static Thread tskCheck(Thread tsk,Class<?> clazz,Object... parm){
@@ -95,7 +100,8 @@ public class Misc {
 		tsk.start();
 		return tsk;
 	}*/
-	
+	//--------------------------//
+
 	public static final KeyCombination shortcut_save = KeyCombination.keyCombination("Ctrl+S");
 	public static final KeyCombination shortcut_load = KeyCombination.keyCombination("Ctrl+L");
 	public static final KeyCombination shortcut_edit = KeyCombination.keyCombination("Ctrl+E");
@@ -438,7 +444,7 @@ public class Misc {
 				url = url.substring(0,pos);
 			}
 		}else if(url.startsWith(pre3)==true){
-			url = url.substring(pre3.length()+1);//EX: "file:/xxx/xxx/xxx.jar"
+			url = url.substring(pre3.length());//EX: "file:/xxx/xxx/xxx.jar"
 			final String post1 = "bin"+File.separatorChar;
 			final String post2 = ".jar";
 			int len;
@@ -966,12 +972,6 @@ public class Misc {
 		}
 		return dst;
 	}
-	//--------------------------//
-
-	public final static String TXT_UNKNOW = "？？？";
-	
-	public native long realloc(long size);
-	public native void free(long ptr);
 }
 
 

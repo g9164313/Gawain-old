@@ -264,7 +264,7 @@ void loge(JNIEnv* env,const char* fmt,...){
 }
 //--------------------------------//
 
-extern "C" JNIEXPORT jlong Java_narl_itrc_Misc_realloc__J(
+extern "C" JNIEXPORT jlong Java_narl_itrc_Misc_realloc__JJ(
 	JNIEnv* env,
 	jclass  clzz,
 	jlong   ptr,
@@ -273,12 +273,13 @@ extern "C" JNIEXPORT jlong Java_narl_itrc_Misc_realloc__J(
 	return (jlong)realloc((void*)ptr,(size_t)len);
 }
 
-extern "C" JNIEXPORT void Java_narl_itrc_Misc_free__J(
+extern "C" JNIEXPORT jlong Java_narl_itrc_Misc_free__J(
 	JNIEnv* env,
 	jclass  clzz,
 	jlong   ptr
 ){
 	free((void*)ptr);
+	return 0;
 }
 
 NAT_EXPORT void dummy(){

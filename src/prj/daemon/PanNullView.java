@@ -6,11 +6,10 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.stage.WindowEvent;
 import narl.itrc.BoxLogger;
-import narl.itrc.DevBase;
+import narl.itrc.Misc;
 import narl.itrc.PanBase;
-import narl.itrc.vision.CamBundle;
+import narl.itrc.vision.CamDummy;
 import narl.itrc.vision.CamVidcap;
-import narl.itrc.vision.DevRender;
 
 /**
  * It is just for testing device or observing view.
@@ -22,16 +21,20 @@ public class PanNullView extends PanBase {
 	public PanNullView(){
 	}
 
-	private CamVidcap vidcap = new CamVidcap();
+	//private CamVidcap cam0 = new CamVidcap();	
+	private CamDummy cam1 = new CamDummy(Misc.pathRoot+"../bang/artificial-2.png");
 	
-	//private ImgPreview prv = new ImgPreview(800,600);
-	
-	private DevRender render = new DevRender(vidcap);
+	//private DevRender render = new DevRender(cam);
 	
 	@Override
 	protected void eventShown(WindowEvent e){
+		//cam0.setup();
+		//cam0.timeRender(60.);
 		
-		render.launchTask("cam-render");
+		cam1.setup();
+		//cam1.timeRender(500.);
+		
+		//render.launchTask("cam-render");
 		
 		//dev.setUsual(e1->{
 		//	Misc.delay(1000);
@@ -47,15 +50,20 @@ public class PanNullView extends PanBase {
 		final BoxLogger box = new BoxLogger();
 		box.setPrefHeight(120);
 		
-		final BorderPane lay0 = new BorderPane();		
-		lay0.setBottom(box);
-		lay0.setCenter(vidcap);
+		GridPane lay0 = new GridPane();
+		lay0.getStyleClass().add("grid-small");
+		//lay0.add(cam0, 0, 0);
+		lay0.add(cam1, 1, 0);
 		
-		final BorderPane lay1 = new BorderPane();
-		lay1.setRight(layout_action());
+		final BorderPane lay1 = new BorderPane();		
+		lay1.setBottom(box);
+		lay1.setCenter(lay0);
+		
+		final BorderPane lay2 = new BorderPane();
+		lay2.setRight(layout_action());
 		//lay1.setLeft(layout_action());
-		lay1.setCenter(lay0);	
-		return lay1;
+		lay2.setCenter(lay1);	
+		return lay2;
 	}
 	
 	private Node layout_action(){

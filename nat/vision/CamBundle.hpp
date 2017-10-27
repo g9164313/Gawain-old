@@ -43,6 +43,10 @@ extern "C" void setupCallback(
 
 //-----------------------------------------------------------------------//
 
+#define MACRO_PREPARE_BEG \
+	MACRO_FIELD_GET \
+	MACRO_FIELD_PREP \
+
 #define MACRO_FETCH_BEG \
 	MACRO_FIELD_GET \
 	MACRO_FIELD_PREP \

@@ -76,30 +76,6 @@ extern "C" void fetchCallback(
 }
 //----------------------------//
 
-
-extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_CamDummy_implSetup(
-	JNIEnv* env,
-	jobject thiz,
-	jobject bundle
-){
-}
-
-extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_CamVidcap_implFetch(
-	JNIEnv* env,
-	jobject thiz,
-	jobject bundle
-){
-}
-
-extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_CamVidcap_implClose(
-	JNIEnv* env,
-	jobject thiz,
-	jobject bundle
-){
-
-}
-//----------------------------------------//
-
 #define MODE_MEM_DISK 0x001
 #define MODE_MEM_ZIP  0x002
 #define MODE_MEM_PNG  0x010

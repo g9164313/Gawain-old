@@ -80,13 +80,13 @@ extern "C" JNIEXPORT jboolean JNICALL Java_narl_itrc_vision_CamVidcap_setProp(
 	jint id,
 	jdouble val
 ){
-	//MACRO_PREPARE
-	//VideoCapture* vid = (VideoCapture*)cntx;
-	//if(vid==NULL){
-	//	return JNI_FALSE;
-	//}
-	//bool flag = vid->set(id,val);
-	//return (flag==true)?(JNI_TRUE):(JNI_FALSE);
+	MACRO_PREPARE_BEG
+	VideoCapture* vid = (VideoCapture*)cntx;
+	if(vid==NULL){
+		return JNI_FALSE;
+	}
+	bool flag = vid->set(id,val);
+	return (flag==true)?(JNI_TRUE):(JNI_FALSE);
 }
 
 extern "C" JNIEXPORT jdouble JNICALL Java_narl_itrc_vision_CamVidcap_getProp(
@@ -95,12 +95,12 @@ extern "C" JNIEXPORT jdouble JNICALL Java_narl_itrc_vision_CamVidcap_getProp(
 	jobject bundle,
 	jint id
 ){
-	//MACRO_PREPARE
-	//VideoCapture* vid = (VideoCapture*)cntx;
-	//if(vid==NULL){
-	//	return 0.;
-	//}
-	//return vid->get(id);
+	MACRO_PREPARE_BEG
+	VideoCapture* vid = (VideoCapture*)cntx;
+	if(vid==NULL){
+		return 0.;
+	}
+	return vid->get(id);
 }
 
 

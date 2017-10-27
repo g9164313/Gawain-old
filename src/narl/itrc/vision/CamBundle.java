@@ -2,6 +2,11 @@ package narl.itrc.vision;
 
 import com.sun.glass.ui.Application;
 
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
+import javafx.collections.ObservableList;
+import javafx.util.Duration;
+
 public abstract class CamBundle extends ImgPreview {
 
 	public CamBundle(){
@@ -114,7 +119,30 @@ public abstract class CamBundle extends ImgPreview {
 			//Misc.logv("FPS=%d",val);
 			countFrame = 0;//reset for next turn~~~~
 		}
-	};
+	};	
+	//----------------------------------//
+	
+	private Timeline render = new Timeline();
+	
+	public void timeRender(double ms){
+		if(ms<0){
+			render.pause();
+			return;
+		}		
+		ObservableList<KeyFrame> lstKF = render.getKeyFrames();	
+		lstKF.clear();
+		lstKF.add(new KeyFrame(
+			Duration.millis(ms),
+			event->{
+				if(ctrlPlay==false){
+					return;
+				}				
+				fetch();
+			}
+		));
+		render.setCycleCount(Timeline.INDEFINITE);
+		render.play();
+	}	
 }
 
 

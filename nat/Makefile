@@ -99,7 +99,7 @@ LD_LIBS += $(LIB_XIMEA)
 #CORE_FILE = util_jni.cpp DevTTY.cpp
 CORE_FILE = util_jni.cpp DevTTY.cpp 
 
-VISION_FILE =  ./vision/CamBundle.cpp util_cv.cpp
+VISION_FILE =  util_jni.cpp util_cv.cpp ./vision/CamBundle.cpp ./vision/CamDummy.cpp 
 VISION_FILE += ./vision/CamVidcap.cpp 
 #VISION_FILE += ./vision/CamMulticam.cpp 
 #VISION_FILE += ./vision/CamFlyCapture.cpp
