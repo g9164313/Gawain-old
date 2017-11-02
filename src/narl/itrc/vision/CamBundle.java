@@ -87,8 +87,12 @@ public abstract class CamBundle extends ImgPreview {
 	private int countFrame=0;
 	private long countTick=0, rateTick=0;
 	
-	protected void fetchCallback(byte[] buff, int width, int height){
-		
+	protected void fetchCallback(
+		long   ptrMat,
+		byte[] outBuf,		
+		int width, 
+		int height
+	){
 		long tick = System.currentTimeMillis();
 		if(countFrame==0){
 			countTick = tick;
@@ -98,10 +102,10 @@ public abstract class CamBundle extends ImgPreview {
 		//adjust the speed of frame rate~~~~
 		long diff = tick - rateTick;
 		if(diff>=100L){
-			refresh(buff,width,height);
+			refresh(outBuf,width,height);
 			rateTick = tick;
 		}
-				
+		
 		if(countFrame>=10){
 			countTick = tick - countTick;
 			if(Application.isEventThread()==true){
@@ -122,14 +126,14 @@ public abstract class CamBundle extends ImgPreview {
 	};	
 	//----------------------------------//
 	
-	private Timeline render = new Timeline();
+	private Timeline render1 = new Timeline();
 	
 	public void timeRender(double ms){
 		if(ms<0){
-			render.pause();
+			render1.pause();
 			return;
-		}		
-		ObservableList<KeyFrame> lstKF = render.getKeyFrames();	
+		}	
+		ObservableList<KeyFrame> lstKF = render1.getKeyFrames();	
 		lstKF.clear();
 		lstKF.add(new KeyFrame(
 			Duration.millis(ms),
@@ -139,10 +143,12 @@ public abstract class CamBundle extends ImgPreview {
 				}				
 				fetch();
 			}
-		));
-		render.setCycleCount(Timeline.INDEFINITE);
-		render.play();
+		));		
+		render1.setCycleCount(Timeline.INDEFINITE);
+		render1.play();
+		ctrlPlay = true;//force to play first frames~~~~
 	}	
+	//----------------------------------//	
 }
 
 

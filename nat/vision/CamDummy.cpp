@@ -61,5 +61,6 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_CamDummy_loadImageFile(
 		(void*)img.ptr(),
 		img.total() * img.elemSize()
 	);
+	img.release();
 }
 

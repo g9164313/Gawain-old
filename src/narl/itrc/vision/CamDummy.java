@@ -2,10 +2,6 @@ package narl.itrc.vision;
 
 import java.util.ArrayList;
 
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
-import javafx.collections.ObservableList;
-import javafx.util.Duration;
 import narl.itrc.Misc;
 
 /**
@@ -103,10 +99,6 @@ public class CamDummy extends CamBundle {
 		}
 		return this;
 	}	
-	//-------------------------------//
-	
-	
-	
 	//-------------------------------//
 	
 	private native void implFetch(CamBundle cam);	

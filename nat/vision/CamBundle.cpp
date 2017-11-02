@@ -59,20 +59,21 @@ extern "C" void fetchCallback(
 	}
 
 	jsize buff_size = dst.cols * dst.rows * 3;
-	jbyteArray buffImage = env->NewByteArray(buff_size);
+	jbyteArray outBuf = env->NewByteArray(buff_size);
 	env->SetByteArrayRegion(
-		buffImage,
+			outBuf,
 		0, buff_size,
 		(jbyte*) dst.data
 	);
 	env->CallVoidMethod(
 		bundle,
-		env->GetMethodID(b_clzz,"fetchCallback","([BII)V"),
-		buffImage,
+		env->GetMethodID(b_clzz,"fetchCallback","(J[BII)V"),
+		outBuf,
+		(jlong)&src,
 		dst.cols,
 		dst.rows
 	);
-	env->DeleteLocalRef(buffImage);
+	env->DeleteLocalRef(outBuf);
 }
 //----------------------------//
 

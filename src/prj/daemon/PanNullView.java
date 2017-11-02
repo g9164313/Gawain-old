@@ -1,9 +1,12 @@
 package prj.daemon;
 
+import javafx.geometry.HPos;
+import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.Priority;
 import javafx.stage.WindowEvent;
 import narl.itrc.BoxLogger;
 import narl.itrc.Misc;
@@ -21,18 +24,15 @@ public class PanNullView extends PanBase {
 	public PanNullView(){
 	}
 
-	//private CamVidcap cam0 = new CamVidcap();	
-	private CamDummy cam1 = new CamDummy(Misc.pathRoot+"../bang/artificial-2.png");
+	//private CamVidcap cam= new CamVidcap();	
+	//private CamDummy cam = new CamDummy(Misc.pathRoot+"../bang/artificial-2.png");
 	
-	//private DevRender render = new DevRender(cam);
+	private WidFringeMap map = new WidFringeMap();
 	
 	@Override
 	protected void eventShown(WindowEvent e){
-		//cam0.setup();
-		//cam0.timeRender(60.);
-		
-		cam1.setup();
-		//cam1.timeRender(500.);
+		//cam.setup();
+		//cam.timeRender(60.);
 		
 		//render.launchTask("cam-render");
 		
@@ -50,14 +50,19 @@ public class PanNullView extends PanBase {
 		final BoxLogger box = new BoxLogger();
 		box.setPrefHeight(120);
 		
-		GridPane lay0 = new GridPane();
-		lay0.getStyleClass().add("grid-small");
-		//lay0.add(cam0, 0, 0);
-		lay0.add(cam1, 1, 0);
-		
+		//GridPane lay0 = new GridPane();
+		//lay0.getStyleClass().add("grid-small");
+		//GridPane.setHgrow(cam, Priority.ALWAYS);
+		//GridPane.setVgrow(cam, Priority.ALWAYS);
+		//GridPane.setHalignment(cam, HPos.CENTER);
+		//GridPane.setValignment(cam, VPos.CENTER);
+		//lay0.add(cam, 0, 0);
+		//lay0.add(map, 0, 0);
+				
 		final BorderPane lay1 = new BorderPane();		
 		lay1.setBottom(box);
-		lay1.setCenter(lay0);
+		//lay1.setCenter(cam);
+		lay1.setCenter(map);
 		
 		final BorderPane lay2 = new BorderPane();
 		lay2.setRight(layout_action());
@@ -73,6 +78,7 @@ public class PanNullView extends PanBase {
 			//dev.addEvent(btn1, e1->{
 			//	Misc.logv("~~button click~~");
 			//});
+			map.loadImageFile("../bang/roi-01.png");
 		});
 		
 		GridPane lay = new GridPane();
