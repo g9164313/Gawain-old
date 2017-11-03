@@ -21,6 +21,7 @@ import javafx.scene.control.ScrollPane.ScrollBarPolicy;
 import javafx.scene.control.Separator;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.image.WritableImage;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.GridPane;
@@ -62,8 +63,12 @@ public abstract class WidImageView extends StackPane {
 	private ScrollPane lay1 = new ScrollPane();
 	private GridPane   lay2 = create_ctrl_pane();
 
-	protected ObservableList<Node> getOverlay(){
+	protected ObservableList<Node> getOverlayList(){
 		return ova1.getChildren();
+	}
+	
+	protected Image getOverlayView(){
+		return vew2.getImage();
 	}
 	
 	protected int getCursorX(){
@@ -120,16 +125,21 @@ public abstract class WidImageView extends StackPane {
 		}else{
 			return;
 		}
+		int ww=0,hh=0;
 		if( 2<=infoGeom[2] ){
-			vew1.setFitWidth (infoGeom[0]*infoGeom[2]);
-			vew1.setFitHeight(infoGeom[1]*infoGeom[2]);
+			ww=infoGeom[0]*infoGeom[2];
+			hh=infoGeom[1]*infoGeom[2];
 		}else if(infoGeom[2]==-1 || infoGeom[2]==0 || infoGeom[2]==1){
-			vew1.setFitWidth (infoGeom[0]);
-			vew1.setFitHeight(infoGeom[1]);
+			ww=infoGeom[0];
+			hh=infoGeom[1];
 		}else if( infoGeom[2]<=-2 ){
-			vew1.setFitWidth (-infoGeom[0]/infoGeom[2]);
-			vew1.setFitHeight(-infoGeom[1]/infoGeom[2]);
+			ww=-infoGeom[0]/infoGeom[2];
+			hh=-infoGeom[1]/infoGeom[2];
 		}
+		vew1.setFitWidth (ww);
+		vew1.setFitHeight(hh);
+		vew2.setFitWidth (ww);
+		vew2.setFitHeight(hh);
 		set_prop_scale();
 		eventChangeScale(infoGeom[2]);
 	}
@@ -282,7 +292,8 @@ public abstract class WidImageView extends StackPane {
 			"-fx-background-radius: 10;"+		
 			"-fx-effect: dropshadow(three-pass-box, black, 10, 0, 0, 0);"
 		);
-		lay.maxWidthProperty().bind(widthProperty().multiply(0.23));
+		//lay.maxWidthProperty().bind(widthProperty().multiply(0.23));
+		lay.setMaxWidth(133);
 		lay.maxHeightProperty().bind(heightProperty().multiply(0.76));
 		lay.getChildren().forEach(obj->{
 			GridPane.setHgrow(obj, Priority.ALWAYS);
@@ -311,10 +322,17 @@ public abstract class WidImageView extends StackPane {
 	public void loadImage(Image img){
 		infoGeom[0] = (int)img.getWidth();
 		infoGeom[1] = (int)img.getHeight();
+		
 		vew1.setImage(img);		
 		vew1.setFitWidth (infoGeom[0]);
 		vew1.setFitHeight(infoGeom[1]);		
+		
+		vew2.setImage(new WritableImage(infoGeom[0], infoGeom[1]));
+		vew2.setFitWidth (infoGeom[0]);
+		vew2.setFitHeight(infoGeom[1]);	
+
 		setFocused(true);
+		
 		propSize.setValue(String.format(
 			"%dx%d",
 			infoGeom[0],infoGeom[1]

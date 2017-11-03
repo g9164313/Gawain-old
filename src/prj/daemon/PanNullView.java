@@ -27,7 +27,7 @@ public class PanNullView extends PanBase {
 	//private CamVidcap cam= new CamVidcap();	
 	//private CamDummy cam = new CamDummy(Misc.pathRoot+"../bang/artificial-2.png");
 	
-	private WidFringeMap map = new WidFringeMap();
+	private WidFringeView map = new WidFringeView();
 	
 	@Override
 	protected void eventShown(WindowEvent e){
