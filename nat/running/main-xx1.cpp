@@ -434,7 +434,7 @@ static double rateFrame(Mat& frame){
     return (double) sum / (double) size;
 }
 
-int main(int argc, char** argv){
+int main6(int argc, char** argv){
 
 	//Mat aa1 = imread("./aa1.jpg");
 	Mat aa1 = imread("./artificial-1.png");
@@ -479,6 +479,45 @@ int main(int argc, char** argv){
 
 	return 0;
 }
+//------------------------------//
 
+int main(int argc, char** argv){
+	const int ROW = 256;
+
+	//製作 color map 的指示
+	Mat src(1,ROW,CV_8UC1);
+	for(int i=0; i<256; i++){
+		src.at<uint8_t>(0,i) = 255 - i;
+	}
+	cout<<"--sample--"<<endl;
+	cout<<"src="<<src<<endl<<endl;
+
+	Mat dst;
+	applyColorMap(src, dst, COLORMAP_RAINBOW);
+	cout<<"--mapping--"<<endl;
+	cout<<"ch="<<dst.channels()<<endl;
+	cout<<"private int[] rainbow = {"<<endl;
+
+	const int COLS = 8;
+
+	for(int i=0; i<ROW; i++){
+		Vec3b pix = dst.at<Vec3b>(0,i);
+		int val =0;
+		val = val | (((uint32_t)pix[2])<<16);
+		val = val | (((uint32_t)pix[1])<<8);
+		val = val | (((uint32_t)pix[0]));
+		val = val | 0x80000000;
+
+		int col = i%COLS;
+		//if(col==0){ cout<<"    "; }
+		printf("0x%08X, ",val);
+		if(col==(COLS-1)){
+			cout<<endl;
+		}
+	}
+	cout<<"};"<<endl;
+
+	return 0;
+}
 
 

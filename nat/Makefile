@@ -121,8 +121,7 @@ $(CORE_SO): $(CORE_FILE)
 	cp -rf $@ ../src/narl/itrc/nat
 ifeq ($(CHECK_EXEC),)
 	@echo "no process is running, so we move it~~"
-	#cp -rf $@ ~/.gawain/$@
-	mv -f $@ ~/.gawain/$@
+	cp -rf $@ ~/.gawain/$@
 else
 	@echo "process is running!!!"
 endif
@@ -133,8 +132,7 @@ $(VISION_SO): $(VISION_FILE)
 	cp -rf $@ ../src/narl/itrc/nat
 ifeq ($(CHECK_EXEC),)
 	@echo "no process is running, so we move it~~"
-	#cp -rf $@ ~/.gawain/$@
-	mv -f $@ ~/.gawain/$@
+	cp -rf $@ ~/.gawain/$@
 else
 	@echo "process is running!!!"
 endif
@@ -147,13 +145,13 @@ $(TARGET_EXE):  ./running/main-xx1.cpp
 #$(TARGET_EXE):  ./running/FlyCap2.cpp
 	$(CC) -o $@ $^ $(CC_FLAG) $(LD_LIBS)
 
-all: $(CORE_SO) $(VISION_SO)
-#all: $(TARGET_EXE)
-#all: $(TARGET_EXE) $(CORE_SO) 
+#all: $(CORE_SO) $(VISION_SO)
+all: $(TARGET_EXE)
+#all: $(TARGET_EXE) $(CORE_SO) $(VISION_SO)
 
 clean:
 	rm -rf $(TARGET_EXE) $(TARGET_SO) $(DIR_SRC)/*.o ./*.o
 	
-.PHONY: all clean prepare $(TARGET_JNI) $(TARGET_EXE) $(TARGET_SO)
+.PHONY: all clean prepare $(TARGET_JNI) $(TARGET_EXE) $(CORE_SO) $(VISION_SO)
 
 

@@ -58,7 +58,6 @@
 .hbox-small, .vbox-small{
     -fx-padding: 7;
     -fx-spacing: 7;
-    -fx-alignment: center;
 }
 
 .hbox-medium, .vbox-medium{

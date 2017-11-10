@@ -57,18 +57,19 @@ public abstract class WidImageView extends StackPane {
 	private StringProperty propLoca = new SimpleStringProperty(Misc.TXT_UNKNOW);	
 	private StringProperty propPixv = new SimpleStringProperty(Misc.TXT_UNKNOW);
 	
-	private ImageView  vew1 = new ImageView();
-	private ImageView  vew2 = new ImageView();
-	private AnchorPane ova1 = new AnchorPane();
+	private ImageView  view = new ImageView();
+	private ImageView  ova1 = new ImageView();
+	private AnchorPane ova2 = new AnchorPane();
 	private ScrollPane lay1 = new ScrollPane();
-	private GridPane   lay2 = create_ctrl_pane();
+	
+	protected GridPane layCtrl = create_ctrl_pane();
 
-	protected ObservableList<Node> getOverlayList(){
-		return ova1.getChildren();
+	protected WritableImage getOverlayView(){
+		return (WritableImage)ova1.getImage();
 	}
 	
-	protected Image getOverlayView(){
-		return vew2.getImage();
+	protected ObservableList<Node> getOverlayList(){
+		return ova2.getChildren();
 	}
 	
 	protected int getCursorX(){
@@ -136,16 +137,16 @@ public abstract class WidImageView extends StackPane {
 			ww=-infoGeom[0]/infoGeom[2];
 			hh=-infoGeom[1]/infoGeom[2];
 		}
-		vew1.setFitWidth (ww);
-		vew1.setFitHeight(hh);
-		vew2.setFitWidth (ww);
-		vew2.setFitHeight(hh);
+		view.setFitWidth (ww);
+		view.setFitHeight(hh);
+		ova1.setFitWidth (ww);
+		ova1.setFitHeight(hh);
 		set_prop_scale();
 		eventChangeScale(infoGeom[2]);
 	}
 	
 	private void update_cursor_value(int locaX, int locaY){
-		Image img = vew1.getImage();
+		Image img = view.getImage();
 		if(img==null){
 			propLoca.setValue(Misc.TXT_UNKNOW);
 			propPixv.setValue(Misc.TXT_UNKNOW);
@@ -180,25 +181,25 @@ public abstract class WidImageView extends StackPane {
 	
 	private void init(int width, int height){
 		
-		vew1.setSmooth(false);
-		vew2.setSmooth(false);
+		view.setSmooth(false);
+		ova1.setSmooth(false);
 		
 		//ova1.setStyle("-fx-border-color: chocolate; -fx-border-width: 4px;");//DEBUG!!!
-		ova1.setMinSize(Control.USE_PREF_SIZE, Control.USE_PREF_SIZE);
-		ova1.setMaxSize(Control.USE_PREF_SIZE, Control.USE_PREF_SIZE);
-		ova1.prefWidthProperty().bind(vew1.fitWidthProperty());
-		ova1.prefHeightProperty().bind(vew1.fitHeightProperty());
-		ova1.setOnMouseEntered(e->{
+		ova2.setMinSize(Control.USE_PREF_SIZE, Control.USE_PREF_SIZE);
+		ova2.setMaxSize(Control.USE_PREF_SIZE, Control.USE_PREF_SIZE);
+		ova2.prefWidthProperty().bind(view.fitWidthProperty());
+		ova2.prefHeightProperty().bind(view.fitHeightProperty());
+		ova2.setOnMouseEntered(e->{
 			DEF_CURSOR = getScene().getCursor();
 			getScene().setCursor(Cursor.CROSSHAIR);
 		});
-		ova1.setOnMouseExited(e->{
+		ova2.setOnMouseExited(e->{
 			getScene().setCursor(DEF_CURSOR);
 		});
-		ova1.setOnMouseMoved(eventCursorMove);
+		ova2.setOnMouseMoved(eventCursorMove);
 
 		final StackPane grp = new StackPane();
-		grp.getChildren().addAll(vew1, vew2, ova1);
+		grp.getChildren().addAll(view, ova1, ova2);
 		lay1.setContent(grp);
 		lay1.setStyle("-fx-background: lightskyblue;");
 		lay1.setMinViewportWidth(width);
@@ -208,9 +209,9 @@ public abstract class WidImageView extends StackPane {
 		lay1.setHbarPolicy(ScrollBarPolicy.ALWAYS);
 		lay1.setVbarPolicy(ScrollBarPolicy.ALWAYS);
 		
-		StackPane.setMargin(lay2, new Insets(7,7,7,7));
-		StackPane.setAlignment(lay2, Pos.CENTER_LEFT);				
-		getChildren().addAll(lay1,lay2);
+		StackPane.setMargin(layCtrl, new Insets(7,7,7,7));
+		StackPane.setAlignment(layCtrl, Pos.CENTER_LEFT);				
+		getChildren().addAll(lay1,layCtrl);
 		
 		/*setOnKeyPressed(e->{
 			if(hotkeyScaleDown.match(e)==true){				
@@ -275,7 +276,7 @@ public abstract class WidImageView extends StackPane {
 			Misc.logv("btnSnap");
 		});
 		
-		GridPane lay = new GridPane();				
+		GridPane lay = new GridPane();
 		lay.add(new Label("尺寸："), 0, 0);lay.add(txtSize , 1, 0);
 		lay.add(new Label("比例："), 0, 1);lay.add(txtScale, 1, 1);
 		lay.add(new Label("位置："), 0, 2);lay.add(txtLoca , 1, 2);
@@ -323,13 +324,13 @@ public abstract class WidImageView extends StackPane {
 		infoGeom[0] = (int)img.getWidth();
 		infoGeom[1] = (int)img.getHeight();
 		
-		vew1.setImage(img);		
-		vew1.setFitWidth (infoGeom[0]);
-		vew1.setFitHeight(infoGeom[1]);		
+		view.setImage(img);		
+		view.setFitWidth (infoGeom[0]);
+		view.setFitHeight(infoGeom[1]);		
 		
-		vew2.setImage(new WritableImage(infoGeom[0], infoGeom[1]));
-		vew2.setFitWidth (infoGeom[0]);
-		vew2.setFitHeight(infoGeom[1]);	
+		ova1.setImage(new WritableImage(infoGeom[0], infoGeom[1]));
+		ova1.setFitWidth (infoGeom[0]);
+		ova1.setFitHeight(infoGeom[1]);	
 
 		setFocused(true);
 		

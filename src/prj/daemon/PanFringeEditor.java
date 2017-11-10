@@ -1,64 +1,116 @@
 package prj.daemon;
 
+import javafx.geometry.Side;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
+import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
+import javafx.scene.control.TabPane.TabClosingPolicy;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.GridPane;
+import javafx.scene.layout.VBox;
+import javafx.stage.FileChooser;
 import javafx.stage.WindowEvent;
 import narl.itrc.BoxLogger;
+import narl.itrc.Misc;
 import narl.itrc.PanBase;
 
 public class PanFringeEditor extends PanBase{
 
-	public PanFringeEditor(){		
+	public PanFringeEditor(){
+
 	}
 	
 	private WidFringeMap map = new WidFringeMap();
+
+	private FileChooser dia = new FileChooser();
+	
+	private String reportName = Misc.pathHome+"fringe.xml";
 	
 	@Override
-	protected void eventShown(WindowEvent e){	
+	protected void eventShown(WindowEvent e){
+		dia.setInitialDirectory(Misc.dirHome);
 	}
 	
 	@Override
 	public Node eventLayout(PanBase self) {
 		
-		final BoxLogger box = new BoxLogger();
-		box.setPrefHeight(120);
-			
-		final BorderPane lay1 = new BorderPane();		
-		lay1.setBottom(box);
-		lay1.setCenter(map);
+		final BoxLogger boxMesg = new BoxLogger();
+		boxMesg.setPrefHeight(170);
 		
-		final BorderPane lay2 = new BorderPane();
-		lay2.setRight(layout_action());
-		lay2.setCenter(lay1);
-		return lay2;
-	}
-	
-	private Node layout_action(){
-		
-		final Button btn1 = PanBase.genButton2("pre-load",null);
-		btn1.setOnAction(e->{
+		final Button btnTest = PanBase.genButton2("test-image",null);
+		btnTest.setOnAction(e->{
 			map.loadImageFile("../bang/roi-01.png");
 		});
-		
-		final Button btn2 = PanBase.genButton2("drawing",null);
-		btn1.setOnAction(e->{
-			map.drawMap();
-		});
-		
-		final Button btn3 = PanBase.genButton2("test-3",null);
-		btn1.setOnAction(e->{
-		});
-		
-		final Button btn4 = PanBase.genButton2("test-4",null);
-		btn1.setOnAction(e->{
-		});
 
+		final Button btnLoad = PanBase.genButton2("load",null);
+		btnLoad.setOnAction(e->{
+			map.load(reportName);
+		});
+		final Button btnSave = PanBase.genButton2("save",null);
+		btnSave.setOnAction(e->{
+			map.save(reportName);
+		});
 		
-		GridPane lay = new GridPane();
-		lay.getStyleClass().add("grid-medium-vertical");
-		lay.addColumn(0,btn1,btn2,btn3,btn4);
-		return lay;
+		final Button btnCalculate = PanBase.genButton2("Calculate",null);
+		btnCalculate.setOnAction(e->{
+			map.calculate();
+		});
+		
+		final Button btnUpdate = PanBase.genButton2("Update",null);
+		btnUpdate.setOnAction(e->{
+			map.update();
+		});
+		
+		/*final Button btn4 = PanBase.genButton2("save as...",null);
+		btn5.setOnAction(e->{
+			dia.setTitle("save as...");
+			dia.setInitialFileName(reportName);
+			File fs = dia.showSaveDialog(Misc.getParent(e));
+			if(fs!=null){
+				map.save(fs);
+			}
+		});
+		final Button btn5 = PanBase.genButton2("load from...",null);
+		btn6.setOnAction(e->{
+			dia.setTitle("load");
+			File fs = dia.showOpenDialog(Misc.getParent(e));
+			if(fs!=null){
+				reportName = fs.getAbsolutePath();
+				map.load(fs);
+			}
+		});*/
+				
+		final VBox layAct = new VBox();
+		layAct.getStyleClass().add("vbox-small");
+		layAct.getChildren().addAll(
+			btnTest,
+			btnLoad,
+			btnSave,
+			btnCalculate,
+			btnUpdate
+		);		
+		
+		Tab tab1 = new Tab();
+		tab1.setText("Zernike");
+		tab1.setContent(map.genPaneZernikePoly());
+		
+		Tab tab2 = new Tab();
+		tab2.setText("訊息欄");
+		tab2.setContent(boxMesg);
+		
+		TabPane tabInfo = new TabPane();
+		tabInfo.setSide(Side.LEFT);
+		tabInfo.setTabClosingPolicy(TabClosingPolicy.UNAVAILABLE);
+		tabInfo.getTabs().addAll(tab1,tab2);
+		
+		final BorderPane lay1 = new BorderPane();
+		lay1.setCenter(map);
+		lay1.setBottom(tabInfo);
+		
+		final BorderPane lay2 = new BorderPane();
+		lay2.setRight(layAct);
+		lay2.setCenter(lay1);
+		
+		return lay2;
 	}
 }
