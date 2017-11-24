@@ -442,7 +442,7 @@ public class WidFringeView extends WidImageView {
 		));
 		txtRadius.textProperty().bind(cmask.msk.radiusProperty().asString("%.1f"));
 		layCtrl.add(new Label("圓心："), 0, 7);layCtrl.add(txtCenter , 1, 7);
-		layCtrl.add(new Label("半徑："), 0, 8);layCtrl.add(txtRadius , 1, 8);
+		layCtrl.add(new Label("半徑："), 0, 8);layCtrl.add(txtRadius , 1, 8);		
 	}
 	
 	//private static final KeyCombination hotkeyUndo= new KeyCodeCombination(KeyCode.Z, KeyCombination.);

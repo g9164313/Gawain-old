@@ -107,7 +107,7 @@ void phase_calculate(int num, ...){
 
 	Mat img[10];
 
-	Rect roi(1100,1100,600,600);
+	Rect roi(1613,1285,170,170);
 
 	va_list valist;
 	va_start(valist, num);
@@ -149,14 +149,14 @@ void phase_calculate(int num, ...){
 }
 //------------------------------------//
 
-int main_3(int argc, char* argv[]) {
+int main(int argc, char* argv[]) {
 	phase_calculate(
 		5,
 		NULL,
-		"./wave-1000ustep/pic-01.png",
-		"./wave-1000ustep/pic-02.png",
-		"./wave-1000ustep/pic-03.png",
-		"./wave-1000ustep/pic-04.png"
+		"./sample/QQ2.png",
+		"./sample/QQ3.png",
+		"./sample/QQ4.png",
+		"./sample/QQ5.png"
 	);
 	return 0;
 }
@@ -168,7 +168,7 @@ int main_2(int argc, char* argv[]) {
 	return 0;
 }
 
-int main(int argc, char* argv[]) {
+int main_1(int argc, char* argv[]) {
 
 	int ustep = 1000;
 	char txt[100];

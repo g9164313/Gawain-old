@@ -1,18 +1,13 @@
 package prj.daemon;
 
-import javafx.geometry.HPos;
-import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.Priority;
 import javafx.stage.WindowEvent;
 import narl.itrc.BoxLogger;
-import narl.itrc.Misc;
 import narl.itrc.PanBase;
-import narl.itrc.vision.CamDummy;
-import narl.itrc.vision.CamVidcap;
+
 
 /**
  * It is just for testing device or observing view.

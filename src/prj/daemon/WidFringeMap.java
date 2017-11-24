@@ -5,10 +5,13 @@ import org.apache.commons.math3.linear.ArrayRealVector;
 import org.apache.commons.math3.linear.LUDecomposition;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.RealVector;
+import org.apache.commons.math3.linear.SingularMatrixException;
 
 import com.jfoenix.controls.JFXCheckBox;
 import com.jfoenix.controls.JFXTextField;
 
+import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.SimpleDoubleProperty;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -40,6 +43,10 @@ public class WidFringeMap extends WidFringeView {
 	private final JFXTextField[] boxCoff = new JFXTextField[MAX_TERM];
 	private final JFXCheckBox[]  chkCoff = new JFXCheckBox[MAX_TERM];
 	
+	private DoubleProperty propMaxValue = new SimpleDoubleProperty();
+	private DoubleProperty propMinValue = new SimpleDoubleProperty();
+	//private DoubleProperty curValue = new SimpleDoubleProperty();
+	
 	private void init(){
 		Insets marg = new Insets(3,7,3,7);
 		for(int i=0; i<MAX_TERM; i++){			
@@ -54,9 +61,22 @@ public class WidFringeMap extends WidFringeView {
 			boxCoff[i].setOnAction(e->update());
 			GridPane.setHalignment(boxCoff[i], HPos.CENTER);
 		}
+		final Label txtMaxVal = new Label();
+		txtMaxVal.textProperty().bind(propMaxValue.asString("%.4f"));
+		
+		final Label txtMinVal = new Label();
+		txtMinVal.textProperty().bind(propMinValue.asString("%.4f"));
+		
+		layCtrl.add(new Label("RMS：" ), 0,  9);layCtrl.add(new Label(Misc.TXT_UNKNOW) , 1, 9);
+		layCtrl.add(new Label("最大："), 0, 10);layCtrl.add(txtMaxVal, 1, 10);
+		layCtrl.add(new Label("最小："), 0, 11);layCtrl.add(txtMinVal, 1, 11);
+		//layCtrl.add(new Label("圖例："), 0, 10);
+		//layCtrl.add(, 0, 11); layCtrl.add(, 0, 11);
 	}
 		
-	public void calculate(){
+	public void calculate(){		
+		Misc.logv("----[開始解算]----");
+		
 		int terms = getValidTerms();
 		double[][] fng = getFringeDots();
 		
@@ -74,7 +94,7 @@ public class WidFringeMap extends WidFringeView {
 						double dot_y = dot[dd+1];
 						aa = aa + Zernike(i,dot_x,dot_y) * Zernike(j,dot_x,dot_y);
 						if(j==0){
-							bb = bb + 1. * (fd) * Zernike(i,dot_x,dot_y);
+							bb = bb + 1. * (fd+1) * Zernike(i,dot_x,dot_y);
 						}
 					}
 				}
@@ -84,11 +104,15 @@ public class WidFringeMap extends WidFringeView {
 				}				
 			}
 		}
-		RealVector xx = new LUDecomposition(AA).getSolver().solve(BB);
-		for(int i=0; i<terms; i++){
-			boxCoff[i].setText(String.format("%.4f", xx.getEntry(i)));
-		}
-		update();
+		try{
+			RealVector xx = new LUDecomposition(AA).getSolver().solve(BB);
+			for(int i=0; i<terms; i++){
+				boxCoff[i].setText(String.format("%.4f", xx.getEntry(i)));
+			}
+			update();
+		}catch(SingularMatrixException e){
+			Misc.loge("無法解算");
+		}		
 	}
 	
 	public void update(){
@@ -120,7 +144,9 @@ public class WidFringeMap extends WidFringeView {
 				min = val;
 			}
 		}
-		Misc.logv("Model Intensity: [%.2f, %.2f]", min, max);
+		propMaxValue.setValue(max);
+		propMinValue.setValue(min);
+		Misc.logv("Model Intensity: [%.4f, %.4f]", min, max);
 		
 		//map intensity to color~~~
 		PixelWriter img = getOverlayView().getPixelWriter();
@@ -278,14 +304,12 @@ public class WidFringeMap extends WidFringeView {
 	//---------------------------//
 	
 	private int getValidTerms(){
-		int cnt = 0;
-		for(JFXTextField box:boxCoff){
-			if(box.isDisable()==true){
-				return cnt;
+		for(int i=MAX_TERM-1; i>=0; --i){
+			if(chkCoff[i].isSelected()==true){
+				return i+1;
 			}
-			cnt++;
 		}
-		return cnt;
+		return 0;
 	}
 	
 	public Pane genPaneZernikePoly(){

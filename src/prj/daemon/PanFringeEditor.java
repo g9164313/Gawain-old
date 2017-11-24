@@ -33,10 +33,23 @@ public class PanFringeEditor extends PanBase{
 	
 	@Override
 	public Node eventLayout(PanBase self) {
-		
+				
 		final BoxLogger boxMesg = new BoxLogger();
 		boxMesg.setPrefHeight(170);
 		
+		final Tab tab1 = new Tab();
+		tab1.setText("Zernike");
+		tab1.setContent(map.genPaneZernikePoly());
+		
+		final Tab tab2 = new Tab();
+		tab2.setText("訊息欄");
+		tab2.setContent(boxMesg);
+		
+		TabPane tabInfo = new TabPane();
+		tabInfo.setSide(Side.LEFT);
+		tabInfo.setTabClosingPolicy(TabClosingPolicy.UNAVAILABLE);
+		tabInfo.getTabs().addAll(tab1,tab2);
+
 		final Button btnTest = PanBase.genButton2("test-image",null);
 		btnTest.setOnAction(e->{
 			map.loadImageFile("../bang/roi-01.png");
@@ -53,6 +66,7 @@ public class PanFringeEditor extends PanBase{
 		
 		final Button btnCalculate = PanBase.genButton2("Calculate",null);
 		btnCalculate.setOnAction(e->{
+			tabInfo.getSelectionModel().select(tab2);
 			map.calculate();
 		});
 		
@@ -89,20 +103,7 @@ public class PanFringeEditor extends PanBase{
 			btnCalculate,
 			btnUpdate
 		);		
-		
-		Tab tab1 = new Tab();
-		tab1.setText("Zernike");
-		tab1.setContent(map.genPaneZernikePoly());
-		
-		Tab tab2 = new Tab();
-		tab2.setText("訊息欄");
-		tab2.setContent(boxMesg);
-		
-		TabPane tabInfo = new TabPane();
-		tabInfo.setSide(Side.LEFT);
-		tabInfo.setTabClosingPolicy(TabClosingPolicy.UNAVAILABLE);
-		tabInfo.getTabs().addAll(tab1,tab2);
-		
+				
 		final BorderPane lay1 = new BorderPane();
 		lay1.setCenter(map);
 		lay1.setBottom(tabInfo);

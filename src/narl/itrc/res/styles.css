@@ -87,6 +87,11 @@
     -fx-spacing: 7.0;
 }
 
+.hbox-spacing {
+	-fx-alignment: center;
+    -fx-spacing: 13.0;
+}
+
 .pad-small {
     -fx-padding: 3px;
 }
