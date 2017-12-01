@@ -468,11 +468,16 @@ public class Misc {
 		String path = null;
 		String os_name = System.getProperty("os.name").toLowerCase();
 		if(os_name.contains("win")==true){
-			//TODO:how to get user directory???
 			if(isSock==true){
-				path = pathRoot+".gawain"+File.separatorChar;
+				//Any other system variable name??
+				path = System.getenv("HOMEPATH");
+				if(path==null){
+					Misc.loge("fail to get $HOME");
+				}else{
+					path = "C:"+path+File.separatorChar+".gawain"+File.separatorChar;
+				}				
 			}else{
-				path = "."+File.separatorChar;
+				path = System.getenv("TEMP")+File.separatorChar;
 			}
 		}else{
 			path = System.getenv("HOME");
@@ -924,6 +929,18 @@ public class Misc {
 	}
 	//--------------------------//
 	//I don't know how to set up category for below lines
+	
+	public static native byte[] screenshot2dib(int[] info);
+	
+	public static native byte[] screenshot2bmp(int[] info);
+	
+	public static native byte[] screenshot2png(int[] info);
+	
+	public static native void deleteScreenshot(byte[] data);
+	
+	public static native void sendMouseClick(int mx, int my);
+	
+	public static native void getCursorPos(int[] pos);
 	
 	public static double hypot(double[] pa,double[] pb){
 		return Math.hypot(pa[0]-pb[0], pa[1]-pb[1]);

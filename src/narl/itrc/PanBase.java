@@ -262,8 +262,9 @@ public abstract class PanBase {
 		if(stg.getOnShown()==null){
 			stg.setOnShown(eventWindow);
 		}		
-		if(stg.getOnHiding()==null){
-			stg.setOnHiding(eventWindow);
+		if(stg.getOnHidden()==null){
+			//stg.setOnHiding(eventWindow);
+			stg.setOnHidden(eventWindow);
 		}		
 		//set title and some properties~~~
 		stg.titleProperty().bind(propTitle);
@@ -348,9 +349,8 @@ public abstract class PanBase {
 				eventShowing(event);
 			}else if(WindowEvent.WINDOW_SHOWN==event.getEventType()){
 				eventShown(event);
-			}else if(WindowEvent.WINDOW_HIDING==event.getEventType()){			
+			}else if(WindowEvent.WINDOW_HIDDEN==event.getEventType()){			
 				eventClose(event);
-				//TODO:??? BoxLogger.pruneList(root);//??? how to refresh message
 			}
 		}
 	};

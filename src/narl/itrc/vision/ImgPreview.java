@@ -309,7 +309,7 @@ public class ImgPreview extends ScrollPane {
 	}
 	//------------------------------------//
 	
-	protected void refresh(
+	public void refresh(
 		final byte[] data, 
 		final int width, 
 		final int height
