@@ -444,7 +444,7 @@ public class Misc {
 				url = url.substring(0,pos);
 			}
 		}else if(url.startsWith(pre3)==true){
-			url = url.substring(pre3.length());//EX: "file:/xxx/xxx/xxx.jar"
+			url = url.substring(pre3.length()+1);//EX: "file:/xxx/xxx/xxx.jar"
 			final String post1 = "bin"+File.separatorChar;
 			final String post2 = ".jar";
 			int len;
