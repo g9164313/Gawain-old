@@ -25,30 +25,41 @@ public class PanPuppet extends PanBase {
 
 	public PanPuppet(){
 		watcher.setCycleCount(Timeline.INDEFINITE);
+		
+		//StringBuilder resp = new StringBuilder();
+		//resp.append("<html><body>");
+		//resp.append("process event done!!");
+		//resp.append("</html></body>");
 	}
+	
+	private final String dummyHTML = "<html><body>dummy!!</html></body>";
 	
 	private Timeline watcher = new Timeline();
 	
 	private HttpServer serv;
 	
 	private HttpHandler eventInput = new HttpHandler(){
+				
 		@Override
 		public void handle(HttpExchange exc) throws IOException {
 			
-			StringBuilder resp = new StringBuilder();
-			resp.append("<html><body>");
-			resp.append("process event done!!");
-			resp.append("</html></body>");
-			
 			String[] lstArg = exc.getRequestURI().getQuery().split("&");
+			
 			for(String arg:lstArg){
-				String[] cmd = arg.toLowerCase().split("=");
+				
+				String[] cmd = arg.split("=");				
 				if(cmd.length!=2){
 					continue;
 				}
+				
+				cmd[0] = cmd[0].toLowerCase();
+				
 				if(cmd[0].startsWith("mouse")==true){
+					
 					if(cmd[1].contains(",")==true){
-						String[] loca = cmd[1].split(",");						
+						
+						String[] loca = cmd[1].split(",");
+						
 						if(cmd[0].endsWith("move")==true){
 							//absolute moving
 							Misc.logv("mouse-move=%s,%s", loca[0], loca[1]);
@@ -56,6 +67,7 @@ public class PanPuppet extends PanBase {
 							//relative moving
 							Misc.logv("mouse-shift=%s,%s", loca[0], loca[1]);
 						}
+						
 					}else{
 						if(cmd[0].endsWith("click")==true){
 							
@@ -63,16 +75,15 @@ public class PanPuppet extends PanBase {
 					}
 					 
 				}else if(cmd[0].startsWith("keyboard")==true){
-					
+					Misc.sendKeyboardText(cmd[1]);
+					Misc.logv("press key = ["+cmd[1]+"]");
 				}
 			}
 			
-			exc.sendResponseHeaders(200, resp.length());
+			exc.sendResponseHeaders(200, dummyHTML.length());
 			OutputStream stm = exc.getResponseBody();
-			stm.write(resp.toString().getBytes());
-			stm.close();
-
-			Misc.logv("@@@ input-event @@@");
+			stm.write(dummyHTML.toString().getBytes());
+			stm.close();			
 		}
 	};
 	
@@ -104,7 +115,7 @@ public class PanPuppet extends PanBase {
 			serv.createContext("/output",eventOutput);
 			serv.setExecutor(null);
 			serv.start();
-			Misc.logv("Turn On!!!");
+			Misc.logv("Turn on HTTP server !!!");
 		} catch (IOException e1) {
 			e1.printStackTrace();
 		}
@@ -114,17 +125,17 @@ public class PanPuppet extends PanBase {
 	protected void eventClose(WindowEvent e){
 		Misc.logv("Shutdown...");
 		Misc.deleteScreenshot(null);//release allocated memory~~
-		serv.stop(1);		
+		serv.stop(1);
 	}
 	
 	@Override
 	public Node eventLayout(PanBase self) {
 		
 		final BoxLogger boxMsg = new BoxLogger();
-		boxMsg.setPrefSize(200, 100);
+		boxMsg.setPrefSize(400, 100);
 		
 		
-		final String title1 = "滑鼠位置";
+		/*final String title1 = "滑鼠位置";
 		
 		final JFXCheckBox chk = new JFXCheckBox(title1);
 		final KeyFrame loop1 = new KeyFrame(Duration.millis(250), event->{
@@ -140,13 +151,15 @@ public class PanPuppet extends PanBase {
 				chk.setText(title1);
 				watcher.stop();
 			}
-		});
+		});*/
 		
 		final GridPane lay1 = new GridPane();
-		lay1.addRow(0, chk);
-		GridPane.setHgrow(chk, Priority.ALWAYS);
+		lay1.getStyleClass().add("grid-small");
+		//lay1.addRow(0, chk);
+		//GridPane.setHgrow(chk, Priority.ALWAYS);
 		
 		final HBox lay0 = new HBox();
+		lay0.getStyleClass().add("hbox-small");
 		lay0.getChildren().addAll(boxMsg,lay1);
 		HBox.setHgrow(boxMsg, Priority.ALWAYS);
 		

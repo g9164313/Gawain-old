@@ -940,6 +940,8 @@ public class Misc {
 	
 	public static native void sendMouseClick(int mx, int my);
 	
+	public static native void sendKeyboardText(String text);
+	
 	public static native void getCursorPos(int[] pos);
 	
 	public static double hypot(double[] pa,double[] pb){
