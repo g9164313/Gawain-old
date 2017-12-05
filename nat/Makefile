@@ -139,8 +139,8 @@ endif
 	
 
 #$(TARGET_EXE):  ./running/main2.cpp ./running/misc.cpp ./util_cv.cpp $(CORE_FILE) $(LIB_SFRISO)
-#$(TARGET_EXE):  ./running/main-xx1.cpp
-$(TARGET_EXE):  ./running/main-glance.cpp
+$(TARGET_EXE):  ./running/main-xx1.cpp
+#$(TARGET_EXE):  ./running/main-glance.cpp
 #$(TARGET_EXE):  $(wildcard ./traincascade/*.cpp)
 #$(TARGET_EXE):  ./running/FlyCap2.cpp
 	$(CC) -o $@ $^ $(CC_FLAG) $(LD_LIBS)

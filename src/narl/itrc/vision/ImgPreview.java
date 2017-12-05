@@ -141,12 +141,6 @@ public class ImgPreview extends ScrollPane {
 		
 		layCtrl.setVisible(false);//default~~~
 
-		//gg = new Rectangle(30., 30.);
-		//gg.setFill(Color.TRANSPARENT);
-		//gg.setStroke(Color.GREENYELLOW);
-		//gg.setStrokeWidth(2);
-		//overlay[0].getChildren().add(gg);
-				
 		for(AnchorPane pan:overlay){
 			//pan.setStyle("-fx-border-color: mediumorchid; -fx-border-width: 4px;");//for debug
 			pan.setMaxSize(Control.USE_PREF_SIZE, Control.USE_PREF_SIZE);
@@ -309,7 +303,7 @@ public class ImgPreview extends ScrollPane {
 	}
 	//------------------------------------//
 	
-	protected void refresh(
+	public void refresh(
 		final byte[] data, 
 		final int width, 
 		final int height

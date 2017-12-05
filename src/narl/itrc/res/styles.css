@@ -11,21 +11,21 @@
 	-fx-text-fill: BLACK;
 }
 
-.btn-raised-2{
+.btn-raised-2 {
 	-fx-padding: 0.7em 0.57em;
 	-fx-font-size: 14px;
 	-fx-button-type: RAISED;
 	-fx-background-color: #80d8ff;
 	-fx-text-fill: BLACK;
 }
-.btn-raised-3{
+.btn-raised-3 {
 	-fx-padding: 0.7em 0.57em;
 	-fx-font-size: 14px;
 	-fx-button-type: RAISED;
 	-fx-background-color: #b9f6ca;
 	-fx-text-fill: BLACK;
 }
-.btn-raised-4{
+.btn-raised-4 {
 	-fx-padding: 0.7em 0.57em;
 	-fx-font-size: 14px;
 	-fx-button-type: RAISED;
@@ -33,7 +33,7 @@
 	-fx-text-fill: BLACK;
 }
 
-.btn-flat-tick{
+.btn-flat-tick {
 	-fx-padding: 0.7em 0.57em;
 	-fx-font-size: 7px;
 	-fx-button-type: FLAT;
@@ -44,6 +44,11 @@
 	-fx-font-size: 20px;
 	/*-fx-border-color: #455a64;*/
 	-fx-label-padding: 7,0,0,7;
+}
+
+.layout-small {
+    -fx-padding: 3;
+    -fx-spacing: 5;
 }
 
 .vbox-one-dir, .vbox-one-direction{
@@ -63,7 +68,6 @@
 .hbox-medium, .vbox-medium{
     -fx-padding: 13;
     -fx-spacing: 13;
-    -fx-alignment: center;
 }
 
 .hbox-small-space, .vbox-small-space{
@@ -104,8 +108,8 @@
 
 .grid-small {
     -fx-padding: 3px;
-    -fx-hgap: 3px;
-    -fx-vgap: 3px;
+    -fx-hgap: 7px;
+    -fx-vgap: 7px;
 }
 
 .grid-medium {

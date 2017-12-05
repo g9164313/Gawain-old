@@ -24,9 +24,9 @@ vector<Point2f> Points(vector<KeyPoint> keypoints)
 
 int main(int argc, char** argv){
 
-	Mat img1 = imread("./cv_sample1/box.png", IMREAD_GRAYSCALE);
-	//Mat img1 = imread("./ww1.jpg", IMREAD_GRAYSCALE);
-	Mat img2 = imread("./cv_sample1/box_in_scene.png", IMREAD_GRAYSCALE);
+	Mat img1 = imread("aa3.jpg", IMREAD_GRAYSCALE);
+	Mat img2 = imread("aa4.jpg", IMREAD_GRAYSCALE);
+	//Mat img2 = imread("./cv_sample1/box_in_scene.png", IMREAD_GRAYSCALE);
 
 	vector<KeyPoint> keypoints1,keypoints2;
 	Mat descriptors1, descriptors2;

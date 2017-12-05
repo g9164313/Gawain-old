@@ -17,7 +17,6 @@ import narl.itrc.PanBase;
 public class PanFringeEditor extends PanBase{
 
 	public PanFringeEditor(){
-
 	}
 	
 	private WidFringeMap map = new WidFringeMap();
