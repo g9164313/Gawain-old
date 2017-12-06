@@ -61,7 +61,7 @@ extern "C" void fetchCallback(
 	jsize buff_size = dst.cols * dst.rows * 3;
 	jbyteArray outBuf = env->NewByteArray(buff_size);
 	env->SetByteArrayRegion(
-			outBuf,
+		outBuf,
 		0, buff_size,
 		(jbyte*) dst.data
 	);

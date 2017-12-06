@@ -444,7 +444,7 @@ public class Misc {
 				url = url.substring(0,pos);
 			}
 		}else if(url.startsWith(pre3)==true){
-			url = url.substring(pre3.length());//EX: "file:/xxx/xxx/xxx.jar"
+			url = url.substring(pre3.length()+1);//EX: "file:/xxx/xxx/xxx.jar"
 			final String post1 = "bin"+File.separatorChar;
 			final String post2 = ".jar";
 			int len;
@@ -468,11 +468,16 @@ public class Misc {
 		String path = null;
 		String os_name = System.getProperty("os.name").toLowerCase();
 		if(os_name.contains("win")==true){
-			//TODO:how to get user directory???
 			if(isSock==true){
-				path = pathRoot+".gawain"+File.separatorChar;
+				//Any other system variable name??
+				path = System.getenv("HOMEPATH");
+				if(path==null){
+					Misc.loge("fail to get $HOME");
+				}else{
+					path = "C:"+path+File.separatorChar+".gawain"+File.separatorChar;
+				}				
 			}else{
-				path = "."+File.separatorChar;
+				path = System.getenv("TEMP")+File.separatorChar;
 			}
 		}else{
 			path = System.getenv("HOME");
@@ -924,6 +929,20 @@ public class Misc {
 	}
 	//--------------------------//
 	//I don't know how to set up category for below lines
+	
+	public static native byte[] screenshot2dib(int[] info);
+	
+	public static native byte[] screenshot2bmp(int[] info);
+	
+	public static native byte[] screenshot2png(int[] info);
+	
+	public static native void deleteScreenshot(byte[] data);
+	
+	public static native void sendMouseClick(int mx, int my);
+	
+	public static native void sendKeyboardText(String text);
+	
+	public static native void getCursorPos(int[] pos);
 	
 	public static double hypot(double[] pa,double[] pb){
 		return Math.hypot(pa[0]-pb[0], pa[1]-pb[1]);
