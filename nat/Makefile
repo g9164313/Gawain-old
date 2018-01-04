@@ -2,10 +2,6 @@
 DIR_JNI=/home/qq/.local/jdk8/include
 
 TARGET_EXE=gawain
-
-CORE_SO=libspringboard.so
-
-VISION_SO=libvision.so
 	
 #### Pleora eBus ####
 
@@ -96,9 +92,11 @@ LD_LIBS += $(LIB_XIMEA)
 
 ########################
 
+CORE_SO = libspringboard.so
 #CORE_FILE = util_jni.cpp DevTTY.cpp
-CORE_FILE = util_jni.cpp DevTTY.cpp 
+CORE_FILE = wrap_PanPuppetter.cpp
 
+VISION_SO = libvision.so
 VISION_FILE =  util_jni.cpp util_cv.cpp ./vision/CamBundle.cpp ./vision/CamDummy.cpp 
 VISION_FILE += ./vision/CamVidcap.cpp 
 #VISION_FILE += ./vision/CamMulticam.cpp 
@@ -145,8 +143,9 @@ $(TARGET_EXE):  ./running/main-xx1.cpp
 #$(TARGET_EXE):  ./running/FlyCap2.cpp
 	$(CC) -o $@ $^ $(CC_FLAG) $(LD_LIBS)
 
+all: $(CORE_SO)
 #all: $(CORE_SO) $(VISION_SO)
-all: $(TARGET_EXE)
+#all: $(TARGET_EXE)
 #all: $(TARGET_EXE) $(CORE_SO) $(VISION_SO)
 
 clean:

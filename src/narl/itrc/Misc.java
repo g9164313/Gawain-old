@@ -5,9 +5,6 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Enumeration;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
 
 import com.sun.glass.ui.Application;
 
@@ -409,10 +406,8 @@ public class Misc {
 	
 	public static final String pathHome= check_path(false);
 	
-	public static final String fileJar = check_jar();
-	
 	/**
-	 * The path where we start.
+	 * The path where we start, it is also the path of JAR file 
 	 */
 	public static final File dirRoot = new File(pathRoot);
 	
@@ -506,31 +501,6 @@ public class Misc {
 		return path;
 	}
 	
-	private static String check_jar(){
-		
-		File[] lst = new File(".").listFiles();
-		for(File fs:lst){
-			if(fs.getName().indexOf(".jar")<=0){
-				continue;
-			}
-			try {
-				@SuppressWarnings("resource")
-				final JarFile jj = new JarFile(fs);
-				final Enumeration<JarEntry> lstEE = jj.entries();
-				while(lstEE.hasMoreElements()==true){
-					JarEntry ee = lstEE.nextElement();
-					if(ee.getName().indexOf(Gawain.propName)>=0){
-						return jj.getName();
-					}
-				}				
-			} catch (IOException e) {
-				Misc.logv("can't open %s",fs.getName());
-				continue;
-			}
-		}
-		return null;
-	}
-
 	public static String checkSeparator(String txt){
 		int len = txt.length();
 		if(txt.charAt(len-1)==File.separatorChar){
@@ -539,26 +509,12 @@ public class Misc {
 		return txt + File.separatorChar;
 	}
 	
-	public static boolean isFileExist(String path){
-		return new File(path).isFile();
-	}
-	
 	public static boolean isPOSIX(){
 		String name = System.getProperty("os.name").toLowerCase();
-		if(name.indexOf("linux")>=0){
-			return true;
-		}
-		return false;
-	}
-	
-	public static String getOSName(){
-		String name = System.getProperty("os.name").toLowerCase();
 		if(name.indexOf("win")>=0){
-			return "win";
-		}else if(name.indexOf("linux")>=0){
-			return "linux";
+			return false;
 		}
-		return "unknow";
+		return true;
 	}
 	//------------------------------------------------//
 	

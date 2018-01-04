@@ -20,7 +20,6 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Properties;
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.jar.JarFile;
 
 import javafx.animation.KeyFrame;
@@ -28,6 +27,7 @@ import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
+import javafx.scene.Scene;
 import javafx.stage.Stage;
 import javafx.stage.Window;
 import javafx.util.Duration;
@@ -38,7 +38,7 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.SecretKeySpec;
 
-import narl.itrc.nat.Loader;
+import narl.itrc.nat.Loader2;
 
 public class Gawain extends Application {
 	
@@ -72,7 +72,7 @@ public class Gawain extends Application {
 	//--------------------------------------------//
 	
 	public static Properties prop = new Properties();
-	public static final String propName = "conf.properties";
+	private static final String propName = "conf.properties";
 	
 	private static void propInit(){
 		try {
@@ -84,20 +84,21 @@ public class Gawain extends Application {
 				stm = new FileInputStream(fs);
 			}
 			prop.load(stm);
-			stm.close();
+			stm.close();			
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
 	
-	private static void propKeep(){
+	private static void propRestore(){
 		try {
 			File fs = new File(Misc.pathSock+propName);
 			FileOutputStream stm=null;
 			if(fs.exists()==false){
-				//the first dump!!!
+				//Here!!,we dump the first configure file
 				stm = new FileOutputStream(Misc.pathSock+propName);
 				prop.store(stm,"");
+				stm.close();
 				return;
 			}
 			//check whether to restore data~~~
@@ -107,6 +108,7 @@ public class Gawain extends Application {
 			}			
 			stm = new FileOutputStream(Misc.pathSock+propName);
 			prop.store(stm,"");
+			stm.close();
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
@@ -153,7 +155,7 @@ public class Gawain extends Application {
 		new PipeStream(),
 	};
 	
-	private static void strmInit(){
+	private static void streamHook(){
 		//keep the original stream...
 		final PrintStream s_out = System.out;
 		final PrintStream s_err = System.err;
@@ -194,32 +196,36 @@ public class Gawain extends Application {
 		return panRoot.getScene().getWindow();
 	}
 	
+	public static Scene getMainScene(){
+		if(panRoot==null){
+			return null;
+		}
+		return panRoot.getScene();
+	}
+	
 	public static boolean isMainWindow(PanBase pan){
 		return pan.equals(panRoot);
 	}
 	
 	@Override
 	public void start(Stage primaryStage) throws Exception {
-		if(optUnpack==true){
-			Misc.logv("unpack done...");
-			System.exit(0);
-			return;
-		}
-		new Loader().standby();
-		String name = prop.getProperty("LAUNCH","");	
+		new Loader2().standby();			
 		try {
-			Object obj = Class.forName(name).newInstance();
-			//$ Demo how to pass arguments~~~
-			//Param1Type param1;
-			//Class cl = Class.forName(className);
-			//Constructor con = cl.getConstructor(Param1Type.class);
-			//obj = con.newInstance(param1,param2);
-			panRoot = (PanBase)obj;			
-			panRoot.appear(primaryStage);
-			//panRoot.prepare();
-			//panRoot.getStage().show();
-			hookShown();
-			//Misc.logv("啟動 launch [%s]",name);//show the first message for box-logger
+			String name = prop.getProperty("LAUNCH","");
+			if(name.length()==0){
+				//TODO:pop up a selector to choose which panel 
+			}else{
+				Object obj = Class.forName(name).newInstance();
+				//$ Demo how to pass arguments~~~
+				//Param1Type param1;
+				//Class cl = Class.forName(className);
+				//Constructor con = cl.getConstructor(Param1Type.class);
+				//obj = con.newInstance(param1,param2);
+				panRoot = (PanBase)obj;			
+				panRoot.appear(primaryStage);
+				hookShown();
+				//Misc.logv("啟動 launch [%s]",name);
+			}
 		} catch (
 			InstantiationException | 
 			IllegalAccessException | 
@@ -229,39 +235,53 @@ public class Gawain extends Application {
 		}
 	}
 	
-	public static AtomicBoolean flgStop = new AtomicBoolean(false);
-	
 	@Override
 	public void stop() throws Exception {
-		//Do we need to close render looper???
-		flgStop.set(true);		
+		//Do we need to close render looper???	
 	}
 	
-	private static boolean optUnpack = false;
-	
 	public static void main(String[] argv) {		
-		flgStop.set(false);
 		propInit();
 		//parse arguments~~~~
-		for(int i=0; i<argv.length; i++){
-			if(argv[i].toLowerCase().startsWith("-unpack")==true){
-				optUnpack = true;
-			}
-		}
-		strmInit();
+		streamHook();
 		//liceBind();//check dark license~~~		
 		launch(argv);		
-		propKeep();
+		propRestore();
 		hookShutdown();
 	}
 	//--------------------------------------------//
 	
+	private static String jarName = "";//TODO:how to get the name of jar file 
+	/*private static String check_jar(){	
+	File[] lst = new File(".").listFiles();
+	for(File fs:lst){
+		if(fs.getName().indexOf(".jar")<=0){
+			continue;
+		}
+		try {
+			@SuppressWarnings("resource")
+			final JarFile jj = new JarFile(fs);
+			final Enumeration<JarEntry> lstEE = jj.entries();
+			while(lstEE.hasMoreElements()==true){
+				JarEntry ee = lstEE.nextElement();
+				if(ee.getName().indexOf(Gawain.propName)>=0){
+					return jj.getName();
+					}
+				}				
+			} catch (IOException e) {
+				Misc.logv("can't open %s",fs.getName());
+				continue;
+			}
+		}
+		return "";
+	}*/
+	
 	private static void liceWrite(byte[] dat){
-		if(Misc.fileJar==null){
+		if(jarName.length()==0){
 			return;//no!!! we don't have a jar file~~
 		}
 		try {
-			RandomAccessFile fs = new RandomAccessFile(Misc.fileJar,"rw");	
+			RandomAccessFile fs = new RandomAccessFile(jarName,"rw");	
 			final byte[] buf = {0,0,0,0};
 			for(long pos = fs.length()-4; pos>0; --pos){				
 				fs.seek(pos);
@@ -297,14 +317,14 @@ public class Gawain extends Application {
 	private static float liceDay = 1.f;//unit is days
 	private static SecretKeySpec liceKey = null;
 	private static Cipher liceCip = null;
-		
+	
 	private static boolean isBorn(){
-		if(Misc.fileJar==null){
+		if(jarName.length()==0){
 			return false;//no!!! we don't have a jar file~~
 		}
 		try {
 			BasicFileAttributes attr = Files.readAttributes(
-				Paths.get(Misc.fileJar),
+				Paths.get(jarName),
 				BasicFileAttributes.class
 			);
 			FileTime t1 = attr.lastAccessTime();
@@ -349,7 +369,7 @@ public class Gawain extends Application {
 		
 	@SuppressWarnings("unused")
 	private static void liceBind(){		
-		if(Misc.fileJar==null){
+		if(jarName.length()==0){
 			return;//no!!! we don't have a jar file~~
 		}
 		try {
@@ -367,7 +387,7 @@ public class Gawain extends Application {
 		}
 		
 		try {			
-			final JarFile jj = new JarFile(Misc.fileJar);
+			final JarFile jj = new JarFile(jarName);
 			String txt = jj.getComment();
 			if(txt==null){				
 				if(isBorn()==false){

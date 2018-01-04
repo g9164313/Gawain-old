@@ -16,6 +16,7 @@ public class ImgRender {
 	private class Looper extends Task<Long>{
 		@Override
 		protected Long call() throws Exception {
+			
 			for(CamBundle cam:lstCam){
 				cam.setup();
 			}

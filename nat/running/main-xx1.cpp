@@ -3,15 +3,38 @@
 #include <vector>
 #include <opencv/cv.h>
 #include <opencv2/opencv.hpp>
+#include <opencv2/line_descriptor.hpp>
 #include "opencv2/stitching/detail/blenders.hpp"
 #include <opencv2/ximgproc.hpp>
 #include <opencv2/xobjdetect.hpp>
 #include <opencv2/xphoto.hpp>
 #include <opencv2/xfeatures2d.hpp>
 
+using namespace cv;
 using namespace xobjdetect;
 using namespace ximgproc;
 using namespace xfeatures2d;
+using namespace line_descriptor;
+
+int main(int argc, char** argv){
+
+	Mat img = imread("sputter-1.png", IMREAD_GRAYSCALE);
+
+	/*Ptr<BinaryDescriptor> bd = BinaryDescriptor::createBinaryDescriptor();
+	vector<KeyLine> keylines;
+	bd->detect(img,keylines);
+	for(size_t i=0; i<keylines.size(); i++){
+		cout<< "(" << keylines[i].startPointX << "," << keylines[i].startPointY << ")-(" <<
+				keylines[i].endPointX << "," << keylines[i].endPointY << ")" <<endl;
+	}
+	Mat descriptors;
+	bd->compute(img, keylines, descriptors);*/
+
+	imwrite("tttt.pnm",img);
+
+	return 0;
+}
+//-----------------------------------------------//
 
 vector<Point2f> Points(vector<KeyPoint> keypoints)
 {
@@ -22,7 +45,7 @@ vector<Point2f> Points(vector<KeyPoint> keypoints)
     return res;
 }
 
-int main(int argc, char** argv){
+int main8(int argc, char** argv){
 
 	Mat img1 = imread("aa3.jpg", IMREAD_GRAYSCALE);
 	Mat img2 = imread("aa4.jpg", IMREAD_GRAYSCALE);
@@ -74,7 +97,7 @@ int main(int argc, char** argv){
 }
 //-------------------------------//
 
-int main2(int argc, char* argv[]) {
+int main7(int argc, char* argv[]) {
 
 	//test writing speed
 	for(int i=1;i<=5; i++){
@@ -106,7 +129,7 @@ int main2(int argc, char* argv[]) {
 }
 //-------------------------------//
 
-int main3(int argc, char* argv[]) {
+int main6(int argc, char* argv[]) {
 
 	long width = (1<<15);
 	long height= (1<<15);
@@ -237,7 +260,7 @@ static double rateFrame(Mat& frame){
     return (double) sum / (double) size;
 }
 
-int main6(int argc, char** argv){
+int main4(int argc, char** argv){
 
 	//Mat aa1 = imread("./aa1.jpg");
 	Mat aa1 = imread("./artificial-1.png");
@@ -282,7 +305,7 @@ int main6(int argc, char** argv){
 }
 //------------------------------//
 
-int main7(int argc, char** argv){
+int main3(int argc, char** argv){
 	const int ROW = 256;
 
 	//製作 color map 的指示
@@ -528,7 +551,7 @@ void shape_gain(Mat& dat){
 	return;
 }
 
-int main4(int argc, char** argv){
+int main2(int argc, char** argv){
 
     Mat Img = imread("F:\\ImagesForTest\\lena.jpg", 0); // Source image
     Img.convertTo(Img, CV_32FC1, 1.0 / 255.0);
@@ -554,31 +577,5 @@ int main4(int argc, char** argv){
     //cvWaitKey(0);
 
     return 0;
-}
-//--------------------------//
-
-int main1(int argc, char* argv[]) {
-
-
-	Mat src = imread("reg-xxr.bmp");
-	Mat chn[3];
-	split(src,chn);
-
-	for(int c=0; c<3; c++){
-		Mat img = chn[c];
-		for(int i=0; i<img.rows; i++){
-			Mat line = img.row(i);
-			/*for(int j=0; j<line.cols; j+=16){
-				Mat sect = line.colRange(j,j+16);
-				shape_gain(sect,tri);
-			}*/
-			shape_gain(line);
-		}
-	}
-
-	merge(chn, 3, src);
-	//imwrite("reg-xxx.png",src(Rect(1617,73,103,63)));
-	imwrite("reg-xxy.bmp",src);
-	return 0;
 }
 //-------------------------------//

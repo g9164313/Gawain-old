@@ -15,16 +15,16 @@ import narl.itrc.Gawain;
 import narl.itrc.Misc;
 import narl.itrc.TskDialog;
 
-public class Loader extends TskDialog {
+public class Loader2 extends TskDialog {
 
-	public Loader(){
+	public Loader2(){
 		setName("Tsk-Loader");
 		useSplash = "logo.jpg";
 	}
 	
 	@Override
 	public int looper(Task<Integer> tsk) {
-		String txtConf = Gawain.prop.getProperty("LIB","");
+		String txtConf = Gawain.prop.getProperty("LIB","");		
 		if(txtConf.length()==0){
 			return -1;
 		}
@@ -92,9 +92,9 @@ public class Loader extends TskDialog {
 				return;
 			}
 			//check suffix name again!!!
-			String os_name = Misc.getOSName();
+			String os_name = System.getProperty("os.name").toLowerCase();
 			for(int i=0; i<tmp.length; i++){
-				if(os_name.equalsIgnoreCase("win")==true){
+				if(os_name.contains("win")==true){
 					if(tmp[i].endsWith(".dll")==true){
 						tmp[i] = tmp[i].substring(0,tmp[i].length()-4);
 					}
@@ -159,7 +159,7 @@ public class Loader extends TskDialog {
 		}else{
 			src = String.format(
 				"%s_%s",
-				node,Misc.getOSName()
+				node,System.getProperty("os.name").toLowerCase()
 			);
 			dst = Misc.pathSock+node;			
 			lst = Gawain.prop.getProperty(node,"").replace(' ',',').split(",");
@@ -184,8 +184,8 @@ public class Loader extends TskDialog {
 	public void export_file(String dst,String src,String name,boolean isBase){
 		InputStream ss = null;
 		OutputStream dd = null;
-		String os_name = Misc.getOSName();
-		if(os_name.equalsIgnoreCase("win")==true){
+		String os_name = System.getProperty("os.name").toLowerCase();
+		if(os_name.contains("win")==true){
 			if(name.endsWith(".dll")==false){
 				name=name+".dll";
 			}
@@ -208,9 +208,9 @@ public class Loader extends TskDialog {
 			return;
 		}
 		if(src.equalsIgnoreCase(".")==true){
-			ss = Loader.class.getResourceAsStream(name);
+			ss = Loader2.class.getResourceAsStream(name);
 		}else{
-			ss = Loader.class.getResourceAsStream(src+"/"+name);
+			ss = Loader2.class.getResourceAsStream(src+"/"+name);
 		}
 		if(ss==null){
 			Misc.loge("fail to get %s/%s from resource!!",src,name);

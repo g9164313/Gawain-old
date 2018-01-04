@@ -42,44 +42,24 @@ public class PanPuppet extends PanBase {
 				
 		@Override
 		public void handle(HttpExchange exc) throws IOException {
-			
 			String[] lstArg = exc.getRequestURI().getQuery().split("&");
-			
 			for(String arg:lstArg){
-				
 				String[] cmd = arg.split("=");				
 				if(cmd.length!=2){
 					continue;
 				}
-				
 				cmd[0] = cmd[0].toLowerCase();
-				
 				if(cmd[0].startsWith("mouse")==true){
-					
-					if(cmd[1].contains(",")==true){
-						
-						String[] loca = cmd[1].split(",");
-						
-						if(cmd[0].endsWith("move")==true){
-							//absolute moving
-							Misc.logv("mouse-move=%s,%s", loca[0], loca[1]);
-						}else if(cmd[0].endsWith("shift")==true){
-							//relative moving
-							Misc.logv("mouse-shift=%s,%s", loca[0], loca[1]);
-						}
-						
-					}else{
-						if(cmd[0].endsWith("click")==true){
-							
-						}
-					}
-					 
+					String[] loca = cmd[1].split(",");
+					int cx = Integer.valueOf(loca[0]);
+					int cy = Integer.valueOf(loca[1]);
+					Misc.sendMouseClick(cx,cy);
+					Misc.logv("mouse-click=%s,%s", loca[0], loca[1]);
 				}else if(cmd[0].startsWith("keyboard")==true){
 					Misc.sendKeyboardText(cmd[1]);
 					Misc.logv("press key = ["+cmd[1]+"]");
 				}
 			}
-			
 			exc.sendResponseHeaders(200, dummyHTML.length());
 			OutputStream stm = exc.getResponseBody();
 			stm.write(dummyHTML.toString().getBytes());

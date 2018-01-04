@@ -203,7 +203,7 @@ public class PanSputter extends PanBase {
 		};
 		txtScript[0].setOnMouseClicked(eventScriptPath);
 		txtScript[1].setOnMouseClicked(eventScriptPath);
-		if(Misc.isFileExist(pathScript)==true){
+		if(new File(pathScript).exists()==true){
 			txtScript[1].setText(Misc.trimPathAppx(pathScript));
 		}
 		
