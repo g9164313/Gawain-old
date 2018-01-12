@@ -1,161 +1,53 @@
-package narl.itrc.vision;
+package narl.itrc;
 
-import javafx.event.ActionEvent;
+import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import javafx.event.EventHandler;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Cursor;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
 import javafx.scene.control.TextField;
-import javafx.scene.input.MouseButton;
+import javafx.scene.image.Image;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
-import narl.itrc.Gawain;
-import narl.itrc.Misc;
 
-public class WidPreview extends ImgPreview {
 
-	private final int STA_IDLE = 0;
-	private final int STA_MARK_NAIL = 1;
-	//private final int STA_MARK_MOVE = 2;
-	private int state = STA_IDLE;
+public abstract class WidImageViewEx extends WidImageView {
 	
-	private final ActionEvent eventAction = new ActionEvent(this,null);
+	protected IntegerProperty propFPS = new SimpleIntegerProperty(0);	
+	//private StringProperty propScale= new SimpleStringProperty();
+	private StringProperty propLoca = new SimpleStringProperty(Misc.TXT_UNKNOW);	
+	private StringProperty propPixv = new SimpleStringProperty(Misc.TXT_UNKNOW);
 	
-	private EventHandler<ActionEvent> eventClick = null;
-	
-	private int[] markPin = {0, 0, 0, 0}; 
-	
-	public WidPreview(){
+	public WidImageViewEx(){
 		this(640,480);
 	}
 	
-	public WidPreview(int width, int height){
-		
+	public WidImageViewEx(int width, int height){
 		super(width,height);
-	
-		final Pane panCtrl = create_ctrl_pane();
+		 
+		ova1.setOnMouseMoved(eventCursorMove);
 		
-		overlay[1].getChildren().add(panCtrl);
+		Pane layCtrl = create_ctrl_pane();
+		StackPane.setMargin(layCtrl, new Insets(7,7,7,7));
+		StackPane.setAlignment(layCtrl, Pos.CENTER_LEFT);				
 		
-		setOnMousePressed(event->{
-			//update mouse location
-			MouseButton btn = event.getButton();			
-			infoGeom[3] = (int)(event.getX() + getHvalue() * getMinViewportWidth() );
-			infoGeom[4] = (int)(event.getY() + getVvalue() * getMinViewportHeight());
-			
-			if(btn==MouseButton.PRIMARY){
-				switch(state){
-				case STA_MARK_NAIL:
-					markPin[0] = infoGeom[3];
-					markPin[1] = infoGeom[4];
-					markPin[2] = infoGeom[3];
-					markPin[3] = infoGeom[4];
-					Mark itm = cmbMark.getSelectionModel().getSelectedItem();
-					itm.geom[0] = markPin[0];
-					itm.geom[1] = markPin[1];
-					itm.update_geom();
-					break;
-				case STA_IDLE:
-					if(eventClick!=null){
-						eventClick.handle(eventAction);
-					}
-					break;
-				}
-			}else if(btn==MouseButton.SECONDARY){
-				boolean flag = panCtrl.visibleProperty().get();
-				panCtrl.setVisible(!flag);
-			}
-		});
-
-		setOnMouseMoved(event->{			
-			//update mouse location
-			//TODO: the offset of scroll panel may be wrong...
-			infoGeom[3] = (int)(event.getX() + getHvalue() * getMinViewportWidth() );
-			infoGeom[4] = (int)(event.getY() + getVvalue() * getMinViewportHeight());
-			update_pixel_info();
-			switch(state){
-			case STA_MARK_NAIL:
-				markPin[2] = infoGeom[3];
-				markPin[3] = infoGeom[4];
-				//update overlay shape~~~
-				break;
-			}
-		});
-
-		setOnMouseReleased(event->{
-			//update mouse location
-			MouseButton btn = event.getButton();			
-			infoGeom[3] = (int)(event.getX() + getHvalue() * getMinViewportWidth() );
-			infoGeom[4] = (int)(event.getY() + getVvalue() * getMinViewportHeight());
-						
-			if(btn==MouseButton.PRIMARY){
-				switch(state){
-				case STA_MARK_NAIL:	
-					markPin[2] = infoGeom[3];
-					markPin[3] = infoGeom[4];
-					//restore cursor state
-					Gawain.getMainScene().setCursor(old_cursor);
-					state = STA_IDLE;
-					break;
-				}
-			}
-		});		
-
-		hvalueProperty().addListener((obs,oldValue,newValue)->{
-			AnchorPane.setLeftAnchor(
-				panCtrl, 
-				32. + newValue.doubleValue() * getMinViewportWidth()
-			);
-		});
-		vvalueProperty().addListener((obs,oldValue,newValue)->{
-			AnchorPane.setTopAnchor (
-				panCtrl, 
-				32. + newValue.doubleValue() * getMinViewportHeight()
-			);
-		});
-	}
-	
-	public WidPreview setClickEvent(EventHandler<ActionEvent> event){
-		eventClick = event;
-		return this;
-	}
-	
-	//private void update_cursor(){
-	//}
-	
-	private void update_pixel_info(){
-		
-		//how to get information after resizing image view???
-		propLoca.set(String.format(
-			"(%4d,%4d)",
-			infoGeom[3],infoGeom[4]
-		));
-
-		//pick up pixel value
-		if(
-			(0<=infoGeom[3] && infoGeom[3]<infoGeom[0]) &&
-			(0<=infoGeom[4] && infoGeom[4]<infoGeom[1]) &&
-			imgBuff!=null
-		){
-			int val = imgBuff.getPixelReader().getArgb(infoGeom[3], infoGeom[4]);
-			infoGeom[5] = (val&0xFF0000)>>16;
-			infoGeom[6] = (val&0x00FF00)>>8;
-			infoGeom[7] = (val&0x0000FF);
-			propPixv.set(String.format(
-				"%03d,%03d,%03d",
-				infoGeom[5],infoGeom[6],infoGeom[7]
-			));
-		}else{
-			propPixv.set(Misc.TXT_UNKNOW);
-		}
+		getChildren().addAll(root);
+		root.toFront();
 	}
 	//-----------------------------------------//
 	
@@ -174,7 +66,6 @@ public class WidPreview extends ImgPreview {
 			setStrokeWidth(3);
 			//update_geom();			
 		}
-		
 		public void update_geom(){
 			setX(geom[0]);
 			setY(geom[1]);
@@ -183,7 +74,6 @@ public class WidPreview extends ImgPreview {
 			AnchorPane.setLeftAnchor(this,(double)geom[0]);
 			AnchorPane.setTopAnchor (this,(double)geom[1]);
 		}
-		
 		@Override
 		public String toString(){
 			return name;
@@ -192,9 +82,14 @@ public class WidPreview extends ImgPreview {
 	
 	private ComboBox<Mark> cmbMark = new ComboBox<Mark>();	
 	
-	private Cursor old_cursor = null;
+	//private Cursor old_cursor = null;
 	
-	public GridPane layCtrl = new GridPane();
+	//private final int STA_IDLE = 0;
+	//private final int STA_MARK_NAIL = 1;
+	//private final int STA_MARK_MOVE = 2;
+	//private int state = STA_IDLE;
+	
+	protected GridPane layCtrl = new GridPane();
 	
 	private Pane create_ctrl_pane(){
 		
@@ -216,10 +111,7 @@ public class WidPreview extends ImgPreview {
 		Button btnPlay = new Button();
 		btnPlay.setMaxWidth(Double.MAX_VALUE);		
 		btnPlay.setOnAction(e->{
-			ctrlPlay = !ctrlPlay;
-			set_ctrl_title(btnPlay);
 		});
-		set_ctrl_title(btnPlay);
 
 		Button btnZoomIn = new Button("Zoom+");
 		btnZoomIn.setMaxWidth(Double.MAX_VALUE);
@@ -281,12 +173,12 @@ public class WidPreview extends ImgPreview {
 			cmbMark.getItems().add(itm);
 			cmbMark.getSelectionModel().selectLast();
 			
-			overlay[0].getChildren().add(itm);
+			ova1.getChildren().add(itm);
 			
-			old_cursor = Gawain.getMainScene().getCursor();
+			//old_cursor = Gawain.getMainScene().getCursor();
 			Gawain.getMainScene().setCursor(Cursor.CROSSHAIR);
 						
-			state = STA_MARK_NAIL;
+			//state = STA_MARK_NAIL;
 		});
 		final Button btnDelMark = new Button("-");
 		btnDelMark.setOnAction(event->{			
@@ -294,7 +186,7 @@ public class WidPreview extends ImgPreview {
 			cmbMark.getItems().remove(itm);
 			//cmbMark.getSelectionModel().clearSelection();
 			
-			overlay[0].getChildren().remove(itm);
+			ova1.getChildren().remove(itm);
 			
 			for(TextField box:lstBoxMark){
 				box.setText("");
@@ -315,7 +207,8 @@ public class WidPreview extends ImgPreview {
 			layInfo,
 			new Separator(),
 			layMarkPick,
-			LayMarkInfo
+			LayMarkInfo,
+			layCtrl
 		);
 		lay1.setMinSize(130, 300);
 		lay1.setStyle(
@@ -332,30 +225,89 @@ public class WidPreview extends ImgPreview {
 		return lay1;
 	}
 	
+	//-----------------------------------//
+	
+	public abstract void eventChangeScale(int scale);
+	
 	private void change_scale(Label txt){
-		if(imgView==null){
+		if(view==null){
 			return;
 		}
 		if( 2<=infoGeom[2] ){
 			txt.setText("+"+infoGeom[2]);
-			imgView.setFitWidth (infoGeom[0]*infoGeom[2]);
-			imgView.setFitHeight(infoGeom[1]*infoGeom[2]);
+			view.setFitWidth (infoGeom[0]*infoGeom[2]);
+			view.setFitHeight(infoGeom[1]*infoGeom[2]);
 		}else if(infoGeom[2]==-1 || infoGeom[2]==0 || infoGeom[2]==1){
 			txt.setText("x1");
-			imgView.setFitWidth (infoGeom[0]);
-			imgView.setFitHeight(infoGeom[1]);
+			view.setFitWidth (infoGeom[0]);
+			view.setFitHeight(infoGeom[1]);
 		}else if( infoGeom[2]<=-2 ){
 			txt.setText(""+infoGeom[2]);
-			imgView.setFitWidth (-infoGeom[0]/infoGeom[2]);
-			imgView.setFitHeight(-infoGeom[1]/infoGeom[2]);
+			view.setFitWidth (-infoGeom[0]/infoGeom[2]);
+			view.setFitHeight(-infoGeom[1]/infoGeom[2]);
 		}		
 	}
 	
-	private void set_ctrl_title(final Button btn){
-		if(ctrlPlay==true){
-			btn.setText("pause");
-		}else{
-			btn.setText("play");
+	private void update_cursor_value(int locaX, int locaY){
+		Image img = view.getImage();
+		if(img==null){
+			propLoca.setValue(Misc.TXT_UNKNOW);
+			propPixv.setValue(Misc.TXT_UNKNOW);
+			return;
 		}
+		int val = img.getPixelReader().getArgb(locaX,locaY);
+		infoGeom[5] = (val&0xFF0000)>>16;
+		infoGeom[6] = (val&0x00FF00)>>8;
+		infoGeom[7] = (val&0x0000FF);
+		propLoca.setValue(String.format(
+			"(%d,%d)",
+			locaX,locaY
+		));
+		propPixv.setValue(String.format(
+			"%03d %03d %03d",
+			infoGeom[5],infoGeom[6],infoGeom[7]
+		));
 	}
+	
+	/*private void set_prop_scale(){
+		if( 2<=infoGeom[2] ){			    
+			propScale.setValue(String.format("1→%d",infoGeom[2]));
+		}else if( infoGeom[2]<=-2 ){
+			propScale.setValue(String.format("%d→1",infoGeom[2]));
+		}else{
+			propScale.setValue("1→1");
+		}
+	}*/
+	//-----------------------------------//
+	
+	private EventHandler<MouseEvent> eventCursorMove = new EventHandler<MouseEvent>(){
+		@Override
+		public void handle(MouseEvent event) {
+			int locaX = (int)event.getX();
+			int locaY = (int)event.getY();
+			infoGeom[3] = locaX;
+			infoGeom[4] = locaY;
+			//check scale~~~
+			if( 2<=infoGeom[2] ){			    
+				locaX = locaX / infoGeom[2];
+				locaY = locaY / infoGeom[2];
+			}else if( infoGeom[2]<=-2 ){
+				locaX = locaX * -infoGeom[2];
+				locaY = locaY * -infoGeom[2];
+			}
+			//check boundary~~~
+			if(locaX>=infoGeom[0]){
+				locaX = infoGeom[0] - 1;
+			}else if(locaX<0){
+				locaX = 0;
+			}
+			if(locaY>=infoGeom[1]){
+				locaY = infoGeom[1] - 1;
+			}else if(locaY<0){
+				locaY = 0;
+			}			
+			update_cursor_value(locaX,locaY);
+		}		
+	};
+	//-----------------------------------//
 }

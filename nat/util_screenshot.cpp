@@ -6,6 +6,8 @@
 #include <Windows.h>
 #include <atlimage.h>
 
+#ifdef _MSC_VER
+
 using namespace std;
 using namespace Gdiplus;
 
@@ -210,4 +212,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_Misc_deleteScreenshot(
 		env->DeleteLocalRef(j_buf);
 	}	
 }
+
+#endif
+
 

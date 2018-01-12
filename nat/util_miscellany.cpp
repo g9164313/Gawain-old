@@ -10,6 +10,20 @@
 
 using namespace std;
 
+extern "C" JNIEXPORT void JNICALL Java_narl_itrc_Misc_writeRGBA(
+	JNIEnv* env,
+	jobject thiz,
+	jstring name,
+	jbyteArray buff,
+	jint width,
+	jint height,
+	jintArray roi
+) {
+
+	jint* info = env->GetIntArrayElements(j_info, NULL);
+	env->ReleaseIntArrayElements(j_info, info, 0);
+}
+
 #ifdef _MSC_VER
 
 extern "C" JNIEXPORT void JNICALL Java_narl_itrc_Misc_sendMouseClick(

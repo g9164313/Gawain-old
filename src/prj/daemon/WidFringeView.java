@@ -26,8 +26,9 @@ import javafx.scene.shape.Polyline;
 import javafx.scene.shape.Rectangle;
 import narl.itrc.Misc;
 import narl.itrc.WidImageView;
+import narl.itrc.WidImageViewEx;
 
-public class WidFringeView extends WidImageView {
+public class WidFringeView extends WidImageViewEx {
 
 	public WidFringeView(){
 		super();
@@ -444,11 +445,9 @@ public class WidFringeView extends WidImageView {
 		layCtrl.add(new Label("圓心："), 0, 7);layCtrl.add(txtCenter , 1, 7);
 		layCtrl.add(new Label("半徑："), 0, 8);layCtrl.add(txtRadius , 1, 8);		
 	}
-	
 	//private static final KeyCombination hotkeyUndo= new KeyCodeCombination(KeyCode.Z, KeyCombination.);
 
 	@Override
 	public void eventChangeScale(int scale) {
-		
 	}
 }

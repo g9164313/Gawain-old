@@ -94,7 +94,7 @@ LD_LIBS += $(LIB_XIMEA)
 
 CORE_SO = libspringboard.so
 #CORE_FILE = util_jni.cpp DevTTY.cpp
-CORE_FILE = wrap_PanPuppetter.cpp
+CORE_FILE = util_miscellany.cpp wrap_PanPuppetter.cpp
 
 VISION_SO = libvision.so
 VISION_FILE =  util_jni.cpp util_cv.cpp ./vision/CamBundle.cpp ./vision/CamDummy.cpp 

@@ -1,11 +1,17 @@
 package narl.itrc.vision;
 
+import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
+
+import javax.imageio.ImageIO;
+
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.collections.ObservableList;
+import javafx.embed.swing.SwingFXUtils;
 import javafx.scene.Node;
 import javafx.scene.control.Control;
 import javafx.scene.control.ScrollPane;
@@ -82,7 +88,7 @@ public class ImgPreview extends ScrollPane {
 	public ObservableList<Node> getOverlayList(){
 		return overlay[0].getChildren();
 	}
-
+	
 	public int getDataWidth(){
 		return infoGeom[0]; 
 	}
@@ -99,21 +105,63 @@ public class ImgPreview extends ScrollPane {
 		return infoGeom[4]; 
 	}
 	
+	public void snapData(String name){
+		snapData(name,null);
+	}
+	public void snapData(String name, final int[] roi){
+		if(imgView==null){
+			return;
+		}		
+		try {
+			Image img = null;
+			if(roi==null){
+				img = imgView.getImage();
+			}else{
+				img = new WritableImage(
+					imgView.getImage().getPixelReader(),
+					roi[0], roi[1],
+					roi[2], roi[3]
+				);
+			}
+			ImageIO.write(
+				SwingFXUtils.fromFXImage(img,null), 
+				"png", 
+				new File(name)
+			);
+			Misc.logv("snap data~~");
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
 	public byte[] getBgraData(){
+		return getBgraData(null);
+	}
+	
+	public byte[] getBgraData(final int[] roi){
 		byte[] buff = null;
 		if(imgView==null){
 			return buff;
 		}
 		Image img = imgView.getImage();
-		int ww = (int)img.getWidth();
-		int hh = (int)img.getHeight();
+		int xx,yy,ww,hh;		
+		if(roi==null){
+			xx = yy = 0;
+			ww = (int)img.getWidth();
+			hh = (int)img.getHeight();
+		}else{
+			xx = roi[0];
+			yy = roi[1];
+			ww = roi[2];
+			hh = roi[3];
+		}		
 		buff = new byte[ww*hh*4];
 		img.getPixelReader().getPixels(
-			0, 0, 
-			ww,hh,
+			xx, yy, 
+			ww, hh,
 			WritablePixelFormat.getByteBgraInstance(),
 			buff, 
-			0, ww*4
+			0, (int)img.getWidth()*4
 		);
 		return buff;
 	}

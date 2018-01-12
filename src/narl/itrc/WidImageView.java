@@ -3,215 +3,67 @@ package narl.itrc;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+
+import javax.imageio.ImageIO;
 
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.collections.ObservableList;
+import javafx.embed.swing.SwingFXUtils;
+import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
-import javafx.geometry.HPos;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.Cursor;
+import javafx.scene.Group;
 import javafx.scene.Node;
-import javafx.scene.control.Button;
 import javafx.scene.control.Control;
-import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.ScrollPane.ScrollBarPolicy;
-import javafx.scene.control.Separator;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.image.PixelFormat;
 import javafx.scene.image.WritableImage;
-import javafx.scene.input.MouseEvent;
+import javafx.scene.image.WritablePixelFormat;
 import javafx.scene.layout.AnchorPane;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Line;
+import javafx.scene.shape.Rectangle;
 
-public abstract class WidImageView extends StackPane {
+
+public class WidImageView extends StackPane {
 
 	public WidImageView(){
-		init(640,480);
+		this(640,480);
 	}
 	
 	public WidImageView(int width, int height){
-		init(width,height);
-	}
-	
-	/**
-	 * information for image size, pixel location and value.<p>
-	 * Attention!! the coordinate systems of cursor is same as overlay panel!!!
-	 */
-	private int infoGeom[] = {
-		0/* image width */, 
-		0/* image height*/,
-		1/* image scale */,
-		0/* cursor-X */, 
-		0/* cursor-Y */, 
-		0, 0, 0,/* pixel value - Red, Green, Blue */
-		0
-	};
-	
-	private StringProperty propSize = new SimpleStringProperty(Misc.TXT_UNKNOW);
-	private StringProperty propScale= new SimpleStringProperty();
-	private StringProperty propLoca = new SimpleStringProperty(Misc.TXT_UNKNOW);	
-	private StringProperty propPixv = new SimpleStringProperty(Misc.TXT_UNKNOW);
-	
-	private ImageView  view = new ImageView();
-	private ImageView  ova1 = new ImageView();
-	private AnchorPane ova2 = new AnchorPane();
-	private ScrollPane lay1 = new ScrollPane();
-	
-	protected GridPane layCtrl = create_ctrl_pane();
-
-	protected WritableImage getOverlayView(){
-		return (WritableImage)ova1.getImage();
-	}
-	
-	protected ObservableList<Node> getOverlayList(){
-		return ova2.getChildren();
-	}
-	
-	protected int getCursorX(){
-		return infoGeom[3];
-	}	
-	protected int getCursorY(){
-		return infoGeom[4];
-	}
-	
-	private EventHandler<MouseEvent> eventCursorMove = new EventHandler<MouseEvent>(){
-		@Override
-		public void handle(MouseEvent event) {
-			int locaX = (int)event.getX();
-			int locaY = (int)event.getY();
-			infoGeom[3] = locaX;
-			infoGeom[4] = locaY;
-			//check scale~~~
-			if( 2<=infoGeom[2] ){			    
-				locaX = locaX / infoGeom[2];
-				locaY = locaY / infoGeom[2];
-			}else if( infoGeom[2]<=-2 ){
-				locaX = locaX * -infoGeom[2];
-				locaY = locaY * -infoGeom[2];
-			}
-			//check boundary~~~
-			if(locaX>=infoGeom[0]){
-				locaX = infoGeom[0] - 1;
-			}else if(locaX<0){
-				locaX = 0;
-			}
-			if(locaY>=infoGeom[1]){
-				locaY = infoGeom[1] - 1;
-			}else if(locaY<0){
-				locaY = 0;
-			}			
-			update_cursor_value(locaX,locaY);
-		}		
-	};
-	//-----------------------------------//
-	
-	public abstract void eventChangeScale(int scale);
-	
-	private void change_scale(char tkn){
-		if(tkn=='-'){
-			infoGeom[2]--;
-			if(infoGeom[2]==0){
-				infoGeom[2] = -2;//-1, 0, 1 are all same~~~~
-			}
-		}else if(tkn=='+'){
-			infoGeom[2]++;
-			if(infoGeom[2]==0){
-				infoGeom[2] = 2;//-1, 0, 1 are all same~~~~
-			}
-		}else{
-			return;
-		}
-		int ww=0,hh=0;
-		if( 2<=infoGeom[2] ){
-			ww=infoGeom[0]*infoGeom[2];
-			hh=infoGeom[1]*infoGeom[2];
-		}else if(infoGeom[2]==-1 || infoGeom[2]==0 || infoGeom[2]==1){
-			ww=infoGeom[0];
-			hh=infoGeom[1];
-		}else if( infoGeom[2]<=-2 ){
-			ww=-infoGeom[0]/infoGeom[2];
-			hh=-infoGeom[1]/infoGeom[2];
-		}
-		view.setFitWidth (ww);
-		view.setFitHeight(hh);
-		ova1.setFitWidth (ww);
-		ova1.setFitHeight(hh);
-		set_prop_scale();
-		eventChangeScale(infoGeom[2]);
-	}
-	
-	private void update_cursor_value(int locaX, int locaY){
-		Image img = view.getImage();
-		if(img==null){
-			propLoca.setValue(Misc.TXT_UNKNOW);
-			propPixv.setValue(Misc.TXT_UNKNOW);
-			return;
-		}
-		int val = img.getPixelReader().getArgb(locaX,locaY);
-		infoGeom[5] = (val&0xFF0000)>>16;
-		infoGeom[6] = (val&0x00FF00)>>8;
-		infoGeom[7] = (val&0x0000FF);
-		propLoca.setValue(String.format(
-			"(%d,%d)",
-			locaX,locaY
-		));
-		propPixv.setValue(String.format(
-			"%03d %03d %03d",
-			infoGeom[5],infoGeom[6],infoGeom[7]
-		));
-	}
-	
-	private void set_prop_scale(){
-		if( 2<=infoGeom[2] ){			    
-			propScale.setValue(String.format("1→%d",infoGeom[2]));
-		}else if( infoGeom[2]<=-2 ){
-			propScale.setValue(String.format("%d→1",infoGeom[2]));
-		}else{
-			propScale.setValue("1→1");
-		}
-	}
-	//-----------------------------------//
-	
-	private Cursor DEF_CURSOR = null;
-	
-	private void init(int width, int height){
+		
+		infoGeom[0] = width;
+		infoGeom[1] = height;
 		
 		view.setSmooth(false);
-		ova1.setSmooth(false);
+		ova2.setSmooth(false);
 		
 		//ova1.setStyle("-fx-border-color: chocolate; -fx-border-width: 4px;");//DEBUG!!!
-		ova2.setMinSize(Control.USE_PREF_SIZE, Control.USE_PREF_SIZE);
-		ova2.setMaxSize(Control.USE_PREF_SIZE, Control.USE_PREF_SIZE);
-		ova2.prefWidthProperty().bind(view.fitWidthProperty());
-		ova2.prefHeightProperty().bind(view.fitHeightProperty());
-		ova2.setOnMouseEntered(e->{
-			DEF_CURSOR = getScene().getCursor();
-			getScene().setCursor(Cursor.CROSSHAIR);
-		});
-		ova2.setOnMouseExited(e->{
-			getScene().setCursor(DEF_CURSOR);
-		});
-		ova2.setOnMouseMoved(eventCursorMove);
-
-		final StackPane grp = new StackPane();
-		grp.getChildren().addAll(view, ova1, ova2);
-		lay1.setContent(grp);
-		lay1.setStyle("-fx-background: lightskyblue;");
-		lay1.setMinViewportWidth(width);
-		lay1.setMinViewportHeight(height);
-		lay1.setFitToWidth(true);
-		lay1.setFitToHeight(true);
-		lay1.setHbarPolicy(ScrollBarPolicy.ALWAYS);
-		lay1.setVbarPolicy(ScrollBarPolicy.ALWAYS);
+		ova1.setMinSize(Control.USE_PREF_SIZE, Control.USE_PREF_SIZE);
+		ova1.setMaxSize(Control.USE_PREF_SIZE, Control.USE_PREF_SIZE);
+		ova1.prefWidthProperty().bind (view.fitWidthProperty());
+		ova1.prefHeightProperty().bind(view.fitHeightProperty());
 		
-		StackPane.setMargin(layCtrl, new Insets(7,7,7,7));
-		StackPane.setAlignment(layCtrl, Pos.CENTER_LEFT);				
-		getChildren().addAll(lay1,layCtrl);
+		final StackPane grp = new StackPane();
+		grp.getChildren().addAll(view, ova2, ova1);
+		
+		root.setContent(grp);
+		root.setStyle("-fx-background: lightskyblue;");
+		root.setMinViewportWidth (infoGeom[0]);
+		root.setMinViewportHeight(infoGeom[1]);
+		root.setFitToWidth(true);
+		root.setFitToHeight(true);
+		root.setHbarPolicy(ScrollBarPolicy.ALWAYS);
+		root.setVbarPolicy(ScrollBarPolicy.ALWAYS);
+		
+		getChildren().addAll(root);
 		
 		/*setOnKeyPressed(e->{
 			if(hotkeyScaleDown.match(e)==true){				
@@ -238,76 +90,119 @@ public abstract class WidImageView extends StackPane {
 		});*/
 		
 		//hvalueProperty().addListener((obs,oldValue,newValue)->{});
-		//vvalueProperty().addListener((obs,oldValue,newValue)->{});		
+		//vvalueProperty().addListener((obs,oldValue,newValue)->{});	
 	}
 	
-	private GridPane create_ctrl_pane(){
+	/**
+	 * information for image size, pixel location and value.<p>
+	 * Attention!! the coordinate systems of cursor is same as overlay panel!!!
+	 */
+	protected int infoGeom[] = {
+		0/* image width */, 
+		0/* image height*/,
+		1/* image scale */,
+		0/* cursor-X */, 
+		0/* cursor-Y */, 
+		0, 0, 0,/* pixel value - Red, Green, Blue */
+		0
+	};
+
+	protected ImageView  view = new ImageView();
+	protected ImageView  ova2 = new ImageView();
+	protected AnchorPane ova1 = new AnchorPane();
+	protected ScrollPane root = new ScrollPane();
+	
+	protected StringProperty propSize = new SimpleStringProperty(Misc.TXT_UNKNOW);	
+	
+	protected WritableImage getOverlayView(){
+		return (WritableImage)ova2.getImage();
+	}
+	
+	protected ObservableList<Node> getOverlayList(){
+		return ova1.getChildren();
+	}
+	
+	public int getDataWidth(){
+		return infoGeom[0]; 
+	}
+	
+	public int getDataHeight(){
+		return infoGeom[1]; 
+	}
+	
+	public int getCursorX(){
+		return infoGeom[3]; 
+	}
+	
+	public int getCursorY(){
+		return infoGeom[4]; 
+	}
 		
-		final Label txtSize = new Label();
-		txtSize.textProperty().bind(propSize);
-		
-		final Label txtScale=new Label();
-		txtScale.textProperty().bind(propScale);
-		set_prop_scale();//first initialize~~~
-		
-		final Label txtLoca = new Label();
-		txtLoca.textProperty().bind(propLoca);
-		
-		final Label txtPixV = new Label();
-		txtPixV.textProperty().bind(propPixv);
-		
-		Button btnZoomIn = new Button("Zoom+");
-		btnZoomIn.setMaxWidth(Double.MAX_VALUE);
-		btnZoomIn.setOnAction(e->{
-			change_scale('+');
-		});
-		GridPane.setHgrow(btnZoomIn, Priority.ALWAYS);
-		GridPane.setFillWidth(btnZoomIn, true);
-		
-		Button btnZoomOut = new Button("Zoom-");
-		btnZoomOut.setMaxWidth(Double.MAX_VALUE);
-		btnZoomOut.setOnAction(e->{
-			change_scale('-');
-		});
-		
-		Button btnSnapBuf = new Button("Snap");
-		btnSnapBuf.setMaxWidth(Double.MAX_VALUE);
-		btnSnapBuf.setOnAction(e->{
-			Misc.logv("btnSnap");
-		});
-		
-		GridPane lay = new GridPane();
-		lay.add(new Label("尺寸："), 0, 0);lay.add(txtSize , 1, 0);
-		lay.add(new Label("比例："), 0, 1);lay.add(txtScale, 1, 1);
-		lay.add(new Label("位置："), 0, 2);lay.add(txtLoca , 1, 2);
-		lay.add(new Label("像素："), 0, 3);lay.add(txtPixV , 1, 3);	
-		lay.add(btnZoomIn      , 0, 4, 4, 1);
-		lay.add(btnZoomOut     , 0, 5, 4, 1);
-		lay.add(new Separator(), 0, 6, 4, 1);
-		
-		lay.setStyle(
-			"-fx-vgap: 7px;"+
-			"-fx-background-color: gainsboro;"+
-			"-fx-padding: 7px;"+
-			"-fx-spacing: 7px;"+
-			"-fx-background-radius: 10;"+		
-			"-fx-effect: dropshadow(three-pass-box, black, 10, 0, 0, 0);"
+	public WidImageView setClickEvent(EventHandler<ActionEvent> hook){		
+		view.setOnMouseClicked(event->{
+			infoGeom[3] = (int)event.getX();
+			infoGeom[4] = (int)event.getY();
+			hook.handle(null);
+		});//is this right??
+		return this;
+	}
+	
+	public Node addCross(final int[] roi){
+		return addCross(
+			roi[0]+roi[2]/2, 
+			roi[1]+roi[3]/2,
+			Math.min(roi[2], roi[3])
 		);
-		//lay.maxWidthProperty().bind(widthProperty().multiply(0.23));
-		lay.setMaxWidth(133);
-		lay.maxHeightProperty().bind(heightProperty().multiply(0.76));
-		lay.getChildren().forEach(obj->{
-			GridPane.setHgrow(obj, Priority.ALWAYS);
-			GridPane.setHalignment(obj, HPos.LEFT);
-			//GridPane.setFillWidth(obj, true);
-		});
-		return lay;
 	}
-	//-----------------------------------//
 	
+	public Node addCross(int x, int y, int size){
+		x = x - infoGeom[0]/2;//why we need this offset ??
+		y = y - infoGeom[1]/2;//why we need this offset ??
+		final Line[] part = {
+			new Line(x-size/2, y       , x+size/2, y       ), 
+			new Line(x       , y-size/2, x       , y+size/2)
+		};
+		part[0].setStroke(Color.CRIMSON);
+		part[0].setStrokeWidth(3);
+		part[1].setStroke(Color.CRIMSON);
+		part[1].setStrokeWidth(3);
+		final Group itm = new Group();
+		itm.getChildren().addAll(part);
+		Misc.invoke(event->{
+			ova1.getChildren().add(itm);
+		});
+		return itm;
+	}
+	
+	public Node addMark(final int[] roi){
+		int xx = roi[0] - infoGeom[0]/2;//why we need this offset ??
+		int yy = roi[1] - infoGeom[1]/2;//why we need this offset ??
+		final Rectangle itm = new Rectangle(
+			xx,yy,
+			roi[2],roi[3]
+		);
+		itm.setFill(Color.TRANSPARENT);
+		itm.setStroke(Color.CRIMSON);
+		itm.setStrokeWidth(3);
+		Misc.invoke(event->{
+			//AnchorPane.setLeftAnchor(itm,(double)roi[0]);
+			//AnchorPane.setTopAnchor (itm,(double)roi[1]);
+			ova1.getChildren().add(itm);			
+		});		
+		return itm;
+	}
+	
+	public void delMark(final Node itm){
+		Misc.invoke(event->{
+			ova1.getChildren().remove(itm);
+		});
+	}	
+	//-----------------------------------//
+
 	public void loadImageFile(String name){
 		loadImage(new Image("file:"+name));
 	}
+	
 	public void loadImageFile(File fs){
 		if(fs.isFile()==true){
 			return;
@@ -320,7 +215,9 @@ public abstract class WidImageView extends StackPane {
 			e.printStackTrace();
 		}
 	}
+	
 	public void loadImage(Image img){
+		
 		infoGeom[0] = (int)img.getWidth();
 		infoGeom[1] = (int)img.getHeight();
 		
@@ -328,9 +225,9 @@ public abstract class WidImageView extends StackPane {
 		view.setFitWidth (infoGeom[0]);
 		view.setFitHeight(infoGeom[1]);		
 		
-		ova1.setImage(new WritableImage(infoGeom[0], infoGeom[1]));
-		ova1.setFitWidth (infoGeom[0]);
-		ova1.setFitHeight(infoGeom[1]);	
+		ova2.setImage(new WritableImage(infoGeom[0], infoGeom[1]));
+		ova2.setFitWidth (infoGeom[0]);
+		ova2.setFitHeight(infoGeom[1]);	
 
 		setFocused(true);
 		
@@ -339,7 +236,135 @@ public abstract class WidImageView extends StackPane {
 			infoGeom[0],infoGeom[1]
 		));
 	}
+	//-----------------------------------//
+	
+	public void snapData(String name){
+		snapData(name,null);
+	}
+	public void snapData(String name, final int[] roi){		
+		try {
+			Image img = null;
+			if(roi==null){
+				img = view.getImage();
+			}else{
+				img = new WritableImage(
+					view.getImage().getPixelReader(),
+					roi[0], roi[1],
+					roi[2], roi[3]
+				);
+			}
+			ImageIO.write(
+				SwingFXUtils.fromFXImage(img,null), 
+				"png", 
+				new File(name)
+			);
+			Misc.logv("snap data~~");
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public byte[] getBgraData(){
+		return getBgraData(null);
+	}
+	
+	public byte[] getBgraData(final int[] roi){
+		byte[] buff = null;
+		Image img = view.getImage();
+		int xx,yy,ww,hh;		
+		if(roi==null){
+			xx = yy = 0;
+			ww = (int)img.getWidth();
+			hh = (int)img.getHeight();
+		}else{
+			xx = roi[0];
+			yy = roi[1];
+			ww = roi[2];
+			hh = roi[3];
+		}		
+		buff = new byte[ww*hh*4];
+		img.getPixelReader().getPixels(
+			xx, yy, 
+			ww, hh,
+			WritablePixelFormat.getByteBgraInstance(),
+			buff, 
+			0, (int)img.getWidth()*4
+		);
+		return buff;
+	}
+	
+	protected WritableImage imgBuff;
+	
+	public void refresh(final InputStream stm){		
+		Misc.invoke(event->{
+			Image img = new Image(stm);
+			view.setImage(img);
+			infoGeom[0] = (int)img.getWidth();
+			infoGeom[1] = (int)img.getHeight();
+		});		
+	}
+	
+	public void refresh(
+		final byte[] data, 
+		final int width, 
+		final int height
+	){
+		if(width<=0 || height<=0 || data.length==0){
+			return;
+		}		
+		if(imgBuff==null){
+			create_buff(width,height);
+		}
+		if( 
+			width !=((int)imgBuff.getWidth() ) ||
+			height!=((int)imgBuff.getHeight())
+		){
+			create_buff(width,height);
+		}
+		//this object can be accessed by non-event thread
+		imgBuff.getPixelWriter().setPixels(
+			0, 0, 
+			width, height, 
+			PixelFormat.getByteRgbInstance(), 
+			data, 
+			0, width*3
+		);
+	}
+	
+	private void create_buff(
+		final int width, 
+		final int height
+	){
+		Misc.invoke(event->{
+			infoGeom[0] = width;
+			infoGeom[1] = height;
+			propSize.set(String.format("%4dx%4d",width,height));
+			
+			setPrefSize(width,height);
+			ova1.setPrefSize(width, height);
+			if(view!=null){
+				getChildren().remove(view);
+			}
+			imgBuff = new WritableImage(width, height);
+			view = new ImageView(imgBuff);
+			view.setCache(true);
+			//StackPane.setAlignment(zoomView, Pos.TOP_LEFT);
+			getChildren().add(view);
+			view.toBack();
+		});
+	}
 
+	/*	HBox lay = new HBox();
+	lay.setStyle(
+		"-fx-border-color: red;"+
+		"-fx-border-width: 4px;"+
+		"-fx-background-color: palegreen; "+
+		"-fx-padding: 13;"+
+		"-fx-spacing: 7; "+
+		"-fx-background-radius: 10; "+		
+		"-fx-effect: dropshadow(three-pass-box, black, 10, 0, 0, 0);"		
+	); */
+	
 	/*private static final KeyCombination hotkeyScaleDown= new KeyCodeCombination(KeyCode.MINUS , KeyCombination.CONTROL_ANY);
 	private static final KeyCombination hotkeyScaleUp1 = new KeyCodeCombination(KeyCode.EQUALS, KeyCombination.CONTROL_ANY);
 	private static final KeyCombination hotkeyScaleUp2 = new KeyCodeCombination(KeyCode.ADD   , KeyCombination.CONTROL_ANY);

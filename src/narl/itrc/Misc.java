@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.concurrent.TimeUnit;
 
 import com.sun.glass.ui.Application;
 
@@ -118,10 +119,18 @@ public class Misc {
 	
 
 	public static void delay(long millisec){
-		long t2, t1 = System.currentTimeMillis();
-		do{
-			t2 = System.currentTimeMillis();
-		}while((t2-t1)<millisec);
+		try {
+			TimeUnit.MILLISECONDS.sleep(millisec);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	public static void delay_sec(long second){
+		try {
+			TimeUnit.SECONDS.sleep(second);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 	//----------------------------------------//
 	
@@ -831,6 +840,7 @@ public class Misc {
 			}
 			pc.destroy();
 		} catch (IOException e) {
+			e.printStackTrace();
 			txt = "[ERROR]: "+e.getMessage();
 		} catch (InterruptedException e) {
 			txt = "[ERROR]: "+e.getMessage();
@@ -855,7 +865,7 @@ public class Misc {
 			Application.invokeAndWait(node);
 		}
 	}
-	
+		
 	/**
 	 * It is just a macro or template function...
 	 * First delay with few seconds, then task run~~~
@@ -899,6 +909,8 @@ public class Misc {
 	public static native void sendKeyboardText(String text);
 	
 	public static native void getCursorPos(int[] pos);
+	
+	public static native void imwrite(String name,byte[] data, int width, int height, int[] roi);
 	
 	public static double hypot(double[] pa,double[] pb){
 		return Math.hypot(pa[0]-pb[0], pa[1]-pb[1]);

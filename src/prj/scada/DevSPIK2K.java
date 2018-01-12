@@ -56,8 +56,8 @@ public class DevSPIK2K extends DevTTY {
 	//private int[] variable = new int[50]; 
 	
 	/**
-	 * Address --> 02
-	 * Range--> 0:Serial1, 1:Serial2, 2:HMS-module, 3:Dualport-RAM 
+	 * Address: 02
+	 * Range: 0:Serial1, 1:Serial2, 2:HMS-module, 3:Dualport-RAM 
 	 */
 
 	//public IntegerProperty meas_DC2_P_Act  = new SimpleIntegerProperty();

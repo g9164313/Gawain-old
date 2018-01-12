@@ -62,10 +62,18 @@ public class ButtonTask extends JFXButton {
 	
 	private Action task = null;
 	
+	public boolean isDone(){
+		if(task!=null){
+			return task.isDone();
+		}
+		return true;
+	}
+	
 	private EventHandler<ActionEvent> pre_handler = new EventHandler<ActionEvent>(){
 		@Override
 		public void handle(ActionEvent event) {
-			if(handler==null){
+			
+			if(handTask==null){
 				return;
 			}
 			if(reentry==false){
@@ -80,11 +88,13 @@ public class ButtonTask extends JFXButton {
 					}
 				}				
 			}
+			setText("[ "+text+" ]");//indicate we have action~~
+			
 			task = new Action(){
 				@Override
 				protected Integer call() throws Exception {
 					//updateMessage("start!!");
-					handler.handle(new ActionEvent(task,task));
+					handTask.handle(new ActionEvent(task,task));
 					return 0;
 				}
 			};
@@ -102,12 +112,20 @@ public class ButtonTask extends JFXButton {
 				setDisable(false);
 			}
 			task = null;//reset it~~~
+			setText(text);//restore the origin caption~~~
 		}
 	};
 	
-	private EventHandler<ActionEvent> handler = null;
-	
 	private boolean reentry = false;
+	
+	//private EventHandler<ActionEvent> handPrep = null;
+				
+	//public ButtonTask setPrepare(EventHandler<ActionEvent> action){
+	//	handPrep = action;
+	//	return this;
+	//}
+	
+	private EventHandler<ActionEvent> handTask = null;
 	
 	public ButtonTask setAction(EventHandler<ActionEvent> action){
 		return setAction(reentry,action);
@@ -115,7 +133,7 @@ public class ButtonTask extends JFXButton {
 	
 	public ButtonTask setAction(boolean isReentry, EventHandler<ActionEvent> action){
 		reentry = isReentry;
-		handler = action;
+		handTask= action;
 		return this;
 	}	
 }
