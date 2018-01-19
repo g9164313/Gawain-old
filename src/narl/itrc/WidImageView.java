@@ -27,6 +27,7 @@ import javafx.scene.image.WritablePixelFormat;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
 import javafx.scene.shape.Line;
 import javafx.scene.shape.Rectangle;
 
@@ -146,7 +147,7 @@ public class WidImageView extends StackPane {
 		});//is this right??
 		return this;
 	}
-	
+		
 	public Node addCross(final int[] roi){
 		return addCross(
 			roi[0]+roi[2]/2, 
@@ -154,7 +155,6 @@ public class WidImageView extends StackPane {
 			Math.min(roi[2], roi[3])
 		);
 	}
-	
 	public Node addCross(int x, int y, int size){
 		x = x - infoGeom[0]/2;//why we need this offset ??
 		y = y - infoGeom[1]/2;//why we need this offset ??
@@ -170,6 +170,28 @@ public class WidImageView extends StackPane {
 		itm.getChildren().addAll(part);
 		Misc.invoke(event->{
 			ova1.getChildren().add(itm);
+		});
+		return itm;
+	}
+	
+	public Node addCircle(final int[] roi){
+		return addCircle(
+			roi[0]+roi[2]/2, 
+			roi[1]+roi[3]/2,
+			Math.min(roi[2], roi[3])
+		);
+	}
+	public Node addCircle(int x, int y, int rad){
+		x = x - infoGeom[0]/2;//why we need this offset ??
+		y = y - infoGeom[1]/2;//why we need this offset ??
+		final Circle itm = new Circle(x,y,rad);
+		itm.setFill(Color.TRANSPARENT);
+		itm.setStroke(Color.CRIMSON);
+		itm.setStrokeWidth(3);
+		Misc.invoke(event->{
+			//AnchorPane.setLeftAnchor(itm,(double)roi[0]);
+			//AnchorPane.setTopAnchor (itm,(double)roi[1]);
+			ova1.getChildren().add(itm);			
 		});
 		return itm;
 	}
@@ -196,7 +218,12 @@ public class WidImageView extends StackPane {
 		Misc.invoke(event->{
 			ova1.getChildren().remove(itm);
 		});
-	}	
+	}
+	public void clearOverlay(){
+		Misc.invoke(event->{
+			ova1.getChildren().clear();
+		});
+	}
 	//-----------------------------------//
 
 	public void loadImageFile(String name){

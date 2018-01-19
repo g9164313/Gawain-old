@@ -409,11 +409,9 @@ public class Misc {
 	}	
 	//----------------------------------------//
 	
-	public static final String pathRoot= check_root();
-		
-	public static final String pathSock= check_path(true);
-	
-	public static final String pathHome= check_path(false);
+	public static final String pathRoot = check_root();		
+	public static final String pathSock = check_path(true);	
+	public static final String pathHome = check_path(false);
 	
 	/**
 	 * The path where we start, it is also the path of JAR file 
@@ -427,6 +425,10 @@ public class Misc {
 	
 	public static final File dirHome = new File(pathHome);
 	
+	/**
+	 * get the root directory. It is also the 'working' path.
+	 * @return
+	 */
 	private static String check_root(){
 		
 		String url = "."+File.separator;		

@@ -1,4 +1,4 @@
-package prj.daemon;
+package prj.puppet;
 
 import java.io.IOException;
 import java.io.OutputStream;

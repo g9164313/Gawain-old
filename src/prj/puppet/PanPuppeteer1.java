@@ -1,4 +1,4 @@
-package prj.daemon;
+package prj.puppet;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,9 +23,9 @@ import narl.itrc.PanBase;
 import narl.itrc.TaskTool;
 import narl.itrc.WidImageView;
 
-public class PanPuppeteer extends PanBase {
+public class PanPuppeteer1 extends PanBase {
 
-	public PanPuppeteer(){		
+	public PanPuppeteer1(){		
 	}
 	
 	private void sendInputEvent(String addr,String param){
@@ -90,8 +90,8 @@ public class PanPuppeteer extends PanBase {
 	private final int[] pressValve1= {412,492, 44, 67};
 	private final int[] pressValve2= {751,426, 92, 41};
 	
-	private final int[] pressDialogConfirm={0,0,0,0};
-	private final int[] pressDialogCancel ={0,0,0,0};
+	private final int[] pressDialogConfirm={354,399,86,74};
+	private final int[] pressDialogCancel ={476,401,86,74};
 	
 	private void clickTarget(
 		final String addr,
@@ -192,7 +192,7 @@ public class PanPuppeteer extends PanBase {
 			
 			//step.1: turn on pump, and wait 5 second
 			clickTarget(addr, vewMonitor, pressPump1);
-			Misc.delay(500);
+			Misc.delay_sec(1);
 			clickTarget(addr, vewMonitor, pressDialogConfirm);
 			Misc.delay_sec(3);
 			
@@ -200,7 +200,7 @@ public class PanPuppeteer extends PanBase {
 			
 			//step.2: 左上閥打開(等到機器聲音出來)
 			clickTarget(addr, vewMonitor, pressValve1);
-			Misc.delay(500);
+			Misc.delay_sec(1);
 			clickTarget(addr, vewMonitor, pressDialogConfirm);
 			Misc.delay_sec(3);
 			
@@ -208,25 +208,27 @@ public class PanPuppeteer extends PanBase {
 			do{
 				val = recognizeDigi(addr, vewMonitor, roiPress1);
 				Misc.delay_sec(1);
-			}while(val<4.5E-2);
+			}while(val>4E-2);
 			
 			//step.4: 左上閥關閉(等到機器聲音出來)
 			clickTarget(addr, vewMonitor, pressValve1);
-			Misc.delay(500);
+			Misc.delay_sec(1);
 			clickTarget(addr, vewMonitor, pressDialogConfirm);
 			Misc.delay_sec(3);
 			
-			//step.5: turn on cryogenic valve(it is always on)
+			//step.6: 關閉主泵
+			
+			//step.7: turn on cryogenic valve(it is always on)
 			clickTarget(addr, vewMonitor, pressValve2);
-			Misc.delay(500);
+			Misc.delay_sec(1);
 			clickTarget(addr, vewMonitor, pressDialogConfirm);
 			Misc.delay_sec(3);
 			
-			//step.6: 看上方壓力直到(4.5e-6 Torr)
+			//step.8: 看上方壓力直到(4.5e-6 Torr)
 			do{
 				val = recognizeDigi(addr, vewMonitor, roiPress1);
 				Misc.delay_sec(1);
-			}while(val<4E-6);
+			}while(val>4E-6);
 			
 			//take the last snapshot			
 			takeOutputEvent(addr,vewMonitor);

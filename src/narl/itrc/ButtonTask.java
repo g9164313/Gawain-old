@@ -73,7 +73,7 @@ public class ButtonTask extends JFXButton {
 		@Override
 		public void handle(ActionEvent event) {
 			
-			if(handTask==null){
+			if(hndTask==null){
 				return;
 			}
 			if(reentry==false){
@@ -94,7 +94,7 @@ public class ButtonTask extends JFXButton {
 				@Override
 				protected Integer call() throws Exception {
 					//updateMessage("start!!");
-					handTask.handle(new ActionEvent(task,task));
+					hndTask.handle(new ActionEvent(task,task));
 					return 0;
 				}
 			};
@@ -125,7 +125,7 @@ public class ButtonTask extends JFXButton {
 	//	return this;
 	//}
 	
-	private EventHandler<ActionEvent> handTask = null;
+	private EventHandler<ActionEvent> hndTask = null;
 	
 	public ButtonTask setAction(EventHandler<ActionEvent> action){
 		return setAction(reentry,action);
@@ -133,7 +133,7 @@ public class ButtonTask extends JFXButton {
 	
 	public ButtonTask setAction(boolean isReentry, EventHandler<ActionEvent> action){
 		reentry = isReentry;
-		handTask= action;
+		hndTask = action;
 		return this;
 	}	
 }
