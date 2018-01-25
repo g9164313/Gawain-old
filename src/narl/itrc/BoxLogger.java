@@ -22,7 +22,7 @@ public class BoxLogger extends TextArea {
 	
 	public BoxLogger(){
 		
-		setEditable(false);
+		setEditable(true);
 		setStyle(
 			"-fx-control-inner-background: white;"+
 			"-fx-text-box-border: black;"

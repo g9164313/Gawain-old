@@ -4,6 +4,7 @@ import java.util.function.Predicate;
 
 import com.jfoenix.controls.JFXButton;
 
+import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.image.ImageView;
@@ -24,18 +25,20 @@ public class ButtonExtra extends JFXButton {
 	private ImageView icon2 = null;
 	
 	public ButtonExtra(){
-		this(null,null,null,null);
+		this("",null,"",null);
 	}
 	
-	public ButtonExtra(final String caption){
-		this(caption,null,null,null);
+	public ButtonExtra(
+		final String caption
+	){
+		this(caption,null,caption,null);
 	}
 	
 	public ButtonExtra(
 		final String caption,
 		final String symbol
 	){
-		this(caption,symbol,null,null);
+		this(caption,symbol,caption,symbol);
 	}
 	
 	public ButtonExtra(
@@ -47,19 +50,39 @@ public class ButtonExtra extends JFXButton {
 		getStyleClass().add("btn-raised-2");
 		if(caption1!=null){
 			text1 = caption1;
-		}
-		if(symbol1!=null){
-			icon1 = Misc.getIcon(symbol1);
+		}else{
+			text1 = "";
 		}
 		if(caption2!=null){
 			text2 = caption2;
+		}else{
+			text2 = text1;
+		}
+		if(symbol1!=null){
+			icon1 = Misc.getIcon(symbol1);
+		}else{
+			icon1 = null;
 		}
 		if(symbol2!=null){
 			icon2 = Misc.getIcon(symbol2);
+		}else{
+			icon2 = icon1;
 		}
 		setText(text1);
 		setGraphic(icon1);
 		//setOnAction(eventHook);
+	}
+	
+	public ButtonExtra setStyleBy(String name){
+		final Predicate<String> filter = new Predicate<String>(){
+			@Override
+			public boolean test(String t) {
+				return t.startsWith("btn-raised");
+			}
+		};
+		getStyleClass().removeIf(filter);
+		getStyleClass().add(name);
+		return this;
 	}
 	
 	private boolean isToggle = false;
@@ -86,18 +109,50 @@ public class ButtonExtra extends JFXButton {
 		});
 		return this;
 	}	
+
 	
-	public ButtonExtra setStyleBy(String name){
-		final Predicate<String> filter = new Predicate<String>(){
-			@Override
-			public boolean test(String t) {
-				return t.startsWith("btn-raised");
+	private Task<Integer> task = null;
+	
+	public void setOnTask(
+		EventHandler<ActionEvent> looper,
+		EventHandler<ActionEvent> finish
+	){
+		setOnAction(event->{
+			if(task!=null){
+				if(task.isDone()==false){				
+					return;
+				}
 			}
-		};
-		getStyleClass().removeIf(filter);
-		getStyleClass().add(name);
-		return this;
+			setText(text2);
+			setGraphic(icon2);
+			task = new Task<Integer>(){
+				@Override
+				protected Integer call() throws Exception {
+					final ActionEvent e0 = new ActionEvent(task,event.getTarget());
+					looper.handle(e0);
+					return 0;
+				}
+			};
+			task.setOnSucceeded(e1->{
+				setText(text1);
+				setGraphic(icon1);
+				if(finish!=null){
+					finish.handle(event);
+				}
+			});
+			task.setOnCancelled(e2->{
+				setText(text1);
+				setGraphic(icon1);
+			});
+			task.setOnFailed(e3->{
+				setText(text1);
+				setGraphic(icon1);
+			});			
+			new Thread(task,"ButtonExtra-task").start();
+		});
 	}
+			
+	
 	
 	/*private EventHandler<ActionEvent> eventStart = null;
 	

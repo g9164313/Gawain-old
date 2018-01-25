@@ -80,11 +80,9 @@ public class BtnScript extends JFXButton {
 	/*public void setOnCancelled(EventHandler<WorkerStateEvent> value){
 		hook1 = value;
 	}
-	
 	public void setOnFailed(EventHandler<WorkerStateEvent> value){
 		hook2 = value;
 	}
-	
 	public void setOnSucceeded(EventHandler<WorkerStateEvent> value){
 		hook3 = value;
 	}*/

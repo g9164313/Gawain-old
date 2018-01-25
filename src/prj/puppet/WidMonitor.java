@@ -5,13 +5,13 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.Node;
-import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.shape.Rectangle;
 import narl.itrc.Misc;
@@ -27,6 +27,69 @@ public class WidMonitor extends WidImageView {
 	
 	private String addr = null;
 	
+	private final static int CMD_CLICK = 1; 
+	private final static int CMD_RECOG = 2;
+	
+	private static class Bundle {
+		public int cmd = 0;
+		public int[] arg = {0,0,0,0};
+		public Bundle(int... val){
+			cmd = val[0];
+			for(int i=1; i<val.length; i++){
+				if((i-1)>=arg.length){
+					break;
+				}
+				arg[i-1] = val[i];
+			}
+		}
+	};
+	
+	private ArrayBlockingQueue<Bundle> queCommand = new ArrayBlockingQueue<Bundle>(10);
+	
+	private ArrayBlockingQueue<String> queRespone = new ArrayBlockingQueue<String>(10);
+	
+	public void click(
+		final int pos_x, 
+		final int pos_y
+	){
+		try {
+			queCommand.put(new Bundle(CMD_CLICK,pos_x,pos_y));
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public double recognize(
+		final int roi_x, final int roi_y,
+		final int roi_w, final int roi_h
+	){
+		try {
+			queCommand.put(new Bundle(
+				CMD_RECOG,
+				roi_x,roi_y,
+				roi_w,roi_h
+			));
+			return Double.valueOf(queRespone.take());
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		} catch (NumberFormatException e) {
+			e.printStackTrace();
+		}
+		return 0.;
+	}
+	
+	/**
+	 * It is a convenience method for script engine
+	 * @param val
+	 */
+	public void delay_sec(int val){		
+		try {
+			TimeUnit.SECONDS.sleep(val);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
+	
 	public void loopStart(final String ip_addr){		
 		if(core!=null){
 			if(core.isDone()==false){
@@ -39,11 +102,30 @@ public class WidMonitor extends WidImageView {
 		core = new Task<Integer>(){
 			@Override
 			protected Integer call() throws Exception {
-				while(isCancelled()==false){
-					takeOutputEvent();
-					//process some interrupted events!!!!
-					TimeUnit.MILLISECONDS.sleep(250);
+				try{
+				while(isCancelled()==false){					
+					//Thread.holdsLock()
+					//process some interrupted events!!!!					
+					if(queCommand.isEmpty()==false){
+						Bundle bnd = queCommand.poll();
+						Misc.logv("command = %d", bnd.cmd);
+						switch(bnd.cmd){
+						case CMD_CLICK:							
+							clickTarget(bnd.arg[0],bnd.arg[1]);
+							break;
+						case CMD_RECOG:
+							String txt = recognizeDigital(bnd.arg);
+							queRespone.put(txt);
+							break;
+						}
+					}else{
+						takeOutputEvent();
+						TimeUnit.MILLISECONDS.sleep(247);
+					}					
 				}
+			} catch (InterruptedException e) {
+	            System.err.println("Interrupted."+e.getMessage());
+	        }
 				return 0;
 			}
 		};
@@ -60,12 +142,23 @@ public class WidMonitor extends WidImageView {
 		}
 	}
 	
+	private EventHandler<ActionEvent> eventHookClick = null;
+
+	public WidMonitor setHookEvent(EventHandler<ActionEvent> event){
+		eventHookClick = event;
+		return this;
+	}
+	
 	private EventHandler<ActionEvent> eventDefault = new EventHandler<ActionEvent>(){
 		@Override
 		public void handle(ActionEvent event) {
+			//it should be invoked by event-thread~~~
 			int cx = getCursorX();
 			int cy = getCursorY();
 			sendInputMouse(cx,cy);
+			if(eventHookClick!=null){
+				eventHookClick.handle(event);
+			}
 		}
 	};
 	//------------------------//
@@ -115,7 +208,6 @@ public class WidMonitor extends WidImageView {
 			setOnMouseClicked(null);
 			setClickEvent(eventDefault);
 		});
-		
 	}
 	
 	public void markClear(){
@@ -126,48 +218,16 @@ public class WidMonitor extends WidImageView {
 			markROI = null;
 		}
 	}
-		
-	private Task<Double> taskRecog = null;
-	
-	public void recognize(final int[] roi,final Label txt){
-		if(taskRecog!=null){
-			if(taskRecog.isDone()==false){				
-				return;
-			}
-		}
-		if(roi!=null){
-			markSet(roi);
-		}
-		taskRecog = new Task<Double>(){
-			@Override
-			protected Double call() throws Exception {
-				return recognizeDigi(markROI);
-			}
-		};
-		taskRecog.setOnSucceeded(event->{
-			if(txt==null){
-				return;
-			}
-			try {
-				double val = taskRecog.get();
-				txt.setText(String.format("%.3E",val));
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		});
-		new Thread(taskRecog,"task-recognize").start();		
-	}	
 	//------------------------//
 	
-	/*private void clickTarget(final int[] roi){
+	private void clickTarget(final int pos_x, final int pos_y){
 		try {
-			Node obj = addCircle(roi);
+			Node obj = addCircle(pos_x, pos_y, 13);
 			takeOutputEvent();
 			TimeUnit.MILLISECONDS.sleep(500);
 			String parm = String.format(
 				"mouse-click=%d,%d", 
-				roi[0]+roi[2]/2, 
-				roi[1]+roi[3]/2
+				pos_x,pos_y
 			);
 			sendInputEvent(parm);
 			TimeUnit.MILLISECONDS.sleep(500);
@@ -177,30 +237,31 @@ public class WidMonitor extends WidImageView {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-	}*/
+	}
 		
-	private double recognizeDigi(final int[] roi){
-		
+	private String recognizeDigital(final int[] roi){
 		final String name1 = "tmp.png";
 		final String name2 = "tmp.pbm";
 		Node obj = addMark(roi);
-			
 		takeOutputEvent();
 		snapData(name1,roi);
-		
 		String txt = null;
 		txt = Misc.exec("convert",name1,"-resize","300%",name2);
 		txt = Misc.exec("ocrad",name2);
-		txt = txt.trim().replaceAll("\\s+","");//zero may be recognized as character 'O'
-		double val = 0.;
-		try{
-			val = Double.valueOf(txt);
-			Misc.logv("recognize '%s' as %f", txt, val);
-		}catch(NumberFormatException e){
-			Misc.loge("fail to recognize '%s'", txt);
-		}	
+		txt = txt.trim()
+			.replaceAll("o","0")
+			.replaceAll("O","0")
+			.replaceAll("l","1")
+			.replaceAll("\\s+","");
+		//double val = 0.;
+		//try{
+		//	val = Double.valueOf(txt);
+		///	Misc.logv("recognize '%s' as %f", txt, val);
+		//}catch(NumberFormatException e){
+		//	Misc.loge("fail to recognize '%s'", txt);
+		//}	
 		delMark(obj);
-		return val;
+		return txt;
 	}
 	//------------------------//
 	

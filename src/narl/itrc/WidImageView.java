@@ -181,10 +181,10 @@ public class WidImageView extends StackPane {
 			Math.min(roi[2], roi[3])
 		);
 	}
-	public Node addCircle(int x, int y, int rad){
-		x = x - infoGeom[0]/2;//why we need this offset ??
-		y = y - infoGeom[1]/2;//why we need this offset ??
-		final Circle itm = new Circle(x,y,rad);
+	public Node addCircle(int xx, int yy, int rad){
+		xx = xx - infoGeom[0]/2;//why we need this offset ??
+		yy = yy - infoGeom[1]/2;//why we need this offset ??
+		final Circle itm = new Circle(xx,yy,rad);
 		itm.setFill(Color.TRANSPARENT);
 		itm.setStroke(Color.CRIMSON);
 		itm.setStrokeWidth(3);

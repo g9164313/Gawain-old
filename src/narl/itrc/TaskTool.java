@@ -5,6 +5,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import com.sun.glass.ui.Application;
 
 import javafx.scene.Node;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 
 /**
@@ -61,6 +62,24 @@ public class TaskTool {
 		
 		return map_text.get(id);
 	}
+	
+	public static String getText(final TextArea box){
+		
+		final long id = Thread.currentThread().getId();
+		
+		if(Application.isEventThread()==true){
+			return box.getText();
+		}
+		final Runnable event = new Runnable(){
+			@Override public void run() {
+				map_text.put(id,box.getText());
+			}
+		};
+		Application.invokeAndWait(event);
+		
+		return map_text.get(id);
+	}
+	
 	
 	public static void clear(){
 		map_text.remove(Thread.currentThread().getId());
