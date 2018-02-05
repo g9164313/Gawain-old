@@ -1,6 +1,11 @@
 package narl.itrc;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.util.function.Predicate;
+
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
 
 import com.jfoenix.controls.JFXButton;
 
@@ -56,7 +61,7 @@ public class ButtonExtra extends JFXButton {
 		if(caption2!=null){
 			text2 = caption2;
 		}else{
-			text2 = text1;
+			text2 = "";
 		}
 		if(symbol1!=null){
 			icon1 = Misc.getIcon(symbol1);
@@ -66,7 +71,7 @@ public class ButtonExtra extends JFXButton {
 		if(symbol2!=null){
 			icon2 = Misc.getIcon(symbol2);
 		}else{
-			icon2 = icon1;
+			icon2 = null;
 		}
 		setText(text1);
 		setGraphic(icon1);
@@ -111,6 +116,8 @@ public class ButtonExtra extends JFXButton {
 	}	
 
 	
+	public Object arg = null;
+	
 	private Task<Integer> task = null;
 	
 	public void setOnTask(
@@ -125,11 +132,13 @@ public class ButtonExtra extends JFXButton {
 			}
 			setText(text2);
 			setGraphic(icon2);
+			
+			final ActionEvent eventRef = new ActionEvent(this,event.getTarget());
+			
 			task = new Task<Integer>(){
 				@Override
-				protected Integer call() throws Exception {
-					final ActionEvent e0 = new ActionEvent(task,event.getTarget());
-					looper.handle(e0);
+				protected Integer call() throws Exception {					
+					looper.handle(eventRef);
 					return 0;
 				}
 			};
@@ -137,7 +146,7 @@ public class ButtonExtra extends JFXButton {
 				setText(text1);
 				setGraphic(icon1);
 				if(finish!=null){
-					finish.handle(event);
+					finish.handle(eventRef);
 				}
 			});
 			task.setOnCancelled(e2->{
@@ -151,8 +160,40 @@ public class ButtonExtra extends JFXButton {
 			new Thread(task,"ButtonExtra-task").start();
 		});
 	}
-			
 	
+	
+	public void setOnTaskScript(
+		final String text,
+		final String bindingKey,
+		final Object bindingVal
+	){
+		setOnTask(eventLooper->{			
+			try {
+				ScriptEngine core = new ScriptEngineManager().getEngineByName("nashorn");
+				core.put(bindingKey, bindingVal);
+				core.eval(text);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}			
+		},null);
+	}
+	
+	public void setOnTaskScriptFile(
+		final String fileName,
+		final String bindingKey,
+		final Object bindingVal
+	){		
+		setOnTask(eventLooper->{
+			try {
+				BufferedReader stm = new BufferedReader(new FileReader(fileName));
+				ScriptEngine core = new ScriptEngineManager().getEngineByName("nashorn");
+				core.put(bindingKey, bindingVal);
+				core.eval(stm);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}			
+		},null);		
+	}
 	
 	/*private EventHandler<ActionEvent> eventStart = null;
 	

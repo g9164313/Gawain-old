@@ -1,5 +1,7 @@
 package prj.daemon;
 
+import java.io.File;
+
 import javafx.geometry.Side;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
@@ -50,26 +52,35 @@ public class PanFringeEditor extends PanBase{
 		tabInfo.getTabs().addAll(tab1,tab2);
 
 		final Button btnTest = PanBase.genButton2("test-image",null);
+		btnTest.setMaxWidth(Double.MAX_VALUE);
 		btnTest.setOnAction(e->{
-			map.loadImageFile("../bang/roi-01.png");
+			File fs = dia.showOpenDialog(Misc.getParent(e));
+			if(fs!=null){
+				map.loadImageFile(fs.toString());
+			}
+			//map.loadImageFile("../bang/target.png");
 		});
 
 		final Button btnLoad = PanBase.genButton2("load",null);
+		btnLoad.setMaxWidth(Double.MAX_VALUE);
 		btnLoad.setOnAction(e->{
 			map.load(reportName);
 		});
 		final Button btnSave = PanBase.genButton2("save",null);
+		btnSave.setMaxWidth(Double.MAX_VALUE);
 		btnSave.setOnAction(e->{
 			map.save(reportName);
 		});
 		
 		final Button btnCalculate = PanBase.genButton2("Calculate",null);
+		btnCalculate.setMaxWidth(Double.MAX_VALUE);
 		btnCalculate.setOnAction(e->{
 			tabInfo.getSelectionModel().select(tab2);
 			map.calculate();
 		});
 		
 		final Button btnUpdate = PanBase.genButton2("Update",null);
+		btnUpdate.setMaxWidth(Double.MAX_VALUE);
 		btnUpdate.setOnAction(e->{
 			map.update();
 		});

@@ -81,6 +81,24 @@ public class TaskTool {
 	}
 	
 	
+	public static int[] getTextRoi(final TextField[] roi){		
+		final int[] roiVal = {0,0,0,0};		
+		final Runnable event = new Runnable(){
+			@Override public void run() {
+				roiVal[0] = Integer.valueOf(roi[0].getText());
+				roiVal[1] = Integer.valueOf(roi[1].getText());
+				roiVal[2] = Integer.valueOf(roi[2].getText());
+				roiVal[3] = Integer.valueOf(roi[3].getText());
+			}
+		};
+		if(Application.isEventThread()==true){			
+			event.run();
+		}else{
+			Application.invokeAndWait(event);
+		}		
+		return roiVal;
+	}
+	
 	public static void clear(){
 		map_text.remove(Thread.currentThread().getId());
 	}	

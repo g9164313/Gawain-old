@@ -107,7 +107,7 @@ public class WidFringeMap extends WidFringeView {
 		try{
 			RealVector xx = new LUDecomposition(AA).getSolver().solve(BB);
 			for(int i=0; i<terms; i++){
-				boxCoff[i].setText(String.format("%.4f", xx.getEntry(i)));
+				boxCoff[i].setText(String.format("%.4f", xx.getEntry(i)/4.));
 			}
 			update();
 		}catch(SingularMatrixException e){
@@ -153,6 +153,7 @@ public class WidFringeMap extends WidFringeView {
 		for(MaskData dat:cmask.lstData){
 			int idx = (int)(((dat.model-min)/(max-min)) * 255); 
 			dat.color = rainbow[idx];
+			//TODO: out of bounds???
 			img.setArgb(
 				dat.locaX, 
 				dat.locaY,

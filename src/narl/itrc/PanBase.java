@@ -120,7 +120,7 @@ public abstract class PanBase {
 	 * @return self
 	 */
 	public PanBase appear(){
-		return appear(create_stage(null));
+		return appear(null);
 	}
 	
 	/**
@@ -128,10 +128,10 @@ public abstract class PanBase {
 	 * @param stg - parent stage
 	 * @return self
 	 */
-	public PanBase appear(Stage stg){
-		stage = stg;
-		prepare(stg);
-		stg.show();
+	public PanBase appear(Stage owner){
+		stage = create_stage(owner);
+		prepare(stage);
+		stage.show();
 		return this;
 	}
 	

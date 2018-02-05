@@ -820,6 +820,8 @@ public class Misc {
 			ProcessBuilder pb = new ProcessBuilder(cmd);
 			pb.redirectOutput();
 			pb.redirectError();
+			pb.directory(Misc.dirSock);
+			
 			Process pc = pb.start();
 			pc.waitFor();
 			byte[] buf = new byte[2048];

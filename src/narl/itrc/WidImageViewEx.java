@@ -46,8 +46,8 @@ public abstract class WidImageViewEx extends WidImageView {
 		StackPane.setMargin(layCtrl, new Insets(7,7,7,7));
 		StackPane.setAlignment(layCtrl, Pos.CENTER_LEFT);				
 		
-		getChildren().addAll(root);
-		root.toFront();
+		//getChildren().addAll(root);
+		//root.toFront();
 	}
 	//-----------------------------------------//
 	

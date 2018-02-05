@@ -59,6 +59,23 @@ public class WidMonitor extends WidImageView {
 		}
 	}
 	
+	/**
+	 * recognize digital character via the third party tool.
+	 * @param roi - array present [x,y,width,height] 
+	 * @return - result
+	 */
+	public double recognize(final int[] roi){
+		return recognize(roi[0],roi[1],roi[2],roi[3]);
+	}
+	
+	/**
+	 *  recognize digital character via the third party tool.
+	 * @param roi_x - location X<p>
+	 * @param roi_y - location Y<p>
+	 * @param roi_w - width <p>
+	 * @param roi_h - height<p>
+	 * @return - result
+	 */
 	public double recognize(
 		final int roi_x, final int roi_y,
 		final int roi_w, final int roi_h
@@ -77,6 +94,7 @@ public class WidMonitor extends WidImageView {
 		}
 		return 0.;
 	}
+	
 	
 	/**
 	 * It is a convenience method for script engine
@@ -108,7 +126,7 @@ public class WidMonitor extends WidImageView {
 					//process some interrupted events!!!!					
 					if(queCommand.isEmpty()==false){
 						Bundle bnd = queCommand.poll();
-						Misc.logv("command = %d", bnd.cmd);
+						//Misc.logv("command = %d", bnd.cmd);
 						switch(bnd.cmd){
 						case CMD_CLICK:							
 							clickTarget(bnd.arg[0],bnd.arg[1]);
@@ -239,15 +257,15 @@ public class WidMonitor extends WidImageView {
 		}
 	}
 		
-	private String recognizeDigital(final int[] roi){
-		final String name1 = "tmp.png";
-		final String name2 = "tmp.pbm";
+	public String recognizeDigital(final int[] roi){
+		final String name1 = Misc.pathSock+"tmp.png";
+		final String name2 = Misc.pathSock+"tmp.pbm";
 		Node obj = addMark(roi);
 		takeOutputEvent();
 		snapData(name1,roi);
 		String txt = null;
-		txt = Misc.exec("convert",name1,"-resize","300%",name2);
-		txt = Misc.exec("ocrad",name2);
+		txt = Misc.exec("convert",name1,name2);
+		txt = Misc.exec("ocrad","--filter=numbers","--scale=3",name2);
 		txt = txt.trim()
 			.replaceAll("o","0")
 			.replaceAll("O","0")

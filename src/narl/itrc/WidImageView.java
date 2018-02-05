@@ -265,6 +265,9 @@ public class WidImageView extends StackPane {
 	}
 	//-----------------------------------//
 	
+	public void snapData(){
+		snapData(Misc.pathSock+"snap.png",null);
+	}
 	public void snapData(String name){
 		snapData(name,null);
 	}
@@ -285,7 +288,8 @@ public class WidImageView extends StackPane {
 				"png", 
 				new File(name)
 			);
-			Misc.logv("snap data~~");
+			//how to show notify??
+			//Misc.logv("snap data~~");
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
