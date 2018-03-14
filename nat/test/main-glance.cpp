@@ -103,11 +103,13 @@ void stopNanoPZ(){
 }
 //------------------------------------//
 
-void phase_calculate(int num, ...){
+void phase_calculate(const char* dir,int num, ...){
+
+	char temp[200];
 
 	Mat img[10];
 
-	Rect roi(1613,1285,170,170);
+	Rect roi(417,211,840,840);
 
 	va_list valist;
 	va_start(valist, num);
@@ -116,7 +118,8 @@ void phase_calculate(int num, ...){
 		if(name==NULL){
 			continue;
 		}
-		Mat src = imread(name,IMREAD_GRAYSCALE);
+		sprintf(temp,"%s/%s",dir,name);
+		Mat src = imread(temp,IMREAD_GRAYSCALE);
 		img[i] = src(roi);
 
 	}
@@ -126,10 +129,10 @@ void phase_calculate(int num, ...){
 
 	for(int y=0; y<roi.height; y++){
 		for(int x=0; x<roi.width; x++){
-			float I1 = img[1].at<uint8_t>(y,x);
-			float I2 = img[2].at<uint8_t>(y,x);
-			float I3 = img[3].at<uint8_t>(y,x);
-			float I4 = img[4].at<uint8_t>(y,x);
+			float I1 = img[0].at<uint8_t>(y,x);
+			float I2 = img[1].at<uint8_t>(y,x);
+			float I3 = img[2].at<uint8_t>(y,x);
+			float I4 = img[3].at<uint8_t>(y,x);
 			float rad = (I4 - I2) / (I1 - I3);
 			phi.at<float>(y,x) = atan(rad);
 		}
@@ -144,20 +147,24 @@ void phase_calculate(int num, ...){
 
 	applyColorMap(nod, map, COLORMAP_JET);
 
-	imwrite("phi-phi.png",map);
+	sprintf(temp,"%s/%s",dir,"result-deg.png");
+	imwrite(temp,map);
 	return;
 }
 //------------------------------------//
 
 int main(int argc, char* argv[]) {
+
 	phase_calculate(
-		5,
-		NULL,
-		"./sample/QQ2.png",
-		"./sample/QQ3.png",
-		"./sample/QQ4.png",
-		"./sample/QQ5.png"
+		"./grille/michelson",
+		4,
+		"ss1.jpg",
+		"ss2.jpg",
+		"ss3.jpg",
+		"ss4.jpg"
 	);
+	cout<<"process...."<<endl;
+
 	return 0;
 }
 

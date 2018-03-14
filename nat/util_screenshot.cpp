@@ -3,10 +3,10 @@
 #include <jni.h>
 #include <iostream>
 
+#ifdef _MSC_VER
+
 #include <Windows.h>
 #include <atlimage.h>
-
-#ifdef _MSC_VER
 
 using namespace std;
 using namespace Gdiplus;

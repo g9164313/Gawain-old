@@ -20,8 +20,8 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_Misc_writeRGBA(
 	jintArray roi
 ) {
 
-	jint* info = env->GetIntArrayElements(j_info, NULL);
-	env->ReleaseIntArrayElements(j_info, info, 0);
+	//jint* info = env->GetIntArrayElements(j_info, NULL);
+	//env->ReleaseIntArrayElements(j_info, info, 0);
 }
 
 #ifdef _MSC_VER
@@ -45,7 +45,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_Misc_sendMouseClick(
 	input.mi.mouseData = 0;
 	input.mi.dwExtraInfo = NULL;
 	input.mi.time = 0;
-	SendInput(1, &input, sizeof(INPUT));
+	API(1, &input, sizeof(INPUT));
 }
 
 extern "C" JNIEXPORT void JNICALL Java_narl_itrc_Misc_sendKeyboardText(

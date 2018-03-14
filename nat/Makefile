@@ -136,16 +136,17 @@ else
 endif
 	
 
-#$(TARGET_EXE):  ./running/main2.cpp ./running/misc.cpp ./util_cv.cpp $(CORE_FILE) $(LIB_SFRISO)
-$(TARGET_EXE):  ./running/main-xx1.cpp
-#$(TARGET_EXE):  ./running/main-glance.cpp
+#$(TARGET_EXE):  ./test/main2.cpp ./test/misc.cpp ./util_cv.cpp $(CORE_FILE) $(LIB_SFRISO)
+#$(TARGET_EXE):  ./test/main-xx1.cpp
+$(TARGET_EXE):  ./test/main-xx5.cpp
+#$(TARGET_EXE):  ./test/main-glance.cpp
 #$(TARGET_EXE):  $(wildcard ./traincascade/*.cpp)
 #$(TARGET_EXE):  ./running/FlyCap2.cpp
 	$(CC) -o $@ $^ $(CC_FLAG) $(LD_LIBS)
 
-all: $(CORE_SO)
+#all: $(CORE_SO)
 #all: $(CORE_SO) $(VISION_SO)
-#all: $(TARGET_EXE)
+all: $(TARGET_EXE)
 #all: $(TARGET_EXE) $(CORE_SO) $(VISION_SO)
 
 clean:
