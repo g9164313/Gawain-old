@@ -9,7 +9,7 @@ import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.util.Duration;
 
-public abstract class TskAction implements EventHandler<ActionEvent> {
+public abstract class TaskAction implements EventHandler<ActionEvent> {
 
 	private static final String DEF_NAME = "TskAction";
 	
@@ -27,18 +27,18 @@ public abstract class TskAction implements EventHandler<ActionEvent> {
 	 */
 	public boolean isTrigger = false;
 	
-	public TskAction(){		
+	public TaskAction(){		
 	}
 	
-	public TskAction(String name){
+	public TaskAction(String name){
 		this(name,null);
 	}
 	
-	public TskAction(PanBase root){
+	public TaskAction(PanBase root){
 		this(DEF_NAME,root);
 	}
 	
-	public TskAction(String title,PanBase panel){
+	public TaskAction(String title,PanBase panel){
 		setName(title);
 		setRoot(panel);
 	}
@@ -191,8 +191,8 @@ public abstract class TskAction implements EventHandler<ActionEvent> {
 				timer.stop();
 				timer = null;//reset this				
 				for(Object obj:lst){
-					if(obj instanceof TskAction){
-						((TskAction)obj).isTrigger = false;//reset it for next turn~~~~
+					if(obj instanceof TaskAction){
+						((TaskAction)obj).isTrigger = false;//reset it for next turn~~~~
 					}
 				}
 			}
@@ -209,9 +209,9 @@ public abstract class TskAction implements EventHandler<ActionEvent> {
 				}
 				Object obj = lst[idx];
 				//how do we trigger???
-				if(obj instanceof TskAction){
+				if(obj instanceof TaskAction){
 					
-					TskAction act = (TskAction)obj;
+					TaskAction act = (TaskAction)obj;
 					if(act.isTrigger==false){
 						act.isTrigger=true;
 						act.handle(event);

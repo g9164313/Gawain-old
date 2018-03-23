@@ -449,7 +449,7 @@ public abstract class PanBase {
 	
 	public void spinning(
 		final boolean flag,
-		final TskAction task
+		final TaskAction task
 	){
 		root.setDisable(flag);
 		panTask.setVisible(true);

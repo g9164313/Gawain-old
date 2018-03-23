@@ -15,6 +15,7 @@ import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.util.Duration;
+import prj.scada.FieldNumSlider;
 
 public class WidDiagram extends AnchorPane {
 

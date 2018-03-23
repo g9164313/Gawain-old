@@ -252,7 +252,7 @@ public abstract class DevMotion {
 	
 	public AtomicBoolean asyncAnchorTo(final String unit,Double... location){
 		asyncDone.set(false);
-		asyncThread = TskAction.create(
+		asyncThread = TaskAction.create(
 			"asyncArchTo", 
 			asyncThread,
 			new Task<Void>(){
@@ -276,7 +276,7 @@ public abstract class DevMotion {
 	
 	public AtomicBoolean asyncMoveTo(final String unit,Double... offset){
 		asyncDone.set(false);
-		asyncThread = TskAction.create(
+		asyncThread = TaskAction.create(
 			"asyncMoveTo",
 			asyncThread,
 			new Task<Void>(){

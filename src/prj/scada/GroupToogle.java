@@ -1,4 +1,4 @@
-package narl.itrc;
+package prj.scada;
 
 import com.jfoenix.controls.JFXRadioButton;
 
@@ -10,7 +10,7 @@ import javafx.scene.control.Toggle;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.VBox;
 
-public class GrpToogle extends VBox {
+public class GroupToogle extends VBox {
 
 	private String[] arg;
 		
@@ -18,7 +18,7 @@ public class GrpToogle extends VBox {
 	
 	public ToggleGroup grp;
 	
-	public GrpToogle(String... arg){
+	public GroupToogle(String... arg){
 		
 		this.arg = arg;
 		
@@ -70,7 +70,7 @@ public class GrpToogle extends VBox {
 		return propName;
 	}
 	
-	public GrpToogle select(int idx){
+	public GroupToogle select(int idx){
 		if(idx>=arg.length){
 			return this;
 		}

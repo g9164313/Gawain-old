@@ -22,7 +22,6 @@ import narl.itrc.BoxValFloat;
 import narl.itrc.BoxValInteger;
 import narl.itrc.DevTTY;
 import narl.itrc.Gawain;
-import narl.itrc.GrpToogle;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
 import narl.itrc.PanDecorate;
@@ -462,7 +461,7 @@ public class DevSQM160 extends DevTTY {
 	//system information - 1
 	private BoxValFloat boxTimeBase = new BoxValFloat(0.1f,2).setRange(0.1f, 2.f);
 	private JFXCheckBox chkSimulateMode = new JFXCheckBox("Simulation Mode");
-	private GrpToogle grpDiaplayMode = new GrpToogle(
+	private GroupToogle grpDiaplayMode = new GroupToogle(
 		"Å/s，kÅ",
 		"nm/s，μm",
 		"Hz",

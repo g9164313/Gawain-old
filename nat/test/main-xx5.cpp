@@ -9,7 +9,6 @@
 #include <Windows.h>
 typedef unsigned short uint16_t;
 #endif
-
 #include <fstream>
 #include <algorithm>
 #include <iostream>
@@ -17,9 +16,9 @@ typedef unsigned short uint16_t;
 #include <opencv2/opencv.hpp>
 #include <ctime>
 #include <cmath>
+
 using namespace cv;
 using namespace std;
-
 
 class Token{
 private:
@@ -69,7 +68,68 @@ public:
 	}
 };
 
-size_t prodx(size_t cnt){
+class Combination{
+public:
+	Combination(int n, int k): N(n), K(k), pool(NULL), total(0L){
+		init();
+	}
+	~Combination(){
+		free(pool);
+	}
+	void list(size_t idx, size_t len){
+		_list(cout,idx,len);
+	}
+	void listAll(){
+		_list(cout,0,total);
+	}
+	friend ostream& operator<<(ostream& os, Combination& self){
+		self._list(os,0,self.total);
+		return os;
+	}
+private:
+	uint16_t N, K;
+	uint16_t* pool;
+	size_t total;
+	void init(){
+		total = comb(N,K);
+		pool = (uint16_t*)calloc(K*total,sizeof(uint16_t));
+
+		for(uint16_t k=1; k<=(K-1); k++){
+			uint16_t val = k;
+			uint16_t* ptr = pool+(k-1)*total;
+			for(uint16_t cnt=(N-1);	cnt>=(K-1);	--cnt, ++val){
+				size_t len = comb(cnt,K-1);
+				for(uint16_t i=0; i<len; i++){
+					ptr[i] = val;
+				}
+				ptr+=len;
+			}
+		}
+		cout<<endl;
+	}
+	void _list(ostream& os, size_t idx, size_t len){
+		for(size_t i=idx; i<len; i++){
+			for(uint16_t j=0; j<K; j++){
+				char txt[100];
+				sprintf(txt,"%02d, ",(int)(pool[j*total+i]));
+				os<<txt;
+			}
+			os<<endl;
+		}
+	}
+	static size_t prodx(size_t cnt){
+		size_t res = 1;
+		for(size_t i=1; i<=cnt; i++){
+			res = res * i;
+		}
+		return res;
+	}
+	static size_t comb(size_t NN, size_t KK){
+		return prodx(NN) / (prodx(NN-KK)*prodx(KK));
+	}
+};
+
+static size_t prodx(size_t cnt){
 	size_t res = 1;
 	for(size_t i=1; i<=cnt; i++){
 		res = res * i;
@@ -191,6 +251,44 @@ void generateFileCSV(
 	stm.close();
 }
 
+void task_generate_comb(){
+	Combination c(5,2);
+	c.listAll();
+}
+
+void task_generate_data(){
+	const int AUTH_COUNT=10;
+	vector<Token> auth,fake;
+	cout<<"gather authority data..."<<endl;
+	auth = gatherLotter("./data-lotter/result.txt");
+	cout<<endl<<"start to generate fake data..."<<endl;
+	fake = generateFakeLotter(AUTH_COUNT*100, auth);
+	cout<<endl<<endl<<"dump to CSV file..."<<endl;
+	generateFileCSV(
+		"../tf-model/official/wide_deep/census_data/lotter.data",
+		auth, 0, AUTH_COUNT,
+		fake, 0, 0
+	);
+	fake.clear();
+	generateFileCSV(
+		"../tf-model/official/wide_deep/census_data/lotter.test",
+		auth, AUTH_COUNT, 0,
+		fake, -1, 0
+	);
+	cout<<"Done!!"<<endl;
+}
+
+#ifdef _MSC_VER
+int _tmain(int argc, _TCHAR* argv[]){
+#else
+int main(int argc, char* argv[]) {
+#endif
+	//task_generate_data();
+	task_generate_comb();
+	return 0;
+}
+//------------------------------------------//
+
 void generateFigure(const char* name,const int* value){
 
 	Mat node1(3,3,CV_8UC1);
@@ -214,43 +312,5 @@ void generateFigure(const char* name,const int* value){
 
 	imwrite(name, node3);
 }
-
-#ifdef _MSC_VER
-int _tmain(int argc, _TCHAR* argv[]){
-#else
-int main(int argc, char* argv[]) {
-#endif
-
-	vector<Token> auth,fake;
-
-	cout<<"gather authority data..."<<endl;
-
-	auth = gatherLotter("./data-lotter/result.txt");
-
-	cout<<endl<<"start to generate fake data..."<<endl;
-
-	fake = generateFakeLotter(prodx(6), auth);
-
-	cout<<endl<<endl<<"dump to CSV file..."<<endl;
-
-	generateFileCSV(
-		"../tf-model/official/wide_deep/census_data/lotter.data",
-		auth, 0, 10,
-		fake, 0, 0
-	);
-
-	//auth = gatherLotter("./data-lotter/result.txt", 100);
-	//fake = generateFakeLotter(prodx(3), auth);
-	fake.clear();
-	generateFileCSV(
-		"../tf-model/official/wide_deep/census_data/lotter.test",
-		auth, 10, 0,
-		fake, -1, 0
-	);
-	cout<<"Done!!"<<endl;
-
-	return 0;
-}
-
 
 

@@ -16,7 +16,7 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 
-public abstract class TskDialog extends TskAction {
+public abstract class TaskDialog extends TaskAction {
 	
 	/**
 	 * User decide whether the dialog may be closed.<p>
@@ -27,7 +27,7 @@ public abstract class TskDialog extends TskAction {
 	
 	protected String useSplash = null;
 	
-	public TskDialog(){
+	public TaskDialog(){
 		super("TskDialog");
 	}
 

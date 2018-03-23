@@ -24,7 +24,7 @@ import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.WindowEvent;
 import narl.itrc.BoxLogger;
-import narl.itrc.BtnScript;
+import narl.itrc.ButtonScript;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
 
@@ -207,7 +207,7 @@ public class PanSputter extends PanBase {
 			txtScript[1].setText(Misc.trimPathAppx(pathScript));
 		}
 		
-		final BtnScript btnExec = new BtnScript("執行",mapper);
+		final ButtonScript btnExec = new ButtonScript("執行",mapper);
 		btnExec.setOnAction(beg_event->{
 			if(btnExec.eval(pathScript)==false){
 				final Alert dia = new Alert(AlertType.INFORMATION);

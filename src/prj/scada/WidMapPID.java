@@ -21,7 +21,6 @@ import javafx.scene.layout.HBox;
 import javafx.scene.media.MediaPlayer.Status;
 import javafx.util.Duration;
 import eu.hansolo.medusa.Gauge.SkinType;
-import narl.itrc.FieldNumSlider;
 import narl.itrc.Misc;
 import narl.itrc.WidDiagram;
 import narl.itrc.WidValueNote;

@@ -13,9 +13,9 @@ import java.util.LinkedList;
 import javafx.concurrent.Task;
 import narl.itrc.Gawain;
 import narl.itrc.Misc;
-import narl.itrc.TskDialog;
+import narl.itrc.TaskDialog;
 
-public class Loader2 extends TskDialog {
+public class Loader2 extends TaskDialog {
 
 	public Loader2(){
 		setName("Tsk-Loader");

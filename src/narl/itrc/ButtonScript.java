@@ -23,22 +23,22 @@ import javafx.scene.image.ImageView;
  * @author qq
  *
  */
-public class BtnScript extends JFXButton {
+public class ButtonScript extends JFXButton {
 
 	private ImageView[] icon = {
 		Misc.getIcon("play.png"),
 		Misc.getIcon("pause.png")
 	};
 	
-	public BtnScript(String title){
+	public ButtonScript(String title){
 		this(title,"btn-raised-2",null);
 	}
 	
-	public BtnScript(String title,Object obj){
+	public ButtonScript(String title,Object obj){
 		this(title,"btn-raised-2",obj);
 	}
 	
-	public BtnScript(String title,String style,Object obj){		
+	public ButtonScript(String title,String style,Object obj){		
 		getStyleClass().add(style);
 		setText(title);
 		setMinWidth(110);
@@ -110,7 +110,7 @@ public class BtnScript extends JFXButton {
 				
 				result = null;//reset the previous result~~~
 				
-				parser.put("sys", BtnScript.this);//provide the basic or convenience functions 
+				parser.put("sys", ButtonScript.this);//provide the basic or convenience functions 
 				if(thiz!=null){
 					parser.put("dev",thiz);
 				}

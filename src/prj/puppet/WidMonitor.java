@@ -80,19 +80,22 @@ public class WidMonitor extends WidImageView {
 		final int roi_x, final int roi_y,
 		final int roi_w, final int roi_h
 	){
-		try {
-			queCommand.put(new Bundle(
-				CMD_RECOG,
-				roi_x,roi_y,
-				roi_w,roi_h
-			));
-			return Double.valueOf(queRespone.take());
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		} catch (NumberFormatException e) {
-			e.printStackTrace();
+		while(true){
+			String txt = null;
+			try {
+				queCommand.put(new Bundle(
+					CMD_RECOG,
+					roi_x,roi_y,
+					roi_w,roi_h
+				));
+				txt = queRespone.take();
+				return Double.valueOf(txt);
+			} catch (InterruptedException e) {
+				Misc.loge("fail to control queue");
+			} catch (NumberFormatException e) {
+				Misc.loge("fail to parse %s",txt);
+			}
 		}
-		return 0.;
 	}
 	
 	
@@ -267,6 +270,7 @@ public class WidMonitor extends WidImageView {
 		txt = Misc.exec("convert",name1,name2);
 		txt = Misc.exec("ocrad","--filter=numbers","--scale=3",name2);
 		txt = txt.trim()
+			.replaceAll("a","0")
 			.replaceAll("o","0")
 			.replaceAll("O","0")
 			.replaceAll("l","1")
