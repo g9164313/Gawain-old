@@ -240,7 +240,7 @@ Mat findMeshFromWafer(Mat& img, int gapSize){
 
 			float cy = ((-pA.x+pB.x)*sA*sB + sB*pA.y -sA*pB.y )/ (sB-sA);
 
-			mesh.at<Vec2w>(j,i) = Vec2w(cx, cy);
+			mesh.at<Vec2w>(j,i) = Vec2w(cx, cy);//TODO: negtive value
 		}
 	}
 	return mesh;
@@ -269,10 +269,44 @@ void pickupDieFromMesh(Mat& img, Mat& mesh, const char* dir){
 
 	Scalar green(0,250,0);
 
+	int maxWidth=0, maxHeight=0;
+
+	for(size_t j=0; j<mesh.rows-1; j++){
+		for(size_t i=0; i<mesh.cols-1; i++){
+
+			Vec2w tp_lf = mesh.at<Vec2w>(j  ,i  );
+			Vec2w tp_rh = mesh.at<Vec2w>(j  ,i+1);
+			Vec2w bm_rh = mesh.at<Vec2w>(j+1,i+1);
+			Vec2w bm_lf = mesh.at<Vec2w>(j+1,i  );
+
+			int lf = min(tp_lf[0], bm_lf[0]);
+			int rh = max(tp_rh[0], bm_rh[0]);
+			int tp = min(tp_lf[1], tp_rh[1]);
+			int bm = max(bm_rh[1], bm_lf[1]);
+
+			int ww = rh - lf;
+			int hh = bm - tp;
+
+			if(lf<0 || tp<0){
+				continue;
+			}
+			if(img.cols<=rh || img.rows<=bm){
+				continue;
+			}
+
+			if(ww>maxWidth ){
+				maxWidth = ww;
+			}
+			if(hh>maxHeight){
+				maxHeight= hh;
+			}
+		}
+	}
+	cout<<"maximum size=("<<maxWidth<<" , "<<maxHeight<<")"<<endl;
+
 	char name[200];
 
 	for(size_t j=0; j<mesh.rows-1; j++){
-
 		for(size_t i=0; i<mesh.cols-1; i++){
 
 			Vec2w tp_lf = mesh.at<Vec2w>(j  ,i  );
@@ -294,10 +328,20 @@ void pickupDieFromMesh(Mat& img, Mat& mesh, const char* dir){
 
 			Rect roi(lf,tp,(rh-lf+1),(bm-tp+1));
 
+			int rem_w = (roi.width <maxWidth )?(maxWidth - roi.width ):(0);
+			int rem_h = (roi.height<maxHeight)?(maxHeight- roi.height):(0);
+
 			Mat zone = img(roi);
+			Mat node;
+			copyMakeBorder(
+				zone, node,
+				0, rem_h,
+				0, rem_w,
+				BORDER_REPLICATE
+			);
 
 			sprintf(name,"%s/%03d-%03d.png", dir, (int)i, (int)j);
-			imwrite(name,zone);
+			imwrite(name,node);
 
 			sprintf(name,"%03d-%03d", (int)i, (int)j);
 			putText(img, name,

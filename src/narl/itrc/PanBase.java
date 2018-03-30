@@ -1,19 +1,16 @@
 package narl.itrc;
 
 import java.math.BigDecimal;
-import java.util.HashMap;
-import java.util.Optional;
 
 import com.jfoenix.controls.JFXButton;
-import com.jfoenix.controls.JFXProgressBar;
 import com.jfoenix.controls.JFXSpinner;
 import com.jfoenix.controls.JFXTextField;
 
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.FloatProperty;
 import javafx.beans.property.IntegerProperty;
-import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.property.StringProperty;
+import javafx.concurrent.Task;
+import javafx.concurrent.WorkerStateEvent;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
@@ -24,10 +21,7 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
-import javafx.scene.control.Control;
-import javafx.scene.control.Spinner;
-import javafx.scene.control.SpinnerValueFactory;
-import javafx.scene.control.TextArea;
+import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
@@ -35,17 +29,14 @@ import javafx.scene.input.KeyCombination;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.text.Font;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.stage.Window;
-import javafx.stage.WindowEvent;
-import javafx.util.StringConverter;
 import javafx.util.converter.NumberStringConverter;
-
 
 public abstract class PanBase {	
 	
@@ -56,57 +47,39 @@ public abstract class PanBase {
 	protected int firstAction = FIRST_NONE;
 	
 	protected java.net.URL customCSS = null;
-	
 	protected String customStyle = null;
-	
-	protected StringProperty propTitle = new SimpleStringProperty();
-	
-	private Node root;
 
+	private Node  panel;
 	private Scene scene;
-	
 	private Stage stage;
 	
 	public PanBase(){
 		this("",null);
 	}
-
 	public PanBase(String title){
 		this(title,null);
 	}
-	
 	public PanBase(Parent root){
 		this("",root);
 	}
-	
-	public PanBase(String title, Parent root){
-		propTitle.set(title);
-		this.root = root;
-	}
-
-	public Node getRootNode(){ 
-		return root;
+	public PanBase(String title, Parent pan){
+		this.panel = pan;
 	}
 	
-	public Scene getScene(){
-		return scene;
-	}
-	
-	public Stage getStage(){ 
-		return stage;
-	}
+	public Node  getPanel(){ return panel; }
+	public Scene getScene(){ return scene; }
+	public Stage getStage(){ return stage; }	
 	//------------------------//
 	
 	/**
-	 * prepare a stage, panel.no show!!!
+	 * prepare a stage or panel. no showing!!!
 	 * @return self
 	 */
 	public PanBase prepare(){
 		return prepare(create_stage(null));
 	}
-	
 	/**
-	 * prepare a stage, panel.no show!!!
+	 * prepare a stage or panel. no showing!!!
 	 * @return self
 	 */
 	public PanBase prepare(Stage stg){
@@ -122,7 +95,6 @@ public abstract class PanBase {
 	public PanBase appear(){
 		return appear(null);
 	}
-	
 	/**
 	 * present a new panel, but no-blocking
 	 * @param stg - parent stage
@@ -134,14 +106,13 @@ public abstract class PanBase {
 		stage.show();
 		return this;
 	}
-	
+
 	/**
 	 * present a new panel, and blocking for dismissing 
 	 */
 	public void standby(){
 		standby(create_stage(null));
 	}
-	
 	/**
 	 * present a new panel, and blocking for dismissing 
 	 * @param stg - parent stage
@@ -151,7 +122,7 @@ public abstract class PanBase {
 		prepare(stg);
 		stg.showAndWait();
 	}
-
+	
 	/**
 	 * present a new 'dialog' with buttons, and blocking for dismissing.<p>
 	 * If user want create buttons, just give a lambda function.<p>
@@ -168,7 +139,6 @@ public abstract class PanBase {
 		init_dialog(eventCancel,eventConfirm);		
 		init_stage(stage).showAndWait();
 	}
-	
 	/**
 	 * present a new 'dialog'.<p>
 	 * @param parent - root panel
@@ -176,14 +146,12 @@ public abstract class PanBase {
 	public void popup(final Window parent){
 		popup(parent,null,null);
 	}
-	
 	/**
 	 * present a new 'dialog'.<p>
 	 */
 	public void popup(){
 		popup(null,null,null);
 	}
-	
 	/**
 	 * close panel
 	 */
@@ -197,18 +165,29 @@ public abstract class PanBase {
 	//------------------------//
 		
 	public abstract Node eventLayout(PanBase self);
-
+	protected       void eventShowing(PanBase self){ }
+	public abstract void eventShown(PanBase self);
+	protected       void eventClose(PanBase self){ }
+	
+	private Stage create_dialog(Window parent){
+		Stage stg = new Stage(StageStyle.UNIFIED);		
+		stg.initModality(Modality.WINDOW_MODAL); 
+		stg.initOwner(parent);
+		stg.setResizable(false);
+		stg.centerOnScreen();
+		return stg;
+	}
 	private void init_dialog(
 		final EventHandler<ActionEvent> eventCancel,
 		final EventHandler<ActionEvent> eventConfirm
 	){		
-		if(root!=null){
+		if(panel!=null){
 			return;
 		}
-		root = eventLayout(this);
+		panel = eventLayout(this);
 		
 		BorderPane _root = new BorderPane();		
-		_root.setCenter(root);
+		_root.setCenter(panel);
 		if(eventCancel!=null || eventConfirm!=null){			
 			HBox lay0 = new HBox();
 			lay0.setAlignment(Pos.BASELINE_RIGHT);
@@ -241,33 +220,15 @@ public abstract class PanBase {
 		stg.centerOnScreen();
 		return stg;
 	}
-	
-	private Stage create_dialog(Window parent){
-		Stage stg = new Stage(StageStyle.UNIFIED);		
-		stg.initModality(Modality.WINDOW_MODAL); 
-		stg.initOwner(parent);
-		stg.setResizable(false);
-		stg.centerOnScreen();
-		return stg;
-	}
-	
 	private Stage init_stage(Stage stg){		
 		if(stg.isShowing()==true){
 			return stg;
-		}
-		//check whether we need to hook event~~~
-		if(stg.getOnShowing()==null){
-			stg.setOnShowing(eventWindow);
-		}
-		if(stg.getOnShown()==null){
-			stg.setOnShown(eventWindow);
 		}		
-		if(stg.getOnHidden()==null){
-			//stg.setOnHiding(eventWindow);
-			stg.setOnHidden(eventWindow);
-		}		
+		//hook all events
+		stg.setOnShowing(e->{ eventShowing(PanBase.this);});
+		stg.setOnShown  (e->{ eventShown(PanBase.this);  });
+		stg.setOnHidden (e->{ eventClose(PanBase.this);  });		
 		//set title and some properties~~~
-		stg.titleProperty().bind(propTitle);
 		stg.setScene(scene);
 		stg.sizeToScene();
 		stg.setUserData(PanBase.this);
@@ -282,101 +243,51 @@ public abstract class PanBase {
 		}
 		return stg;
 	}
-	
 	private void init_panel(){
 		//first initialization...
 		//require children generate GUI-layout
-		if(root!=null){
+		if(panel!=null){
 			return;
 		}
-		root = eventLayout(this);
-		//At this time, we should have stage~~~~
-		StackPane _root = new StackPane(root,panTask);
+		panel = eventLayout(this);
+		if(panel==null){
+			//We don't have panel,so create a default node....
+			Label txt = new Label("?");
+			txt.setFont(Font.font("Arial", 60));
+			txt.setPrefSize(200, 200);
+			txt.setAlignment(Pos.CENTER);
+			panel = txt;
+		}
+		Parent node = new StackPane(panel,spinner);
 		if(customStyle!=null){
-			_root.setStyle(customStyle);
-		}		
-		init_scene(_root);
+			node.setStyle(customStyle);
+		}
+		init_scene(node);
 	}
-	
 	private void init_scene(Parent root){		
 		scene = new Scene(root);
 		//load a default style...
 		scene.getStylesheets().add(Gawain.class.getResource("res/styles.css").toExternalForm());				
-		//if user give us a URL, try to load a custom style file....
-		if(customCSS!=null){			
-			scene.getStylesheets().add(customCSS.toExternalForm());
-		}
+		//if user give us a URL, try to load a custom style file....		
+		//scene.getStylesheets().add(customCSS.toExternalForm());
 		//capture some short-key
 		scene.setOnKeyPressed(eventHookPress);
 	}
 	//------------------------//
-
-	public interface EventHook {
-		void eventShowing(WindowEvent e);
-		void eventShown(WindowEvent e);
-		void eventWatch(int cnt);
-		void eventClose(WindowEvent e);
-	};
-	
-	public EventHook hook = null;
-	
-	protected void eventShowing(WindowEvent e){
-		if(hook!=null){ 
-			hook.eventShowing(e);
-		}
-	}
-	protected void eventShown(WindowEvent e){
-		if(hook!=null){ 
-			hook.eventShown(e);
-		}
-	}
-	protected void eventWatch(int cnt){
-		if(hook!=null){
-			hook.eventWatch(cnt);
-		}		
-	}
-	protected void eventClose(WindowEvent e){		
-		if(hook!=null){ 
-			hook.eventClose(e);
-		}
-	}
-
-	private EventHandler<WindowEvent> eventWindow = new EventHandler<WindowEvent>(){
-		@Override
-		public void handle(WindowEvent event) {
-			//if stage have no handle, direct event to here!!!
-			if(WindowEvent.WINDOW_SHOWING==event.getEventType()){
-				eventShowing(event);
-			}else if(WindowEvent.WINDOW_SHOWN==event.getEventType()){
-				eventShown(event);
-			}else if(WindowEvent.WINDOW_HIDDEN==event.getEventType()){			
-				eventClose(event);
-			}
-		}
-	};
-	
-	private HashMap<KeyCode,EventHandler<ActionEvent>> mapHotKey = new HashMap<KeyCode,EventHandler<ActionEvent>>();
-	
-	private HashMap<KeyCombination,EventHandler<ActionEvent>> mapShortcut = new HashMap<KeyCombination,EventHandler<ActionEvent>>();
 	
 	/**
-	 * Hook key in current panel, then launch a event~~~
-	 * @param key - just use key-code
-	 * @param event
+	 * special short-key for popping logger panel.
 	 */
-	public void hookPress(KeyCode key,EventHandler<ActionEvent> event){		
-		mapHotKey.put(key, event);
-	}
+	private static KeyCombination hotkey_console = KeyCombination.keyCombination("Ctrl+Alt+C");
 	
 	/**
-	 * Hook shortcut in current panel, then launch a event~~~
-	 * @param key - the string which represents the requested key combination
-	 * @param event
+	 * special short-key for debug something.
 	 */
-	public void hookPress(String key,EventHandler<ActionEvent> event){		
-		mapShortcut.put(KeyCombination.keyCombination(key), event);
-	}
+	private static KeyCombination hotkey_debug = KeyCombination.keyCombination("Ctrl+Alt+D");
 	
+	/**
+	 * event for capture all key-input, this happened when user click the title of panel.
+	 */
 	private EventHandler<KeyEvent> eventHookPress = new EventHandler<KeyEvent>(){
 		@Override
 		public void handle(KeyEvent event) {
@@ -386,74 +297,105 @@ public abstract class PanBase {
 					final Alert dia = new Alert(AlertType.CONFIRMATION);
 					dia.setTitle("提示");
 					dia.setHeaderText("確認離開主程式？");
-					//dia.setContentText("確認離開主程式？");					
-					final Optional<ButtonType> opt = dia.showAndWait();
-					if(opt.get()==ButtonType.CANCEL){
+					if(dia.showAndWait().get()==ButtonType.CANCEL){
 						return;
 					}
 				}
-				dismiss();				
-				return;
-			}
-			//check hot-key~~~
-			EventHandler<ActionEvent> event2;
-			if(mapShortcut.containsKey(cc)==true){
-				mapHotKey.get(cc).handle(null);
-				return;
-			}
-			//check all combination~~~
-			for(KeyCombination com:mapShortcut.keySet()){
-				if(com.match(event)==true){
-					event2 = mapShortcut.get(com);
-					event2.handle(null);
-					return;
-				}
+				dismiss();
+			}else if(hotkey_console.match(event)==true){
+				Gawain.showLogger();
+			}else if(hotkey_debug.match(event)==true){
+				//do something~~~
+				spinner.kick();
 			}			
 		}
 	};
 	//------------------------//
 	
-	private class PanTask extends HBox {		
-		public JFXProgressBar bar = new JFXProgressBar();
-		public TextArea box = new TextArea();
-		public JFXSpinner spn = new JFXSpinner();
-		
-		public PanTask(){
-			setStyle("-fx-spacing: 7;-fx-padding: 10;");
-			final double ww = 300.;
-			final double hh = 30.;
-			spn.setRadius((hh/2.)+7.);
-			spn.setOnMouseClicked(event->{
-				root.setDisable(false);
-				this.setVisible(false);
-			});
-			bar.setPrefWidth(ww);
-			box.setPrefSize(ww, hh);
-
-			VBox lay0 = new VBox();
-			lay0.setStyle("-fx-spacing: 7;");
-			lay0.getChildren().addAll(bar,box);
-			getChildren().addAll(lay0,spn);
+	protected class Spinner extends VBox{		
+		private JFXSpinner icon = new JFXSpinner();//show that we are waiting
+		private Label      text = new Label();//show progress value
+		private Task<?>    task = null;
+		public Spinner(){
 			
-			setMaxSize(ww+hh, hh);
-			setVisible(false);//the initial state is invisible~~ 
+			icon.setRadius(48);
+			icon.setOnMouseClicked(e->{
+				final Alert dia = new Alert(AlertType.CONFIRMATION);
+				dia.setTitle("提示");
+				dia.setHeaderText("確認取消工作？");
+				if(dia.showAndWait().get()==ButtonType.CANCEL){
+					return;
+				}
+				if(task!=null){
+					task.cancel(true);
+				}
+				done();			
+			});
+						
+			text.setFont(Font.font("Arial", 27));
+			text.setAlignment(Pos.CENTER);
+			
+			setStyle("-fx-spacing: 13;-fx-padding: 7;");
+			setAlignment(Pos.CENTER);			
+			getChildren().addAll(icon,text);
+			setVisible(false);
 		}
-	}	
-	private PanTask panTask = new PanTask();
-	
-	public void spinning(
-		final boolean flag
-	){
-		spinning(flag,null);
-	}
-	
-	public void spinning(
-		final boolean flag,
-		final TaskAction task
-	){
-		root.setDisable(flag);
-		panTask.setVisible(true);
-	}
+		private void done(){
+			task = null;//reset it for next turn~~~
+			panel.setDisable(false);
+			setVisible(false);	
+		}
+		public void kick(){
+			text.textProperty().unbind();
+			text.setText("工作中");
+			panel.setDisable(true);
+			setVisible(true);			
+		};
+		public void kick(final Task<?> tsk){
+			kick("panel-task", '?', tsk);
+		}
+		public void kick(String name, final Task<?> tsk){
+			kick(name, '?', tsk);
+		}
+		public void kick(char type, final Task<?> tsk){
+			kick("panel-task", type, tsk);
+		}
+		/**
+		 * kick a task to do heavy working.
+		 * @param name - the name of task.
+		 * @param type - the bottom label will show what kind of information.
+		 * @param tsk - the instance of task class.
+		 */
+		public void kick(
+			String name, 
+			char type, 
+			final Task<?> tsk
+		){
+			kick();
+			switch(type){
+			case 'p':
+				text.textProperty().bind(
+					tsk.progressProperty()
+					.multiply(100)
+					.asString("%.0f%%")
+				);
+				break;
+			case 'm':
+				text.textProperty().bind(tsk.messageProperty());
+				break;
+			}
+			final EventHandler<WorkerStateEvent> org = tsk.getOnSucceeded();
+			tsk.setOnSucceeded(event->{
+				if(org!=null){
+					org.handle(event);
+				}				
+				done();
+			});
+			task = tsk;//keep this variable~~~
+			new Thread(tsk,name).start();
+		}
+	};
+	protected Spinner spinner = new Spinner();
 	//------------------------//
 	
 	/**
@@ -520,32 +462,6 @@ public abstract class PanBase {
 	}
 	//------------------------//
 
-	public static HBox fillHBox(Object... args){
-		HBox lay = new HBox();
-		lay.getStyleClass().add("hbox-small");
-		for(int i=0; i<args.length; i++){
-			Control ctl = (Control)(args[i]);
-			//why do we need this to stretch widget??
-			ctl.setMaxWidth(Double.MAX_VALUE);
-			HBox.setHgrow(ctl,Priority.ALWAYS);
-			lay.getChildren().add(ctl);
-		}
-		return lay;
-	}
-	
-	public static VBox fillVBox(Object... args){
-		VBox lay = new VBox();
-		lay.getStyleClass().add("vbox-small");		
-		for(int i=0; i<args.length; i++){
-			Control ctl = (Control)(args[i]);
-			ctl.setMaxWidth(Double.MAX_VALUE);
-			//VBox.setVgrow(ctl,Priority.ALWAYS);
-			lay.getChildren().add(ctl);
-		}
-		return lay;
-	}
-	//------------------------//
-	
 	public static Button genButtonFlat(
 		final String title,
 		final String iconName
@@ -640,71 +556,6 @@ public abstract class PanBase {
 		return gen_fx_button(title,iconName,"btn-raised-4");
 	}
 	//----------------------------------------------//
-		
-	public static Spinner<Float> genSpinnerFloat(
-		final float min,
-		final float max,
-		final float tick,
-		FloatProperty prop
-	){
-		Spinner<Float> spn = new Spinner<Float>();
-		SpinnerValueFactory<Float> fac = new SpinnerValueFactory<Float>(){
-			
-			private BigDecimal valMin,valMax,valTick;
-			private FloatProperty propVal;
-			private String fmt = "%.03f";
-			
-			private StringConverter<Float> conv = new StringConverter<Float>(){
-				@Override
-				public String toString(Float object) {
-					return String.format(fmt,object);
-				}
-				@Override
-				public Float fromString(String string) {
-					return Float.valueOf(string);
-				}
-			};
-			{
-				String txt = String.valueOf(tick);
-				int pos = txt.indexOf(".");
-				pos = txt.length() - pos - 1;
-				fmt = "%.0"+pos+"f";
-				valMin = new BigDecimal(String.format(fmt, min));
-				valMax = new BigDecimal(String.format(fmt, max));			
-				valTick = new BigDecimal(txt);
-				propVal = prop;
-				setConverter(conv);
-				setValue(prop.getValue());
-			}
-			@Override
-			public void decrement(int steps) {
-				final BigDecimal valOld = new BigDecimal(String.format(fmt, propVal.get()));
-	            final BigDecimal valNew = valOld.subtract(valTick.multiply(BigDecimal.valueOf(steps)));
-	            int cmp = valNew.compareTo(valMin);
-	            if(cmp>=0){
-	            	float v = valNew.floatValue();            	
-	            	setValue(v);
-	            	propVal.setValue(v);
-	            }
-			}
-
-			@Override
-			public void increment(int steps) {
-				final BigDecimal valOld = new BigDecimal(String.format(fmt, propVal.get()));
-	            final BigDecimal valNew = valOld.add(valTick.multiply(BigDecimal.valueOf(steps)));
-	            int cmp = valNew.compareTo(valMax);
-	            Misc.logv("inc-cmp = %d, %s, %s", cmp, valNew.toString(), valMax.toString());
-	            if(cmp<=0){
-	            	float v = valNew.floatValue();            	
-	            	setValue(v);
-	            	propVal.setValue(v);
-	            }
-			}
-		};
-		spn.setValueFactory(fac);
-		return spn;
-	}
-	//----------------------------------------------//
 	
 	private static void validInteger(
 		final int min,
@@ -791,7 +642,6 @@ public abstract class PanBase {
 			new NumberStringConverter("#.####")
 		);
 		return box;
-	} 
-	
+	}
 }
 

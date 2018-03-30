@@ -11,7 +11,7 @@ import javafx.scene.control.Label;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
 import narl.itrc.ButtonExtra;
-import narl.itrc.Misc;
+import narl.itrc.Gawain;
 import narl.itrc.PanBase;
 
 public class PanPuppeteer extends PanBase {
@@ -63,7 +63,7 @@ public class PanPuppeteer extends PanBase {
 			recorder.appear(PanPuppeteer.this.getStage());
 		});
 				
-		String[] lstName = Misc.dirSock.list(new FilenameFilter(){
+		String[] lstName = Gawain.dirSock.list(new FilenameFilter(){
 			@Override
 			public boolean accept(File dir, String name) {				
 				return name.endsWith(".js");
@@ -74,7 +74,7 @@ public class PanPuppeteer extends PanBase {
 			String name = lstName[i].substring(0, lstName[i].length()-3);
 			lstAction[i] = new ButtonExtra(name);
 			lstAction[i].setOnTaskScriptFile(
-				Misc.pathSock+lstName[i], 
+				Gawain.pathSock+lstName[i], 
 				"mo", monitor
 			);
 			lstAction[i].setMaxWidth(Double.MAX_VALUE);
@@ -101,5 +101,9 @@ public class PanPuppeteer extends PanBase {
 		lay0.setCenter(monitor);
 		lay0.setRight(layDefault);
 		return lay0;
+	}
+
+	@Override
+	public void eventShown(PanBase self) {
 	}
 }

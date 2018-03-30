@@ -186,7 +186,7 @@ public abstract class TaskDialog extends TaskAction {
 			workStage.close();
 		}
 		if(root!=null){
-			root.getRootNode().setDisable(false);
+			root.getPanel().setDisable(false);
 		}
 	}
 		
@@ -199,7 +199,7 @@ public abstract class TaskDialog extends TaskAction {
 			return;
 		}
 		if(root!=null){
-			root.getRootNode().setDisable(true);
+			root.getPanel().setDisable(true);
 		}
 		appear();
 	}	

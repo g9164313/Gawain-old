@@ -11,8 +11,8 @@ import javafx.scene.control.TabPane.TabClosingPolicy;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
-import javafx.stage.WindowEvent;
 import narl.itrc.BoxLogger;
+import narl.itrc.Gawain;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
 
@@ -25,12 +25,7 @@ public class PanFringeEditor extends PanBase{
 
 	private FileChooser dia = new FileChooser();
 	
-	private String reportName = Misc.pathHome+"fringe.xml";
-	
-	@Override
-	protected void eventShown(WindowEvent e){
-		dia.setInitialDirectory(Misc.dirHome);
-	}
+	private String reportName = Gawain.pathHome+"fringe.xml";
 	
 	@Override
 	public Node eventLayout(PanBase self) {
@@ -123,5 +118,10 @@ public class PanFringeEditor extends PanBase{
 		lay2.setCenter(lay1);
 		
 		return lay2;
+	}
+
+	@Override
+	public void eventShown(PanBase self) {
+		dia.setInitialDirectory(Gawain.dirHome);
 	}
 }

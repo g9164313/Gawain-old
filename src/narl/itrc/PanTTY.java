@@ -245,10 +245,12 @@ public class PanTTY extends Pane {
 				}
 			);
 		}
-
 		@Override
 		public Node eventLayout(PanBase self) {
 			return root;
+		}
+		@Override
+		public void eventShown(PanBase self) {
 		}
 	};
 	
@@ -275,7 +277,7 @@ public class PanTTY extends Pane {
 		box.disableProperty().bind(dev.isAlive());
 		
 		ObservableList<String> lst = box.getItems();
-		if(Misc.isPOSIX()==true){
+		if(Gawain.isPOSIX==true){
 			//how to list device file??
 			File fs = new File("/dev");
 			String[] names = fs.list(new FilenameFilter(){

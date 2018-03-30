@@ -88,6 +88,9 @@ public abstract class DevBase implements Gawain.EventHook {
 			public Node eventLayout(PanBase pan) {				
 				return DevBase.this.eventLayout(pan);
 			}
+			@Override
+			public void eventShown(PanBase self) {
+			}
 		}.appear();
 	}
 	//---------------------------//

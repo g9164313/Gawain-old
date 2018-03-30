@@ -5,12 +5,13 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.RandomAccessFile;
-import java.io.UnsupportedEncodingException;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -76,7 +77,7 @@ public class Gawain extends Application {
 	
 	private static void propInit(){
 		try {
-			File fs = new File(Misc.pathSock+propName);
+			File fs = new File(pathSock+propName);
 			InputStream stm=null;
 			if(fs.exists()==false){
 				stm = Gawain.class.getResourceAsStream("/narl/itrc/res/"+propName);
@@ -92,11 +93,11 @@ public class Gawain extends Application {
 	
 	private static void propRestore(){
 		try {
-			File fs = new File(Misc.pathSock+propName);
+			File fs = new File(pathSock+propName);
 			FileOutputStream stm=null;
 			if(fs.exists()==false){
 				//Here!!,we dump the first configure file
-				stm = new FileOutputStream(Misc.pathSock+propName);
+				stm = new FileOutputStream(pathSock+propName);
 				prop.store(stm,"");
 				stm.close();
 				return;
@@ -106,7 +107,7 @@ public class Gawain extends Application {
 			if(txt.equalsIgnoreCase("false")==true){
 				return;
 			}			
-			stm = new FileOutputStream(Misc.pathSock+propName);
+			stm = new FileOutputStream(pathSock+propName);
 			prop.store(stm,"");
 			stm.close();
 		} catch (FileNotFoundException e) {
@@ -117,165 +118,107 @@ public class Gawain extends Application {
 	}
 	//--------------------------------------------//
 	
-	private static class PipeStream extends OutputStream {
-		public PrintStream org;
-		public PrintStream fid;
-		private ByteArrayOutputStream buf = new ByteArrayOutputStream();
-		private PrintStream stm = new PrintStream(buf);
+	public static class LogMessage {
+		public long tick;
+		public char type;		
+		public String text;
+		public LogMessage(String txt){
+			tick = System.currentTimeMillis();
+			if(txt.length()==0){
+				type = 22;
+				text = "";
+			}else{
+				type = txt.charAt(0);
+				if(type==21 || type==22 || type==23){
+					text = txt.substring(1);
+				}else{
+					type = 21;
+					text = txt;
+				}
+			}
+		}
 		@Override
-		public void write(int b) throws IOException {			
-			 if(org!=null){ org.write(b); }
-			 if(fid!=null){ fid.write(b); }
-			 stm.write(b);
-			 if(b=='\n'){
-				 try {
-					txtLogger.put(buf.toString());
+		public String toString(){
+			return String.format(
+				"[%tH:%tM:%tS.%tL]  %s",
+				tick,tick,tick,tick, text
+			);
+		}		
+	};
+	
+	private static FileWriter logFile = null;
+	
+	private static int MAX_LOG_SIZE = 200;
+	
+	public static final ArrayBlockingQueue<LogMessage> logQueue = new ArrayBlockingQueue<>(MAX_LOG_SIZE);
+		
+	private static class PipeStream extends OutputStream {
+		private ByteArrayOutputStream buf = new ByteArrayOutputStream();
+		private PrintStream tmp = new PrintStream(buf);
+		public PrintStream out;
+		public PipeStream(PrintStream stm){
+			out = stm;
+		}
+		@Override
+		public void write(int b) throws IOException {
+			tmp.write(b); 
+			out.write(b);		
+			if(b=='\n'){
+				try {
+					if(logQueue.size()>=MAX_LOG_SIZE){
+						logQueue.poll();
+					}
+					LogMessage msg = new LogMessage(buf.toString());					
+					logQueue.put(msg);
+					if(logFile!=null){
+						logFile.write(msg.toString());
+					}
 				} catch (InterruptedException e) {
 					//how to show message???
 				}
-				 buf.reset();
-			 }
+				buf.reset();
+			}
 		}
 		@Override
 		public void flush() throws IOException {
-			if(org!=null){ org.flush(); }
-			if(fid!=null){ fid.flush(); }
+			buf.flush();
+			out.flush();
+			if(logFile!=null){ logFile.flush(); }
 		}
 		@Override
 		public void close() throws IOException {
-			if(org!=null){ org.close(); }
-			if(fid!=null){ fid.close(); }
-		}
-	};
-	
-	public static final ArrayBlockingQueue<String> txtLogger = new ArrayBlockingQueue<String>(200);
-	
-	public static final PipeStream[] pipe = {
-		new PipeStream(),
-		new PipeStream(),
-	};
-	
-	private static void streamHook(){
-		//keep the original stream...
-		final PrintStream s_out = System.out;
-		final PrintStream s_err = System.err;
-		
-		//Check whether we need logger file.
-		PrintStream s_fid = null;
-		String opt = prop.getProperty("Logger",null);
-		if(opt!=null){
-			//it may be boolean flag or file path name~~~
-			if(opt.equalsIgnoreCase("true")==true || opt.length()==0){				
-				opt = Misc.pathSock + "logger.txt";//default path~~~
-			}
+			buf.close();
+			out.close();			
 			try {
-				s_fid = new PrintStream(opt, "UTF-8");
-			} catch (FileNotFoundException e) {
-				e.printStackTrace();
-			} catch (UnsupportedEncodingException e) {
-				e.printStackTrace();
-			}	
-		}
-		
-		//redirect the original output-stream...
-		pipe[0].org = s_out;
-		pipe[0].fid = s_fid;
-		pipe[1].org = s_err;
-		pipe[1].fid = s_fid;
-		System.setOut(new PrintStream(pipe[0]));
-		System.setErr(new PrintStream(pipe[1]));
-	}
-	//--------------------------------------------//
-	
-	private static PanBase panRoot = null;
-	
-	public static Window getMainWindow(){
-		if(panRoot==null){
-			return null;
-		}
-		return panRoot.getScene().getWindow();
-	}
-	
-	public static Scene getMainScene(){
-		if(panRoot==null){
-			return null;
-		}
-		return panRoot.getScene();
-	}
-	
-	public static boolean isMainWindow(PanBase pan){
-		return pan.equals(panRoot);
-	}
-	
-	@Override
-	public void start(Stage primaryStage) throws Exception {
-		new Loader2().standby();			
-		try {
-			String name = prop.getProperty("LAUNCH","");
-			if(name.length()==0){
-				//TODO:pop up a selector to choose which panel 
-			}else{
-				Object obj = Class.forName(name).newInstance();
-				//$ Demo how to pass arguments~~~
-				//Param1Type param1;
-				//Class cl = Class.forName(className);
-				//Constructor con = cl.getConstructor(Param1Type.class);
-				//obj = con.newInstance(param1,param2);
-				panRoot = (PanBase)obj;			
-				panRoot.appear(primaryStage);
-				hookShown();
-				//Misc.logv("啟動 launch [%s]",name);
-			}
-		} catch (
-			InstantiationException | 
-			IllegalAccessException | 
-			ClassNotFoundException e
-		) {			
-			e.printStackTrace();			
-		}
-	}
-	
-	@Override
-	public void stop() throws Exception {
-		//Do we need to close render looper???	
-	}
-	
-	public static void main(String[] argv) {		
-		propInit();
-		//parse arguments~~~~
-		streamHook();
-		//liceBind();//check dark license~~~		
-		launch(argv);		
-		propRestore();
-		hookShutdown();
-	}
-	//--------------------------------------------//
-	
-	private static String jarName = "";//TODO:how to get the name of jar file 
-	/*private static String check_jar(){	
-	File[] lst = new File(".").listFiles();
-	for(File fs:lst){
-		if(fs.getName().indexOf(".jar")<=0){
-			continue;
-		}
-		try {
-			@SuppressWarnings("resource")
-			final JarFile jj = new JarFile(fs);
-			final Enumeration<JarEntry> lstEE = jj.entries();
-			while(lstEE.hasMoreElements()==true){
-				JarEntry ee = lstEE.nextElement();
-				if(ee.getName().indexOf(Gawain.propName)>=0){
-					return jj.getName();
-					}
-				}				
+				if(logFile!=null){ 
+					logFile.close();
+				}
 			} catch (IOException e) {
-				Misc.logv("can't open %s",fs.getName());
-				continue;
+				//how to show message???
+			} finally{
+				logFile = null;
 			}
 		}
-		return "";
-	}*/
+	};
+
+	private static void streamHooker(){
+		//Check whether we need logger file.
+		try {
+			String name = prop.getProperty("Logger","");
+			if(name.length()!=0){
+				logFile = new FileWriter("logger.txt",true);
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+			logFile = null;
+		}
+		System.setOut(new PrintStream(new PipeStream(System.out)));
+		System.setErr(new PrintStream(new PipeStream(System.err)));
+	}
+	//--------------------------------------------//
 	
+	private static final String jarName; 
+
 	private static void liceWrite(byte[] dat){
 		if(jarName.length()==0){
 			return;//no!!! we don't have a jar file~~
@@ -368,7 +311,8 @@ public class Gawain extends Application {
 	};
 		
 	@SuppressWarnings("unused")
-	private static void liceBind(){		
+	private static void liceBind(){
+		
 		if(jarName.length()==0){
 			return;//no!!! we don't have a jar file~~
 		}
@@ -385,7 +329,6 @@ public class Gawain extends Application {
 			e1.printStackTrace();
 			System.exit(-12);
 		}
-		
 		try {			
 			final JarFile jj = new JarFile(jarName);
 			String txt = jj.getComment();
@@ -434,7 +377,145 @@ public class Gawain extends Application {
 			System.exit(0);
 		}
 	}
-	//--------------------------------------------//	
+	//--------------------------------------------//
+	
+	private static PanBase panRoot = null;
+	
+	private static PanLogger panLogger = new PanLogger();
+	
+	public static void showLogger(){
+		panLogger.appear();
+	}
+	
+	public static Window getMainWindow(){
+		if(panRoot==null){
+			return null;
+		}
+		return panRoot.getScene().getWindow();
+	}
+	
+	public static Scene getMainScene(){
+		if(panRoot==null){
+			return null;
+		}
+		return panRoot.getScene();
+	}
+	
+	public static boolean isMainWindow(PanBase pan){
+		return pan.equals(panRoot);
+	}
+	
+	@Override
+	public void start(Stage primaryStage) throws Exception {
+		new Loader2().standby();
+		String name;
+		try {
+			name = prop.getProperty("LAUNCH","");
+			Object obj = Class.forName(name).newInstance();
+			//$ Demo how to pass arguments~~~
+			//Param1Type param1;
+			//Class cl = Class.forName(className);
+			//Constructor con = cl.getConstructor(Param1Type.class);
+			//obj = con.newInstance(param1,param2);
+			panRoot = (PanBase)obj;			
+			panRoot.appear(primaryStage);
+			hookShown();
+			//Misc.logv("啟動 launch [%s]",name);
+		} catch (
+			InstantiationException | 
+			IllegalAccessException | 
+			ClassNotFoundException e
+		) {
+			Misc.loge("fail to load "+e.getMessage());
+			panLogger.appear(primaryStage);
+		}
+	}
+	
+	@Override
+	public void stop() throws Exception {
+		//Do we need to close render looper???	
+	}
+		
+	public static void main(String[] argv) {		
+		propInit();
+		streamHooker();
+		//liceBind();//check dark license~~~		
+		launch(argv);		
+		hookShutdown();
+		propRestore();
+	}
+	//--------------------------------------------//
+	//In this section, we initialize all global variables~~
+	
+	public static final boolean isPOSIX;
+	
+	public static final String pathRoot;//the working directory path
+	public static final String pathHome;//point to user home directory.
+	public static final String pathSock;//the path for storing data or setting file
+		
+	public static final File dirRoot;
+	public static final File dirHome;
+	public static final File dirSock;
+	
+	static{
+		String txt = null;
+		
+		//check operation system....
+		txt = System.getProperty("os.name").toLowerCase();
+		if(txt.indexOf("win")>=0){
+			isPOSIX = false;
+		}else{
+			isPOSIX = true;
+		}
+		
+		//check working path
+		pathRoot= new File(".").getAbsolutePath() + File.separatorChar;
+		dirRoot = new File(pathRoot);
+		
+		//check home path, user store data in this directory.
+		if(isPOSIX==true){
+			txt = System.getenv("HOME");
+		}else{
+			txt = System.getenv("HOMEPATH");
+			if(txt==null){
+				txt = System.getenv("HOMEPATH");
+			}
+		}
+		if(txt==null){
+			txt = ".";
+		}
+		pathHome = txt + File.separatorChar;		
+		dirHome = new File(pathHome);
+		
+		//cascade sock directory.
+		pathSock = pathHome + ".gawain" + File.separatorChar;		
+		dirSock = new File(pathSock);
+		if(dirSock.exists()==false){
+			if(dirSock.mkdirs()==false){
+				System.err.printf("we can't create sock-->%s!!\n",pathSock);
+				System.exit(-2);
+			}
+		}
+		
+		//check whether this is a jar file
+		try {
+			txt = Gawain.class.getProtectionDomain()
+					.getCodeSource()
+					.getLocation()
+					.toURI()
+					.toString()
+					.replace('/',File.separatorChar);
+		} catch (URISyntaxException e) {
+			e.printStackTrace();
+			txt = "";
+		}
+		final String prefix = "jar:file:";
+		if(txt.startsWith(prefix)==true){
+			jarName = txt.substring(prefix.length());
+		}else{
+			jarName = "";
+		}
+	}
 }
 
 

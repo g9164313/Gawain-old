@@ -19,7 +19,6 @@ import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
-import javafx.stage.WindowEvent;
 import javafx.util.Duration;
 import narl.itrc.DevTTY;
 import narl.itrc.Misc;
@@ -414,18 +413,10 @@ public class DevLK_G5000 extends DevTTY {
 	//-----------------------------------------//
 	
 	private class PanSetting extends PanBase {
-
 		private WidHeader header;
-		
 		public PanSetting(WidHeader h){
 			header = h;
 		}
-
-		@Override
-		protected void eventShowing(WindowEvent e){
-			Misc.logv("dialog is showing");
-		}
-		
 		@Override
 		public Node eventLayout(PanBase pan) {
 			
@@ -451,6 +442,9 @@ public class DevLK_G5000 extends DevTTY {
 
 			root.addRow(0, new Label("位數："), cmbResolution);			
 			return root;
+		}
+		@Override
+		public void eventShown(PanBase self) {
 		}
 	}
 }

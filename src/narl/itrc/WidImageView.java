@@ -266,7 +266,7 @@ public class WidImageView extends StackPane {
 	//-----------------------------------//
 	
 	public void snapData(){
-		snapData(Misc.pathSock+"snap.png",null);
+		snapData(Gawain.pathSock+"snap.png",null);
 	}
 	public void snapData(String name){
 		snapData(name,null);

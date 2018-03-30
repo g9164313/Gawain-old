@@ -19,9 +19,9 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import narl.itrc.ButtonExtra;
-import narl.itrc.Misc;
+import narl.itrc.Gawain;
 import narl.itrc.PanBase;
-import narl.itrc.TaskTool;
+import narl.itrc.UtilTaskTool;
 
 public class WidRecorder extends PanBase {
 	
@@ -51,7 +51,7 @@ public class WidRecorder extends PanBase {
 			
 		final ButtonExtra btnRecTest = new ButtonExtra("OCR 測試").setStyleBy("btn-raised-4");
 		btnRecTest.setOnTask(e1->{
-			int[] roi = TaskTool.getTextRoi(boxROI);
+			int[] roi = UtilTaskTool.getTextRoi(boxROI);
 			((ButtonExtra)e1.getSource()).arg = monitor.recognizeDigital(roi);
 		}, e2->{
 			String txt = (String)((ButtonExtra)e2.getSource()).arg;
@@ -121,11 +121,11 @@ public class WidRecorder extends PanBase {
 		btnScriptExec.setMaxWidth(Double.MAX_VALUE);
 		btnScriptExec.setOnTask(event1->{			
 			try {
-				String txt = TaskTool.getText(boxScript);
+				String txt = UtilTaskTool.getText(boxScript);
 				ScriptEngine nashorn = new ScriptEngineManager().getEngineByName("nashorn");
 				nashorn.put("mo", monitor);
 				nashorn.eval(txt);
-				TaskTool.clear();
+				UtilTaskTool.clear();
 			} catch (Exception e1) {
 				e1.printStackTrace();
 			}
@@ -138,7 +138,7 @@ public class WidRecorder extends PanBase {
 		btnScriptSave.setOnAction(event->{	
 			FileChooser dia = new FileChooser();
 			dia.setTitle("另存...");
-			dia.setInitialDirectory(Misc.dirSock);
+			dia.setInitialDirectory(Gawain.dirSock);
 			File fs = dia.showSaveDialog(getScene().getWindow());
 			if(fs==null){
 				return;
@@ -159,7 +159,7 @@ public class WidRecorder extends PanBase {
 		btnScriptLoad.setOnAction(event->{
 			FileChooser dia = new FileChooser();
 			dia.setTitle("讀取...");
-			dia.setInitialDirectory(Misc.dirSock);
+			dia.setInitialDirectory(Gawain.dirSock);
 			File fs = dia.showOpenDialog(getScene().getWindow());
 			if(fs==null){
 				return;
@@ -213,5 +213,11 @@ public class WidRecorder extends PanBase {
 			Integer.valueOf(box[3].getText()),
 		};
 		return geom;
+	}
+
+	@Override
+	public void eventShown(PanBase self) {
+		// TODO Auto-generated method stub
+		
 	}
 }

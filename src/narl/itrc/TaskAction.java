@@ -62,7 +62,7 @@ public abstract class TaskAction implements EventHandler<ActionEvent> {
 	
 	/**
 	 * user must implements this function, it is a infinite loop!!!
-	 * @param task - Task<Integer>
+	 * @param spinner - Task<Integer>
 	 * @return 0 - working, !0 - exist
 	 */
 	public abstract int looper(Task<Integer> tsk);
@@ -77,7 +77,7 @@ public abstract class TaskAction implements EventHandler<ActionEvent> {
 	private void eventDone(){
 		if(root!=null){
 			//Task have already been stop,so we don't pass second argument~~~
-			root.spinning(false,null);
+			//root.spinning(false,null);
 		}
 		eventFinish();
 	}
@@ -109,7 +109,7 @@ public abstract class TaskAction implements EventHandler<ActionEvent> {
 			}			
 		}
 		if(root!=null){
-			root.spinning(true,this);
+			//root.spinning(true,this);
 		}
 		
 		task = new Task<Integer>(){
@@ -123,6 +123,7 @@ public abstract class TaskAction implements EventHandler<ActionEvent> {
 						break;
 					}
 				}
+				
 				Application.invokeAndWait(()->eventDone());
 				return result;
 			}

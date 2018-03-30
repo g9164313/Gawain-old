@@ -143,7 +143,7 @@ public abstract class DevMotion {
 			if(val[i]==null){
 				continue;
 			}
-			val[i] = Misc.phyConvert(val[i],unit,BASE_UNIT);			
+			val[i] = UtilPhysical.convert(val[i],unit,BASE_UNIT);			
 		}
 	}
 	

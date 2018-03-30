@@ -18,8 +18,6 @@ import javafx.scene.control.Separator;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
-import narl.itrc.BoxValFloat;
-import narl.itrc.BoxValInteger;
 import narl.itrc.DevTTY;
 import narl.itrc.Gawain;
 import narl.itrc.Misc;

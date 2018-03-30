@@ -13,16 +13,14 @@ import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.paint.Color;
-import javafx.stage.WindowEvent;
 import narl.itrc.Misc;
-import narl.itrc.PanBase;
 
 /**
  * This is the setting panel for VFW/V4L/V4L2  
  * @author qq
  *
  */
-public class PanVFW extends ScrollPane implements PanBase.EventHook {
+public class PanVFW extends ScrollPane {
 
 	private static final String CMD_V4L2 = "v4l2-ctl";
 	
@@ -236,23 +234,5 @@ public class PanVFW extends ScrollPane implements PanBase.EventHook {
 			lstBox.add(new BoxProp(name,type,vals));
 			System.out.println(name+"%"+type+"%"+vals);
 		}
-	}
-	
-	@Override
-	public void eventShowing(WindowEvent e) {
-
-	}
-
-	@Override
-	public void eventShown(WindowEvent e) {
-
-	}
-
-	@Override
-	public void eventWatch(int cnt) {
-	}
-
-	@Override
-	public void eventClose(WindowEvent e) {
 	}
 }

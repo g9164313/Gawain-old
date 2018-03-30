@@ -6,7 +6,6 @@ import com.jfoenix.controls.JFXSlider;
 import javafx.scene.Node;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
-import javafx.stage.WindowEvent;
 import narl.itrc.PanBase;
 
 public class PanXIMEA extends PanBase {
@@ -21,15 +20,7 @@ public class PanXIMEA extends PanBase {
 	private JFXCheckBox chkAE;
 	private JFXSlider barExpose;
 	//private JFXTextField boxExpose;
-	
-	@Override
-	protected void eventShowing(WindowEvent e){
-		if(dev.isReady()==false){
-			return;
-		}		
-		refresh_param();//refresh all parameter~~~~~
-	}
-	
+
 	private void refresh_param(){
 		
 		if(dev.getParamInt(XI_PRM_AEAG)!=0){
@@ -71,6 +62,14 @@ public class PanXIMEA extends PanBase {
 		GridPane.setHgrow(barExpose, Priority.ALWAYS);
 				
 		return root;
+	}
+
+	@Override
+	public void eventShown(PanBase self) {
+		if(dev.isReady()==false){
+			return;
+		}		
+		refresh_param();//refresh all parameter~~~~~
 	}
 	
 	//append syntax

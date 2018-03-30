@@ -22,9 +22,9 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
-import javafx.stage.WindowEvent;
 import narl.itrc.BoxLogger;
 import narl.itrc.ButtonScript;
+import narl.itrc.Gawain;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
 
@@ -39,36 +39,8 @@ public class PanSputter extends PanBase {
 	private DevFatek devPLC = new DevFatek();
 	private DevSQM160 devSQM = new DevSQM160();
 	private DevSPIK2K devSPIK = new DevSPIK2K();
-		
 	private ApiMapPID mapper = new ApiMapPID();
 
-	@Override
-	protected void eventShowing(WindowEvent e){		
-		//hook each action of indicator, motor, valve or pump
-		if(devPLC.connect()==true){
-			Misc.logv("connect FATEK PLC...");
-		}else{
-			Misc.logv("fail to connect PLC(%s)",devPLC.getName());
-		}
-		if(devSQM.connect()==true){
-			Misc.logv("connect SQM160...");
-		}else{
-			Misc.logv("fail to connect SQM160(%s)",devSQM.getName());
-		}
-		if(devSPIK.connect()==true){
-			Misc.logv("connect SPIK2000A...");
-		}else{
-			Misc.logv("fail to connect SPIK2000A(%s)",devSPIK.getName());
-		}
-	}
-
-	@Override
-	protected void eventShown(WindowEvent e){
-		devPLC.startMonitor("R01000-40","X0000-24","Y0000-40","Y0120-8");
-		devSQM.startMonitor();
-		mapper.hookPart(devPLC);
-	}
-	
 	public static boolean DBG = false;
 	
 	@Override
@@ -157,7 +129,7 @@ public class PanSputter extends PanBase {
 		return lay0;
 	}
 	
-	private String pathScript = Misc.pathSock+"test.js";
+	private String pathScript = Gawain.pathSock+"test.js";
 
 	private Node lay_action(
 		final BorderPane root,
@@ -258,5 +230,32 @@ public class PanSputter extends PanBase {
 		lay.add(btnTest2, 0, 6+page.length, 4, 1);
 		lay.add(btnTest3, 0, 7+page.length, 4, 1);
 		return lay;
+	}
+	
+	@Override
+	protected void eventShowing(PanBase self){
+		//hook each action of indicator, motor, valve or pump
+		if(devPLC.connect()==true){
+			Misc.logv("connect FATEK PLC...");
+		}else{
+			Misc.logv("fail to connect PLC(%s)",devPLC.getName());
+		}
+		if(devSQM.connect()==true){
+			Misc.logv("connect SQM160...");
+		}else{
+			Misc.logv("fail to connect SQM160(%s)",devSQM.getName());
+		}
+		if(devSPIK.connect()==true){
+			Misc.logv("connect SPIK2000A...");
+		}else{
+			Misc.logv("fail to connect SPIK2000A(%s)",devSPIK.getName());
+		}
+	}
+	
+	@Override
+	public void eventShown(PanBase self) {
+		devPLC.startMonitor("R01000-40","X0000-24","Y0000-40","Y0120-8");
+		devSQM.startMonitor();
+		mapper.hookPart(devPLC);
 	}
 }

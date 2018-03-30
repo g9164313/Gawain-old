@@ -4,7 +4,6 @@ import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
-import javafx.stage.WindowEvent;
 import narl.itrc.BoxLogger;
 import narl.itrc.PanBase;
 
@@ -24,19 +23,6 @@ public class PanNullView extends PanBase {
 	
 	private WidFringeView map = new WidFringeView();
 	
-	@Override
-	protected void eventShown(WindowEvent e){
-		//cam.setup();
-		//cam.timeRender(60.);
-		
-		//render.launchTask("cam-render");
-		
-		//dev.setUsual(e1->{
-		//	Misc.delay(1000);
-		//	Misc.logv("usual routine...");
-		//});
-		//dev.launchTask("dev-null");		
-	}
 	//-----------------------//
 	
 	@Override
@@ -80,5 +66,9 @@ public class PanNullView extends PanBase {
 		lay.getStyleClass().add("grid-medium-vertical");
 		lay.add(btn1, 0, 0);
 		return lay;
+	}
+	
+	@Override
+	public void eventShown(PanBase self) {
 	}
 }

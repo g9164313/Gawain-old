@@ -2,21 +2,20 @@ package narl.itrc.vision;
 
 import com.jfoenix.controls.JFXTextField;
 
-import narl.itrc.PanBase;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.GridPane;
-import javafx.stage.WindowEvent;
+
 
 /**
  * This setting panel is based on OpenCV generic capture property.
  * @author qq
  *
  */
-public class PanAny extends ScrollPane implements PanBase.EventHook {
+public class PanAny extends ScrollPane {
 
 	public PanAny(CamVidcap device){		
 		dev = device;
@@ -74,29 +73,6 @@ public class PanAny extends ScrollPane implements PanBase.EventHook {
 	private void set_text(int idx,double val){
 		//How to check decimal??
 		boxProp[idx].setText(String.format("%.3f",val));		
-	}
-	
-	@Override
-	public void eventShowing(WindowEvent e) {
-
-	}
-
-	@Override
-	public void eventShown(WindowEvent e) {
-		for(int i=0; i<boxProp.length; i++){
-			if(i==NO_SUPPORT_VAL1){
-				continue;
-			}
-			set_text(i,dev.getProp(dev,i));
-		}
-	}
-
-	@Override
-	public void eventWatch(int cnt) {
-	}
-
-	@Override
-	public void eventClose(WindowEvent e) {
 	}
 	
 	private static final String NO_SUPPORT = "NO_SUPPORT";

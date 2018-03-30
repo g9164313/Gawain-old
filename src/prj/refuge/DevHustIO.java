@@ -24,6 +24,7 @@ import narl.itrc.DevTTY;
 import narl.itrc.Gawain;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
+import narl.itrc.UtilPhysical;
 
 /**
  * 一個很老舊的單軸控制器，組裝廠商已經倒閉了
@@ -314,7 +315,7 @@ public class DevHustIO extends DevTTY {
 			}else{				
 				Misc.invoke(e->{
 					propLocation.set(String.format("%.4f %s",
-						Misc.phyConvert(val, "mm", locaUnit.getValue()),
+						UtilPhysical.convert(val, "mm", locaUnit.getValue()),
 						locaUnit.getValue()
 					));
 				});
@@ -414,7 +415,7 @@ public class DevHustIO extends DevTTY {
 		btnMove.setOnAction(event->{
 			String val = txtValue.getText();
 			String unt = cmbUnit.getSelectionModel().getSelectedItem();
-			double mm = Misc.phyConvert(val+unt, "mm");
+			double mm = UtilPhysical.convert(val+unt, "mm");
 			if(mm>MAX_LOCA){				
 				Misc.loge("超過機械限制");
 				return;

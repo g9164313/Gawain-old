@@ -16,8 +16,8 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
-import javafx.stage.WindowEvent;
 import narl.itrc.BoxLogger;
+import narl.itrc.Gawain;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
 import narl.itrc.PanDecorate;
@@ -42,15 +42,6 @@ public class PanEntry extends PanBase {
 	public PanEntry(){
 		firstAction = FIRST_MAXIMIZED;
 		customStyle = "-fx-background-color: white;";
-	}
-	
-	@Override
-	protected void eventShown(WindowEvent e){
-		cdr.connect("");
-		cdr.layout_grid();//re-layout again!!!
-		cdr.update_auto(true);		
-		//hust.connect("");
-		//atom.connect("");
 	}
 	//-------------------------------//
 	
@@ -240,7 +231,7 @@ public class PanEntry extends PanBase {
 			
 			Misc.logv("========================");
 			Misc.invoke(stpFinal->{
-				mark.saveExcel(new File(Misc.pathHome+"report.xls"));
+				mark.saveExcel(new File(Gawain.pathHome+"report.xls"));
 				tskMeas = null;//reset it!!!
 				layHust.disableProperty().set(false);
 				layAtom.disableProperty().set(false);
@@ -287,7 +278,7 @@ public class PanEntry extends PanBase {
 		btnLoadRec.setOnAction(event->{
 			FileChooser dia = new FileChooser();
 			dia.setTitle("匯入 Excel");
-			dia.setInitialDirectory(Misc.dirHome);
+			dia.setInitialDirectory(Gawain.dirHome);
 			File fs = dia.showOpenDialog(Misc.getParent(event));
             if(fs!=null){
             	mark.loadExcel(fs);
@@ -299,7 +290,7 @@ public class PanEntry extends PanBase {
 		btnSaveRec.setOnAction(event->{
 			FileChooser dia = new FileChooser();
 			dia.setTitle("匯出 Excel");
-			dia.setInitialDirectory(Misc.dirHome);
+			dia.setInitialDirectory(Gawain.dirHome);
             File fs = dia.showSaveDialog(Misc.getParent(event));
             if(fs!=null){
             	mark.saveExcel(fs);
@@ -334,5 +325,12 @@ public class PanEntry extends PanBase {
 		);
 		lay0.getChildren().addAll(nd1, nd2, lay1);
 		return lay0;
+	}
+
+	@Override
+	public void eventShown(PanBase self) {
+		cdr.connect("");
+		cdr.layout_grid();//re-layout again!!!
+		cdr.update_auto(true);
 	}
 }

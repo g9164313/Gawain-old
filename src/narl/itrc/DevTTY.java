@@ -126,7 +126,7 @@ public class DevTTY extends DevBase {
 		}
 		
 		//check the fist argument,it is device name		
-		if(Misc.isPOSIX()==true){
+		if(Gawain.isPOSIX==true){
 			if(new File(arg[0]).exists()==false){
 				Misc.loge("Unknown device --> "+path_attr);
 				return false;

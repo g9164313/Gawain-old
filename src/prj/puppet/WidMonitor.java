@@ -14,6 +14,7 @@ import javafx.event.EventHandler;
 import javafx.scene.Node;
 import javafx.scene.control.TextField;
 import javafx.scene.shape.Rectangle;
+import narl.itrc.Gawain;
 import narl.itrc.Misc;
 import narl.itrc.WidImageView;
 
@@ -261,8 +262,8 @@ public class WidMonitor extends WidImageView {
 	}
 		
 	public String recognizeDigital(final int[] roi){
-		final String name1 = Misc.pathSock+"tmp.png";
-		final String name2 = Misc.pathSock+"tmp.pbm";
+		final String name1 = Gawain.pathSock+"tmp.png";
+		final String name2 = Gawain.pathSock+"tmp.pbm";
 		Node obj = addMark(roi);
 		takeOutputEvent();
 		snapData(name1,roi);

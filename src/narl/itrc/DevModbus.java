@@ -31,12 +31,9 @@ public class DevModbus extends DevBase {
 			return 0;
 		}
 		
-		//'ptrCntx' will be overwrote by native code!!!
-		
+		//native code will overwrite 'ptrCntx' variable!!!
 		if(val[0].startsWith("rtu")==true){
-			
 			//format: RTU,[device name],9600,8n1,1
-			
 			if(val.length<4){
 				return 0;
 			}
@@ -64,7 +61,6 @@ public class DevModbus extends DevBase {
 			openRtu(val[1],baud,d_bit,p_bit,s_bit);
 			
 		}else if(val[0].startsWith("tcp")==true){
-			
 			//format: TCP,[IP位置],[port]
 			int port = 502;
 			try{
@@ -78,7 +74,7 @@ public class DevModbus extends DevBase {
 			openTcp(val[1],port);
 			
 		}else{
-			Misc.logv("fail to parse - '"+name+"'");
+			Misc.logw("fail to parse - '"+name+"'");
 		}
 		return ptrCntx;
 	}

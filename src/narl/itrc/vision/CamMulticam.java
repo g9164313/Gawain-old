@@ -13,6 +13,7 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
+import narl.itrc.Gawain;
 import narl.itrc.Misc;
 
 public class CamMulticam extends CamBundle {
@@ -21,7 +22,7 @@ public class CamMulticam extends CamBundle {
 		//super(nameConfig);		
 		indxMcBoard = 0;//how to pack this in configure name
 		String path = "";
-		if(Misc.isPOSIX()==true){
+		if(Gawain.isPOSIX==true){
 			final String dir = "/.euresys/multicamstudio/MultiCamStudio.settings";
 			path = "/home/qq"+dir;//how to get home directory???		
 		}else{

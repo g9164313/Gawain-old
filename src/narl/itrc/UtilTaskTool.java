@@ -14,7 +14,7 @@ import javafx.scene.control.TextField;
  * @author qq
  *
  */
-public class TaskTool {
+public class UtilTaskTool {
 	
 	public static ConcurrentHashMap<Long,String> map_text = new ConcurrentHashMap<Long,String>();
 	

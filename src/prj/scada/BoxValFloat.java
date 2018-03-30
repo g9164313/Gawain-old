@@ -1,44 +1,47 @@
-package narl.itrc;
+package prj.scada;
 
 import com.jfoenix.controls.JFXTextField;
 
-import javafx.beans.property.IntegerProperty;
-import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.property.FloatProperty;
+import javafx.beans.property.SimpleFloatProperty;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
 
-public class BoxValInteger extends HBox {
+public class BoxValFloat extends HBox {
 	
-	public IntegerProperty propValue = new SimpleIntegerProperty();
-
+	private int fixed;
+	
+	public FloatProperty propValue = new SimpleFloatProperty();
+	
 	private JFXTextField box = new JFXTextField();
-
-	public BoxValInteger(){
-		this("",0);
+	
+	public BoxValFloat(){
+		this("",0.f,2);
+	}
+		
+	public BoxValFloat(String title){
+		this(title,0.f,2);
 	}
 	
-	public BoxValInteger(String title){
-		this(title,0);
+	public BoxValFloat(float value, int fixed){
+		this("", 0.f, fixed);
 	}
 	
-	public BoxValInteger(int value){
-		this("",value);
-	}
-	
-	public BoxValInteger(String title, int value){
-
+	public BoxValFloat(String title, float value, int fixed){
+		
 		setAlignment(Pos.CENTER_LEFT);
 		setSpacing(7.);
 		if(title.length()!=0){
 			Label txt = new Label(title);
 			getChildren().add(txt);
 		}
-
 		getChildren().add(box);
 		
+		this.fixed = fixed;
+				
 		set(value);
-		
+				
 		box.setPrefWidth(60);		
 		box.setOnAction(e->{
 			set();
@@ -49,32 +52,36 @@ public class BoxValInteger extends HBox {
 			}
 		});
 		propValue.addListener((obv,oldVal,newVal)->{
-			box.setText(String.format("%d",newVal));
+			box.setText(String.format("%."+fixed+"f",newVal));
 		});
 	}
-	
+
 	public void clear(){
 		box.setText("");
 	}
 	
-	public int get(){
+	public float get(){
 		return propValue.get();
 	}
+	public String getValTxt(){
+		return String.format("%."+fixed+"f",get());
+	}
 	
-	private BoxValInteger set(){
+		
+	private BoxValFloat set(){
 		try{
-			int _v = Integer.valueOf(box.getText());
+			float _v = Float.valueOf(box.getText());
 			set(_v);
 		}catch(NumberFormatException e){
-			box.setText(String.format("%d",get()));
+			box.setText(getValTxt());
 		}
 		return this;
 	}
 	
-	public BoxValInteger set(int val){
+	public BoxValFloat set(float val){
 		if(validRange==true){
 			if(val<range[0] || range[1]<val){
-				box.setText(String.format("%d",get()));//restore the original value
+				box.setText(getValTxt());//restore the original value
 				return this;
 			}
 		}
@@ -82,20 +89,20 @@ public class BoxValInteger extends HBox {
 		return this;
 	}
 	
-	private void _set(int val){
+	private void _set(float val){
 		propValue.set(val);
-		box.setText(String.format("%d",val));
+		box.setText(String.format("%."+fixed+"f",val));
 	}
 	
-	private int[] range = {0, 0};
+	private float[] range = {0, 0};
 	private boolean validRange = false;
 	
-	public BoxValInteger setRange(int min, int max){
+	public BoxValFloat setRange(float min, float max){
 		range[0] = min;
 		range[1] = max;
 		validRange = true;
 		//check again~~~
-		int val = propValue.get();
+		float val = propValue.get();
 		if(val<min){
 			_set(min);
 		}else if(max<val){
@@ -104,4 +111,3 @@ public class BoxValInteger extends HBox {
 		return this;
 	}
 }
-

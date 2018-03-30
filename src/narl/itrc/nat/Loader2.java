@@ -36,8 +36,8 @@ public class Loader2 extends TaskDialog {
 			log("沒有設定LIB變數!!");
 			return -2;
 		}
-		addLibraryPath(Misc.pathRoot);//default search path~~~
-		addLibraryPath(Misc.pathSock);
+		addLibraryPath(Gawain.pathRoot);//default search path~~~
+		addLibraryPath(Gawain.pathSock);
 		
 		log("複製函式庫...");
 		for(int i=0; i<node.length; i++){
@@ -152,7 +152,7 @@ public class Loader2 extends TaskDialog {
 		boolean isBase = false;
 		if(node.charAt(0)=='.'){
 			src = ".";
-			dst = Misc.pathSock;	
+			dst = Gawain.pathSock;	
 			lst = new String[1];
 			lst[0] = node.substring(1);
 			isBase = true;
@@ -161,7 +161,7 @@ public class Loader2 extends TaskDialog {
 				"%s_%s",
 				node,System.getProperty("os.name").toLowerCase()
 			);
-			dst = Misc.pathSock+node;			
+			dst = Gawain.pathSock+node;			
 			lst = Gawain.prop.getProperty(node,"").replace(' ',',').split(",");
 			if(lst[0].length()==0){
 				return;

@@ -4,19 +4,15 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 
-import com.jfoenix.controls.JFXCheckBox;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 
-import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.scene.Node;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
-import javafx.stage.WindowEvent;
-import javafx.util.Duration;
 import narl.itrc.BoxLogger;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
@@ -25,11 +21,6 @@ public class PanPuppet extends PanBase {
 
 	public PanPuppet(){
 		watcher.setCycleCount(Timeline.INDEFINITE);
-		
-		//StringBuilder resp = new StringBuilder();
-		//resp.append("<html><body>");
-		//resp.append("process event done!!");
-		//resp.append("</html></body>");
 	}
 	
 	private final String dummyHTML = "<html><body>dummy!!</html></body>";
@@ -88,35 +79,12 @@ public class PanPuppet extends PanBase {
 	};
 	
 	@Override
-	protected void eventShown(WindowEvent e){		
-		try {
-			serv = HttpServer.create(new InetSocketAddress(9911),0);
-			serv.createContext("/input" ,eventInput);
-			serv.createContext("/output",eventOutput);
-			serv.setExecutor(null);
-			serv.start();
-			Misc.logv("Turn on HTTP server !!!");
-		} catch (IOException e1) {
-			e1.printStackTrace();
-		}
-	}
-	
-	@Override
-	protected void eventClose(WindowEvent e){
-		Misc.logv("Shutdown...");
-		Misc.deleteScreenshot(null);//release allocated memory~~
-		serv.stop(1);
-	}
-	
-	@Override
 	public Node eventLayout(PanBase self) {
 		
 		final BoxLogger boxMsg = new BoxLogger();
 		boxMsg.setPrefSize(400, 100);
 		
-		
 		/*final String title1 = "滑鼠位置";
-		
 		final JFXCheckBox chk = new JFXCheckBox(title1);
 		final KeyFrame loop1 = new KeyFrame(Duration.millis(250), event->{
 			final int[] pos = {0,0};
@@ -144,5 +112,26 @@ public class PanPuppet extends PanBase {
 		HBox.setHgrow(boxMsg, Priority.ALWAYS);
 		
 		return lay0;
+	}
+
+	@Override
+	public void eventShown(PanBase self) {
+		try {
+			serv = HttpServer.create(new InetSocketAddress(9911),0);
+			serv.createContext("/input" ,eventInput);
+			serv.createContext("/output",eventOutput);
+			serv.setExecutor(null);
+			serv.start();
+			Misc.logv("Turn on HTTP server !!!");
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+	}
+	
+	@Override
+	protected void eventClose(PanBase self){
+		Misc.logv("Shutdown...");
+		Misc.deleteScreenshot(null);//release allocated memory~~
+		serv.stop(1);
 	}
 }

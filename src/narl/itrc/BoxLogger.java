@@ -36,12 +36,12 @@ public class BoxLogger extends TextArea {
 		MenuItem itm2 = new MenuItem("清除紀錄");
 		itm2.setOnAction(event->{
 			setText("");
-		});		
+		});
 		MenuItem itm3 = new MenuItem("另存紀錄");
 		itm3.setOnAction(event->{
 			FileChooser chs = new FileChooser();
             chs.setTitle("另存");
-            chs.setInitialDirectory(Misc.dirRoot);
+            chs.setInitialDirectory(Gawain.dirRoot);
             File fs = chs.showSaveDialog(Misc.getParent(event));
             if(fs!=null){
             	try {
@@ -71,11 +71,11 @@ public class BoxLogger extends TextArea {
 		@Override
 		public void handle(ActionEvent event) {
 			String txt = "";
-			String msg = null;
+			Gawain.LogMessage msg = null;
 			do{
-				msg = Gawain.txtLogger.poll();
+				msg = Gawain.logQueue.poll();
 				if(msg!=null){
-					txt = txt + msg;
+					txt = txt + msg.text;
 				}
 			}while(msg!=null);
 			if(txt.length()==0){

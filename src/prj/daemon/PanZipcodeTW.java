@@ -72,5 +72,7 @@ public class PanZipcodeTW extends PanBase {
 		
 		return root;
 	}
-
+	@Override
+	public void eventShown(PanBase self) {
+	}
 }

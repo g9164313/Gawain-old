@@ -83,11 +83,6 @@ public class PanMotionDriving extends PanBase {
 	private DevTTY dev = new DevTTY();
 	
 	@Override
-	protected void eventShown(WindowEvent e){
-		dev.open("/dev/ttyACM0,115200,8n1");
-	}
-	
-	@Override
 	public Node eventLayout(PanBase self) {
 		
 		final BoxLogger box = new BoxLogger();
@@ -111,5 +106,10 @@ public class PanMotionDriving extends PanBase {
 		lay0.setLeft(lay1);		
 		lay0.setBottom(box);
 		return lay0;
+	}
+
+	@Override
+	public void eventShown(PanBase self) {
+		dev.open("/dev/ttyACM0,115200,8n1");
 	}
 }

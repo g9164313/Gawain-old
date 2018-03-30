@@ -22,6 +22,7 @@ import javafx.scene.media.MediaPlayer.Status;
 import javafx.util.Duration;
 import eu.hansolo.medusa.Gauge.SkinType;
 import narl.itrc.Misc;
+import narl.itrc.UtilPhysical;
 import narl.itrc.WidDiagram;
 import narl.itrc.WidValueNote;
 
@@ -181,7 +182,7 @@ public class WidMapPID extends WidDiagram {
 	private StringProperty ptxt_Press_CH2(DevFatek dev){
 		StringProperty txt = new SimpleStringProperty("???Torr");		
 		dev.getMarker("R1024").addListener((observable,preVal,curVal)->{
-			txt.set(Misc.num2prefix(press_ch2(curVal),2)+"Torr");			
+			txt.set(UtilPhysical.num2prefix(press_ch2(curVal),2)+"Torr");			
 		});
 		return txt;
 	}
@@ -219,7 +220,7 @@ public class WidMapPID extends WidDiagram {
 	private StringProperty ptxt_press_cp(DevFatek dev,String name){
 		StringProperty txt = new SimpleStringProperty("???Torr");		
 		dev.getMarker(name).addListener((observable,preVal,curVal)->{
-			txt.set(Misc.num2prefix(press_cp(curVal))+"Torr");			
+			txt.set(UtilPhysical.num2prefix(press_cp(curVal))+"Torr");			
 		});
 		return txt;
 	}
