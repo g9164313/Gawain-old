@@ -27,7 +27,7 @@ import narl.itrc.PanDecorate;
  * @author qq
  *
  */
-public class PanEntry extends PanBase {
+public class PanEntry1 extends PanBase {
 
 	private DevCDR06  cdr  = new DevCDR06();
 	private DevHustIO hust = new DevHustIO();
@@ -39,7 +39,7 @@ public class PanEntry extends PanBase {
 		DevHustIO.ISOTOPE_NAME[2]
 	);
 	
-	public PanEntry(){
+	public PanEntry1(){
 		firstAction = FIRST_MAXIMIZED;
 		customStyle = "-fx-background-color: white;";
 	}
@@ -133,7 +133,6 @@ public class PanEntry extends PanBase {
 			posVal = Math.sqrt(val) - coffDelta;
 			return posVal;
 		}
-		
 		@Override
 		protected Void call() throws Exception {
 			
@@ -329,8 +328,8 @@ public class PanEntry extends PanBase {
 
 	@Override
 	public void eventShown(PanBase self) {
-		cdr.connect("");
-		cdr.layout_grid();//re-layout again!!!
-		cdr.update_auto(true);
+		//cdr.connect("");
+		//cdr.layout_grid();//re-layout again!!!
+		//cdr.update_auto(true);
 	}
 }

@@ -1,6 +1,7 @@
 #include <global.hpp>
 #include <zlib.h>
 #include <vector>
+#include <list>
 #include <opencv/cv.h>
 #include <opencv2/opencv.hpp>
 #include <opencv2/line_descriptor.hpp>
@@ -16,10 +17,178 @@ using namespace ximgproc;
 using namespace xfeatures2d;
 using namespace line_descriptor;
 
+Mat filterVariance(Mat& src, int rad){
+	Size ksize(rad,rad);
+	Mat nod, avg, mu2, sig;
+	src.convertTo(nod,CV_32FC1);
+	blur(nod, avg, ksize);
+	blur(nod.mul(nod),mu2,ksize);
+	sqrt(mu2-avg.mul(avg),sig);
+	normalize(sig, nod, 0, 255, NORM_MINMAX,CV_8UC1);
+	return nod;
+}
+
+Scalar color[]={
+	Scalar(0,0,250),
+	Scalar(0,250,0),
+	Scalar(250,0,0),
+	Scalar(255,255,0),
+	Scalar(0,255,255),
+	Scalar(255,0,255),
+};
+
+const float MIN_DIFF_X = 10.f;
+
+bool ladder_by_horizontal(Point2f a, Point2f b){
+	if(abs(a.x-b.x)>MIN_DIFF_X){
+		if(a.x>b.x){
+			return false;
+		}
+		return true;
+	}
+	if(a.y>b.y){
+		return false;
+	}
+	return true;
+}
+
+Point2f findShortest(
+	Point2f& aa,
+	Point2f& bb,
+	vector<Point2f>& set
+){
+	int idx = -1;
+	double max = -1;
+	Point2f cc;
+	for(int i=0; i<set.size(); i++){
+		cc = set[i];
+		double dist = norm(cc-bb);
+		if(dist<max || idx==-1){
+			idx = i;
+			max = dist;
+		}
+	}
+	cc = set[idx];
+	double diff = norm(bb-aa) + norm(cc-bb) - norm(cc-aa);
+	if(diff<1){
+		//cout<<"diff="<<diff<<endl;
+		return cc;
+	}
+	return Point2f(-1,-1);
+}
+
 int main(int argc, char** argv){
 
-	Mat img = imread("sputter-1.png", IMREAD_GRAYSCALE);
+	const char* name = "ipc-2.bmp";
+	const int RECT_SIZE = 18;
+	const int RECT_AREA = RECT_SIZE*RECT_SIZE;
 
+	Mat ova = imread(name, IMREAD_COLOR);
+	Mat img = imread(name, IMREAD_GRAYSCALE);
+	Mat tmp = Mat::zeros(img.size(),CV_8UC1);
+	Mat res = Mat::zeros(img.size(),CV_8UC1);
+	Mat kern = getStructuringElement(MORPH_RECT,Size(RECT_SIZE,RECT_SIZE));
+
+	medianBlur(img,tmp,5);
+	morphologyEx(tmp,res,MORPH_OPEN,kern);
+	//double min,max;
+	//minMaxLoc(res,&min,&max);
+	threshold(res,tmp,100,255,THRESH_BINARY);
+	//addWeighted(img,0.3,tmp,0.7,0.,res);
+
+	//gather all points
+	vector<Point2f> pool;
+	vector<vector<Point> > cts;
+	findContours(tmp,cts,RETR_EXTERNAL,CHAIN_APPROX_SIMPLE);
+	for(int i=0; i<cts.size(); i++){
+		double area = contourArea(cts[i]);
+		if(area<RECT_AREA){
+			continue;
+		}
+		Point2f center;
+		float radius;
+		minEnclosingCircle(cts[i],center,radius);
+		//circle(ova,center,radius,color[5]);
+		pool.push_back(center);
+	}
+	sort(pool.begin(), pool.end(), ladder_by_horizontal);
+
+	//link all point along horizontal direction
+	vector<vector<Point2f> > group;
+	for(int i=0; i<pool.size(); i++){
+		Point2f& aa = pool[i];
+		vector<Point2f> segment;
+		segment.push_back(aa);
+		for(int j=i+1; i<pool.size(); j++){
+			Point2f& bb = pool[j];
+			if(abs(aa.x-bb.x)>(MIN_DIFF_X*1.5)){
+				break;
+			}
+			segment.push_back(bb);
+			i+=1;
+		}
+		group.push_back(segment);
+	}
+
+	//start to travel, find points which align in one direction
+	vector<Point2f> path;
+	vector<Point2f>& seed = group[0];
+	for(int i=0; i<seed.size(); i++){
+		Point2f aa, bb, cc;
+		aa = bb = seed[i];
+		path.push_back(aa);
+		for(int j=2; j<group.size(); j+=2){
+			cc = findShortest(aa,bb,group[j]);
+			if(cc.x<0){
+				path.clear();
+				break;
+			}
+			path.push_back(cc);
+			aa = bb;
+			bb = cc;
+		}
+		if(path.size()!=0){
+			break;//we only need the first path....
+		}
+	}
+
+	//fitting path....
+	Vec4f base;
+	fitLine(path,base,CV_DIST_FAIR, 0, 2, 0.01);
+	double s1 = base[1]/base[0];
+	double s2 = s1*s1;
+	for(int i=0; i<path.size(); i++){
+		Point2f a(base[2],base[3]);
+		Point2f b(path[i]);
+		path[i].x = (s2 * a.x - s1*(a.y-b.y) + b.x) / (1. + s2);
+		path[i].y = (s2 * b.y - s1*(a.x-b.x) + a.y) / (1. + s2);
+		circle(ova,path[i],5,color[0],-1);
+	}
+
+	//dump path~~~
+	cout<<"dist=[";
+	for(int i=0; i<(path.size()-1); i++){
+		Point2f& aa = path[i+0];
+		Point2f& bb = path[i+1];
+		double dist = norm(aa-bb);
+		printf("%.3f;..\n",dist);
+	}
+	cout<<"];"<<endl;
+
+	//draw points along line
+	//for(int i=0; i<(path.size()-1); i++){
+	//	Point2f& aa = path[i+0];
+	//	Point2f& bb = path[i+1];
+	//	arrowedLine(ova,aa,bb,color[i%3],2);
+	//}
+	//imwrite("result-3.png",ova(Rect(1000,0,2000,500)));
+	imwrite("cc1.png",ova);
+	return 0;
+}
+//-----------------------------------------------//
+
+int main9(int argc, char** argv){
+	Mat img = imread("sputter-1.png", IMREAD_GRAYSCALE);
 	/*Ptr<BinaryDescriptor> bd = BinaryDescriptor::createBinaryDescriptor();
 	vector<KeyLine> keylines;
 	bd->detect(img,keylines);
@@ -29,9 +198,7 @@ int main(int argc, char** argv){
 	}
 	Mat descriptors;
 	bd->compute(img, keylines, descriptors);*/
-
 	imwrite("tttt.pnm",img);
-
 	return 0;
 }
 //-----------------------------------------------//
@@ -98,31 +265,21 @@ int main8(int argc, char** argv){
 //-------------------------------//
 
 int main7(int argc, char* argv[]) {
-
 	//test writing speed
 	for(int i=1;i<=5; i++){
-
 		long width = (1<<(i+10));
-
 		void* buf = malloc(width*width);
-
 		Mat img(width,width,CV_8UC1,buf);
 		img = img * 0;
 		//randu(img,Scalar(0),Scalar(255));
-
 		char name[60];
 		sprintf(name,"volbin-%d.tif",i);
-
 		cout<<"write "<<name<<", size="<<(width*width)<<"bytes."<<endl;
 
 		TICK_BEG
-
 		imwrite(name,img);
-
 		TICK_END("I/O")
-
 		free(buf);
-
 		cout<<endl;
 	}
 	return 0;
@@ -185,52 +342,6 @@ int main6(int argc, char* argv[]) {
 
 //--------------------------------------------//
 
-struct RAW_HEAD {
-	uint32_t type;
-	uint32_t rows;
-	uint32_t cols;
-	uint32_t tileFlag;
-	uint32_t tileRows;
-	uint32_t tileCols;
-};
-
-int main5(int argc, char** argv){
-	//try to read some old file
-
-	FILE* fd = fopen("pano.1.raw","r");
-
-	RAW_HEAD hd;
-
-	fread(&hd,sizeof(hd),1,fd);
-
-	size_t total = hd.cols*hd.rows;
-
-	uint8_t* buf = new uint8_t[total];
-
-	for(int j=0; j<hd.tileRows; j++){
-
-		for(int i=0; i<hd.tileCols; i++){
-
-			fread(buf,total,1,fd);
-
-			Mat img(hd.rows,hd.cols,hd.type,buf);
-
-			char name[100];
-			if(j%2==0){
-				sprintf(name,"./pano/img+%02d+%02d.tiff",j,i);
-			}else{
-				sprintf(name,"./pano/img+%02d+%02d.tiff",j,hd.tileCols-1-i);
-			}
-			imwrite(name,img);
-
-			cout<<"dump "<<name<<endl;
-		}
-	}
-	delete buf;
-	fclose(fd);
-	cout<<"done"<<endl;
-	return 0;
-}
 //------------------------------//
 
 #include "opencv2/stitching.hpp"
@@ -305,277 +416,3 @@ int main4(int argc, char** argv){
 }
 //------------------------------//
 
-int main3(int argc, char** argv){
-	const int ROW = 256;
-
-	//製作 color map 的指示
-	Mat src(1,ROW,CV_8UC1);
-	for(int i=0; i<256; i++){
-		src.at<uint8_t>(0,i) = 255 - i;
-	}
-	cout<<"--sample--"<<endl;
-	cout<<"src="<<src<<endl<<endl;
-
-	Mat dst;
-	applyColorMap(src, dst, COLORMAP_RAINBOW);
-	cout<<"--mapping--"<<endl;
-	cout<<"ch="<<dst.channels()<<endl;
-	cout<<"private int[] rainbow = {"<<endl;
-
-	const int COLS = 8;
-
-	for(int i=0; i<ROW; i++){
-		Vec3b pix = dst.at<Vec3b>(0,i);
-		int val =0;
-		val = val | (((uint32_t)pix[2])<<16);
-		val = val | (((uint32_t)pix[1])<<8);
-		val = val | (((uint32_t)pix[0]));
-		val = val | 0x80000000;
-
-		int col = i%COLS;
-		//if(col==0){ cout<<"    "; }
-		printf("0x%08X, ",val);
-		if(col==(COLS-1)){
-			cout<<endl;
-		}
-	}
-	cout<<"};"<<endl;
-
-	return 0;
-}
-//------------------------------//
-
-//below lines comes from https://stackoverflow.com/questions/40713929/weiner-deconvolution-using-opencv
-//thanks, Andrey Smorodov
-
-void Recomb(Mat &src, Mat &dst){
-    int cx = src.cols >> 1;
-    int cy = src.rows >> 1;
-    Mat tmp;
-    tmp.create(src.size(), src.type());
-    src(Rect( 0,  0, cx, cy)).copyTo(tmp(Rect(cx, cy, cx, cy)));
-    src(Rect(cx, cy, cx, cy)).copyTo(tmp(Rect(0, 0, cx, cy)));
-    src(Rect(cx,  0, cx, cy)).copyTo(tmp(Rect(0, cy, cx, cy)));
-    src(Rect( 0, cy, cx, cy)).copyTo(tmp(Rect(cx, 0, cx, cy)));
-    dst = tmp;
-}
-
-void convolveDFT(Mat& A, Mat& B, Mat& C)
-{
-    // reallocate the output array if needed
-    C.create(abs(A.rows - B.rows) + 1, abs(A.cols - B.cols) + 1, A.type());
-
-    Size dftSize;
-    // compute the size of DFT transform
-    dftSize.width = getOptimalDFTSize(A.cols + B.cols - 1);
-    dftSize.height = getOptimalDFTSize(A.rows + B.rows - 1);
-
-    // allocate temporary buffers and initialize them with 0's
-    Mat tempA(dftSize, A.type(), Scalar::all(0));
-    Mat tempB(dftSize, B.type(), Scalar::all(0));
-
-    // copy A and B to the top-left corners of tempA and tempB, respectively
-    Mat roiA(tempA, Rect(0, 0, A.cols, A.rows));
-    A.copyTo(roiA);
-    Mat roiB(tempB, Rect(0, 0, B.cols, B.rows));
-    B.copyTo(roiB);
-
-    // now transform the padded A & B in-place;
-    // use "nonzeroRows" hint for faster processing
-    dft(tempA, tempA, 0, A.rows);
-    dft(tempB, tempB, 0, A.rows);
-
-    // multiply the spectrums;
-    // the function handles packed spectrum representations well
-    mulSpectrums(tempA, tempB, tempA, 0);
-    // transform the product back from the frequency domain.
-    // Even though all the result rows will be non-zero,
-    // you need only the first C.rows of them, and thus you
-    // pass nonzeroRows == C.rows
-
-    dft(tempA, tempA, DFT_INVERSE + DFT_SCALE);
-    // now copy the result back to C.
-    C = tempA(Rect((dftSize.width - A.cols) / 2, (dftSize.height - A.rows) / 2, A.cols, A.rows)).clone();
-    // all the temporary buffers will be deallocated automatically
-}
-
-//----------------------------------------------------------
-// Compute Re and Im planes of FFT from Image
-//----------------------------------------------------------
-void ForwardFFT(Mat &Src, Mat *FImg)
-{
-    int M = getOptimalDFTSize(Src.rows);
-    int N = getOptimalDFTSize(Src.cols);
-    Mat padded;
-    copyMakeBorder(Src, padded, 0, M - Src.rows, 0, N - Src.cols, BORDER_CONSTANT, Scalar::all(0));
-    Mat planes[] = { Mat_<double>(padded), Mat::zeros(padded.size(), CV_64FC1) };
-    Mat complexImg;
-    merge(planes, 2, complexImg);
-    dft(complexImg, complexImg);
-    split(complexImg, planes);
-    // crop result
-    planes[0] = planes[0](Rect(0, 0, Src.cols, Src.rows));
-    planes[1] = planes[1](Rect(0, 0, Src.cols, Src.rows));
-    FImg[0] = planes[0].clone();
-    FImg[1] = planes[1].clone();
-}
-//----------------------------------------------------------
-// Compute image from Re and Im parts of FFT
-//----------------------------------------------------------
-void InverseFFT(Mat *FImg, Mat &Dst)
-{
-    Mat complexImg;
-    merge(FImg, 2, complexImg);
-    dft(complexImg, complexImg, DFT_INVERSE + DFT_SCALE);
-    split(complexImg, FImg);
-    Dst = FImg[0];
-}
-//----------------------------------------------------------
-// wiener Filter
-//----------------------------------------------------------
-void wienerFilter(Mat &src, Mat &dst, Mat &_h, double k)
-{
-    //---------------------------------------------------
-    // Small epsilon to avoid division by zero
-    //---------------------------------------------------
-    const double eps = 1E-8;
-    //---------------------------------------------------
-    int ImgW = src.size().width;
-    int ImgH = src.size().height;
-    //--------------------------------------------------
-    Mat Yf[2];
-    ForwardFFT(src, Yf);
-    //--------------------------------------------------
-    Mat h = Mat::zeros(ImgH, ImgW, CV_64FC1);
-
-    int padx = h.cols - _h.cols;
-    int pady = h.rows - _h.rows;
-
-    copyMakeBorder(_h, h,
-    	pady / 2, pady - pady / 2,
-		padx / 2, padx - padx / 2,
-		BORDER_CONSTANT,
-		Scalar::all(0)
-    );
-
-    Mat Hf[2];
-    ForwardFFT(h, Hf);
-
-
-    //--------------------------------------------------
-    Mat Fu[2];
-    Fu[0] = Mat::zeros(ImgH, ImgW, CV_64FC1);
-    Fu[1] = Mat::zeros(ImgH, ImgW, CV_64FC1);
-
-    complex<double> a;
-    complex<double> b;
-    complex<double> c;
-
-    double Hf_Re;
-    double Hf_Im;
-    double Phf;
-    double hfz;
-    double hz;
-    double A;
-
-    for (int i = 0; i < h.rows; i++)
-    {
-        for (int j = 0; j < h.cols; j++)
-        {
-            Hf_Re = Hf[0].at<double>(i, j);
-            Hf_Im = Hf[1].at<double>(i, j);
-            Phf = Hf_Re*Hf_Re + Hf_Im*Hf_Im;
-            hfz = (Phf < eps)*eps;
-            hz = (h.at<double>(i, j) > 0);
-            A = Phf / (Phf + hz + k);
-            a = complex<double>(Yf[0].at<double>(i, j), Yf[1].at<double>(i, j));
-            b = complex<double>(Hf_Re + hfz, Hf_Im + hfz);
-            c = a / b; // Deconvolution :) other work to avoid division by zero
-            Fu[0].at<double>(i, j) = (c.real()*A);
-            Fu[1].at<double>(i, j) = (c.imag()*A);
-        }
-    }
-    InverseFFT(Fu, dst);
-    Recomb(dst, dst);
-}
-
-void shape_gain(Mat& dat){
-
-	Mat plan[] ={
-		Mat_<double>(dat),
-		Mat::zeros(dat.size(), CV_64FC1)
-	};
-	//cout<<"cc1="<<plan[0]<<endl;
-
-	Mat comp;
-	merge(plan, 2, comp);
-	dft(comp, comp);
-	split(comp, plan);
-
-	//cout<<"cc3="<<plan[0]<<endl;
-	//cout<<"cc4="<<plan[1]<<endl;
-	//plan[0] = plan[0].mul(shape);
-	//plan[1] = plan[1].mul(shape);
-
-	int nn = plan[0].cols;
-	int n  = plan[0].cols/2;
-
-	//double DC1 = plan[0].at<double>(0,0);//keep this~~~
-	//double AC1 = plan[0].at<double>(0,n);
-
-	//cout<<"val=[";
-	for(int i=1; i<n; i++){
-		//double scale = 1 - abs( (i-(n-1)/2.) / (n/2.) );
-		double idx = (i)/((double)n);
-		double val = sin(M_PI*idx)/(M_PI*idx);
-		//cout<<val<<",";
-		//plan[0].at<double>(0,i) = plan[0].at<double>(0,i)*2.3;
-		plan[0].at<double>(0,i) = val;
-	}
-	//cout<<"]"<<endl;
-
-	//plan[0].at<double>(0,0) = DC1;
-	//plan[0].at<double>(0,n) = AC1;
-
-
-	//Mat chk;
-	//plan[0].convertTo(chk,CV_16S);
-	//cout<<"cc2="<<chk<<endl;
-
-	merge(plan, 2, comp);
-	idft(comp, comp, DFT_SCALE);
-	split(comp, plan);
-	plan[0].convertTo(dat,CV_8UC1);
-	//cout<<"cc3="<<dat<<endl;
-
-	return;
-}
-
-int main2(int argc, char** argv){
-
-    Mat Img = imread("F:\\ImagesForTest\\lena.jpg", 0); // Source image
-    Img.convertTo(Img, CV_32FC1, 1.0 / 255.0);
-
-    Mat kernel = imread("F:\\ImagesForTest\\Point.jpg", 0); // PSF
-    //resize(kernel, kernel, Size(), 0.5, 0.5);
-
-    kernel.convertTo(kernel, CV_32FC1, 1./255.);
-
-    float kernel_sum = cv::sum(kernel)[0];
-    kernel /= kernel_sum;
-
-    int width = Img.cols;
-    int height= Img.rows;
-    Mat resim;
-    //convolveDFT(Img, kernel, resim);
-    //Mat resim2;
-    //kernel.convertTo(kernel, CV_64FC1);
-    //wienerFilter(resim, resim2, kernel, 0.01); // Apply filter
-    //imshow("Kernel", kernel * 255);
-    //imshow("Image", Img);
-    //imshow("Result", resim);
-    //cvWaitKey(0);
-
-    return 0;
-}
-//-------------------------------//

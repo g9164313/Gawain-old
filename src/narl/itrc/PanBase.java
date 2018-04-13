@@ -357,6 +357,11 @@ public abstract class PanBase {
 		public void kick(String name, final Task<?> tsk){
 			kick(name, '?', tsk);
 		}
+		/**
+		 * kick a task to do heavy working.
+		 * @param type - 'p' mean bar, 'm' mean label
+		 * @param tsk - the instance of task class.
+		 */
 		public void kick(char type, final Task<?> tsk){
 			kick("panel-task", type, tsk);
 		}

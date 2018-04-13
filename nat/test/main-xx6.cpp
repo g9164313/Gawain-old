@@ -15,26 +15,6 @@
 using namespace cv;
 using namespace std;
 
-Mat filterVariance(Mat& src, int rad){
-	Size ksize(rad,rad);
-	Mat nod, avg, mu2, sig;
-	src.convertTo(nod,CV_32FC1);
-	blur(nod, avg, ksize);
-	blur(nod.mul(nod),mu2,ksize);
-	sqrt(mu2-avg.mul(avg),sig);
-	normalize(sig, nod, 0, 255, NORM_MINMAX,CV_8UC1);
-	return nod;
-}
-
-Scalar color[]={
-	Scalar(0,0,255),
-	Scalar(0,255,0),
-	Scalar(255,0,0),
-	Scalar(255,255,0),
-	Scalar(0,255,255),
-	Scalar(255,0,255),
-};
-
 bool ladder_y_axis(Vec4f A, Vec4f B){
 	Point aa(
 		(A[0]+A[2])/2,
