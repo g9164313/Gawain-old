@@ -165,9 +165,9 @@ public abstract class PanBase {
 	//------------------------//
 		
 	public abstract Node eventLayout(PanBase self);
-	protected       void eventShowing(PanBase self){ }
+	protected       void eventShowing(PanBase self){ }//let user override this function
 	public abstract void eventShown(PanBase self);
-	protected       void eventClose(PanBase self){ }
+	protected       void eventClose(PanBase self){ }//let user override this function
 	
 	private Stage create_dialog(Window parent){
 		Stage stg = new Stage(StageStyle.UNIFIED);		

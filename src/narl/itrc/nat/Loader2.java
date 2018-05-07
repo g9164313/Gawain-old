@@ -38,6 +38,7 @@ public class Loader2 extends TaskDialog {
 		}
 		addLibraryPath(Gawain.pathRoot);//default search path~~~
 		addLibraryPath(Gawain.pathSock);
+		addLibraryPath("/usr/lib/virtualbox/components");
 		
 		log("複製函式庫...");
 		for(int i=0; i<node.length; i++){
@@ -57,8 +58,6 @@ public class Loader2 extends TaskDialog {
 				return -3;
 			}
 		}
-		
-		Misc.delay(1000);//show Logo
 		
 		log("載入函式庫...");
 		for(int i=0; i<node.length; i++){

@@ -10,6 +10,7 @@
 #include <opencv2/xobjdetect.hpp>
 #include <opencv2/xphoto.hpp>
 #include <opencv2/xfeatures2d.hpp>
+#include "opencv2/calib3d/calib3d.hpp"
 
 using namespace cv;
 using namespace xobjdetect;
@@ -37,7 +38,7 @@ Scalar color[]={
 	Scalar(255,0,255),
 };
 
-const float MIN_DIFF_X = 10.f;
+const float MIN_DIFF_X = 30.f;
 
 bool ladder_by_horizontal(Point2f a, Point2f b){
 	if(abs(a.x-b.x)>MIN_DIFF_X){
@@ -77,9 +78,28 @@ Point2f findShortest(
 	return Point2f(-1,-1);
 }
 
-int main(int argc, char** argv){
+bool intersection(
+	Point2f o1, Point2f p1,
+	Point2f o2, Point2f p2,
+	Point2f &r
+){
+    Point2f x = o2 - o1;
+    Point2f d1 = p1 - o1;
+    Point2f d2 = p2 - o2;
 
-	const char* name = "ipc-2.bmp";
+    float cross = d1.x*d2.y - d1.y*d2.x;
+    if (abs(cross) < /*EPS*/1e-8)
+        return false;
+
+    double t1 = (x.x * d2.y - x.y * d2.x)/cross;
+    r = o1 + d1 * t1;
+    return true;
+}
+
+int main10(int argc, char** argv){
+
+	const char* name = "ipc-1.bmp";
+	//const char* name = "cc4.png";
 	const int RECT_SIZE = 18;
 	const int RECT_AREA = RECT_SIZE*RECT_SIZE;
 
@@ -152,39 +172,150 @@ int main(int argc, char** argv){
 		}
 	}
 
-	//fitting path....
-	Vec4f base;
-	fitLine(path,base,CV_DIST_FAIR, 0, 2, 0.01);
-	double s1 = base[1]/base[0];
-	double s2 = s1*s1;
-	for(int i=0; i<path.size(); i++){
-		Point2f a(base[2],base[3]);
-		Point2f b(path[i]);
-		path[i].x = (s2 * a.x - s1*(a.y-b.y) + b.x) / (1. + s2);
-		path[i].y = (s2 * b.y - s1*(a.x-b.x) + a.y) / (1. + s2);
-		circle(ova,path[i],5,color[0],-1);
+	if(path.size()==0){
+		cout<<"we failed...."<<endl;
+		return -1;
 	}
-
-	//dump path~~~
-	cout<<"dist=[";
-	for(int i=0; i<(path.size()-1); i++){
-		Point2f& aa = path[i+0];
-		Point2f& bb = path[i+1];
-		double dist = norm(aa-bb);
-		printf("%.3f;..\n",dist);
-	}
-	cout<<"];"<<endl;
 
 	//draw points along line
-	//for(int i=0; i<(path.size()-1); i++){
-	//	Point2f& aa = path[i+0];
-	//	Point2f& bb = path[i+1];
-	//	arrowedLine(ova,aa,bb,color[i%3],2);
-	//}
-	//imwrite("result-3.png",ova(Rect(1000,0,2000,500)));
-	imwrite("cc1.png",ova);
+	/*for(int i=0; i<(path.size()-1); i++){
+		Point2f& aa = path[i+0];
+		Point2f& bb = path[i+1];
+		arrowedLine(ova,aa,bb,color[i%3],2);
+	}
+	imwrite("cc1.png",ova);*/
+
+	vector<vector<Point3f> > objpt(1);
+	vector<vector<Point2f> > imgpt(1);
+
+	//calculate statistic
+	double avg_gap=0., dev_gap=0.;
+	double cnt_gap = path.size()-1;
+	for(int i=0; i<path.size()-1; i++){
+		double gap = norm(path[i]-path[i+1]);
+		avg_gap = avg_gap + gap;
+	}
+	avg_gap = avg_gap / cnt_gap;
+
+	for(int i=0; i<path.size()-1; i++){
+		double gap = norm(path[i]-path[i+1]);
+		dev_gap = dev_gap + (gap -avg_gap) * (gap -avg_gap);
+	}
+	dev_gap = dev_gap / cnt_gap;
+	dev_gap = sqrt(dev_gap);
+
+	cout<<"AVG="<<avg_gap<<endl;
+	cout<<"DEV="<<dev_gap<<endl<<endl;
+
+	//fitting-line~~~
+	Vec4f accu;
+	fitLine(path,accu,CV_DIST_L1, 0, 0.1, 0.01);
+
+
+	double slope1 = accu[1] / accu[0];
+
+	Point2f base_o1(0       , accu[3] - (slope1 * (accu[2]-0       )));
+	Point2f base_p1(img.cols, accu[3] - (slope1 * (accu[2]-img.cols)));
+
+	double slope2 = -accu[0] / accu[1];
+
+	for(int i=0; i<path.size(); i++){
+
+		Point2f cross;
+
+		Point2f path_o1(path[i].x - ((path[i].y-0       )/slope2), 0       );
+		Point2f path_p1(path[i].x - ((path[i].y-img.rows)/slope2), img.rows);
+
+		intersection(
+			base_o1, base_p1,
+			path_o1, path_p1,
+			cross
+		);
+
+		Point3f aa;
+		aa.x = cross.x;
+		aa.y = cross.y;
+		aa.z = 0;
+
+		Point2f bb;
+		bb.x = path[i].x;
+		bb.y = path[i].y;
+
+		objpt[0].push_back(aa);
+		imgpt[0].push_back(bb);
+
+		//circle(ova,Point2f(aa.x,aa.y),6,color[0],-1);
+		//circle(ova,bb,3,color[1],-1);
+		//line(ova, path_o1, path_p1, color[1]);
+		//line(ova, base_o1, base_p1, color[0]);
+		//circle(ova, Point2f(accu[2],accu[3]),6,color[0],-1);
+		circle(ova, Point2f(aa.x,aa.y),6,color[0],-1);
+		circle(ova, bb,3,color[1],-1);
+	}
+	imwrite("cc3.png",ova);
+
+	Mat cameCoeffs;// = Mat::zeros(3,3,CV_32FC1);
+	Mat distCoeffs;
+	vector<Mat> rvecs, tvecs;
+
+	/*cameCoeffs.at<float>(0,0) = 500000;
+	cameCoeffs.at<float>(0,2) = img.size().width/2;
+	cameCoeffs.at<float>(1,1) = 500000;
+	cameCoeffs.at<float>(1,2) = img.size().height/2;
+	cameCoeffs.at<float>(2,2) = 1.;*/
+
+	double err = calibrateCamera(
+		objpt, imgpt, img.size(),
+		cameCoeffs, distCoeffs,
+		rvecs, tvecs,
+		CV_CALIB_ZERO_TANGENT_DIST
+	);
+	cout<<cameCoeffs<<endl<<endl;
+	cout<<distCoeffs<<endl<<endl;
+
+	double k1 = distCoeffs.at<double>(0,0);
+	cout<<"c="<<k1*img.cols/2<<endl;
+
+	Mat bbb;
+	undistort(img,bbb,cameCoeffs,distCoeffs);
+	imwrite("cc4.png",bbb);
+
+	FileStorage fs("cam.yml",FileStorage::WRITE);
+	fs<<"camCoeffs"<<cameCoeffs;
+	fs<<"distCoeffs"<<distCoeffs;
+	fs.release();
+
+	//Mat ccc = Mat::zeros(img.size(),CV_8UC1);
+	//addWeighted(img,0.5, bbb,0.5, 0.0,ccc);
+	//imwrite("cc4.png",ccc);
+
 	return 0;
 }
+
+int main(int argc, char** argv){
+
+	const char* src_name = "./solar/aa_01.jpg";
+	const char* dst_name = "./solar/cc_01.tiff";
+
+	Mat src = imread(src_name, IMREAD_GRAYSCALE);
+
+	Mat camera;
+	Mat distor;
+
+	FileStorage fs("cam.yml",FileStorage::READ);
+	fs["camCoeffs"] >> camera;
+	fs["distCoeffs"] >> distor;
+
+	cout<<"Coeff ="<<camera<<endl<<endl;
+	cout<<"Distor="<<distor<<endl<<endl;
+
+	Mat dst;
+	undistort(src, dst, camera, distor);
+	imwrite(dst_name, dst);
+
+	return 0;
+}
+
 //-----------------------------------------------//
 
 int main9(int argc, char** argv){

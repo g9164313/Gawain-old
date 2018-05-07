@@ -39,7 +39,7 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.SecretKeySpec;
 
-import narl.itrc.nat.Loader2;
+import narl.itrc.nat.Loader;
 
 public class Gawain extends Application {
 	
@@ -407,7 +407,9 @@ public class Gawain extends Application {
 	
 	@Override
 	public void start(Stage primaryStage) throws Exception {
-		new Loader2().standby();
+		
+		new Loader().standby();
+		
 		String name;
 		try {
 			name = prop.getProperty("LAUNCH","");

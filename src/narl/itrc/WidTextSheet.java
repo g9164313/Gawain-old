@@ -1,6 +1,9 @@
 package narl.itrc;
 
 import narl.itrc.WidTextSheet.RowVector;
+
+import com.sun.glass.ui.Application;
+
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.ObservableList;
 import javafx.scene.control.TableColumn;
@@ -12,7 +15,8 @@ public class WidTextSheet extends TableView<RowVector>{
 
 	public WidTextSheet(){
 		setEditable(true);
-		add_column(0,"項目\\項次");		
+		add_column(0,"項目\\項次");
+		setMinSize(400,400);
 	}
 	
 	private void add_column(int idx, String title){
@@ -20,11 +24,60 @@ public class WidTextSheet extends TableView<RowVector>{
 		col.setSortable(false);
 		col.setCellValueFactory(new PropertyValueFactory<RowVector,String>("col"+idx));
 		col.setCellFactory(TextFieldTableCell.forTableColumn());
+		col.setMinWidth(100.);
 		getColumns().add(col);
 	}
 	
+	public int getSizeColumn(){
+		return getColumns().size() - 1;//the first column is for title. 
+	}
+	
+	public int getSizeRow(){
+		return getItems().size();
+	}
+	
+	public String getValue(int colIdx, int rowIdx){
+		
+		if(colIdx>=101){
+			return "";			
+		}
+		if(rowIdx<=0){
+			return "";			
+		}
+		rowIdx = rowIdx - 1;		
+
+		ObservableList<RowVector> lstRow = getItems();		
+		if(rowIdx>=lstRow.size()){
+			return "";
+		}
+		
+		RowVector row = lstRow.get(rowIdx);
+		if(colIdx>=row.col.length){
+			return "";
+		}
+		return row.col[colIdx].get();
+	}
+	
+	/**
+	 * It is a special variable for keeping data. 
+	 */
+	private String sync_value = "";
+	
+	public String syncGetValue(final int colIdx, final int rowIdx){
+		final Runnable run = new Runnable(){
+			@Override
+			public void run() {
+				sync_value = getValue(colIdx,rowIdx);
+			}
+		};
+		Application.invokeAndWait(run);
+		return sync_value;
+	}
+	
 	public WidTextSheet setTitle(String... names){
+		
 		ObservableList<RowVector> lst = getItems();
+		
 		int cnt = lst.size() - names.length;
 		if(cnt<0){
 			cnt = cnt * -1;
@@ -32,6 +85,7 @@ public class WidTextSheet extends TableView<RowVector>{
 				lst.add(new RowVector());
 			}
 		}
+		
 		for(int i=0; i<names.length; i++){
 			lst.get(i).col[0].set(names[i]);
 		}
@@ -40,14 +94,13 @@ public class WidTextSheet extends TableView<RowVector>{
 	
 	public WidTextSheet setValue(int colIdx, int rowIdx, String txt){
 		
+		if(colIdx>=101){
+			return this;			
+		}
 		if(rowIdx<=0){
 			return this;			
 		}
 		rowIdx = rowIdx - 1;
-		
-		if(colIdx>100){
-			return this;			
-		}
 		
 		ObservableList<RowVector> lstRow = getItems();
 		int cnt = 0;
@@ -71,6 +124,27 @@ public class WidTextSheet extends TableView<RowVector>{
 		
 		lstRow.get(rowIdx).col[colIdx].set(txt);
 		return this;
+	}
+	
+
+	public void asynSetValue(final int colIdx, final int rowIdx, final String txt){
+		final Runnable run = new Runnable(){
+			@Override
+			public void run() {
+				setValue(colIdx,rowIdx,txt);
+			}
+		};
+		Application.invokeLater(run);
+	}
+	
+	public void syncSetValue(final int colIdx, final int rowIdx, final String txt){
+		final Runnable run = new Runnable(){
+			@Override
+			public void run() {
+				setValue(colIdx,rowIdx,txt);
+			}
+		};
+		Application.invokeAndWait(run);
 	}
 	
 	public static class RowVector{

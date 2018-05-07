@@ -9,6 +9,7 @@ public class WidMarkView extends StackPane {
 	
 	public WidMarkView(){
 		sheet.setTitle(
+			"測量後劑量 (μSv/hr)",
 			"一年後劑量 (μSv/hr)",
 			"距離 (cm)",
 			"新距離 (cm)",

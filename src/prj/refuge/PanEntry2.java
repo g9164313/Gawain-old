@@ -1,15 +1,17 @@
 package prj.refuge;
 
 import java.io.File;
-import java.util.Optional;
+import java.util.List;
 
-import com.jfoenix.controls.JFXTabPane;
+import org.virtualbox_4_3.IMachine;
+import org.virtualbox_4_3.IVirtualBox;
+import org.virtualbox_4_3.VirtualBoxManager;
 
+import javafx.concurrent.Task;
 import javafx.geometry.Side;
 import javafx.scene.Node;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
-import javafx.scene.control.ButtonType;
 import javafx.scene.control.SingleSelectionModel;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
@@ -29,6 +31,8 @@ public class PanEntry2 extends PanBase {
 
 	private SingleSelectionModel<Tab> tabs = null;
 	
+	private VirtualBoxManager vman = VirtualBoxManager.createInstance("Refuge");
+	
 	private final WidMarkView lstMark[] = {
 		new WidMarkView(),
 		new WidMarkView(),
@@ -37,15 +41,15 @@ public class PanEntry2 extends PanBase {
 	
 	private final WidTextSheet lstSheet[] = {
 		lstMark[0].sheet,
-		lstMark[0].sheet,
-		lstMark[0].sheet,
+		lstMark[1].sheet,
+		lstMark[2].sheet,
 	};
 	
 	private Node gen_mark_table(){
 		final TabPane lay0 = new TabPane();
 		lay0.setSide(Side.BOTTOM);
 		tabs = lay0.getSelectionModel();
-		Tab tt[] = { new Tab(), new Tab(), new Tab(),};
+		Tab tt[] = {new Tab(), new Tab(), new Tab()};
 		tt[0].setText("3Ci");
 		tt[0].setClosable(false);
 		tt[0].setContent(lstMark[0]);
@@ -62,6 +66,7 @@ public class PanEntry2 extends PanBase {
 	private Node gen_control_panel(){
 		
 		final Button btnLoadMark = PanBase.genButton2("匯入Excel","briefcase-upload.png");
+		btnLoadMark.setMaxWidth(Double.MAX_VALUE);
 		btnLoadMark.setOnAction(event->{
 			//ask where is file.
 			FileChooser diaFile = new FileChooser();
@@ -71,29 +76,27 @@ public class PanEntry2 extends PanBase {
 			if(fs==null){
 				return;
 			}
-			//ask which row data is read.
-			Alert diaLoca = new Alert(AlertType.CONFIRMATION,"使用新距離？");
-			Optional<ButtonType> optLoca = diaLoca.showAndWait();
-			
+			//dispatch task to load Excel file.
 			TaskLoadExcel tsk = new TaskLoadExcel();
 			tsk.file = fs;
 			tsk.sheet= lstSheet;
-			if(optLoca.get()==ButtonType.OK){
-				tsk.rowIndex = 7;
-			}else{
-				tsk.rowIndex = 6;
-			}
-			spinner.kick('m',tsk);
+			tsk.nmark= new Alert(AlertType.CONFIRMATION,"是否使用預測值？")
+				.showAndWait()
+				.get();
+			spinner.kick('p',tsk);
 		});
 		
 		final Button btnAutoMark = PanBase.genButton2("產生標定","toc.png");
+		btnAutoMark.setMaxWidth(Double.MAX_VALUE);
 		
 		final Button btnMeasure  = PanBase.genButton3("開始量測","toc.png");
+		btnMeasure.setMaxWidth(Double.MAX_VALUE);
 		btnMeasure.setOnAction(event->{
-			
+			spinner.kick('p',new TaskMeasure(lstSheet));
 		});
 		
 		final Button btnSaveMark = PanBase.genButton2("匯出Excel","briefcase-download.png");
+		btnSaveMark.setMaxWidth(Double.MAX_VALUE);
 		
 		VBox lay0 = new VBox();
 		lay0.getStyleClass().add("vbox-small");
@@ -117,23 +120,22 @@ public class PanEntry2 extends PanBase {
 	
 	@Override
 	public void eventShown(PanBase self) {
-		//demo code
-		/*Task<Integer> tsk = new Task<Integer>(){
-			@Override
-			protected Integer call() throws Exception {
-				long t1 = System.currentTimeMillis();
-				while(isCancelled()==false){
-					long t2 = System.currentTimeMillis();
-					long curr = (t2 - t1)/1000L;
-					updateProgress(curr, 10L);
-					updateMessage(String.format("prog=%d",(int)curr));
-					if(curr>=10L){
-						break;
-					}										
-				}				
-				return 3;
-			}
-		};		
-		spinner.kick('m',tsk);*/
+		IVirtualBox vbox = vman.getVBox();
+		List<IMachine> lst = vbox.getMachines();
+		String txt = lst.get(0).getName();
+		
+	}
+	
+	@Override
+	public void eventClose(PanBase self) {
+		vman.cleanup();
+	}
+	
+	public static double formularNextYearDose(double val){
+		return val * 0.97716;
+	}
+	
+	public static double formularNextYearLoca(double val){
+		return ((val+90.) * 0.988) - 90.;
 	}
 }
