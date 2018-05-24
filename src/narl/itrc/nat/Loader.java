@@ -79,14 +79,23 @@ public class Loader extends Task<Integer>{
 	
 	@Override
 	protected Integer call() throws Exception {
-
-		//check all path in property file, if not, just jump out~~~
-		checkProperty("LIB_PATH");		
-		checkProperty("LIB_FILE");
 		
-		//load library in the default directory
+		long t2=0L, t1=System.currentTimeMillis();
+		
+		//STEP.1: prepare(copy) the build-in library
+		
+		//STEP.2: check all path in property file, if not, just jump out~~~
+		checkProperty("LIB_FILE");
+		checkProperty("LIB_PATH");		
+		//STEP.3: load library in the default directory
 		//loadLibrary(Gawain.pathRoot);
 		loadLibraryPath(Gawain.pathSock);
+		
+		//wait sometime, let user see logo....
+		do{
+			t2 = System.currentTimeMillis();
+		}while((t2-t1)<1000);
+		
 		return 0;
 	}
 

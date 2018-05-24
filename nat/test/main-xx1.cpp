@@ -96,10 +96,10 @@ bool intersection(
     return true;
 }
 
-int main10(int argc, char** argv){
+int main(int argc, char** argv){
 
 	const char* name = "ipc-1.bmp";
-	//const char* name = "cc4.png";
+	//const char* name = "undist.png";
 	const int RECT_SIZE = 18;
 	const int RECT_AREA = RECT_SIZE*RECT_SIZE;
 
@@ -194,6 +194,7 @@ int main10(int argc, char** argv){
 	for(int i=0; i<path.size()-1; i++){
 		double gap = norm(path[i]-path[i+1]);
 		avg_gap = avg_gap + gap;
+		printf("%.2f,  %.2f; ...\n", path[i].x, path[i].y);
 	}
 	avg_gap = avg_gap / cnt_gap;
 
@@ -278,7 +279,7 @@ int main10(int argc, char** argv){
 
 	Mat bbb;
 	undistort(img,bbb,cameCoeffs,distCoeffs);
-	imwrite("cc4.png",bbb);
+	imwrite("undist.png",bbb);
 
 	FileStorage fs("cam.yml",FileStorage::WRITE);
 	fs<<"camCoeffs"<<cameCoeffs;
@@ -292,7 +293,7 @@ int main10(int argc, char** argv){
 	return 0;
 }
 
-int main(int argc, char** argv){
+int main10(int argc, char** argv){
 
 	const char* src_name = "./solar/aa_01.jpg";
 	const char* dst_name = "./solar/cc_01.tiff";

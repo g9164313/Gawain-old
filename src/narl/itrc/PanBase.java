@@ -6,6 +6,7 @@ import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXSpinner;
 import com.jfoenix.controls.JFXTextField;
 
+import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.FloatProperty;
 import javafx.beans.property.IntegerProperty;
@@ -226,7 +227,10 @@ public abstract class PanBase {
 		}		
 		//hook all events
 		stg.setOnShowing(e->{ eventShowing(PanBase.this);});
-		stg.setOnShown  (e->{ eventShown(PanBase.this);  });
+		stg.setOnShown  (e->{
+			Platform.runLater(() -> panel.requestFocus());
+			eventShown(PanBase.this);  
+		});
 		stg.setOnHidden (e->{ eventClose(PanBase.this);  });		
 		//set title and some properties~~~
 		stg.setScene(scene);
@@ -312,12 +316,13 @@ public abstract class PanBase {
 	};
 	//------------------------//
 	
-	protected class Spinner extends VBox{		
+	protected class Spinner extends VBox {
+		
 		private JFXSpinner icon = new JFXSpinner();//show that we are waiting
 		private Label      text = new Label();//show progress value
 		private Task<?>    task = null;
+		
 		public Spinner(){
-			
 			icon.setRadius(48);
 			icon.setOnMouseClicked(e->{
 				final Alert dia = new Alert(AlertType.CONFIRMATION);
@@ -345,18 +350,22 @@ public abstract class PanBase {
 			panel.setDisable(false);
 			setVisible(false);	
 		}
-		public void kick(){
+		
+		private void kick(){
 			text.textProperty().unbind();
 			text.setText("工作中");
 			panel.setDisable(true);
 			setVisible(true);			
 		};
+		
 		public void kick(final Task<?> tsk){
 			kick("panel-task", '?', tsk);
 		}
+		
 		public void kick(String name, final Task<?> tsk){
 			kick(name, '?', tsk);
 		}
+		
 		/**
 		 * kick a task to do heavy working.
 		 * @param type - 'p' mean bar, 'm' mean label

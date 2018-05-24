@@ -21,11 +21,13 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Properties;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.CountDownLatch;
 import java.util.jar.JarFile;
 
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.Scene;
@@ -433,12 +435,21 @@ public class Gawain extends Application {
 		}
 	}
 	
+	private static final CountDownLatch e_latch = new CountDownLatch(1);
+
 	@Override
 	public void stop() throws Exception {
-		//Do we need to close render looper???	
+		e_latch.countDown();
+	}
+	
+	public static boolean isExit(){
+		if(e_latch.getCount()==0L){
+			return true;
+		}
+		return false;
 	}
 		
-	public static void main(String[] argv) {		
+	public static void main(String[] argv) {
 		propInit();
 		streamHooker();
 		//liceBind();//check dark license~~~		

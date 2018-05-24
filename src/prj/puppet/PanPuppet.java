@@ -62,11 +62,10 @@ public class PanPuppet extends PanBase {
 		@Override
 		public void handle(HttpExchange exc) throws IOException {
 			
-			exc.getResponseHeaders().add("Content-Type", "image/png");
-			
 			int[] inf = {0, 0};
 			byte[] buf = Misc.screenshot2png(inf);
-
+			
+			exc.getResponseHeaders().add("Content-Type", "image/png");
 			exc.sendResponseHeaders(200, buf.length);
 			
 			OutputStream stm = exc.getResponseBody();
@@ -120,6 +119,7 @@ public class PanPuppet extends PanBase {
 			serv = HttpServer.create(new InetSocketAddress(9911),0);
 			serv.createContext("/input" ,eventInput);
 			serv.createContext("/output",eventOutput);
+			serv.createContext("/screen",eventOutput);//alias,another name
 			serv.setExecutor(null);
 			serv.start();
 			Misc.logv("Turn on HTTP server !!!");

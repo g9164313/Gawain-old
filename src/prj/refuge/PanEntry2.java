@@ -2,12 +2,13 @@ package prj.refuge;
 
 import java.io.File;
 import java.util.List;
+import java.util.Optional;
 
 import org.virtualbox_4_3.IMachine;
-import org.virtualbox_4_3.IVirtualBox;
 import org.virtualbox_4_3.VirtualBoxManager;
 
-import javafx.concurrent.Task;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.geometry.Side;
 import javafx.scene.Node;
 import javafx.scene.control.Alert;
@@ -19,6 +20,8 @@ import javafx.scene.control.Alert.AlertType;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
+import javafx.util.StringConverter;
+import narl.itrc.DiaChoice;
 import narl.itrc.Gawain;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
@@ -30,9 +33,7 @@ public class PanEntry2 extends PanBase {
 	}
 
 	private SingleSelectionModel<Tab> tabs = null;
-	
-	private VirtualBoxManager vman = VirtualBoxManager.createInstance("Refuge");
-	
+
 	private final WidMarkView lstMark[] = {
 		new WidMarkView(),
 		new WidMarkView(),
@@ -86,7 +87,7 @@ public class PanEntry2 extends PanBase {
 			spinner.kick('p',tsk);
 		});
 		
-		final Button btnAutoMark = PanBase.genButton2("產生標定","toc.png");
+		final Button btnAutoMark = PanBase.genButton3("產生標定","toc.png");
 		btnAutoMark.setMaxWidth(Double.MAX_VALUE);
 		
 		final Button btnMeasure  = PanBase.genButton3("開始量測","toc.png");
@@ -98,13 +99,25 @@ public class PanEntry2 extends PanBase {
 		final Button btnSaveMark = PanBase.genButton2("匯出Excel","briefcase-download.png");
 		btnSaveMark.setMaxWidth(Double.MAX_VALUE);
 		
+		final Button btnStartVM = PanBase.genButton2("虛擬機器","developer_board.png");
+		btnStartVM.setMaxWidth(Double.MAX_VALUE);
+		btnStartVM.setOnAction(eventStartMachine);
+		
+		final Button btnTest = PanBase.genButton2("測試用","developer_board.png");
+		btnTest.setMaxWidth(Double.MAX_VALUE);
+		btnTest.setOnAction(e->{
+			monitor.send("snap");
+		});
+		
 		VBox lay0 = new VBox();
 		lay0.getStyleClass().add("vbox-small");
 		lay0.getChildren().addAll(
 			btnLoadMark,
 			btnAutoMark,
 			btnMeasure,
-			btnSaveMark
+			btnSaveMark,
+			btnStartVM,
+			btnTest
 		);
 		return lay0;
 	}
@@ -117,17 +130,55 @@ public class PanEntry2 extends PanBase {
 		lay0.setRight(gen_control_panel());
 		return lay0;
 	}
+		
+	private VirtualBoxManager vman = VirtualBoxManager.createInstance("Refuge");	
+	
+	private TaskVBoxMonitor monitor = new TaskVBoxMonitor(vman);
+	
+	private EventHandler<ActionEvent> eventStartMachine = new EventHandler<ActionEvent>(){
+		
+		private StringConverter<IMachine> strconv = new StringConverter<IMachine>() {
+			@Override
+			public String toString(IMachine object) {
+				return (object==null)?(null):(object.getName());
+			}
+			@Override
+			public IMachine fromString(String string) {
+				return null;
+			}
+        };
+        
+		@Override
+		public void handle(ActionEvent event) {
+			List<IMachine> lst = vman.getVBox().getMachines();			
+			if(lst.size()==1){
+				monitor.launch(lst.get(0));
+			}else{
+				final DiaChoice<IMachine> dia = new DiaChoice<IMachine>();
+				dia.setTitle("啟動虛擬機器");
+				dia.setHeaderText(null);
+				dia.setContentText("機器名稱：");
+				dia.getItems().addAll(lst);
+				dia.setSelectedItem(lst.get(0));
+				dia.comboBox.setConverter(strconv);
+				final Optional<IMachine> opt = dia.showAndWait();
+				if(opt.isPresent()==false){
+					return;
+				}
+				monitor.launch(opt.get());
+			}
+			new Thread(monitor,"VBox-monitor").start();
+		}		
+	};
 	
 	@Override
 	public void eventShown(PanBase self) {
-		IVirtualBox vbox = vman.getVBox();
-		List<IMachine> lst = vbox.getMachines();
-		String txt = lst.get(0).getName();
-		
+		eventStartMachine.handle(null);
 	}
 	
 	@Override
 	public void eventClose(PanBase self) {
+		//vman.closeMachineSession(sess);			
 		vman.cleanup();
 	}
 	
