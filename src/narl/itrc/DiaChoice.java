@@ -15,12 +15,13 @@ import javafx.scene.control.ButtonBar.ButtonData;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
+import javafx.util.StringConverter;
 
 public class DiaChoice<T> extends Dialog<T> {
 
 	private final GridPane grid;
 	private final Label label;
-	public final ComboBox<T> comboBox;
+	private final ComboBox<T> comboBox;
 
 	public DiaChoice() {
 
@@ -115,5 +116,13 @@ public class DiaChoice<T> extends Dialog<T> {
 	 */
 	public final ObservableList<T> getItems() {
 		return comboBox.getItems();
+	}
+	
+	/**
+	 * let user defined title names of combo box
+	 * @param value
+	 */
+	public final void setConverter(StringConverter<T> value){
+		comboBox.setConverter(value);
 	}
 }

@@ -6,7 +6,6 @@ import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXSpinner;
 import com.jfoenix.controls.JFXTextField;
 
-import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.FloatProperty;
 import javafx.beans.property.IntegerProperty;
@@ -226,12 +225,16 @@ public abstract class PanBase {
 			return stg;
 		}		
 		//hook all events
-		stg.setOnShowing(e->{ eventShowing(PanBase.this);});
-		stg.setOnShown  (e->{
-			Platform.runLater(() -> panel.requestFocus());
-			eventShown(PanBase.this);  
+		stg.setOnShowing(e->{
+			eventShowing(PanBase.this);
+			//Platform.runLater(() -> panel.requestFocus());//it may cause screen not fresh~~~
 		});
-		stg.setOnHidden (e->{ eventClose(PanBase.this);  });		
+		stg.setOnShown  (e->{			
+			eventShown(PanBase.this); 			
+		});
+		stg.setOnHidden (e->{ 
+			eventClose(PanBase.this);
+		});		
 		//set title and some properties~~~
 		stg.setScene(scene);
 		stg.sizeToScene();
@@ -532,8 +535,6 @@ public abstract class PanBase {
 	){
 		JFXButton btn = new JFXButton(title);
 		btn.getStyleClass().add(styleName);
-		//btn.setMinWidth(110);
-		//btn.setMaxWidth(Double.MAX_VALUE);
 		if(iconName!=null){
 			if(iconName.length()!=0){
 				btn.setGraphic(Misc.getIcon(iconName));
