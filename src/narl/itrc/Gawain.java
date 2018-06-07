@@ -462,8 +462,8 @@ public class Gawain extends Application {
 	
 	public static final boolean isPOSIX;
 	
-	public static final String pathRoot;//the working directory path
-	public static final String pathHome;//point to user home directory.
+	public static final String pathHome;//User home directory.
+	public static final String pathRoot;//Working directory path	
 	public static final String pathSock;//the path for storing data or setting file
 		
 	public static final File dirRoot;

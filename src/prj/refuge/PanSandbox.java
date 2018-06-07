@@ -19,7 +19,8 @@ import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import narl.itrc.Gawain;
 import narl.itrc.PanBase;
-import narl.itrc.UtilRandomID;
+import narl.itrc.UtilRandom;
+import narl.itrc.vision.ImgPreview;
 
 /**
  * This panel is designed for control virtual machine.<br>
@@ -42,10 +43,23 @@ public class PanSandbox extends PanBase{
 		final Tab tabView = new Tab("螢幕畫面");
 		tabView.setClosable(false);
 		tabView.setId("");
-		//tabView.setContent(null);
+		tabView.setContent(new ImgPreview());
 		
 		final TabPane lay2 = new TabPane();
 		lay2.getTabs().add(tabView);
+
+		final TextField boxPrompt = new TextField();
+		boxPrompt.setOnAction(e1->{
+			if(model==null){
+				return;
+			}
+			model.sendScript(boxPrompt.getText(),null);
+			boxPrompt.setText("");//clear for next command....
+		});
+		HBox.setHgrow(boxPrompt, Priority.ALWAYS);
+		
+		HBox layPrompt = new HBox();		
+		VBox layCommand = new VBox();
 		
 		final Button btnAddScript = PanBase.genButton1("新增腳本",null);
 		btnAddScript.setMaxWidth(Double.MAX_VALUE);
@@ -97,43 +111,42 @@ public class PanSandbox extends PanBase{
 		
 		final Button btnExecScript = PanBase.genButton2("執行腳本",null);
 		btnExecScript.setMaxWidth(Double.MAX_VALUE);
-		btnExecScript.setOnAction(e->{
+		btnExecScript.setOnAction(e1->{
 			if(model==null){
 				return;
 			}
-			model.send("script:"+get_current_script(lay2));
+			String txt = get_current_script(lay2);
+			if(txt.length()==0){
+				return;
+			}
+			layCommand.setDisable(true);
+			layPrompt.setDisable(true);
+			model.sendScript(txt, e2->{
+				layCommand.setDisable(false);
+				layPrompt.setDisable(false);
+			});
 		});
 		
 		final Button btnCheckPoint = PanBase.genButton2("紀錄畫面",null);
 		btnCheckPoint.setMaxWidth(Double.MAX_VALUE);
 		btnCheckPoint.setOnAction(e->{
-			if(model==null){
-				return;
+			String file_name = UtilRandom.uuid(8) + ".png";
+			String full_name = Gawain.pathSock+file_name;
+			append_current_script(lay2,"m.checkPoint('"+file_name+"');\n");
+			if(model!=null){
+				model.sendSnapshot(
+					full_name,
+					tabView.getContent()					
+				);
 			}
-			String name = UtilRandomID.uuid(8);
-			model.send(String.format("snap:%s%s.png",Gawain.pathSock,name));
-			append_current_script(lay2,"m.checkPoint('"+name+"');\n");
 		});
-
-		final TextField boxPrompt = new TextField();
-		boxPrompt.setOnAction(e->{
-			if(model==null){
-				return;
-			}
-			model.send("script:"+boxPrompt.getText());
-			boxPrompt.setText("");//clear for next command....
-		});
-		HBox.setHgrow(boxPrompt, Priority.ALWAYS);
 		
-		HBox layPrompt = new HBox();
-		layPrompt.getStyleClass().add("hbox-small");
 		layPrompt.setAlignment(Pos.CENTER);
 		layPrompt.getChildren().addAll(
 			new Label(">>"),
 			boxPrompt
 		);
-				
-		VBox layCommand = new VBox();
+		
 		layCommand.getStyleClass().add("vbox-small");
 		layCommand.getChildren().addAll(
 			btnAddScript,
@@ -177,7 +190,7 @@ public class PanSandbox extends PanBase{
 		boxScript.setMaxWidth(Double.MAX_VALUE);
 		boxScript.setMaxHeight(Double.MAX_VALUE);
 		boxScript.setText(txt);
-		
+
 		final String name = String.format(
 			"腳本-%d", 
 			lay.getTabs().size()

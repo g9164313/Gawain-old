@@ -33,9 +33,9 @@ public class ImgRender {
 					if(cam.ptrCntx!=0L){
 						continue;
 					}
-					if(cam.ctrlPlay==false){
-						continue;
-					}
+					//if(cam.ctrlPlay==false){
+					//	continue;
+					//}
 					cam.fetch();
 				}
 				

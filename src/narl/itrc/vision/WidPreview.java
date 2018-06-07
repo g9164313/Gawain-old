@@ -43,21 +43,21 @@ public class WidPreview extends ImgPreview {
 	
 		final Pane panCtrl = create_ctrl_pane();
 		
-		overlay[1].getChildren().add(panCtrl);
+		//overlay[1].getChildren().add(panCtrl);
 		
 		setOnMousePressed(event->{
 			//update mouse location
 			MouseButton btn = event.getButton();			
-			infoGeom[3] = (int)(event.getX() + getHvalue() * getMinViewportWidth() );
-			infoGeom[4] = (int)(event.getY() + getVvalue() * getMinViewportHeight());
+			//infoGeom[3] = (int)(event.getX() + getHvalue() * getMinViewportWidth() );
+			//infoGeom[4] = (int)(event.getY() + getVvalue() * getMinViewportHeight());
 			
 			if(btn==MouseButton.PRIMARY){
 				switch(state){
 				case STA_MARK_NAIL:
-					markPin[0] = infoGeom[3];
-					markPin[1] = infoGeom[4];
-					markPin[2] = infoGeom[3];
-					markPin[3] = infoGeom[4];
+					//markPin[0] = infoGeom[3];
+					//markPin[1] = infoGeom[4];
+					//markPin[2] = infoGeom[3];
+					//markPin[3] = infoGeom[4];
 					Mark itm = cmbMark.getSelectionModel().getSelectedItem();
 					itm.geom[0] = markPin[0];
 					itm.geom[1] = markPin[1];
@@ -78,7 +78,7 @@ public class WidPreview extends ImgPreview {
 		setOnMouseMoved(event->{			
 			//update mouse location
 			//TODO: the offset of scroll panel may be wrong...
-			infoGeom[3] = (int)(event.getX() + getHvalue() * getMinViewportWidth() );
+			/*infoGeom[3] = (int)(event.getX() + getHvalue() * getMinViewportWidth() );
 			infoGeom[4] = (int)(event.getY() + getVvalue() * getMinViewportHeight());
 			update_pixel_info();
 			switch(state){
@@ -87,12 +87,12 @@ public class WidPreview extends ImgPreview {
 				markPin[3] = infoGeom[4];
 				//update overlay shape~~~
 				break;
-			}
+			}*/
 		});
 
 		setOnMouseReleased(event->{
 			//update mouse location
-			MouseButton btn = event.getButton();			
+			/*MouseButton btn = event.getButton();			
 			infoGeom[3] = (int)(event.getX() + getHvalue() * getMinViewportWidth() );
 			infoGeom[4] = (int)(event.getY() + getVvalue() * getMinViewportHeight());
 						
@@ -106,7 +106,7 @@ public class WidPreview extends ImgPreview {
 					state = STA_IDLE;
 					break;
 				}
-			}
+			}*/
 		});		
 
 		hvalueProperty().addListener((obs,oldValue,newValue)->{
@@ -134,13 +134,13 @@ public class WidPreview extends ImgPreview {
 	private void update_pixel_info(){
 		
 		//how to get information after resizing image view???
-		propLoca.set(String.format(
+		/*propLoca.set(String.format(
 			"(%4d,%4d)",
 			infoGeom[3],infoGeom[4]
-		));
+		));*/
 
 		//pick up pixel value
-		if(
+		/*if(
 			(0<=infoGeom[3] && infoGeom[3]<infoGeom[0]) &&
 			(0<=infoGeom[4] && infoGeom[4]<infoGeom[1]) &&
 			imgBuff!=null
@@ -155,7 +155,7 @@ public class WidPreview extends ImgPreview {
 			));
 		}else{
 			propPixv.set(Misc.TXT_UNKNOW);
-		}
+		}*/
 	}
 	//-----------------------------------------//
 	
@@ -216,7 +216,7 @@ public class WidPreview extends ImgPreview {
 		Button btnPlay = new Button();
 		btnPlay.setMaxWidth(Double.MAX_VALUE);		
 		btnPlay.setOnAction(e->{
-			ctrlPlay = !ctrlPlay;
+			//ctrlPlay = !ctrlPlay;
 			set_ctrl_title(btnPlay);
 		});
 		set_ctrl_title(btnPlay);
@@ -224,27 +224,27 @@ public class WidPreview extends ImgPreview {
 		Button btnZoomIn = new Button("Zoom+");
 		btnZoomIn.setMaxWidth(Double.MAX_VALUE);
 		btnZoomIn.setOnAction(e->{
-			infoGeom[2]++;
-			if(infoGeom[2]==0){
-				infoGeom[2] = 2;//-1, 0, 1 are all same~~~~
-			}
+			//infoGeom[2]++;
+			//if(infoGeom[2]==0){
+			//	infoGeom[2] = 2;//-1, 0, 1 are all same~~~~
+			//}
 			change_scale(txtScale);
 		});
 
 		Button btnZoomOut = new Button("Zoom-");
 		btnZoomOut.setMaxWidth(Double.MAX_VALUE);
 		btnZoomOut.setOnAction(e->{
-			infoGeom[2]--;
-			if(infoGeom[2]==0){
-				infoGeom[2] = -2;//-1, 0, 1 are all same~~~~
-			}
+			//infoGeom[2]--;
+			//if(infoGeom[2]==0){
+			//	infoGeom[2] = -2;//-1, 0, 1 are all same~~~~
+			//}
 			change_scale(txtScale);
 		});
 		
 		Button btnSnapBuf = new Button("Snap");
 		btnSnapBuf.setMaxWidth(Double.MAX_VALUE);
 		btnSnapBuf.setOnAction(e->{
-			snapData("snap.png");
+			//snapData("snap.png");
 			//Misc.imwrite("snap.png", getBgraData(), null);
 		});
 		
@@ -280,9 +280,7 @@ public class WidPreview extends ImgPreview {
 			Mark itm = new Mark();
 			cmbMark.getItems().add(itm);
 			cmbMark.getSelectionModel().selectLast();
-			
-			overlay[0].getChildren().add(itm);
-			
+			//overlay[0].getChildren().add(itm);
 			old_cursor = Gawain.getMainScene().getCursor();
 			Gawain.getMainScene().setCursor(Cursor.CROSSHAIR);
 						
@@ -293,9 +291,7 @@ public class WidPreview extends ImgPreview {
 			Mark itm = cmbMark.getSelectionModel().getSelectedItem();
 			cmbMark.getItems().remove(itm);
 			//cmbMark.getSelectionModel().clearSelection();
-			
-			overlay[0].getChildren().remove(itm);
-			
+			//overlay[0].getChildren().remove(itm);
 			for(TextField box:lstBoxMark){
 				box.setText("");
 			}
@@ -333,10 +329,10 @@ public class WidPreview extends ImgPreview {
 	}
 	
 	private void change_scale(Label txt){
-		if(imgView==null){
-			return;
-		}
-		if( 2<=infoGeom[2] ){
+		//if(imgView==null){
+		//	return;
+		//}
+		/*if( 2<=infoGeom[2] ){
 			txt.setText("+"+infoGeom[2]);
 			imgView.setFitWidth (infoGeom[0]*infoGeom[2]);
 			imgView.setFitHeight(infoGeom[1]*infoGeom[2]);
@@ -348,14 +344,14 @@ public class WidPreview extends ImgPreview {
 			txt.setText(""+infoGeom[2]);
 			imgView.setFitWidth (-infoGeom[0]/infoGeom[2]);
 			imgView.setFitHeight(-infoGeom[1]/infoGeom[2]);
-		}		
+		}*/		
 	}
 	
 	private void set_ctrl_title(final Button btn){
-		if(ctrlPlay==true){
+		/*if(ctrlPlay==true){
 			btn.setText("pause");
 		}else{
 			btn.setText("play");
-		}
+		}*/
 	}
 }

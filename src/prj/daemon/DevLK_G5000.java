@@ -23,7 +23,7 @@ import javafx.util.Duration;
 import narl.itrc.DevTTY;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
-import narl.itrc.PanTTY;
+import narl.itrc.PanTTY2;
 
 /**
  * This implements command set for Keyence LK G5000 Series.<p>
@@ -184,7 +184,7 @@ public class DevLK_G5000 extends DevTTY {
 		btnComPort.setOnAction(event->{
 			root.setDisable(true);
 			setInfoAttr(DEFAULT_PORT_ATTR);
-			PanTTY.showSetting(
+			PanTTY2.showSetting(
 				DevLK_G5000.this,
 				eventOpen->{
 					connect();

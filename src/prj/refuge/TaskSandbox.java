@@ -1,5 +1,8 @@
 package prj.refuge;
 
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -11,6 +14,7 @@ import java.util.Optional;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
+import javax.imageio.ImageIO;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
@@ -24,13 +28,21 @@ import org.virtualbox_4_3.IProgress;
 import org.virtualbox_4_3.ISession;
 import org.virtualbox_4_3.VirtualBoxManager;
 
+import com.sun.glass.ui.Application;
+
 import javafx.concurrent.Task;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
+import javafx.scene.Node;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
+import javafx.scene.image.ImageView;
 import javafx.util.StringConverter;
 import narl.itrc.DiaChoice;
 import narl.itrc.Gawain;
 import narl.itrc.Misc;
+import narl.itrc.vision.ImgPreview;
+import narl.itrc.vision.UtilPerceive;
 
 public class TaskSandbox extends Task<Integer> {
 	
@@ -46,7 +58,28 @@ public class TaskSandbox extends Task<Integer> {
 	private ISession sess = null;
 	private IConsole cons = null;
 
-	private BlockingQueue<String> quee = new ArrayBlockingQueue<String>(25);
+	private static class Token {
+		
+		public static final short CMD_SNAPSHOT= 0x100;
+		public static final short ARG_IMGPREVIEW = 0x001;
+		public static final short ARG_IMAGE_FILE = 0x002;
+		
+		public static final short CMD_KEYBOARD = 0x200;
+		
+		public static final short CMD_MOUSE = 0x300;
+		public static final short ARG_RELATIVE = 0x001;
+		public static final short ARG_ABSOLUTE = 0x002;
+		public static final short ARG_CLICK    = 0x003;
+		public static final short ARG_DCLICK   = 0x004;
+		
+		public static final short CMD_SCRIPT = 0x400;
+		
+		public short  cmd = ' ';
+		public Object arg = null;
+		public Object nod = null;
+	};
+	
+	private BlockingQueue<Token> quee = new ArrayBlockingQueue<Token>(25);
 		
 	public TaskSandbox(){
 		init_scancode();
@@ -79,10 +112,10 @@ public class TaskSandbox extends Task<Integer> {
 	public static TaskSandbox factory(TaskSandbox ptr){
 		if(ptr!=null){
 			if(ptr.isRunning()==true){
-				Alert dia = new Alert(AlertType.WARNING);
-				dia.setTitle("內部警告");
-				dia.setContentText("工作執行中");
-				dia.showAndWait();
+				//Alert dia = new Alert(AlertType.WARNING);
+				//dia.setTitle("內部警告");
+				//dia.setContentText("工作執行中");
+				//dia.showAndWait();
 				return ptr;
 			}
 		}
@@ -124,22 +157,125 @@ public class TaskSandbox extends Task<Integer> {
 		public IMachine fromString(String string) {
 			return null;
 		}
-    };
-
-	public void send(final String... msg){
-		try{
-			quee.addAll(Arrays.asList(msg));
-		}catch(IllegalStateException e){
-			Alert dia = new Alert(AlertType.ERROR);
-			dia.setTitle("內部錯誤");
-			dia.setContentText("忙碌中...");
-			dia.showAndWait();
+    };    
+    
+    //-------- below methods are entry for JavaScript --------//
+    /**
+     * send snapshot command to looper.
+     * @return self instance
+     */
+    public TaskSandbox sendSnapshot(String name,Node prev){
+    	Token tkn = new Token();
+    	tkn.cmd = Token.CMD_SNAPSHOT;
+    	if(name!=null){
+    		tkn.cmd |= Token.ARG_IMAGE_FILE;
+    		tkn.arg = name;	
+    	}
+    	if(prev!=null){
+    		tkn.cmd |= Token.ARG_IMGPREVIEW;
+    		tkn.nod = prev;
+    	}
+    	try {
+			quee.put(tkn);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
 		}
-	}
+    	return this;
+    }
+    
+    /**
+     * send key-in command to looper.<p>
+     * @param text - typing character.
+     * @return self instance
+     */
+    public TaskSandbox sendKeyin(String text){
+    	Token tkn = new Token();
+    	tkn.cmd = Token.CMD_KEYBOARD;
+    	tkn.arg = text;
+    	try {
+			quee.put(tkn);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+    	return this;
+    }
 
+    /**
+     * evaluate script, then invoke callback function
+     * @param text - Script can be evaluated.
+     * @param event - Callback function.
+     * @return self<p>
+     */
+    public TaskSandbox sendScript(String text, EventHandler<ActionEvent> event){
+    	Token tkn = new Token();
+    	tkn.cmd = Token.CMD_SCRIPT;
+    	tkn.arg = text;
+    	tkn.nod = event;
+    	try {
+			quee.put(tkn);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+    	return this;
+    }
+
+    /**
+     * Method invoked by script.<p>
+     * Snapshot screen to file.<p>
+     * @param name - the name of file
+     */
+    public void snapshot(String name){
+    	_snap_screen(name,null);
+    }
+    
+    /**
+     * Method invoked by script.<p>
+     * Send character to machine.<p>
+     * @param text - typing character.
+     */
+    public void keyin(String text){
+		_keyin_ascii(text);
+    }
+
+    public void mouseClick(){
+    }
+    
+    public void mouseMove(){
+    }
+    
+    /**
+     * Method invoked by script.<p>
+     * Check whether screen is same as what we want 
+     * @param name - the name of image file
+     * @throws IOException 
+     * @throws InterruptedException 
+     */
+    public void expectScreen(String name) throws IOException, InterruptedException{
+    	File fs = new File(Gawain.pathSock+name);
+    	if(fs.exists()==false){
+    		throw new IOException();//it will cause looper crush
+    	}
+    	BufferedImage aa = ImageIO.read(fs);		
+    	do{
+    		final byte[] buf = get_screen_png();
+    		BufferedImage bb = ImageIO.read(new ByteArrayInputStream(buf));
+    		int score = UtilPerceive.getPSNR(aa, bb);
+    		if(score>=100){
+    			break;
+    		}
+    		Thread.sleep(1000L);
+    	}while(true);
+    }
+
+    public void expectText(String title){
+    	
+    }
+    
+    //-------- below code are core looper --------//
 	/**
 	 * Core, main looper for send command to virtual machine.
 	 */
+	@SuppressWarnings("unchecked")
 	@Override
 	protected Integer call() throws Exception {
 
@@ -164,6 +300,7 @@ public class TaskSandbox extends Task<Integer> {
 		//phase.2 - wait control message.
 		while(Gawain.isExit()==false && vbox.getState().value()!=VBOX_POWEREDOFF){
 			
+			//if nothing do, just wait.....
 			if(quee.isEmpty()==true){
 				Thread.sleep(1000);
 				//Misc.logv("vbox=%s(%d)",
@@ -172,58 +309,75 @@ public class TaskSandbox extends Task<Integer> {
 				//);
 				continue;
 			}
-			String[] tkn = quee.take().split(":");			
-			String cmd = tkn[0];
-			String arg = (tkn.length>=2)?(tkn[1]):(null);
 			
-			if(cmd.startsWith("snap")==true){
-				snap_shot(arg);
-			}else if(cmd.startsWith("ocr")==true){
+			Token tkn = quee.take();
+			Object obj1 = null;
+			String arg1 = null;			
+			switch((tkn.cmd & 0xF00)){
+			case Token.CMD_SNAPSHOT:				
+				if((tkn.cmd & Token.ARG_IMAGE_FILE)!=0){
+					arg1 = (String)tkn.arg;
+				}
+				if((tkn.cmd & Token.ARG_IMGPREVIEW)!=0){		
+					obj1 = tkn.nod;
+				}
+				_snap_screen(arg1,obj1);
+				break;
 				
-			}else if(cmd.startsWith("key")==true){
-				keyin_text(arg);
-			}else if(cmd.startsWith("pts")==true){
-				mouse_ctrl(arg);
-			}else if(cmd.startsWith("script")==true){
+			case Token.CMD_KEYBOARD:
+				_keyin_ascii((String)tkn.arg);
+				break;
+				
+			case Token.CMD_MOUSE:
+				break;
+				
+			case Token.CMD_SCRIPT:
 				try{
-					if(arg==null){
-						continue;
-					}
-					script.eval(arg);
+					script.eval((String)tkn.arg);					
 				}catch(ScriptException e){
 					Misc.logv(e.getMessage());
+				}finally{
+					if(tkn.nod!=null){
+						((EventHandler<ActionEvent>)tkn.nod).handle(null);
+					}
 				}
-			}
+				break;
+			}			
 		}
 		Misc.logv("vbox is closed!!");
 		return 0;
 	}
-	
-	/**
-	 * this method will be invoked by script engine
-	 * @param name
-	 */
-	public void snap(String name){
-		snap_shot(name);
-	}
-	
-	/**
-	 * this method will be invoked by script engine
-	 * @param txt - send ASCII character one by one
-	 * @throws InterruptedException 
-	 */
-	public void keyin(String txt) throws InterruptedException{
-		keyin_text(txt);
-	}
-	
+
 	/**
 	 * Take a screen shot from virtual machine.
 	 * @param name - image file name, if no, use default name: "snap.png".
 	 */
-	private void snap_shot(String name){
-		if(name==null){
-			name = "snap.png";
+	private void _snap_screen(String name,Object node){
+		
+		final byte[] buf = get_screen_png();
+		
+		if(name!=null){
+			if(name.length()!=0){
+				put_screen_png(buf,name);
+			}
 		}
+		if(node!=null){
+			final Runnable event = new Runnable(){
+				@Override
+				public void run() {
+					if(node instanceof ImgPreview){
+						((ImgPreview)node).setImage(buf);
+					}else if(node instanceof ImageView){
+						ImgPreview.file2image(buf, ((ImageView)node));
+					}
+				}
+			};
+			Application.invokeAndWait(event);
+		}
+	}
+	
+	private byte[] get_screen_png(){
+		
 		IDisplay dp = cons.getDisplay();
 		
 		Holder<Long> sw = new Holder<Long>();
@@ -233,9 +387,13 @@ public class TaskSandbox extends Task<Integer> {
 		Holder<Integer> oy = new Holder<Integer>();
 		dp.getScreenResolution(0L, sw, sh, bsp, ox, oy);
 		
+		return dp.takeScreenShotPNGToArray(0L, sw.value, sh.value);
+	}
+
+	private void put_screen_png(final byte[] buf, String name){
 		try {
 			FileOutputStream stm = new FileOutputStream(name);
-			stm.write(dp.takeScreenShotPNGToArray(0L, sw.value, sh.value));
+			stm.write(buf);
 			stm.close();
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
@@ -245,11 +403,10 @@ public class TaskSandbox extends Task<Integer> {
 	}
 	
 	/**
-	 * Map ASCII code to scan-code, then send it to the machine.
-	 * @param txt - text
-	 * @throws InterruptedException - thread sleep, it simulate typing speed.
+	 * Map ASCII code to scan-code, then send it to the machine.<p>
+	 * @param txt - text with ASCII code.
 	 */
-	private void keyin_text(String txt) throws InterruptedException{
+	private void _keyin_ascii(String txt){
 		if(txt==null){
 			return;
 		}
@@ -263,6 +420,11 @@ public class TaskSandbox extends Task<Integer> {
 			int id = buf.size() - 1;
 			buf.set(id, buf.get(id) + 0x80);
 			kb.putScancodes(buf);
+			try {
+				Thread.sleep(650);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 	
@@ -270,7 +432,7 @@ public class TaskSandbox extends Task<Integer> {
 	 * send mouse event to virtual machine.
 	 * @param prop
 	 */
-	private void mouse_ctrl(String prop){
+	private void _mouse_ctrl(String prop){
 		if(prop==null){
 			return;
 		}

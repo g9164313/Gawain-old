@@ -138,15 +138,15 @@ public abstract class CamBundle extends ImgPreview {
 		lstKF.add(new KeyFrame(
 			Duration.millis(ms),
 			event->{
-				if(ctrlPlay==false){
-					return;
-				}				
+				//if(ctrlPlay==false){
+				//	return;
+				//}				
 				fetch();
 			}
 		));		
 		render1.setCycleCount(Timeline.INDEFINITE);
 		render1.play();
-		ctrlPlay = true;//force to play first frames~~~~
+		//ctrlPlay = true;//force to play first frames~~~~
 	}	
 	//----------------------------------//	
 }

@@ -13,7 +13,75 @@ using namespace cv;
 using namespace face;
 using namespace std;
 
-extern int test_sfr(
+
+void bundle_cifar10(char* lstName[],char* output_name){
+
+	ofstream out(output_name,ios::out|ios::binary);
+
+	int idx = 0;
+
+	char* name = lstName[idx];
+
+	const int ROI_WIDTH = 32;
+	const int ROI_HEIGHT= 32;
+
+	int total = 0;
+	while(name!=NULL){
+
+		Mat ref = imread(name,IMREAD_GRAYSCALE);
+
+		int tkn = 1;
+		for(int j=0; j<ref.rows/ROI_HEIGHT; j++){
+
+			for(int i=0; i<ref.cols/ROI_WIDTH; i++){
+
+				out.put(tkn++);
+
+				Mat roi = ref(Rect(
+					i*ROI_WIDTH,j*ROI_HEIGHT,
+					ROI_WIDTH,ROI_HEIGHT
+				));
+
+				out.write((char*)roi.data, ROI_WIDTH*ROI_HEIGHT);
+				total++;
+			}
+		}
+		cout<<"Token="<<tkn<<endl;
+
+		name = lstName[++idx];
+	}
+	cout<<"Total data = "<<total<<endl;
+	out.close();
+}
+
+int main(int argc, char* argv[]){
+
+	//generate a dummy CIFAR10 data
+
+	cout<<"create train bundle!!"<<endl;
+
+	char* name1[] = {
+		"./wafer/dies/003-000.png",
+		"./wafer/dies/002-012.png",
+		NULL
+	};
+	bundle_cifar10(name1,"./data-cifar10/die_batch_1.bin");
+
+	cout<<endl<<"create evaluate bundle!!"<<endl;
+
+	char* name2[] = {
+		"./wafer/dies/000-008.png",
+		"./wafer/dies/002-004.png",
+		NULL
+	};
+	bundle_cifar10(name2,"./data-cifar10/die_test.bin");
+
+	cout<<"Done!!"<<endl;
+	return 0;
+}
+//--------------------------------------//
+
+/*extern int test_sfr(
 	Mat& img,
 	double scale,
 	vector<double>& frq,
@@ -126,7 +194,7 @@ void calculate_mtf(
 	if(flag==true){
 		//GaussianBlur(img, _img, Size(3,3), 0.3, 8.0);
 		//imwrite("cc1.png",img);
-		unsharpen(img, 0.7, 0.3);
+		//unsharpen(img, 0.7, 0.3);
 		//imwrite("cc2.png",img);
 	}
 	vector<double> frq, sfr;
@@ -192,15 +260,15 @@ void check_all_mtf(const char* name, const char* out_dir){
 		imwrite("dd.png",img);
 	}
 
-	/*printf("RH_BM:MTF50=(%.1f, %.1f)\n\n",frq[idx],sfr[idx]);
+	printf("RH_BM:MTF50=(%.1f, %.1f)\n\n",frq[idx],sfr[idx]);
 	printf("Freq    SFR    \n");
 	for(int i=0; i<frq.size(); i++){
 		printf("%d) %.2f    %.2f\n", i, frq[i], sfr[i]);
 	}
-	printf("===[%ld]===\n",frq.size());*/
+	printf("===[%ld]===\n",frq.size());
 }
 
-int main_tmp(int argc, char* argv[]){
+int main6(int argc, char* argv[]){
 
 	const char* name = "./fisheye-test3/20170615_13_54_15_CurrentImage.bmp";
 
@@ -236,7 +304,7 @@ int main_tmp(int argc, char* argv[]){
 }
 
 
-int main(int argc, char* argv[]){
+int main1(int argc, char* argv[]){
 
 #define DIR_NAME "fisheye-test4"
 
@@ -256,6 +324,7 @@ int main(int argc, char* argv[]){
 	return 0;
 }
 //--------------------------------------------//
+*/
 
 extern void registration(Mat& imgRef,Mat& imgSrc);
 

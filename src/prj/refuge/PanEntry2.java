@@ -1,14 +1,7 @@
 package prj.refuge;
 
 import java.io.File;
-import java.util.List;
-import java.util.Optional;
 
-import org.virtualbox_4_3.IMachine;
-import org.virtualbox_4_3.VirtualBoxManager;
-
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
 import javafx.geometry.Side;
 import javafx.scene.Node;
 import javafx.scene.control.Alert;
@@ -20,8 +13,6 @@ import javafx.scene.control.Alert.AlertType;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
-import javafx.util.StringConverter;
-import narl.itrc.DiaChoice;
 import narl.itrc.Gawain;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
@@ -45,6 +36,10 @@ public class PanEntry2 extends PanBase {
 		lstMark[1].sheet,
 		lstMark[2].sheet,
 	};
+	
+	private final String SCRIPT_FIRST =
+		"m.expectScreen(\"checkpoint-1.png\");\n"+
+		"m.keyin(\"\\n\\n\\u2002\\u2005\");\n";
 	
 	private Node gen_mark_table(){
 		final TabPane lay0 = new TabPane();
@@ -102,7 +97,8 @@ public class PanEntry2 extends PanBase {
 		final Button btnStartVM = PanBase.genButton2("虛擬機器","developer_board.png");
 		btnStartVM.setMaxWidth(Double.MAX_VALUE);
 		btnStartVM.setOnAction(e->{
-			monitor = TaskSandbox.factory(monitor);
+			monitor = TaskSandbox.factory(monitor)
+					.sendScript(SCRIPT_FIRST, null);
 		});
 		
 		final Button btnTest = PanBase.genButton2("測試用","developer_board.png");
@@ -139,7 +135,8 @@ public class PanEntry2 extends PanBase {
 		
 	@Override
 	public void eventShown(PanBase self) {
-		monitor = TaskSandbox.factory(monitor);
+		monitor = TaskSandbox.factory(monitor)
+				.sendScript(SCRIPT_FIRST, null);
 	}
 	
 	@Override

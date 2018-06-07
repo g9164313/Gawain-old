@@ -1,8 +1,8 @@
 package narl.itrc.vision;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 
 import javax.imageio.ImageIO;
 
@@ -10,51 +10,26 @@ import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
-import javafx.collections.ObservableList;
 import javafx.embed.swing.SwingFXUtils;
-import javafx.scene.Node;
-import javafx.scene.control.Control;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.image.PixelFormat;
 import javafx.scene.image.WritableImage;
-import javafx.scene.image.WritablePixelFormat;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.StackPane;
 import narl.itrc.Misc;
 
-public class ImgPreview extends ScrollPane {
-
-	public boolean ctrlPlay = false;
-
-	/**
-	 * information for image size, pixel location and value.<p>
-	 */
-	protected int infoGeom[] = {
-		0/* image width */, 
-		0/* image height*/,
-		1/* image scale */,
-		0/* cursor-X */, 
-		0/* cursor-Y */, 
-		0, 0, 0,/* pixel value - Red, Green, Blue */
-		0
-	};
-		
+public class ImgPreview extends ScrollPane {	
+	
 	protected IntegerProperty propFPS = new SimpleIntegerProperty(0);
 	protected StringProperty propSize = new SimpleStringProperty(Misc.TXT_UNKNOW);
 	protected StringProperty propLoca = new SimpleStringProperty(Misc.TXT_UNKNOW);
 	protected StringProperty propPixv = new SimpleStringProperty(Misc.TXT_UNKNOW);
 
-	protected WritableImage imgBuff;
+	private WritableImage buf;
 	
-	protected ImageView imgView;
-	
-	protected AnchorPane overlay[] = { 
-		new AnchorPane(),
-		new AnchorPane()
-	};
-	private StackPane layGroup = new StackPane(); 
+	private final ImageView vew = new ImageView();
 
 	public ImgPreview(){
 		this(640,480);
@@ -62,50 +37,68 @@ public class ImgPreview extends ScrollPane {
 	
 	public ImgPreview(int width, int height){
 		
-		for(AnchorPane pan:overlay){
+		//for(AnchorPane pan:overlay){
 			//pan.setStyle("-fx-border-color: mediumorchid; -fx-border-width: 4px;");//for debug
-			pan.setMaxSize(Control.USE_PREF_SIZE, Control.USE_PREF_SIZE);
-			pan.setMinSize(Control.USE_PREF_SIZE, Control.USE_PREF_SIZE);
-			pan.setPrefSize(width, height);			
-		}
+		//	pan.setMaxSize(Control.USE_PREF_SIZE, Control.USE_PREF_SIZE);
+		//	pan.setMinSize(Control.USE_PREF_SIZE, Control.USE_PREF_SIZE);
+		//	pan.setPrefSize(width, height);			
+		//}
 		
+		
+		final StackPane lay = new StackPane();  
+		lay.getChildren().addAll(
+			vew,
+			new AnchorPane(),
+			new AnchorPane()
+		);
+		lay.setPrefSize(width,height);
 		//lay0.setStyle("-fx-border-color: olive; -fx-border-width: 4px;");//for debug
-		layGroup.getChildren().addAll(overlay);
-		layGroup.setPrefSize(width,height);
-				
-		//lay1.setStyle("-fx-border-color: blueviolet; -fx-border-width: 4px;");//for debug
-		setContent(layGroup);
-		setStyle("-fx-background: lightskyblue;");
-		setMinViewportWidth(width);
-		setMinViewportHeight(height);
-		setFitToWidth(true);
-		setFitToHeight(true);
+		
+		setContent(lay);
+		setStyle("-fx-background: ghostwhite;");
+		//setMinViewportWidth(width);
+		//setMinViewportHeight(height);
+		//setFitToWidth(true);
+		//setFitToHeight(true);
 		setHbarPolicy(ScrollBarPolicy.ALWAYS);
 		setVbarPolicy(ScrollBarPolicy.ALWAYS);		
 	}
 	//------------------------------------//
+
+	/**
+	 * information for image size, pixel location and value.<p>
+	 */
+	private int geom[] = {
+		0/* image width  */, 
+		0/* image height */,
+		1/* image scale  */,
+		0/* cursor-X */, 
+		0/* cursor-Y */,		
+	};
 	
-	public ObservableList<Node> getOverlayList(){
-		return overlay[0].getChildren();
+	/**
+	 * the current cursor point to the value of pixel.<p>
+	 * The data sequence is Red, Green, Blue, Alpha.<p>
+	 */
+	private final int[] pixv = {0, 0, 0, 0,};
+	
+	public int getImgWidth(){
+		return geom[0]; 
 	}
 	
-	public int getDataWidth(){
-		return infoGeom[0]; 
-	}
-	
-	public int getDataHeight(){
-		return infoGeom[1]; 
+	public int getImgHeight(){
+		return geom[1]; 
 	}
 	
 	public int getCursorX(){
-		return infoGeom[3]; 
+		return geom[3]; 
 	}
 	
 	public int getCursorY(){
-		return infoGeom[4]; 
+		return geom[4]; 
 	}
 	
-	public void snapData(String name){
+	/*public void snapData(String name){
 		snapData(name,null);
 	}
 	public void snapData(String name, final int[] roi){
@@ -164,20 +157,46 @@ public class ImgPreview extends ScrollPane {
 			0, (int)img.getWidth()*4
 		);
 		return buff;
+	}*/
+	
+	
+	/**
+	 * show image from file. This method must be invoked by GUI-event.<p> 
+	 * @param name - file name or full-path
+	 */
+	public void setImage(String name){
+		File fs = new File(name);
+		if(fs.exists()==false){
+			return;
+		}
+		Image img = new Image(fs.toURI().toString());		
+		vew.setImage(img);
+		geom[0] = (int)img.getWidth();
+		geom[1] = (int)img.getHeight();
 	}
 	
-	public void refresh(final InputStream stm){		
-		Misc.invoke(event->{
-			if(imgView==null){
-				imgView = new ImageView();
-				layGroup.getChildren().add(imgView);
-				imgView.toBack();
-			}
-			Image img = new Image(stm);
-			imgView.setImage(img);
-			infoGeom[0] = (int)img.getWidth();
-			infoGeom[1] = (int)img.getHeight();
-		});		
+	/**
+	 * show image from file. This method must be invoked by GUI-event.<p> 
+	 * @param file - byte array for image file.(support .png, .jpg, .bmp)
+	 */
+	public void setImage(byte[] file){
+		Image img = file2image(file,vew);
+		geom[0] = (int)img.getWidth();
+		geom[1] = (int)img.getHeight();
+	}
+
+	public static Image file2image(byte[] file, ImageView view){
+		Image img = null;
+		try {
+			img = SwingFXUtils.toFXImage(
+				ImageIO.read(new ByteArrayInputStream(file)),
+				null
+			);
+			view.setImage(img);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return img;
 	}
 	
 	public void refresh(
@@ -185,53 +204,50 @@ public class ImgPreview extends ScrollPane {
 		final int width, 
 		final int height
 	){
-		if(width<=0 || height<=0 || data.length==0){
-			return;
-		}		
-		if(imgBuff==null){
+		if(buf==null){
 			create_buff(width,height);
 		}
 		if( 
-			width !=((int)imgBuff.getWidth() ) ||
-			height!=((int)imgBuff.getHeight())
+			width !=((int)buf.getWidth() ) ||
+			height!=((int)buf.getHeight())
 		){
 			create_buff(width,height);
 		}
 		//this object can be accessed by non-event thread
-		imgBuff.getPixelWriter().setPixels(
+		buf.getPixelWriter().setPixels(
 			0, 0, 
 			width, height, 
 			PixelFormat.getByteRgbInstance(), 
 			data, 
 			0, width*3
 		);
-	}
+	}	
 	
 	private void create_buff(
 		final int width, 
 		final int height
 	){
 		Misc.invoke(event->{
-			infoGeom[0] = width;
-			infoGeom[1] = height;
+			geom[0] = width;
+			geom[1] = height;
 			propSize.set(String.format("%4dx%4d",width,height));
 			
-			layGroup.setPrefSize(width,height);
-			for(AnchorPane pan:overlay){
-				pan.setPrefSize(width, height);
-			}
-			if(imgView!=null){
-				layGroup.getChildren().remove(imgView);
-			}
-			imgBuff = new WritableImage(width, height);
-			imgView = new ImageView(imgBuff);
-			imgView.setCache(true);
+			//lay.setPrefSize(width,height);
+			//for(AnchorPane pan:overlay){
+			//	pan.setPrefSize(width, height);
+			//}
+			//if(imgView!=null){
+			//	lay.getChildren().remove(imgView);
+			//}
+			buf = new WritableImage(width, height);
+			//imgView = new ImageView(imgBuff);
+			//imgView.setCache(true);
 			//StackPane.setAlignment(zoomView, Pos.TOP_LEFT);
-			layGroup.getChildren().add(imgView);
-			imgView.toBack();
+			//lay.getChildren().add(imgView);
+			//imgView.toBack();
 		});
 	}
-
+	
 	/*	HBox lay = new HBox();
 	lay.setStyle(
 		"-fx-border-color: red;"+

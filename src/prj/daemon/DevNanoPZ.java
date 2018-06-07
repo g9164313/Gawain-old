@@ -22,7 +22,7 @@ import javafx.scene.layout.Priority;
 import narl.itrc.DevTTY;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
-import narl.itrc.PanTTY;
+import narl.itrc.PanTTY2;
 
 /**
  * This implements command set for Newport NanoPZ actuator.
@@ -204,7 +204,7 @@ public class DevNanoPZ extends DevTTY {
 		GridPane root = new GridPane();
 		root.getStyleClass().add("grid-medium");
 		
-		final ComboBox<String> cmbPort = PanTTY.genPortCombo(null,this);
+		final ComboBox<String> cmbPort = PanTTY2.genPortCombo(null,this);
 		cmbPort.setMaxWidth(Double.MAX_VALUE);
 
 		Button btnPort =new Button("連接埠：");

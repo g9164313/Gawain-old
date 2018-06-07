@@ -21,7 +21,7 @@ public class DevTTY extends DevBase {
 
 	@Override
 	protected Node eventLayout(PanBase pan){
-		return new PanTTY(this);
+		return new PanTTY2(this);
 	}
 
 	/**
