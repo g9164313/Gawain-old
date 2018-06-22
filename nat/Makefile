@@ -137,7 +137,7 @@ endif
 	
 
 #$(TARGET_EXE):  ./test/main2.cpp ./test/misc.cpp ./util_cv.cpp $(CORE_FILE) $(LIB_SFRISO)
-$(TARGET_EXE):  ./test/main-xx4.cpp
+$(TARGET_EXE):  ./test/main-stuffer.cpp ./test/misc.cpp
 #$(TARGET_EXE):  ./test/main-glance.cpp
 #$(TARGET_EXE):  $(wildcard ./traincascade/*.cpp)
 #$(TARGET_EXE):  ./running/FlyCap2.cpp

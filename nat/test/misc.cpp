@@ -77,6 +77,63 @@ int main5(int argc, char* argv[]) {
 	return 0;
 }*/
 
+char** listFileName(const char* path, const char* part){
+
+	static char** lst = NULL;
+
+	free(lst);
+
+	DIR* dir = opendir(path);
+	if(!dir){
+		cout<<"fail to open directory ("<<path<<")..."<<endl;
+		exit(EXIT_FAILURE);
+	}
+
+	//first, count all files~~~
+	int cnt = 0;
+	while(1){
+		struct dirent * e = readdir(dir);
+		if(!e){
+			break;
+		}
+		if(e->d_type!=DT_REG){
+			continue;
+		}
+		if(part!=NULL){
+			if(strstr(e->d_name,part)==NULL){
+				continue;
+			}
+		}
+		cnt++;
+	}
+
+	rewinddir(dir);
+
+	//second, prepare memory and copy string data....
+
+	lst = (char**) malloc(sizeof(char*) * (cnt+1));
+
+	lst[cnt] = NULL;
+
+	for(int i=0; i<cnt; i++){
+		struct dirent * e = readdir(dir);
+		if(!e){
+			break;
+		}
+		if(e->d_type!=DT_REG){
+			continue;
+		}
+		if(part!=NULL){
+			if(strstr(e->d_name,part)==NULL){
+				continue;
+			}
+		}
+		lst[i] = e->d_name;
+	}
+
+	return lst;
+}
+
 void list_dir(string path,vector<string>& lst,string prex){
 	lst.clear();
 	DIR* dir;

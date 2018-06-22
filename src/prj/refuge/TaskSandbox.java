@@ -59,7 +59,7 @@ public class TaskSandbox extends Task<Integer> {
 	private IConsole cons = null;
 
 	private static class Token {
-		
+
 		public static final short CMD_SNAPSHOT= 0x100;
 		public static final short ARG_IMGPREVIEW = 0x001;
 		public static final short ARG_IMAGE_FILE = 0x002;
@@ -67,20 +67,20 @@ public class TaskSandbox extends Task<Integer> {
 		public static final short CMD_KEYBOARD = 0x200;
 		
 		public static final short CMD_MOUSE = 0x300;
-		public static final short ARG_RELATIVE = 0x001;
-		public static final short ARG_ABSOLUTE = 0x002;
-		public static final short ARG_CLICK    = 0x003;
-		public static final short ARG_DCLICK   = 0x004;
+		//public static final short ARG_RELATIVE = 0x001;
+		//public static final short ARG_ABSOLUTE = 0x002;
+		//public static final short ARG_CLICK    = 0x003;
+		//public static final short ARG_DCLICK   = 0x004;
 		
 		public static final short CMD_SCRIPT = 0x400;
 		
-		public short  cmd = ' ';
+		public short  cmd = 0x0000;
 		public Object arg = null;
 		public Object nod = null;
 	};
 	
 	private BlockingQueue<Token> quee = new ArrayBlockingQueue<Token>(25);
-		
+
 	public TaskSandbox(){
 		init_scancode();
 		setOnFailed(e->{			
@@ -218,7 +218,22 @@ public class TaskSandbox extends Task<Integer> {
 		}
     	return this;
     }
-
+    
+    
+    /**
+     * blocking the current thread~~~
+     */
+    public void waitForDone(){
+    	while(quee.isEmpty()==false){
+    		try {
+				Thread.sleep(1000L);
+			} catch (InterruptedException e) {
+				Misc.logv("fail to wait quee (%s)", e.getMessage());
+				//e.printStackTrace();
+			}
+    	}
+    }
+    
     /**
      * Method invoked by script.<p>
      * Snapshot screen to file.<p>
@@ -295,8 +310,10 @@ public class TaskSandbox extends Task<Integer> {
 				return -2;
 			}
 		}
+		
 		//setup console~~~
 		cons = sess.getConsole();
+		
 		//phase.2 - wait control message.
 		while(Gawain.isExit()==false && vbox.getState().value()!=VBOX_POWEREDOFF){
 			
@@ -310,10 +327,12 @@ public class TaskSandbox extends Task<Integer> {
 				continue;
 			}
 			
-			Token tkn = quee.take();
+			Token tkn = quee.peek();
 			Object obj1 = null;
-			String arg1 = null;			
+			String arg1 = null;
+			
 			switch((tkn.cmd & 0xF00)){
+			
 			case Token.CMD_SNAPSHOT:				
 				if((tkn.cmd & Token.ARG_IMAGE_FILE)!=0){
 					arg1 = (String)tkn.arg;
@@ -342,7 +361,9 @@ public class TaskSandbox extends Task<Integer> {
 					}
 				}
 				break;
-			}			
+			}
+			
+			quee.remove(tkn);
 		}
 		Misc.logv("vbox is closed!!");
 		return 0;
@@ -432,7 +453,7 @@ public class TaskSandbox extends Task<Integer> {
 	 * send mouse event to virtual machine.
 	 * @param prop
 	 */
-	private void _mouse_ctrl(String prop){
+	/*private void _mouse_ctrl(String prop){
 		if(prop==null){
 			return;
 		}
@@ -441,7 +462,7 @@ public class TaskSandbox extends Task<Integer> {
 		//}
 		cons.getMouse().putMouseEvent(0, 0, 0, 0, 0);
 		cons.getMouse().putMouseEventAbsolute(0, 0, 0, 0, 0);
-	}
+	}*/
 	
 	private void init_scancode(){
 		if(scode.size()!=0){

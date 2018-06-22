@@ -85,10 +85,10 @@ public class PanEntry2 extends PanBase {
 		final Button btnAutoMark = PanBase.genButton3("產生標定","toc.png");
 		btnAutoMark.setMaxWidth(Double.MAX_VALUE);
 		
-		final Button btnMeasure  = PanBase.genButton3("開始量測","toc.png");
+		final Button btnMeasure  = PanBase.genButton3("自動量測","toc.png");
 		btnMeasure.setMaxWidth(Double.MAX_VALUE);
 		btnMeasure.setOnAction(event->{
-			spinner.kick('p',new TaskMeasure(lstSheet));
+			spinner.kick('p',new TaskMeasure(lstSheet, sandbox));
 		});
 		
 		final Button btnSaveMark = PanBase.genButton2("匯出Excel","briefcase-download.png");
@@ -97,14 +97,14 @@ public class PanEntry2 extends PanBase {
 		final Button btnStartVM = PanBase.genButton2("虛擬機器","developer_board.png");
 		btnStartVM.setMaxWidth(Double.MAX_VALUE);
 		btnStartVM.setOnAction(e->{
-			monitor = TaskSandbox.factory(monitor)
+			sandbox = TaskSandbox.factory(sandbox)
 					.sendScript(SCRIPT_FIRST, null);
 		});
 		
 		final Button btnTest = PanBase.genButton2("測試用","developer_board.png");
 		btnTest.setMaxWidth(Double.MAX_VALUE);
 		btnTest.setOnAction(e->{
-			sandbox.appear(monitor);
+			panelSandbox.appear(sandbox);
 		});
 		
 		VBox lay0 = new VBox();
@@ -129,13 +129,13 @@ public class PanEntry2 extends PanBase {
 		return lay0;
 	}
 
-	private TaskSandbox monitor = null;
+	private TaskSandbox sandbox = null;
 	
-	private PanSandbox sandbox = new PanSandbox();
+	private PanSandbox panelSandbox = new PanSandbox();
 		
 	@Override
 	public void eventShown(PanBase self) {
-		monitor = TaskSandbox.factory(monitor)
+		sandbox = TaskSandbox.factory(sandbox)
 				.sendScript(SCRIPT_FIRST, null);
 	}
 	
