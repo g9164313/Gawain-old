@@ -159,12 +159,12 @@ public class TaskSandbox extends Task<Integer> {
 		}
     };    
     
-    //-------- below methods are entry for JavaScript --------//
+    //-------- below methods are other java instance --------//
     /**
      * send snapshot command to looper.
      * @return self instance
      */
-    public TaskSandbox sendSnapshot(String name,Node prev){
+    public TaskSandbox recvSnapshot(String name,Node prev){
     	Token tkn = new Token();
     	tkn.cmd = Token.CMD_SNAPSHOT;
     	if(name!=null){
@@ -234,6 +234,7 @@ public class TaskSandbox extends Task<Integer> {
     	}
     }
     
+    //-------- below methods are entry for JavaScript --------//
     /**
      * Method invoked by script.<p>
      * Snapshot screen to file.<p>
@@ -252,12 +253,13 @@ public class TaskSandbox extends Task<Integer> {
 		_keyin_ascii(text);
     }
 
-    public void mouseClick(){
+    /**
+     * Method invoked by script.<p>
+     * Send event to mouse device.<p>
+     */
+    public void mouse(){
     }
-    
-    public void mouseMove(){
-    }
-    
+
     /**
      * Method invoked by script.<p>
      * Check whether screen is same as what we want 

@@ -25,7 +25,7 @@ public class DevSPIK2K extends DevTTY {
 	 * @return TRUE-success,<p> FALSE-fail to open TTY port
 	 */
 	public boolean connect(String path){
-		return (open(path)>0L)?(true):(false);
+		return false;
 	}
 	
 	public boolean connect(){
@@ -36,7 +36,6 @@ public class DevSPIK2K extends DevTTY {
 		return connect(path);
 	}
 	
-	@Override	
 	protected void eventTurnOff(){
 		if(core!=null){
 			core.cancel();
@@ -119,7 +118,6 @@ public class DevSPIK2K extends DevTTY {
 		new Thread(core,"SPIK-monitor").start();
 	}
 
-	@Override
 	protected Node eventLayout(PanBase pan) {		
 		GridPane root = new GridPane();//show all sensor
 		root.getStyleClass().add("grid-medium");

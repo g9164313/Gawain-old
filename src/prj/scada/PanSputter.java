@@ -238,24 +238,24 @@ public class PanSputter extends PanBase {
 		if(devPLC.connect()==true){
 			Misc.logv("connect FATEK PLC...");
 		}else{
-			Misc.logv("fail to connect PLC(%s)",devPLC.getName());
+			//Misc.logv("fail to connect PLC(%s)",devPLC.getName());
 		}
 		if(devSQM.connect()==true){
 			Misc.logv("connect SQM160...");
 		}else{
-			Misc.logv("fail to connect SQM160(%s)",devSQM.getName());
+			//Misc.logv("fail to connect SQM160(%s)",devSQM.getName());
 		}
 		if(devSPIK.connect()==true){
 			Misc.logv("connect SPIK2000A...");
 		}else{
-			Misc.logv("fail to connect SPIK2000A(%s)",devSPIK.getName());
+			//Misc.logv("fail to connect SPIK2000A(%s)",devSPIK.getName());
 		}
 	}
 	
 	@Override
 	public void eventShown(PanBase self) {
 		devPLC.startMonitor("R01000-40","X0000-24","Y0000-40","Y0120-8");
-		devSQM.startMonitor();
+		//devSQM.startMonitor();
 		mapper.hookPart(devPLC);
 	}
 }

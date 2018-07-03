@@ -103,7 +103,7 @@ public class DevAT5350 extends DevTTY {
 				buf[i] = readTxt('\n','\n',DELAY);
 			}else{
 				//device just echo the message~~~~
-				buf[i] = readTxt('\n',DELAY);
+				buf[i] = readTxt('\n', DELAY);
 			}					
 			Misc.logv("AT5350) >> %s",buf[i]);
 		}
@@ -337,7 +337,6 @@ public class DevAT5350 extends DevTTY {
 	//private int sampleECount= 5;//debug
 	//private int filterPeriod= 5;//debug
 	
-	@Override
 	protected Node eventLayout(PanBase pan) {
 		
 		final JFXTextField boxSampleCount = new JFXTextField(""+sampleCount);		

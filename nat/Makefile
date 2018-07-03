@@ -70,14 +70,14 @@ LIB_MULTICAM := -L$(ROOT_MULTICAM) -lMultiCam
 
 CC=g++ -DENABLE_LOG
 
-CC_FLAG = -g -I. -I./vision -I./SFR -I$(DIR_JNI) -I$(DIR_JNI)/linux
-CC_FLAG += -DVISION $(shell pkg-config --cflags opencv) 
+CC_FLAG = -g -I. -I$(DIR_JNI) -I$(DIR_JNI)/linux
+#CC_FLAG += -DVISION $(shell pkg-config --cflags opencv) 
 #CC_FLAG += -march=native ???
 #CC_FLAG += $(shell pkg-config --cflags libmodbus) 
 #CC_FLAG += $(shell pkg-config --cflags qt5) 
 #CC_FLAG += $(INC_EBUS)
-CC_FLAG += $(INC_FLYCAPTURE)
-CC_FLAG += $(INC_XIMEA)
+#CC_FLAG += $(INC_FLYCAPTURE)
+#CC_FLAG += $(INC_XIMEA)
 #CC_FLAG += $(INC_PYLON)
 #CC_FLAG += $(INC_MULTICAM)
 
@@ -93,8 +93,9 @@ LD_LIBS += $(LIB_XIMEA)
 ########################
 
 CORE_SO = libspringboard.so
-#CORE_FILE = util_jni.cpp DevTTY.cpp
 CORE_FILE = util_miscellany.cpp wrap_PanPuppetter.cpp
+
+DEVICE_FILE = ./device/DevTTY.cpp ./util_jni.cpp
 
 VISION_SO = libvision.so
 VISION_FILE =  util_jni.cpp util_cv.cpp ./vision/CamBundle.cpp ./vision/CamDummy.cpp 
@@ -134,7 +135,20 @@ ifeq ($(CHECK_EXEC),)
 else
 	@echo "process is running!!!"
 endif
-	
+
+####################################################
+libdevice.so: $(DEVICE_FILE)
+	$(CC) -fPIC -shared -o $@ $^ $(LD_LIBS) $(CC_FLAG)
+	cp -rf $@ ../bin/narl/itrc/nat
+	cp -rf $@ ../src/narl/itrc/nat
+ifeq ($(CHECK_EXEC),)
+	@echo "no process is running, so we move it~~"
+	cp -rf $@ ~/.gawain/$@
+else
+	@echo "process is running!!!"
+endif
+
+
 
 #$(TARGET_EXE):  ./test/main2.cpp ./test/misc.cpp ./util_cv.cpp $(CORE_FILE) $(LIB_SFRISO)
 $(TARGET_EXE):  ./test/main-stuffer.cpp ./test/misc.cpp
@@ -145,12 +159,12 @@ $(TARGET_EXE):  ./test/main-stuffer.cpp ./test/misc.cpp
 
 #all: $(CORE_SO)
 #all: $(CORE_SO) $(VISION_SO)
-all: $(TARGET_EXE)
-#all: $(TARGET_EXE) $(CORE_SO) $(VISION_SO)
+#all: $(TARGET_EXE)
+all: libdevice.so
 
 clean:
 	rm -rf $(TARGET_EXE) $(TARGET_SO) $(DIR_SRC)/*.o ./*.o
 	
-.PHONY: all clean prepare $(TARGET_JNI) $(TARGET_EXE) $(CORE_SO) $(VISION_SO)
+.PHONY: all clean prepare libdevice.so $(TARGET_JNI) $(TARGET_EXE) $(CORE_SO) $(VISION_SO)
 
 

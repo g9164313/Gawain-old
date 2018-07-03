@@ -46,7 +46,7 @@ public class DevSQM160 extends DevTTY {
 	 * @return TRUE-success,<p> FALSE-fail to open TTY port
 	 */
 	public boolean connect(String path){
-		return (open(path)>0L)?(true):(false);
+		return false;//(open(path)>0L)?(true):(false);
 	}
 	
 	/**
@@ -212,7 +212,7 @@ public class DevSQM160 extends DevTTY {
 			propAvgThick.set(thick);
 		});
 		return true;
-	}*/
+	}
 	@Override
 	protected void timeLooper(){
 		final String rate = exec("M").substring(1).trim();
@@ -225,7 +225,7 @@ public class DevSQM160 extends DevTTY {
 	public void startMonitor(){
 		//super.startTaskMonitor("Monitor-SQM160", 1000);
 		super.startTimeMonitor(1000);
-	}
+	}*/
 	//--------------------------------//
 	
 	private void refresh_film(int idx){
@@ -563,7 +563,6 @@ public class DevSQM160 extends DevTTY {
 	}
 	//---------------------------------------------//
 	
-	@Override
 	protected Node eventLayout(PanBase pan) {
 
 		Label txtStatus = new Label();

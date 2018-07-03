@@ -1,418 +1,208 @@
 package narl.itrc;
 
-import java.io.File;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Arrays;
 
-import javafx.concurrent.Task;
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
-import javafx.scene.Node;
 
-public class DevTTY extends DevBase {
+public class DevTTY {
 
 	public DevTTY(){
 	}
-	
-	public DevTTY(String path_addr){	
-		open(path_addr);
-	}
 
-	@Override
-	protected Node eventLayout(PanBase pan){
-		return new PanTTY2(this);
+	public DevTTY(String path){	
+		pathName = path;
 	}
 
 	/**
-	 * This is special event, device want to do something before shutdown~~~
-	 */
-	protected void eventTurnOff(){		
-	}
-
-	@Override
-	public void eventShutdown() {
-		//stopTaskMonitor();
-		eventTurnOff();
-		close();
-	}
-	//---------------------//
-	
-	/**
-	 * File descriptor or handler to serial-port.<p>
-	 * If the value is zero, it means we got fail~~.<p> 
-	 * In Unix, it is a integer number.<p>
-	 * In fxxking windows, it is pointer(handle).<p>
+	 * For Unix, it is a number(File descriptor).<p>
+	 * For Windows, it is pointer(handle).<p>
+	 * This variable will be updated by native code.<p>
 	 */
 	private long handle = 0L;//this is provided by native code
-	
+
 	public long getHandle(){
 		return handle;
+	}
+	
+	/**
+	 * Device path name, it is like "/dev/ttyS0,9600,8n1".<p>
+	 * In windows, it will be like "\\.\COM1,9600,8n1".<p>
+	 */
+	private String pathName = "";
+	
+	public void setPathName(String path){
+		pathName = path;
+	}
+	
+	public String getPathName(){
+		return pathName;
 	}
 	
 	public boolean isOpen(){
 		return (handle==0L)?(false):(true);
 	}
-	
-	private final String TXT_UNKNOW_NAME = "？";
-	private final char   TXT_UNKNOW_ATTR = '？';
-	
-	private String infoName = TXT_UNKNOW_NAME;
-	private int  infoBaud = -1;
-	private char infoData = TXT_UNKNOW_ATTR;
-	private char infoPart = TXT_UNKNOW_ATTR;
-	private char infoStop = TXT_UNKNOW_ATTR;
-	
-	public String getName(){
-		return infoName;
-	}
-	
-	public String getBaud(){
-		if(infoBaud<=0){
-			return TXT_UNKNOW_NAME;
-		}
-		return String.valueOf(infoBaud);
-	}
-	
-	public String getData(){
-		if(infoData==TXT_UNKNOW_ATTR){
-			return TXT_UNKNOW_NAME;
-		}
-		return String.valueOf(infoData);
-	}
-
-	public String getParity(){
-		switch(infoPart){
-		case 'n': return "none";
-		case 'o': return "odd";
-		case 'e': return "event";
-		case 'm': return "mark";
-		case 's': return "space";
-		}
-		return TXT_UNKNOW_NAME;
-	}
-	
-	public String getStopBit(){
-		if(infoData==TXT_UNKNOW_ATTR){
-			return TXT_UNKNOW_NAME;
-		}
-		return String.valueOf(infoStop);
-	}
-	
-	private void resetInfoPath(){
-		infoName = TXT_UNKNOW_NAME;
-		infoBaud = -1;
-		infoData = TXT_UNKNOW_ATTR;
-		infoPart = TXT_UNKNOW_ATTR;
-		infoStop = TXT_UNKNOW_ATTR;
-	}
+	//-----------------------//
 	
 	/**
-	 * Parse the control statement like "/dev/ttyS0,9600,8n1".<p>
-	 * The control statement is composed of baud-rate,data-bit,parity,stop-bit.<p>
-	 * Parity can be 'n'(none),'o'(odd),'e'(event),'m'(mask) and 's'(space).<p>
-	 * @param name - control statement.
-	 * @return TRUE - valid, FALSE - invalid
+	 * Open tty device and parser path name.<p>
+	 * Format is "[baud rate], [data bit][mask][stop bit]".<p>
+	 * Mask type:<p>
+	 *   'n' mean "none".<p>
+	 *   'o' mean "odd".<p>
+	 *   'e' mean "event".<p>
+	 *   'm' mean "mark".<p>
+	 *   's' mean "space".<p>
+	 * @return true - success, false - something is wrong
 	 */
-	public boolean setInfoPathAttr(String path_attr){
-		
-		resetInfoPath();
-		
-		String[] arg = path_attr.trim().split(",");
-		//check we have 3 arguments at least
-		if(arg.length<3){
-			Misc.loge("fail to connect "+path_attr);
+	public boolean open(){		
+		handle = 0L;//reset this~~~		
+		String[] sets = pathName.split(",");
+		if(sets.length!=3){
 			return false;
-		}
-		
-		//check the fist argument,it is device name		
-		if(Gawain.isPOSIX==true){
-			if(new File(arg[0]).exists()==false){
-				Misc.loge("Unknown device --> "+path_attr);
+		}		
+		try{
+			String name = sets[0];			
+			
+			int baud = Integer.valueOf(sets[1]);			
+			
+			char[] attr = sets[2].toCharArray();
+			if(attr.length<3){
 				return false;
 			}
-		}else{
-			//how to check whether fxxking windows system has terminal
-		}
-		infoName = arg[0];
-		
-		//check the second argument is integer
-		try{
-			infoBaud = Integer.valueOf(arg[1]);
+			
+			implOpen(name, baud, attr[0], attr[1], attr[2], '?');
+			
 		}catch(NumberFormatException e){
-			Misc.loge("error baud : "+arg[1]);
 			return false;
-		}
-		
-		//how to check valid below lines???
-		char[] ctrl = arg[2].toCharArray();
-		infoData = ctrl[0];
-		infoPart = ctrl[1];
-		infoStop = ctrl[2];
-		
+		}		
 		return true;
 	}
 	
-	
-	public boolean setInfoAttr(String attr){
-		
-		String[] arg = attr.trim().split(",");
-		//check the second argument is integer
-		try{
-			infoBaud = Integer.valueOf(arg[0]);
-		}catch(NumberFormatException e){
-			Misc.loge("error baud : "+arg[0]);
-			return false;
-		}
-				
-		//how to check valid below lines???
-		char[] ctrl = arg[1].toCharArray();
-		infoData = ctrl[0];
-		infoPart = ctrl[1];
-		infoStop = ctrl[2];				
-		return true;		
-	}	
-	//---------------------//
-	
 	/**
-	 * open TTY and start to communication.<p>
-	 * if path have no control statement, it will append the second argument.<p>
-	 * @param path_attr - device name, or full name
-	 * @param attr - default control statement
-	 * @return
+	 * open tty device and parser path name.<p>
+	 * @param path - device path name, like "/dev/ttyS0,19200,8n1"
+	 * @return true - success, false - something is wrong
 	 */
-	public long open(String path_attr,String attr){
-		if(path_attr.contains(",")==false){
-			path_attr = path_attr + ","+attr; //add default attribute setting.
-		}		
-		return open(path_attr);
-	}
-	
-	/**
-	 * open TTY and start to communication.<p>
-	 * the argument path must be full name. it means path includes device name and control statement.<p>
-	 * @param path_attr - full name, including device name and control statement, ex:/dev/ttyS0,9600,8n1.
-	 */
-	public long open(String path_attr){
-		if(setInfoPathAttr(path_attr)==false){
-			return -1L;
-		}
+	public boolean open(String path){
+		pathName = path;
 		return open();
 	}
 	
 	/**
-	 * open TTY and start to communication~~~
-	 * @param txt - control statement.
-	 */
-	public long open(){
-		implOpen(
-			infoName,
-			infoBaud,
-			infoData,
-			infoPart,
-			infoStop,
-			'?'
-		);		
-		if(handle!=0){
-			setAlive(true);
-		}else{
-			setAlive(false);
-		}
-		return handle;
-	}
-
-	/**
-	 * close terminal!!!
+	 * close tty device.<p>
 	 */
 	public void close(){
 		if(handle==0L){
 			return;
 		}
 		implClose();
-		setAlive(false);
 	}
 	//-----------------------//
 	
-	/**
-	 * Like readByte(), but it will return null!!!
-	 * @return - null or byte value
-	 */
 	public Byte readOneByte(){
-		final byte[] buf = implRead(1);
-		if(buf==null){
+		final byte[] buf = {0};
+		if(implRead(buf)==0L){
 			return null;
 		}
 		return buf[0];
 	}
 	
-	/**
-	 * Read just one byte data<p>
-	 * This is blocking method!!!.<p>
-	 * @return byte from TTY device
-	 */
-	public byte readByte(){
-		final byte[] buf = implRead(1);
-		if(buf==null){
-			return (byte)0x00;
-		}
-		return buf[0];
+	public int readByte(byte[] buf){
+		return (int)implRead(buf);
 	}
-		
+	
+	public byte[] readByte(){
+		return readByte(512);
+	}
+	
+	public byte[] readByte(int maxSize){
+		final byte[] buf = new byte[maxSize];
+		int len = (int)implRead(buf);
+		if(len==0){
+			return null;
+		}
+		return Arrays.copyOf(buf, len);
+	}
+	
+	public byte[] readByte(byte end){
+		return readByte(end, -1);
+	}
+	
+	public byte[] readByte(byte end, int ms){
+		ArrayList<Byte> lst = new ArrayList<Byte>();		
+		for(;;){
+			Byte cc = readOneByte();
+			if(cc==null){
+				continue;
+			}
+			if(cc==end){
+				break;
+			}
+			if(lst!=null){
+				lst.add(cc);
+				if(ms>0){
+					Misc.delay(ms);
+				}
+			}			
+		}
+		byte[] result = new byte[lst.size()];
+		for(int i=0; i<lst.size(); i++){
+			result[i] = lst.get(i);
+		}
+		return result;
+	}
+	
+	public byte[] readByte(byte beg, byte end){
+		return readByte(beg, end, -1);
+	}
+	
+	public byte[] readByte(byte beg, byte end, int ms){
+		for(;;){
+			Byte cc = readOneByte();
+			if(cc==null){
+				continue;
+			}
+			if(cc==beg){
+				return readByte(end,ms);
+			}		
+		}
+	}
+	
 	/**
 	 * Read just one character<p>
 	 * This is blocking method!!!.<p>
-	 * @return character from TTY device
+	 * @return - one character or null when error happened~~
 	 */
-	public char readChar(){
-		return (char)(readByte());
-	}
-	
-	/**
-	 * Read byte data from terminal-port.<p>
-	 * This is blocking method!!!.<p>
-	 * @return context data
-	 */
-	public byte[] readBuf(){
-		return implRead(-1);
-	}
-	
-	public byte[] readPack(byte beg,byte end){
-		
-		ArrayList<Byte> lst = new ArrayList<Byte>();
-		
-		boolean flg = false;
-		
-		long tk2 = System.currentTimeMillis();
-		long tk1 = tk2;
-		
-		while((tk2-tk1)<1000L){
-			byte[] buf = implRead(1);
-			if(buf==null){
-				Misc.delay(50);
-				tk2 = System.currentTimeMillis();
-				continue;
-			}		
-			if(buf[0]==beg){
-				flg = true;//for next turn~~~~
-			}else if(flg==true){
-				if(buf[0]==end){
-					break;
-				}
-				lst.add(buf[0]);
-			}
-			tk2 = tk1;//reset ticker~~~
-		}
-		return check_out(lst);
-	}
-	
-	/*public byte[] readPackBuck(byte beg,byte end){
-
-		long tk2 = System.currentTimeMillis();
-		long tk1 = tk2;
-		int idxBeg=-1;//the index of buffer
-		int idxEnd= 0;//the index of pool
-		
-		byte[] pool = new byte[1024];
-		
-		while((tk2-tk1)<1000L){
-			
-			byte[] buf = implRead(-1);
-			
-			if(buf==null){
-				Misc.delay(30);
-				tk2 = System.currentTimeMillis();
-				continue;
-			}else{
-				tk2 = tk1 = System.currentTimeMillis();
-			}
-						
-			for(int i=0; i<buf.length; i++){
-				if(idxBeg<0){					
-					if(buf[i]==beg){
-						idxBeg = i;
-						continue;
-					}
-				}else{
-					if(buf[i]==end){						
-						return Arrays.copyOfRange(pool, 0, idxEnd);
-					}
-					pool[idxEnd] = buf[i];
-					idxEnd+=1;
-				}
-			}
-		}		
-		return null;
-	}*/
-	
-	private byte[] check_out(ArrayList<Byte> lst){
-		int cnt = lst.size();
-		if(cnt==0){
+	public Character readChar(){
+		final byte[] buf = {0};
+		if(implRead(buf)==0L){
 			return null;
 		}
-		byte[] buf = new byte[cnt];
-		for(int i=0; i<cnt; i++){
-			buf[i] = lst.get(i);
-		}
-		return buf;
+		return (char)(buf[0]);
 	}
 
-	public String readTxt(char end){
-		return readTxt(end,-1);
-	}
-	
-	public String readTxt(char end,int ms){
-		String res = "";
-		for(;;){
-			char cc = readChar();			
-			if(cc==end){
-				break;
-			}			
-			res = res + cc;
-			if(ms>0){
-				Misc.delay(ms);
-			}
-		}
-		return res;
-	}
-	
-	public String readTxt(char beg,char end){
-		return readTxt(beg,end,-1);
-	}
-	
-	public String readTxt(char beg,char end,int ms){
-		String res = "";
-		boolean flg = false;
-		long tk2 = System.currentTimeMillis();
-		long tk1 = tk2;
-		while((tk2-tk1)<1000L){
-			char cc = readChar();			
-			if(cc==beg){
-				flg = true;
-			}else if(cc==0){
-				tk2 = System.currentTimeMillis();
-				continue;
-			}else if(flg==true){
-				if(cc==end){
-					return res;
-				}
-				res = res + cc;
-			}
-			tk2 = tk1;
-			if(ms>0){
-				Misc.delay(ms);
-			}
-		}
-		return res;
-	}
-	
 	/**
-	 * Read text from terminal-port.<p>
+	 * Read data, and convert it to string type.<p>
+	 * Buffer length is default size, 512 byte.<p>
 	 * This is blocking method!!!.<p>
 	 * @return NULL - if no data<p> Text - what we read.<p>
 	 */
 	public String readTxt(){
-		byte[] buf = readBuf();
-		if(buf==null){
+		return readTxt(512);
+	}
+	
+	/**
+	 * It is same as readTxt(), the difference is buffer size can be set.<p>
+	 * If data contain unsupported character, the result will be a empty string.<p>
+	 * This is blocking method!!!.<p>
+	 * @param bufSize - buffer size
+	 * @return NULL - if no data<p> Text - what we read.<p>
+	 */
+	public String readTxt(int bufSize){
+		final byte[] buf = new byte[bufSize];		
+		if(implRead(buf)==0L){
 			return null;
 		}
 		try {
@@ -420,38 +210,74 @@ public class DevTTY extends DevBase {
 		} catch (UnsupportedEncodingException e) {
 			e.printStackTrace();			
 		}
-		return null;
+		return "";
+	}
+	
+	public String readTxt(char end){
+		return readTxt(end, -1);
 	}
 	
 	/**
-	 * Read text from terminal-port and stopping after encountering tail part.<p>
-	 * This is blocking method!!!.<p>
-	 * @return NULL - if no data<p> Text - what we read has tail part.<p>
+	 * Read data until encountering the tail token
+	 * @param end - the tail token.
+	 * @param ms - delay millisecond between reading.
+	 * @return string data
 	 */
-	public String readTxt(String tail){
-		String txt = "";
-		final int FAIL_MAX = 10;
-		int fail_cnt = FAIL_MAX;
-		for(;fail_cnt>0;){
-			String tmp = readTxt();
-			if(tmp==null){
-				fail_cnt--;				
+	public String readTxt(char end, int ms){
+		String result = "";
+		for(;;){
+			Character cc = readChar();
+			if(cc==null){
 				continue;
 			}
-			txt = txt + tmp;
-			fail_cnt = FAIL_MAX;//reset this number~~~
-			if(txt.endsWith(tail)==true){
-				int len = txt.length()-tail.length();
-				txt = txt.substring(0,len);
+			if(cc==end){
 				break;
+			}
+			if(result!=null){
+				result = result + cc;
+				if(ms>0){
+					Misc.delay(ms);
+				}
 			}			
 		}
-		return txt;		
+		return result;
+	}
+	
+	/**
+	 * Read data when encountering the head token, and stop when matching the tail token.<p>
+	 * Result is not including the token.<p> 
+	 * This is blocking method!!!.<p>
+	 * @param beg - the head token for stream. 0 will be ignore.
+	 * @param end - the tail token for stream.
+	 * @return string data
+	 */
+	public String readTxt(char beg, char end){
+		return readTxt(beg,end,-1);
+	}
+	
+	/**
+	 * It is same as readTxt().<p>
+	 * This is blocking method!!!.<p>
+	 * @param beg - the head token for stream. 0 will be ignore.
+	 * @param end - the tail token for stream.
+	 * @param ms - delay millisecond between reading.
+	 * @return string data
+	 */
+	public String readTxt(char beg, char end, int ms){
+		for(;;){
+			Character cc = readChar();
+			if(cc==null){
+				continue;
+			}
+			if(cc==beg){
+				return readTxt(end,ms);
+			}		
+		}
 	}
 	//------------------------------------//
 	
 	/**
-	 * Write byate data via terminal-port.<p>
+	 * Write byte data via terminal-port.<p>
 	 * @param buf - context data
 	 */
 	public void writeByte(byte cc){
@@ -460,7 +286,7 @@ public class DevTTY extends DevBase {
 	}
 	
 	/**
-	 * Write byate data via terminal-port.<p>
+	 * Write byte data via terminal-port.<p>
 	 * @param buf - context data
 	 */
 	public void writeBuf(byte[] buf){
@@ -484,12 +310,11 @@ public class DevTTY extends DevBase {
 		if(txt.length()==0){
 			return;
 		}
-		byte[] buf = txt.getBytes(Charset.forName("UTF-8"));
-		implWrite(buf);
+		implWrite(txt.getBytes(Charset.forName("UTF-8")));
 	}
 	
 	/**
-	 * It is same as writeTxt(), but send one character one time~~~
+	 * It is same as writeTxt(), but send characters one by one~~~
 	 * Attention, this function is blocking!!! 
 	 * @param txt - context data
 	 */
@@ -502,71 +327,6 @@ public class DevTTY extends DevBase {
 	}
 	//-----------------------//
 	
-	public String fetch(String cmd,String tail){
-		writeTxt(cmd);		
-		return readTxt(tail);
-	}
-	
-	private Task<String> tskFetch = null;		
-	/**
-	 * 
-	 * Write command and read back what the device generated.<p>
-	 * Attention!!, this is a blocking procedure.<p>
-	 * 
-	 * @param command - what we write to TTY device
-	 * @param tail - the tail of text what we read  
-	 * @param value - if it were done, invoke this event.
-	 */
-	public void fetch(
-		final String[] commands,
-		final String tail,
-		EventHandler<ActionEvent> value
-	){
-		if(tskFetch!=null){
-			if(tskFetch.isRunning()==true){
-				Misc.logw("DevTTY-fetch is running");
-				return;
-			}
-		}
-		tskFetch = new Task<String>(){
-			@Override
-			protected String call() throws Exception {
-				String result = "";
-				for(String cmd:commands){
-					String txt = null;
-					while(txt==null){
-						txt = fetch(cmd,tail);
-					}
-					result = result + "\t" + txt;
-					Misc.delay(10);
-				}
-				return result.substring(1);
-			}
-		};
-		tskFetch.setOnSucceeded(event->{
-			value.handle(new ActionEvent(tskFetch.valueProperty().get(),null));
-		});
-		new Thread(tskFetch,"DevTTY-fetch").start();
-	}
-	
-	/**
-	 * Write command and read back what the device generated.<p>
-	 * Attention!!, this is a blocking procedure.<p>
-	 * 
-	 * @param command - what we write to TTY device
-	 * @param tail - the tail of text what we read  
-	 * @param value - if it were done, invoke this event.
-	 */
-	public void fetch(
-		final String command,
-		final String tail,
-		EventHandler<ActionEvent> value
-	){
-		String[] commands = {command};
-		fetch(commands,tail,value);
-	}
-	//-----------------------//
-	
 	private native void implOpen(
 		String name,
 		int  baud_rate,
@@ -576,7 +336,7 @@ public class DevTTY extends DevBase {
 		char flow_mode
 	);
 
-	private native byte[] implRead(int len);
+	private native long implRead(byte[] buf);
 	
 	private native void implWrite(byte[] buf);
 	

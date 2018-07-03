@@ -77,7 +77,7 @@ int main5(int argc, char* argv[]) {
 	return 0;
 }*/
 
-char** listFileName(const char* path, const char* part){
+char** listFileName(const char* path, const char* part, int* size){
 
 	static char** lst = NULL;
 
@@ -107,15 +107,18 @@ char** listFileName(const char* path, const char* part){
 		cnt++;
 	}
 
+	if(size!=NULL){
+		*size = cnt;
+	}
+
 	rewinddir(dir);
 
 	//second, prepare memory and copy string data....
 
-	lst = (char**) malloc(sizeof(char*) * (cnt+1));
+	lst = new char*[cnt];
 
-	lst[cnt] = NULL;
-
-	for(int i=0; i<cnt; i++){
+	int i=0;
+	while(i<cnt){
 		struct dirent * e = readdir(dir);
 		if(!e){
 			break;
@@ -128,9 +131,11 @@ char** listFileName(const char* path, const char* part){
 				continue;
 			}
 		}
-		lst[i] = e->d_name;
+		lst[i] = new char[100];
+		strcpy(lst[i], e->d_name);
+		i++;
 	}
-
+	closedir(dir);
 	return lst;
 }
 

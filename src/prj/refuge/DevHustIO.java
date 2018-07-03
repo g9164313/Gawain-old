@@ -71,14 +71,14 @@ public class DevHustIO extends DevTTY {
 	public void disconnect(){
 		watcher.pause();
 		exec_cmd("O9000","N1");//stop report!!!			
-		eventTurnOff();
+		//eventTurnOff();
 		close();
 	}
 	
-	@Override
-	protected void eventTurnOff(){	
-		exec_cmd("O9000","N1");//stop report~~~
-	}
+	//@Override
+	//protected void eventTurnOff(){	
+	//	exec_cmd("O9000","N1");//stop report~~~
+	//}
 
 	public void setCurIsotope(int idx){
 		if(0<=idx && idx<ISOTOPE_CODE.length){
@@ -359,7 +359,6 @@ public class DevHustIO extends DevTTY {
 		eventWatcher
 	));
 
-	@Override
 	protected Node eventLayout(PanBase pan) {
 
 		Label txtInfo1 = new Label("--------");

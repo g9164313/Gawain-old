@@ -36,7 +36,7 @@ struct UserBundle {
 	Mat *ova, *vew;
 };
 
-extern char** listFileName(const char* path, const char* part);
+extern char** listFileName(const char* path, const char* part, int* size);
 
 static void draw_zone(struct UserBundle& bundle, Mat& vew){
 	list<Rect>::iterator ptr = bundle.zone.begin();
@@ -135,9 +135,9 @@ static void dump_cifra10_format(struct UserBundle& bundle, ofstream& out){
 	ova.copyTo(vew);//clear previous view~~~
 	imshow(WIN_TITLE,vew);
 
-	int idx = 0;
-	for(int yy=0; yy<=(src.rows-IMG_SIZE); yy+=IMG_SIZE2){
-		for(int xx=0; xx<=(src.cols-IMG_SIZE); xx+=IMG_SIZE2){
+	int idx = 1;
+	for(int yy=0; yy<=(src.rows-IMG_SIZE); yy+=IMG_SIZE){
+		for(int xx=0; xx<=(src.cols-IMG_SIZE); xx+=IMG_SIZE){
 
 			Rect mark(xx, yy, IMG_SIZE, IMG_SIZE);
 			Mat roi = src(mark);
@@ -150,10 +150,10 @@ static void dump_cifra10_format(struct UserBundle& bundle, ofstream& out){
 				s_mark.width *= SCALE;
 				s_mark.height*= SCALE;
 				rectangle(vew, s_mark, Scalar(200,200,0), 5);
-				out.put(0);//0:Good part, 1:Not Good part
+				out.put(idx);//1~64:Good part
 				printf("%03d] --> OK\n",idx++);
 			}else{
-				out.put(1);//0:Good part, 1:Not Good part
+				out.put(0);//0:Not Good part
 				printf("%03d] --> NG\n",idx++);
 			}
 			out.write((char*)roi.data, IMG_SIZE*IMG_SIZE);
@@ -171,8 +171,8 @@ static void draw_grid_number(struct UserBundle& bundle){
 	Mat& vew = *(bundle.vew);
 	ova.copyTo(vew);//clear previous view~~~
 	int idx = 0;
-	for(int yy=0; yy<=(src.rows-IMG_SIZE); yy+=IMG_SIZE2){
-		for(int xx=0; xx<=(src.cols-IMG_SIZE); xx+=IMG_SIZE2){
+	for(int yy=0; yy<=(src.rows-IMG_SIZE); yy+=IMG_SIZE){
+		for(int xx=0; xx<=(src.cols-IMG_SIZE); xx+=IMG_SIZE){
 			char buf[10];
 			sprintf(buf,"%03d",idx);
 			putText(vew,
@@ -224,13 +224,14 @@ static void eventOnMouse(int eid, int cx, int cy, int flags, void* userdata){
 
 int main(int argc, char* argv[]){
 	const char* IMG_PATH="./wafer/dies";
-	//const char* OUT_NAME="./data-cifar10/die_batch.bin";
-	const char* OUT_NAME="./data-cifar10/die_test.bin";
+	const char* OUT_NAME="./data-cifar10/die_batch.bin";
+	//const char* OUT_NAME="./data-cifar10/die_test.bin";
 
-	char** lstName = listFileName(IMG_PATH,".png");
+	int lstSize = 0;
+	char** lstName = listFileName(IMG_PATH, ".png", &lstSize);
 
-	int key = 0;
-	int idx = 0;
+	static int key = 0;
+	static int idx = 79;
 
 	struct UserBundle bundle;
 	bundle.c_type = 'i';
@@ -283,25 +284,24 @@ int main(int argc, char* argv[]){
 			//--dump mode--
 			dump_cifra10_format(bundle,out);
 			break;
-		case 0xFF51://key down
-		case 0xFF52://key up
-		case 0xFF53://key right
-			//swipe to next image file~~~
-			if(lstName[idx+1]==NULL){
-				idx = 0;
-			}else{
-				idx +=1;
+		case 0xFF51://key left
+			//swipe to previous image file~~~
+			if((idx-1)>=0){
+				idx-=1;
 			}
 			bundle.zone.clear();
 			break;
-		case 0xFF54://key left
-			//swipe to previous image file~~~
-			if((idx-1)<0){
-				idx = 0;
-			}else{
-				idx -=1;
+		case 0xFF52://key up
+			break;
+		case 0xFF53://key right
+			//swipe to next image file~~~
+			if(idx<lstSize){
+				idx+=1;
 			}
 			bundle.zone.clear();
+			break;
+		case 0xFF54://key down
+			break;
 		}
 
 		eventOnMouse(-1, -1, -1, -1, &bundle);
@@ -310,6 +310,8 @@ int main(int argc, char* argv[]){
 	out.close();
 	cout<<"Done~~~"<<endl;
 	destroyWindow(WIN_TITLE);
+
+	delete[] lstName;
 	return 0;
 }
 //--------------------------------------//

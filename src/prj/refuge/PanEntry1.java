@@ -157,7 +157,7 @@ public class PanEntry1 extends PanBase {
 
 					String txtLoca = lstLoca.get(rr);
 					try{
-						if(Double.valueOf(txtLoca)<=-10.01){
+						if(Double.valueOf(txtLoca)<=10.01){
 							Misc.logv("忽略第 %d 筆位置",rr+1);
 							continue;
 						}

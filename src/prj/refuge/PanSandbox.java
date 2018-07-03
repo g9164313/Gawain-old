@@ -134,7 +134,7 @@ public class PanSandbox extends PanBase{
 			String full_name = Gawain.pathSock+file_name;
 			append_current_script(lay2,"m.checkPoint('"+file_name+"');\n");
 			if(model!=null){
-				model.sendSnapshot(
+				model.recvSnapshot(
 					full_name,
 					tabView.getContent()					
 				);

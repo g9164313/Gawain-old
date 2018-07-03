@@ -75,7 +75,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implOpen(
 #else
 	int fd = open(name, O_RDWR|O_NOCTTY);
 	if(fd<0){
-		setJLong(env,thiz,NAME_HANDLE,0);//reset handle!!!!
+		setJLong(env,thiz,NAME_HANDLE,0);
 		return;
 	}
 	setJLong(env,thiz,NAME_HANDLE,fd);
@@ -174,56 +174,42 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implOpen(
 #endif//_MSC_VER
 }
 
-extern "C" JNIEXPORT jbyteArray JNICALL Java_narl_itrc_DevTTY_implRead(
+extern "C" JNIEXPORT jlong JNICALL Java_narl_itrc_DevTTY_implRead(
 	JNIEnv * env,
 	jobject thiz,
-	jint len
+	jbyteArray jbuf
 ) {
-	const int MAX_LEN = 2048;
-	jbyte buf[MAX_LEN];
-	if(len>=MAX_LEN || len<=0){
-		len = MAX_LEN;
-	}
+	jbyte* buf = env->GetByteArrayElements(jbuf,NULL);
+	size_t len = env->GetArrayLength(jbuf);
 
 #if defined _MSC_VER
 	jlong hand = getJLong(env,thiz,NAME_HANDLE);
-	if(hand!=0L){
-		int cnt = 0;
-		ReadFile(
-			(HANDLE)hand,
-			buf, len,
-			(LPDWORD)((void *)&cnt),
-			NULL
-		);
-		if(cnt<=0){
-			cout << "fail to read data" << endl;
-			return NULL;
-		}
-		jbyteArray res = env->NewByteArray(cnt);
-		env->SetByteArrayRegion(res,0,cnt,buf);
-		return res;
+	if(hand==0L){
+		return 0;
 	}
-	return NULL;
+	jlong cnt = 0;
+	ReadFile(
+		(HANDLE)hand,
+		buf, len,
+		(LPDWORD)((void *)&cnt),
+		NULL
+	);
+	env->ReleaseByteArrayElements(jbuf,buf,0);
+	return (jlong)cnt;
 #else
-	int fd = getJLong(env,thiz,NAME_HANDLE);
 	//Do we need block mode?,This is tri_state variable
 	//fcntl(fd,F_SETFL,0);
 	//fcntl(fd,F_SETFL,FNDELAY);
-
-	ssize_t cnt = read(fd,buf,len);
-	if(cnt==0){
-		return NULL;
-	}else if(cnt<0){
-		if(errno!=EAGAIN){
-			cout<<"tty-read-error:"<<errno<<endl;
-		}
-		return NULL;
+	int fd = getJLong(env,thiz,NAME_HANDLE);
+	if(fd<=0){
+		return 0;
 	}
-	jbyteArray res = env->NewByteArray(cnt);
-	env->SetByteArrayRegion(res,0,cnt,buf);
-	return res;
+	jlong cnt = (jlong)read(fd, buf, len);
+	env->ReleaseByteArrayElements(jbuf,buf,0);
+	return cnt;
 #endif
 }
+
 
 extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implWrite(
 	JNIEnv * env,
@@ -269,11 +255,12 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implClose(
 	JNIEnv * env,
 	jobject thiz
 ) {
+	long val = getJLong(env,thiz,NAME_HANDLE);
 #if defined _MSC_VER
-	HANDLE hand = (HANDLE)getJLong(env,thiz,NAME_HANDLE);
+	HANDLE hand = (HANDLE)val;
 	CloseHandle(hand);
 #else
-	close(getJLong(env,thiz,NAME_HANDLE));
+	close((int)val);
 #endif//_MSC_VER
 	setJLong(env,thiz,NAME_HANDLE,0);//reset handle!!!!
 }

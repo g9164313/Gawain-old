@@ -52,9 +52,9 @@ public class DevFatek extends DevTTY {
 	 * @return TRUE-success,<p> FALSE-fail to open TTY port
 	 */
 	public boolean connect(String name){
-		if(open(name,"57600,7e1")<=0L){
-			return false;
-		}
+		//if(open(name,"57600,7e1")<=0L){
+		//	return false;
+		//}
 		return true;
 	}
 	
@@ -67,13 +67,12 @@ public class DevFatek extends DevTTY {
 		if(name==null){
 			return false;
 		}
-		if(open(name)<=0L){
-			return false;
-		}
+		//if(open(name)<=0L){
+		//	return false;
+		//}
 		return true;
 	}
 	
-	@Override	
 	protected void eventTurnOff(){
 		if(tskMonitor!=null){
 			tskMonitor.cancel();
@@ -98,7 +97,7 @@ public class DevFatek extends DevTTY {
 		byte[] res = null;
 		synchronized(this){
 			writeBuf(buf);
-			res = readPack(STX,ETX);
+			res = readByte(STX,ETX);
 		}
 		if(res!=null){
 			final int code = res[HDR-1];
@@ -863,7 +862,6 @@ public class DevFatek extends DevTTY {
 		return lay1;
 	}
 	
-	@Override
 	protected Node eventLayout(PanBase pan) {
 		
 		VBox lay1 = new VBox();

@@ -7,7 +7,12 @@ import narl.itrc.Misc;
 import narl.itrc.WidTextSheet;
 
 public class TaskMeasure extends Task<Void> {
-
+	
+	private static final int ISOTOPE_UNKNOW= -1;
+	private static final int ISOTOPE_3CI   = 0;
+	private static final int ISOTOPE_0_5CI = 1;
+	private static final int ISOTOPE_0_05CI= 2;
+	
 	private static class Mark {
 		/**
 		 * code name for isotope
@@ -15,7 +20,7 @@ public class TaskMeasure extends Task<Void> {
 		 * 1 --> 0.5Ci
 		 * 2 --> 0.05Ci
 		 */
-		public int isotope = 0;
+		public int isotope = ISOTOPE_3CI;
 		/**
 		 * move platform to this location, and accept radiation.<p>
 		 * Each location apply to one dose text.<p>
@@ -46,15 +51,31 @@ public class TaskMeasure extends Task<Void> {
 	@Override
 	protected Void call() throws Exception {
 		
-		int total = lstMark.size();
+		int total_mark = lstMark.size();
+		int cur_isotope = ISOTOPE_UNKNOW;
 		
 		//process all mark point~~~
-		for(int i=0; i<total; i++){
+		for(int i=0; i<total_mark; i++){
 			
-			updateProgress(i, total);
+			updateProgress(i, total_mark);
 		
 			Mark itm = lstMark.get(i);
-			
+		
+			//select radiation source
+			if(cur_isotope!=itm.isotope){
+				switch(itm.isotope){
+				case ISOTOPE_3CI:
+					sandbox.sendScript("m.keyin(\"\\u2002\\u2002\\u2002\");\n",null);
+					break;
+				case ISOTOPE_0_5CI:
+					sandbox.sendScript("m.keyin(\"\\u2003\\u2003\\u2003\");\n",null);
+					break;
+				case ISOTOPE_0_05CI:
+					sandbox.sendScript("m.keyin(\"\\u2004\\u2004\\u2004\");\n",null);
+					break;
+				}
+				itm.isotope = cur_isotope;//update it, for next turn~~~
+			}			
 			if(itm.goal_val.length()==0){
 				Misc.logv("%s) 忽略第 %d 筆標記", idx2name(itm.isotope), i+1);
 				continue;
@@ -84,7 +105,8 @@ public class TaskMeasure extends Task<Void> {
 				null)
 			.waitForDone();
 			
-			//step.2 - keep temperature and moisture
+			//step.2 - dig up the information of temperature and moisture
+			//step.2 - start radiation
 			//step.3 - kick AT5350 to measure dose rate.
 			//step.4 - stop radiation
 			//step.5 - if not meet the goal, guess the next location.

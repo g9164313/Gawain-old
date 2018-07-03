@@ -39,6 +39,7 @@ public class PanEntry2 extends PanBase {
 	
 	private final String SCRIPT_FIRST =
 		"m.expectScreen(\"checkpoint-1.png\");\n"+
+		"m.keyin(\"\\n\\n\\u2002\\u2005\");\n"+
 		"m.keyin(\"\\n\\n\\u2002\\u2005\");\n";
 	
 	private Node gen_mark_table(){
