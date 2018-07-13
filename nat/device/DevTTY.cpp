@@ -43,6 +43,12 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implOpen(
 	DCB port_settings;
 	memset(&port_settings, 0, sizeof(port_settings));  /* clear the new struct  */
 	port_settings.DCBlength = sizeof(port_settings);
+	port_settings.XonChar = 0x11;
+	port_settings.XonLim = 200;
+	port_settings.XoffChar = 0x13;
+	port_settings.XoffLim = 200;
+	port_settings.fRtsControl = 0x01;
+	port_settings.EofChar = 0x1A;
 
 	char modeText[500];
 	char modeData = (char)((int)data_bit);
@@ -53,13 +59,13 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implOpen(
 		"baud=%d data=%c parity=%c stop=%c",
 		baud_rate, modeData, modePart, modeStop
 	);
-
-	cout<<"SETTING: "<< modeText <<endl;
-
 	BuildCommDCBA(modeText, &port_settings);
-
+	
 	if(!SetCommState(hand, &port_settings)){
-		cout<<"Fail to set ["<<name<<"] state"<<endl;
+		cout << "Fail to set TTY"<< endl;
+		return;
+	} else {
+		cout << "TTY SETTING: " << modeText << endl;
 	}
 
 	COMMTIMEOUTS cpt;
@@ -72,6 +78,10 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implOpen(
 		cout<<"Fail to set Timeout"<<endl;
 	}
 
+	DWORD dwStoredFlags = EV_BREAK | EV_CTS | EV_DSR | EV_ERR | EV_RING | EV_RLSD | EV_RXCHAR | EV_TXEMPTY;
+	if(!SetCommMask(hand, dwStoredFlags)){
+		cout << "TTY: Fail to set mask" << endl;
+	}
 #else
 	int fd = open(name, O_RDWR|O_NOCTTY);
 	if(fd<0){
@@ -183,6 +193,7 @@ extern "C" JNIEXPORT jlong JNICALL Java_narl_itrc_DevTTY_implRead(
 	size_t len = env->GetArrayLength(jbuf);
 
 #if defined _MSC_VER
+	//cout << "check.1 " << endl;
 	jlong hand = getJLong(env,thiz,NAME_HANDLE);
 	if(hand==0L){
 		return 0;
@@ -194,6 +205,7 @@ extern "C" JNIEXPORT jlong JNICALL Java_narl_itrc_DevTTY_implRead(
 		(LPDWORD)((void *)&cnt),
 		NULL
 	);
+	//cout << "read " << cnt <<" byte."<< endl;
 	env->ReleaseByteArrayElements(jbuf,buf,0);
 	return (jlong)cnt;
 #else

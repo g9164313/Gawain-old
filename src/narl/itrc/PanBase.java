@@ -229,12 +229,8 @@ public abstract class PanBase {
 			eventShowing(PanBase.this);
 			//Platform.runLater(() -> panel.requestFocus());//it may cause screen not fresh~~~
 		});
-		stg.setOnShown  (e->{			
-			eventShown(PanBase.this); 			
-		});
-		stg.setOnHidden (e->{ 
-			eventClose(PanBase.this);
-		});		
+		stg.setOnShown  (e->{ eventShown(PanBase.this); });
+		stg.setOnHidden (e->{ eventClose(PanBase.this); });		
 		//set title and some properties~~~
 		stg.setScene(scene);
 		stg.sizeToScene();

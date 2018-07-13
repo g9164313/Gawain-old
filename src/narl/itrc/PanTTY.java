@@ -2,8 +2,6 @@ package narl.itrc;
 
 import java.io.File;
 import java.io.FilenameFilter;
-import java.io.UnsupportedEncodingException;
-import java.nio.charset.Charset;
 
 import com.jfoenix.controls.JFXCheckBox;
 import com.jfoenix.controls.JFXComboBox;
@@ -121,7 +119,7 @@ public class PanTTY extends PanBase {
 		@Override
 		protected Integer call() throws Exception {
 			while(isCancelled()==false){
-				len = dev.readByte(buf);
+				len = dev.readBuff(buf);
 				if(len!=0){
 					Application.invokeAndWait(event);
 				}				
@@ -194,6 +192,7 @@ public class PanTTY extends PanBase {
 		lay1.getStyleClass().add("vbox-small");
 		lay1.getChildren().addAll(
 			btnExit,
+			btnClear,
 			looper.chkPrintHEX,
 			chkKeyinHEX,
 			cmbFeed,
@@ -226,6 +225,8 @@ public class PanTTY extends PanBase {
 	}
 	
 	private Parent gen_layout_control(){
+		
+		looper = null;//reset this variable again!!!
 		
 		final JFXComboBox<String> cmbPortName = new JFXComboBox<String>();
 		GridPane.setHgrow(cmbPortName, Priority.ALWAYS);
@@ -343,6 +344,9 @@ public class PanTTY extends PanBase {
 	@Override
 	public void eventClose(PanBase self) {
 		if(useContactBox==true){
+			if(looper!=null){
+				looper.cancel();
+			}
 			dev.close();
 		}
 	}

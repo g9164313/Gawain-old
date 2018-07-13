@@ -46,6 +46,16 @@ public class DevTTY {
 	//-----------------------//
 	
 	/**
+	 * open tty device and parser path name.<p>
+	 * @param path - device path name, like "/dev/ttyS0,19200,8n1"
+	 * @return true - success, false - something is wrong
+	 */
+	public boolean open(String path){
+		pathName = path;//reset path name~~~
+		return open();
+	}
+	
+	/**
 	 * Open tty device and parser path name.<p>
 	 * Format is "[baud rate], [data bit][mask][stop bit]".<p>
 	 * Mask type:<p>
@@ -57,7 +67,13 @@ public class DevTTY {
 	 * @return true - success, false - something is wrong
 	 */
 	public boolean open(){		
-		handle = 0L;//reset this~~~		
+		handle = 0L;//reset this~~~
+		if(pathName==null){
+			return false;
+		}else if(pathName.length()==0){
+			return false;
+		}
+		//check path name is valid~~~
 		String[] sets = pathName.split(",");
 		if(sets.length!=3){
 			return false;
@@ -77,19 +93,9 @@ public class DevTTY {
 		}catch(NumberFormatException e){
 			return false;
 		}		
-		return true;
+		return isOpen();
 	}
-	
-	/**
-	 * open tty device and parser path name.<p>
-	 * @param path - device path name, like "/dev/ttyS0,19200,8n1"
-	 * @return true - success, false - something is wrong
-	 */
-	public boolean open(String path){
-		pathName = path;
-		return open();
-	}
-	
+
 	/**
 	 * close tty device.<p>
 	 */
@@ -101,7 +107,7 @@ public class DevTTY {
 	}
 	//-----------------------//
 	
-	public Byte readOneByte(){
+	public Byte readByteOne(){
 		final byte[] buf = {0};
 		if(implRead(buf)==0L){
 			return null;
@@ -109,15 +115,21 @@ public class DevTTY {
 		return buf[0];
 	}
 	
-	public int readByte(byte[] buf){
+	public byte readByte1(){
+		final byte[] buf = {0};
+		implRead(buf);
+		return buf[0];
+	}
+	
+	public int readBuff(byte[] buf){
 		return (int)implRead(buf);
 	}
 	
-	public byte[] readByte(){
-		return readByte(512);
+	public byte[] readBuff(){
+		return readBuff(1024);
 	}
 	
-	public byte[] readByte(int maxSize){
+	public byte[] readBuff(final int maxSize){
 		final byte[] buf = new byte[maxSize];
 		int len = (int)implRead(buf);
 		if(len==0){
@@ -133,7 +145,7 @@ public class DevTTY {
 	public byte[] readByte(byte end, int ms){
 		ArrayList<Byte> lst = new ArrayList<Byte>();		
 		for(;;){
-			Byte cc = readOneByte();
+			Byte cc = readByteOne();
 			if(cc==null){
 				continue;
 			}
@@ -160,7 +172,7 @@ public class DevTTY {
 	
 	public byte[] readByte(byte beg, byte end, int ms){
 		for(;;){
-			Byte cc = readOneByte();
+			Byte cc = readByteOne();
 			if(cc==null){
 				continue;
 			}
@@ -179,7 +191,7 @@ public class DevTTY {
 		final byte[] buf = {0};
 		if(implRead(buf)==0L){
 			return null;
-		}
+		}//example for char value: '\u0000' ~ '\uffff'
 		return (char)(buf[0]);
 	}
 
@@ -285,11 +297,15 @@ public class DevTTY {
 		implWrite(buf);
 	}
 	
+	public void writeByte(byte... val){
+		implWrite(val);
+	}
+	
 	/**
 	 * Write byte data via terminal-port.<p>
 	 * @param buf - context data
 	 */
-	public void writeBuf(byte[] buf){
+	public void writeBuff(byte[] buf){
 		implWrite(buf);
 	}
 	

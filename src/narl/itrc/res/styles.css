@@ -72,7 +72,7 @@
 
 .hbox-small-space, .vbox-small-space{
 	-fx-padding: 3;
-    -fx-spacing: 7;
+  -fx-spacing: 7;
 }
 
 .hbox-medium-space, .vbox-medium-space{
