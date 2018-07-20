@@ -10,6 +10,7 @@ import javafx.concurrent.Task;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.TitledPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
@@ -20,7 +21,6 @@ import narl.itrc.BoxLogger;
 import narl.itrc.Gawain;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
-import narl.itrc.PanDecorate;
 
 /**
  * A utility change routine for calibrate radiation 
@@ -99,9 +99,9 @@ public class PanEntry1 extends PanBase {
 		layAtom = atom.eventLayout(this);
 		lay0.getStyleClass().add("vbox-one-direction");
 		lay0.getChildren().addAll(			
-			PanDecorate.group("HUST-IO", layHust),
-			PanDecorate.group("AT5350" , layAtom),
-			PanDecorate.group("環境參數",new CoffConsole())
+			new TitledPane("HUST-IO", layHust),
+			new TitledPane("AT5350" , layAtom),
+			new TitledPane("環境參數",new CoffConsole())
 		);
 		return lay0;
 	}
@@ -268,8 +268,8 @@ public class PanEntry1 extends PanBase {
 	
 	private Node layout_actn(){
 
-		Node nd1 = PanDecorate.group("溫溼度計", cdr.eventLayout(this));		
-		Node nd2 = PanDecorate.group("訊息紀錄",new BoxLogger());
+		Node nd1 = new TitledPane("溫溼度計", cdr.eventLayout(this));		
+		Node nd2 = new TitledPane("訊息紀錄",new BoxLogger());
 		HBox.setHgrow(nd2, Priority.ALWAYS);
 		
 		final Button btnLoadRec = PanBase.genButton2("匯入","toc.png");

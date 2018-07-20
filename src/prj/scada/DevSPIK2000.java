@@ -34,11 +34,13 @@ public class DevSPIK2000 extends DevTTY {
 	private static final byte NAK = 0x15;
 	private static final byte EM_ = 0x25;//end of medium
 	
-	public DevSPIK2000(){		
+	public DevSPIK2000(){
+		init_property_addr();
 	}
 	
 	public DevSPIK2000(String pathName){
 		super(pathName);
+		init_property_addr();
 	}
 		
 	public void link(){
@@ -46,20 +48,16 @@ public class DevSPIK2000 extends DevTTY {
 	}
 	
 	public void link(String pathName){
-		
 		if(open(pathName)==false){
 			return;
 		}
-		
 		lstToken.clear();
-		
 		if(looper!=null){
 			if(looper.isDone()==false){	
 				Misc.logw("Device is linked.");
 				return;				
 			}
 		}
-		
 		looper = new Task<Void>(){
 			@Override
 			protected Void call() throws Exception {
@@ -67,30 +65,26 @@ public class DevSPIK2000 extends DevTTY {
 				while(looper.isCancelled()==false){
 					
 					Token tkn = lstToken.take();
-					
+
 					switch(tkn.get_msg()){
-					
 					case MSG_EXIT:
 						return null;
-						
-					case MSG_MEASURE:
-						proc_read_meas();
-						lstToken.add(tkn);//for next turn~~~~
-						Misc.logv("Measurement!!");
-						break;
-						
 					case MSG_GATHER:
 						proc_read_data(tkn);
 						break;
-						
 					case MSG_MODIFY:
 						proc_send_data(tkn);
 						break;
-					
+					case MSG_MEASURE:
+						proc_read_meas();
+						//lstToken.add(tkn);//for next turn~~~~
+						break;
 					case MSG_UPDATE://update status, error flag and measurement
 						proc_read_meas();
 						proc_read_data(tkn);
-						lstToken.add(tkn);//for next turn~~~~
+						if(autoUpdate==true){
+							lstToken.add(tkn);//for next turn~~~~
+						}
 						break;
 					}
 				}				
@@ -101,7 +95,7 @@ public class DevSPIK2000 extends DevTTY {
 		th.setDaemon(true);
 		th.start();
 	}
-	
+		
 	public void unlink(){
 		lstToken.add(new Token(MSG_EXIT));
 		if(looper!=null){
@@ -114,7 +108,9 @@ public class DevSPIK2000 extends DevTTY {
 	}
 	
 	private Task<?> looper = null;
-		
+	
+	public boolean autoUpdate = false;
+	
 	private static final int MSG_MASK   = 0xFF000000;
 	private static final int MSG_EXIT   = 0x00000000;
 	private static final int MSG_MEASURE= 0x81000000;
@@ -123,18 +119,20 @@ public class DevSPIK2000 extends DevTTY {
 	private static final int MSG_UPDATE = 0x11000000;
 	
 	private class Token implements Delayed {
-
-		private int msg;
-		
+		private int msg;		
 		private byte[] buf;
-		
+		private int arg = 0;
 		public Token(int message){
 			msg = message;
 			buf = null;
 		}
 		public Token(int mesg, int addr, int size){
+			this(mesg,addr,size,0);
+		}
+		public Token(int mesg, int addr, int size, int v_arg){
 			msg = mesg | ((addr&0xFFF)<<12) | (size&0xFFF);
 			buf = null;
+			arg = v_arg;
 		}
 		public int get_msg(){
 			return msg & MSG_MASK;
@@ -144,13 +142,6 @@ public class DevSPIK2000 extends DevTTY {
 		}
 		public int get_size(){
 			return (msg & 0x00000FFF);
-		}
-		public void prepare_ad_buffer(int... vals){
-			prepare_ad_header();
-			final int size = get_size();
-			for(int i=0; i<size; i++){
-				set_word_value(buf,5+i,vals[i]);
-			}
 		}
 		public void prepare_ad_header(){
 			final int addr = get_addr();
@@ -206,8 +197,17 @@ public class DevSPIK2000 extends DevTTY {
 		return this;
 	}
 
-	public DevSPIK2000 loadRegister(){
-		lstToken.add(new Token(MSG_GATHER, 4, 15));
+	public DevSPIK2000 getRegister(){
+		return getRegister(4, 15);
+	}
+	
+	public DevSPIK2000 getRegister(int addr, int size){
+		lstToken.add(new Token(MSG_GATHER, addr, size));
+		return this;
+	}
+	
+	public DevSPIK2000 setRegister(){
+		lstToken.add(new Token(MSG_MODIFY, 4, 15));
 		return this;
 	}
 	
@@ -216,39 +216,52 @@ public class DevSPIK2000 extends DevTTY {
 		return this;
 	}
 	
-	public static final int MOD_NOTHING = 0x00;
-	public static final int MOD_BIPOLAR = 0x01;
-	public static final int MOD_UNIPOLAR_NEG = 0x02;
-	public static final int MOD_UNIPOLAR_POS = 0x03;
-	public static final int MOD_DC_NEG = 0x04;
-	public static final int MOD_DC_POS = 0x05;
-	public static final int MOD_MULTIPLEX_ON = 0x10;
-	public static final int MOD_MULTIPLEX_OFF= 0x11;
-	
-	public DevSPIK2000 setMode(final int mode){
-		Token tkn = new Token(MSG_MODIFY, 0, 1);
-		tkn.prepare_ad_buffer(mode);
-		lstToken.add(tkn);
+	public DevSPIK2000 setRegister(int addr, int size, int v_arg){
+		lstToken.add(new Token(MSG_MODIFY, addr, size, v_arg));
 		return this;
 	}
 	
-	public static final int STA_NOTHING    = 0x00;
-	public static final int STA_RUNNING_OFF= 0x01;
-	public static final int STA_RUNNING_ON = 0x02;	
-	public static final int STA_CLEAR_ERROR= 0x03;
-	public static final int STA_CFG_SAVE = 0x10;
-	public static final int STA_DC1_OFF= 0x20;
-	public static final int STA_DC1_ON = 0x21;	
-	public static final int STA_DC2_OFF= 0x22;
-	public static final int STA_DC2_ON = 0x23;
+	public DevSPIK2000 Ready(boolean enable){
+		if(enable==false){
+			setRegister(1, 1, 0x01);	
+		}else{
+			setRegister(1, 1, 0x02);
+		}
+		return this; 
+	}
+	
+	public DevSPIK2000 Running(boolean enable){
+		if(enable==false){
+			setRegister(1, 1, 0x01);	
+		}else{
+			setRegister(1, 1, 0x02);
+		}
+		return this; 
+	}
+	public DevSPIK2000 clearErr(){ 
+		return setRegister(1, 1, 0x03);
+	}
+	public DevSPIK2000 Save_CFG(){ 
+		return setRegister(1, 1, 0x10); 
+	}
+	public DevSPIK2000 setDC1(boolean enable){ 
+		if(enable==false){
+			setRegister(1, 1, 0x20);	
+		}else{
+			setRegister(1, 1, 0x21);
+		}
+		return this; 
+	}
 
-	public DevSPIK2000 setState(final int state){
-		Token tkn = new Token(MSG_MODIFY, 1, 1);
-		tkn.prepare_ad_buffer(state);
-		lstToken.add(tkn);
-		return this;
+	public DevSPIK2000 setDC2(boolean enable){ 
+		if(enable==false){
+			setRegister(1, 1, 0x22);	
+		}else{
+			setRegister(1, 1, 0x23);
+		}
+		return this; 
 	}
-	
+
 	public void idle(){
 		lstToken.clear();
 	}
@@ -302,7 +315,20 @@ public class DevSPIK2000 extends DevTTY {
 		return get_checksum(buf);
 	}
 	
-	public final StringProperty  Mode_Operation = new SimpleStringProperty();
+	private static final String MODE_BIPOLAR = "Bipolar";
+	private static final String MODE_UNI_NEG = "Unipolar－";
+	private static final String MODE_UNI_POS = "Bipolar＋";
+	private static final String MODE_DC_NEG = "DC－";
+	private static final String MODE_DC_POS = "DC＋";
+	public static final String[] ModeText ={
+		MODE_BIPOLAR,
+		MODE_UNI_NEG,
+		MODE_UNI_POS,
+		MODE_DC_NEG,
+		MODE_DC_POS
+	};
+	public final StringProperty  Mode_Operation = new SimpleStringProperty(MODE_BIPOLAR);
+	
 	public final BooleanProperty Mode_Multiplex = new SimpleBooleanProperty();
 	
 	public final BooleanProperty State_Error    = new SimpleBooleanProperty();
@@ -354,53 +380,26 @@ public class DevSPIK2000 extends DevTTY {
 			public void run() {
 				int addr = tkn.get_addr();
 				int size = tkn.get_size();
-				for(int off=0; off<size; off++){					
+				for(int off=0; off<size; off++){
+					int idx = 5 + off;
 					switch(addr+off){
-					case  4:						
-						set_word_value(tkn.buf, 2+off, Reg_Puls_Pos.get());
-						break;
-					case  5:
-						set_word_value(tkn.buf, 2+off, Reg_Paus_Pos.get());
-						break;
-					case  6:
-						set_word_value(tkn.buf, 2+off, Reg_Puls_Neg.get());
-						break;
-					case  7:
-						set_word_value(tkn.buf, 2+off, Reg_Paus_Neg.get());
-						break;
-					case  8:
-						set_word_value(tkn.buf, 2+off, Reg_ARC_Pos.get());
-						break;
-					case  9:
-						set_word_value(tkn.buf, 2+off, Reg_ARC_Neg.get());
-						break;
-					case 10:
-						set_word_value(tkn.buf, 2+off, Reg_ARC_Delay.get());
-						break;
-					case 11:
-						set_word_value(tkn.buf, 2+off, Reg_ARC_Overflow.get());
-						break;
-					case 12:
-						set_word_value(tkn.buf, 2+off, Reg_ARC_Interval.get());
-						break;
-					case 13:
-						set_word_value(tkn.buf, 2+off, Reg_DC1_Volt.get());
-						break;
-					case 14:
-						set_word_value(tkn.buf, 2+off, Reg_DC1_Amp.get());
-						break;
-					case 15:
-						set_word_value(tkn.buf, 2+off, Reg_DC1_Pow.get());
-						break;
-					case 16:
-						set_word_value(tkn.buf, 2+off, Reg_DC2_Volt.get());
-						break;
-					case 17:
-						set_word_value(tkn.buf, 2+off, Reg_DC2_Amp.get());
-						break;
-					case 18:
-						set_word_value(tkn.buf, 2+off, Reg_DC2_Pow.get());
-						break;
+					case 0: set_word_value(tkn.buf, idx, tkn.arg); break;
+					case 1: set_word_value(tkn.buf, idx, tkn.arg); break;
+					case 4: set_word_value(tkn.buf, idx, Reg_Puls_Pos.get()); break;
+					case 5:	set_word_value(tkn.buf, idx, Reg_Paus_Pos.get()); break;
+					case 6:	set_word_value(tkn.buf, idx, Reg_Puls_Neg.get()); break;
+					case 7:	set_word_value(tkn.buf, idx, Reg_Paus_Neg.get()); break;
+					case 8:	set_word_value(tkn.buf, idx, Reg_ARC_Pos.get()); break;
+					case 9: set_word_value(tkn.buf, idx, Reg_ARC_Neg.get()); break;
+					case 10:set_word_value(tkn.buf, idx, Reg_ARC_Delay.get());	break;
+					case 11:set_word_value(tkn.buf, idx, Reg_ARC_Overflow.get()); break;
+					case 12:set_word_value(tkn.buf, idx, Reg_ARC_Interval.get()); break;
+					case 13:set_word_value(tkn.buf, idx, Reg_DC1_Volt.get()); break;
+					case 14:set_word_value(tkn.buf, idx, Reg_DC1_Amp.get()); break;
+					case 15:set_word_value(tkn.buf, idx, Reg_DC1_Pow.get()); break;
+					case 16:set_word_value(tkn.buf, idx, Reg_DC2_Volt.get()); break;
+					case 17:set_word_value(tkn.buf, idx, Reg_DC2_Amp.get()); break;
+					case 18:set_word_value(tkn.buf, idx, Reg_DC2_Pow.get()); break;
 					}
 				}
 			}
@@ -415,19 +414,19 @@ public class DevSPIK2000 extends DevTTY {
 		if(tkn.buf.length<=idx){
 			return -11;
 		}
-		int cc1 = tkn.buf[idx];
+		int cc1 = ((int)tkn.buf[idx]) & 0xFF;
 		int cc2 = checksum(tkn.buf, 0, idx);
 		if(cc1!=cc2){
 			return -12;
 		}
 		final Runnable event = new Runnable(){
-			private void update_mode_txt(int val){
+			private void update_mode(int val){
 				switch(val&0x7){
-				case 1: Mode_Operation.set("Bipolar"); break;
-				case 2: Mode_Operation.set("Unipolar－"); break;
-				case 3: Mode_Operation.set("Unipolar＋"); break;
-				case 4: Mode_Operation.set("DC－"); break;
-				case 5: Mode_Operation.set("DC＋"); break;
+				case 1: Mode_Operation.set(MODE_BIPOLAR); break;
+				case 2: Mode_Operation.set(MODE_UNI_NEG); break;
+				case 3: Mode_Operation.set(MODE_UNI_POS); break;
+				case 4: Mode_Operation.set(MODE_DC_NEG ); break;
+				case 5: Mode_Operation.set(MODE_DC_POS ); break;
 				}
 			}
 			private void update_state(int val){
@@ -472,7 +471,7 @@ public class DevSPIK2000 extends DevTTY {
 					int val = get_word_value(tkn.buf, 2+off);
 					switch(addr+off){
 					case  0:
-						update_mode_txt(val);
+						update_mode(val);
 						break;
 					case  1:
 						update_state(val);
@@ -555,19 +554,10 @@ public class DevSPIK2000 extends DevTTY {
 		writeBuff(pack_data(tkn.prepare_ed_header()));
 		
 		//step.4 - take response
-		byte bb = readByte1();		
-		if(bb==EM_){
-			return -1;
-		}else if(bb!=DLE){
-			return -2;
-		}
-		bb = readByte1();
-		if(bb!=STX){
-			return -3;
-		}
-		
+		wait_code(STX);
+
 		//step.5 - give device command, finally gather response.
-		writeByte(STX);
+		writeByte(DLE);
 		tkn.buf = take_data();
 		
 		//step.6 - update property according buffer.
@@ -604,7 +594,12 @@ public class DevSPIK2000 extends DevTTY {
 		res = (b1.intValue() & 0x00FF) << 8;
 		res = (b2.intValue() & 0x00FF);
 
-		Misc.logv("send data, SPIK2000 responded 0x%04X",res);
+		Misc.logv(
+			"[SPIK2000] send data, addr=%d, size=%d, result=0x%04X",
+			tkn.get_addr(),
+			tkn.get_size(),
+			res
+		);
 		return res;
 	}
 
@@ -614,30 +609,33 @@ public class DevSPIK2000 extends DevTTY {
 	 * @return the value of block check sum
 	 */
 	private byte[] take_data(){
-		final byte[] tmp = readBuff();
-		int tail = tmp.length-2;
+		final byte[] buf = readBuff();
+		int head = 0;
+		int tail = buf.length-2;
 		while(tail>=0){
-			if(tmp[tail]==DLE && tmp[tail+1]==ETX){
-				return Arrays.copyOfRange(tmp, 0, tail+3);
+			if(buf[tail]==DLE && buf[tail+1]==ETX){
+				while(buf[head]==STX){
+					head+=1;
+				}
+				return Arrays.copyOfRange(buf, head, tail+3);
 			}
 			tail-=1;
 		}
-		return tmp;
+		return buf;
 	}
 	
-	private void wait_code(final byte code){		
+	private void wait_code(final byte code){
 		for(;;){
 			Byte res = readByteOne();
-			if(res==null){
-				continue;
+			if(res!=null){
+				byte bb = res.byteValue();
+				if(bb==code){
+					return;
+				}else if(bb==EM_){
+					writeByte(STX);
+				}	
 			}
-			byte bb = res.byteValue();
-			if(bb==code){
-				break;
-			}else if(bb==EM_){
-				writeByte(STX);
-			}
-			Misc.delay(100);
+			Misc.delay(200);
 		}
 	}
 
@@ -687,4 +685,36 @@ public class DevSPIK2000 extends DevTTY {
 	private int get_checksum(byte[] buf){
 		return buf[buf.length-1];
 	}
+	
+	private void init_property_addr(){
+		Mode_Operation.addListener( (a,b,c)->{
+			if(c.equals(MODE_BIPOLAR)==true){ 
+				setRegister(0,1,1);  
+			}else if(c.equals(MODE_UNI_NEG)==true){
+				setRegister(0,1,2); 
+			}else if(c.equals(MODE_UNI_POS)==true){
+				setRegister(0,1,3); 
+			}else if(c.equals(MODE_DC_NEG)==true){
+				setRegister(0,1,4); 
+			}else if(c.equals(MODE_DC_POS)==true){
+				setRegister(0,1,5); 
+			}
+		});
+		Reg_Puls_Pos.addListener( (a,b,c)->{ setRegister(4,1); } );
+		Reg_Paus_Pos.addListener( (a,b,c)->{ setRegister(5,1); } );		
+		Reg_Puls_Neg.addListener( (a,b,c)->{ setRegister(6,1); } );		
+		Reg_Paus_Neg.addListener( (a,b,c)->{ setRegister(7,1); } );		
+		Reg_ARC_Pos.addListener ( (a,b,c)->{ setRegister(8,1); } );		
+		Reg_ARC_Neg.addListener ( (a,b,c)->{ setRegister(9,1); } );
+		Reg_ARC_Delay.addListener   ( (a,b,c)->{ setRegister(10,1); } );	
+		Reg_ARC_Overflow.addListener( (a,b,c)->{ setRegister(11,1); } );		
+		Reg_ARC_Interval.addListener( (a,b,c)->{ setRegister(12,1); } );		
+		Reg_DC1_Volt.addListener( (a,b,c)->{ setRegister(13,1); } );		
+		Reg_DC1_Amp.addListener ( (a,b,c)->{ setRegister(14,1); } );		
+		Reg_DC1_Pow.addListener ( (a,b,c)->{ setRegister(15,1); } );		
+		Reg_DC2_Volt.addListener( (a,b,c)->{ setRegister(16,1); } );		
+		Reg_DC2_Amp.addListener ( (a,b,c)->{ setRegister(17,1); } );
+		Reg_DC2_Pow.addListener ( (a,b,c)->{ setRegister(18,1); } );	
+	}
+	
 }

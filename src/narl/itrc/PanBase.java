@@ -267,7 +267,8 @@ public abstract class PanBase {
 		}
 		init_scene(node);
 	}
-	private void init_scene(Parent root){		
+	private void init_scene(Parent root){
+		
 		scene = new Scene(root);		
 		//load a default style...
 		scene.getStylesheets().add(Gawain.class.getResource("res/styles.css").toExternalForm());				

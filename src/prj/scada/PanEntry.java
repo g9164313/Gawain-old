@@ -1,24 +1,13 @@
 package prj.scada;
 
-import com.jfoenix.controls.JFXButton;
-import com.jfoenix.controls.JFXCheckBox;
-import com.jfoenix.controls.JFXDrawer;
-import com.jfoenix.controls.JFXHamburger;
-import com.jfoenix.controls.JFXRippler;
-import com.jfoenix.controls.JFXToggleButton;
-import com.jfoenix.controls.JFXToggleNode;
-import com.jfoenix.transitions.hamburger.HamburgerSlideCloseTransition;
+import com.jfoenix.controls.JFXTabPane;
 
 import javafx.scene.Node;
+import javafx.scene.control.Accordion;
 import javafx.scene.control.Button;
-import javafx.scene.control.CheckBox;
-import javafx.scene.control.Label;
-import javafx.scene.input.MouseEvent;
+import javafx.scene.control.Tab;
+import javafx.scene.control.TitledPane;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
-import narl.itrc.Misc;
 import narl.itrc.PanBase;
 
 public class PanEntry extends PanBase {
@@ -30,19 +19,37 @@ public class PanEntry extends PanBase {
 
 	@Override
 	public Node eventLayout(PanBase self) {
-	
+		
+		final Tab[] tabs = {
+			new Tab("管路控制", new PID_Widget()),
+			new Tab("資訊面板", Layout_1.gen_gauge_scope(dev)),
+			new Tab("腳本編輯"),
+			new Tab("其他"),	
+		};
+		final JFXTabPane lay1 = new JFXTabPane();
+		lay1.getTabs().addAll(tabs);
+		lay1.getSelectionModel().select(0);
+		
+		final TitledPane tps[] ={
+			new TitledPane("SPIK2000", Layout_1.gen_information(dev)),
+			new TitledPane("test1", new Button("test1")),
+			new TitledPane("test2", new Button("test1"))
+		};
+		final Accordion lay2 = new Accordion();
+		lay2.getPanes().addAll(tps);
+		lay2.setExpandedPane(tps[0]);
 		
 		final BorderPane lay0 = new BorderPane();
 		lay0.getStyleClass().add("layout-small");
-		//lay0.setLeft(checkBox);
-		lay0.setCenter(PanLayout.gen_information(dev));
-		//lay0.setRight(lay3);
+		lay0.setLeft(lay2);
+		lay0.setCenter(lay1);
+		lay0.setRight(Layout_1.gen_action_button());
 		return lay0;
 	}
 
 	@Override
 	public void eventShown(PanBase self) {
-		//dev.link("\\\\.\\COM2,19200,8n1");		
+		//dev.link("\\\\.\\COM2,19200,8n1");
 	}
 
 	@Override
