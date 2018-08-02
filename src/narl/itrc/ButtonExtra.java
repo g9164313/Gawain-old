@@ -64,12 +64,12 @@ public class ButtonExtra extends JFXButton {
 			text2 = "";
 		}
 		if(symbol1!=null){
-			icon1 = Misc.getIcon(symbol1);
+			icon1 = Misc.getResIcon(symbol1);
 		}else{
 			icon1 = null;
 		}
 		if(symbol2!=null){
-			icon2 = Misc.getIcon(symbol2);
+			icon2 = Misc.getResIcon(symbol2);
 		}else{
 			icon2 = null;
 		}

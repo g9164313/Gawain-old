@@ -301,7 +301,7 @@ public class Loader extends Task<Integer>{
 		
 		lay0.getStyleClass().add("splash-board");
 		
-		ImageView img = Misc.getIcon("logo.jpg");
+		ImageView img = Misc.getResIcon("logo.jpg");
 		
 		ProgressBar bar = new ProgressBar();
 		bar.prefWidthProperty().bind(stg.widthProperty().subtract(3));

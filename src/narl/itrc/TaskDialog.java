@@ -72,7 +72,7 @@ public abstract class TaskDialog extends TaskAction {
 	private Parent layoutSplashImg(){
 		VBox lay0 = new VBox();
 		lay0.getStyleClass().add("splash-board");
-		ImageView img = Misc.getIcon("logo.jpg");
+		ImageView img = Misc.getResIcon("logo.jpg");
 		workLog = new TextArea();//this is dummy~~~		
 		workBar = new ProgressBar();
 		workBar.prefWidthProperty().bind(workStage.widthProperty().subtract(3));

@@ -26,8 +26,8 @@ import javafx.scene.image.ImageView;
 public class ButtonScript extends JFXButton {
 
 	private ImageView[] icon = {
-		Misc.getIcon("play.png"),
-		Misc.getIcon("pause.png")
+		Misc.getResIcon("play.png"),
+		Misc.getResIcon("pause.png")
 	};
 	
 	public ButtonScript(String title){

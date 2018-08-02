@@ -489,7 +489,7 @@ public abstract class PanBase {
 			btn.setText(title);
 		}
 		if(iconName.length()!=0){
-			ImageView img = Misc.getIcon(iconName);
+			ImageView img = Misc.getResIcon(iconName);
 			img.setFitWidth(def_size);
 			img.setFitHeight(def_size);
 			btn.setGraphic(img);
@@ -511,7 +511,7 @@ public abstract class PanBase {
 		}
 		if(iconName!=null){
 			if(iconName.length()!=0){
-				btn.setGraphic(Misc.getIcon(iconName));
+				btn.setGraphic(Misc.getResIcon(iconName));
 			}
 		}		
 		btn.setMaxWidth(Double.MAX_VALUE);
@@ -534,7 +534,7 @@ public abstract class PanBase {
 		btn.getStyleClass().add(styleName);
 		if(iconName!=null){
 			if(iconName.length()!=0){
-				btn.setGraphic(Misc.getIcon(iconName));
+				btn.setGraphic(Misc.getResIcon(iconName));
 			}
 		}
 		return btn;

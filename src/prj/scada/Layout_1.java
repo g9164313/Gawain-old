@@ -25,23 +25,6 @@ import narl.itrc.PanBase;
 
 public class Layout_1 {
 
-	public static Node gen_action_button(){
-		
-		final Button[] btn = {
-			PanBase.genButton3("qq1", null),
-			PanBase.genButton3("qq2", null),
-		};
-		for(int i=0; i<btn.length; i++){
-			btn[i].setMaxWidth(Double.MAX_VALUE);
-			btn[i].setMinWidth(100);
-		}
-		
-		final VBox lay0 = new VBox();
-		lay0.setStyle("-fx-padding: 7; -fx-spacing: 7;");
-		lay0.getChildren().addAll(btn);
-		return lay0;
-	}
-	
 	public static Node gen_information(final DevSPIK2000 dev){
 		
 		final int MIN_COL_WIDTH = 53;

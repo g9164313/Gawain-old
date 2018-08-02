@@ -170,11 +170,13 @@ public class Misc {
 		return name.substring(0,pos)+"."+appx;
 	}
 	
-	public static ImageView getIcon(String name){
-		return new ImageView(getResImage("/narl/itrc/res/icon",name));
+	public static ImageView getResIcon(String name){
+		return new ImageView(getResImage(name));
 	}
-	
-	public static Image getResImage(String pkg,String name){
+	public static Image getResImage(String name){
+		return getResImage("/narl/itrc/res/icon",name);
+	}
+	public static Image getResImage(String pkg, String name){
 		return new Image(Gawain.class.getResourceAsStream(pkg+"/"+name));
 	}
 	
@@ -411,7 +413,7 @@ public class Misc {
 			ProcessBuilder pb = new ProcessBuilder(cmd);
 			pb.redirectOutput();
 			pb.redirectError();
-			pb.directory(Gawain.dirSock);
+			pb.directory(Gawain.dirRoot);
 			
 			Process pc = pb.start();
 			pc.waitFor();
