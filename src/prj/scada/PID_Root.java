@@ -12,11 +12,8 @@ import java.util.Properties;
 import javafx.animation.Animation.Status;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
-import javafx.scene.Cursor;
-import javafx.scene.Scene;
 import javafx.scene.layout.AnchorPane;
 import javafx.util.Duration;
-
 
 public class PID_Root extends AnchorPane {
 	
@@ -103,7 +100,13 @@ public class PID_Root extends AnchorPane {
 	public PID_Leaf selectLeaf(String name){
 		return null;
 	}
-
+	public PID_Leaf selectLeaf(int idx){		
+		return lst.get(idx);
+	}
+	public int leafSize(){
+		return lst.size();
+	}
+	
 	private int gen_key(int gx, int gy){
 		return gx + gy * 1000;
 	}

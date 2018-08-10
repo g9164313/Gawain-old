@@ -15,7 +15,6 @@ import javafx.util.Duration;
 import narl.itrc.DevModbus;
 import narl.itrc.Gawain;
 import narl.itrc.Misc;
-import narl.itrc.PanBase;
 
 /**
  * 讀取川得科技公司代理的溫濕度紀錄器數值，這裡是用 TCP/IP 透過 Modbus 界面達成 
@@ -32,8 +31,7 @@ public class DevCDR06 extends DevModbus {
 	private StringProperty[] propValue = null;
 	
 	public DevCDR06(){
-		watcher.setCycleCount(Timeline.INDEFINITE);
-		root.getStyleClass().add("grid-small");
+		watcher.setCycleCount(Timeline.INDEFINITE);		
 	}
 	
 	public DevCDR06(String attr){
@@ -115,13 +113,12 @@ public class DevCDR06 extends DevModbus {
 		}
 	}
 
-	private GridPane root = new GridPane();
-	
-	public void layout_grid(){
+	public Node layout_grid(){
+		final GridPane root = new GridPane();
+		root.getStyleClass().add("grid-small");
 		if(title==null){
-			return;
-		}
-		
+			return root;
+		}		
 		final String _sty = 
 			"-fx-font-size: 20px;"+
 			"-fx-label-padding: 7,0,0,0;";
@@ -137,12 +134,7 @@ public class DevCDR06 extends DevModbus {
 			
 			root.add(txtTitle, 0, i);
 			root.add(txtValue, 1, i);
-		}		
-	} 
-	
-	@Override
-	protected Node eventLayout(PanBase pan) {
-		layout_grid();
+		}
 		return root;
-	}
+	} 
 }

@@ -1,3 +1,4 @@
+#include <sys/stat.h>
 #include <global.hpp>
 #include <zlib.h>
 #include <vector>
@@ -17,6 +18,104 @@ using namespace xobjdetect;
 using namespace ximgproc;
 using namespace xfeatures2d;
 using namespace line_descriptor;
+
+extern char** listFileName(const char* path, const char* part, int* size);
+
+void spot_spot(const char* name, Mat& img, int xx, int yy){
+
+	const int ks = 9;
+
+	Mat roi = img(Rect(
+		xx - ks/2,
+		yy - ks/2,
+		ks, ks
+	));
+
+	Mat py1, py2;
+	pyrDown(roi, py1);
+
+	int _x = py1.cols/2;
+	int _y = py1.rows/2;
+	py1.at<uint8_t>(_y, _x) = 255;
+
+	pyrUp(py1, py2, roi.size());
+	//resize(py2, py2, roi.size());
+	//cout<<py2<<endl<<"------------"<<endl;
+
+	py2.copyTo(roi);
+}
+
+
+int main(int argc, char** argv){
+
+	srand (time(NULL));
+
+	//crop all ROI of images
+	int cnt = 0;
+
+	const char* SRC_PATH = "./wafer/raw/slice-ok";
+
+	const char* DST_PATH1 = "./wafer/train/OK";
+	const char* DST_PATH2 = "./wafer/train/NG";
+
+	const char* DST_PATH3 = "./wafer/valid/OK";
+	const char* DST_PATH4 = "./wafer/valid/NG";
+
+	char** lst = listFileName(SRC_PATH, ".png", &cnt);
+
+	char name[200];
+
+	const int ROI_SIZE = 32;
+
+	for(int i=0; i<cnt-10; i++){
+
+		Mat img, roi;
+
+		sprintf(name, "%s/%s", SRC_PATH, lst[i]);
+		img = imread(name, IMREAD_GRAYSCALE);
+
+		roi = img(Rect(
+			(img.cols-139)/2, (img.rows-139)/2,
+			139, 139
+		));
+
+		sprintf(name, "%s/%s", DST_PATH1, lst[i]);
+		imwrite(name,roi);
+
+		//-------------------------//
+
+		for(int j=0; j<16; j++){
+
+			sprintf(name, "%s/%s", SRC_PATH, lst[i]);
+			img = imread(name, IMREAD_GRAYSCALE);
+
+			roi = img(Rect(
+				(img.cols-139)/2, (img.rows-139)/2,
+				139, 139
+			));
+
+			int _w = (roi.cols * 8 )/ 10;
+			int ox = (roi.cols - _w)/ 2;
+			int xx = rand() % _w + ox;
+
+			int _h = (roi.rows * 8 )/ 10;
+			int oy = (roi.rows - _h)/ 2;
+			int yy = rand() % _h + oy;
+
+			spot_spot(name, roi, xx, yy);
+
+			sprintf(name, "%s/%X_%s", DST_PATH2, j, lst[i]);
+			imwrite(name, roi);
+
+			img = imread("",IMREAD_GRAYSCALE);
+		}
+		cout<<"process "<<lst[i]<<endl;
+	}
+
+	return 0;
+}
+//-----------------------------------------------//
+
 
 Mat filterVariance(Mat& src, int rad){
 	Size ksize(rad,rad);
@@ -96,7 +195,7 @@ bool intersection(
     return true;
 }
 
-int main(int argc, char** argv){
+int main1(int argc, char** argv){
 
 	const char* name = "ipc-1.bmp";
 	//const char* name = "undist.png";
@@ -292,8 +391,9 @@ int main(int argc, char** argv){
 
 	return 0;
 }
+//-----------------------------------------------//
 
-int main10(int argc, char** argv){
+int main2(int argc, char** argv){
 
 	const char* src_name = "./solar/aa_01.jpg";
 	const char* dst_name = "./solar/cc_01.tiff";
@@ -319,22 +419,6 @@ int main10(int argc, char** argv){
 
 //-----------------------------------------------//
 
-int main9(int argc, char** argv){
-	Mat img = imread("sputter-1.png", IMREAD_GRAYSCALE);
-	/*Ptr<BinaryDescriptor> bd = BinaryDescriptor::createBinaryDescriptor();
-	vector<KeyLine> keylines;
-	bd->detect(img,keylines);
-	for(size_t i=0; i<keylines.size(); i++){
-		cout<< "(" << keylines[i].startPointX << "," << keylines[i].startPointY << ")-(" <<
-				keylines[i].endPointX << "," << keylines[i].endPointY << ")" <<endl;
-	}
-	Mat descriptors;
-	bd->compute(img, keylines, descriptors);*/
-	imwrite("tttt.pnm",img);
-	return 0;
-}
-//-----------------------------------------------//
-
 vector<Point2f> Points(vector<KeyPoint> keypoints)
 {
     vector<Point2f> res;
@@ -344,7 +428,7 @@ vector<Point2f> Points(vector<KeyPoint> keypoints)
     return res;
 }
 
-int main8(int argc, char** argv){
+int main4(int argc, char** argv){
 
 	Mat img1 = imread("aa3.jpg", IMREAD_GRAYSCALE);
 	Mat img2 = imread("aa4.jpg", IMREAD_GRAYSCALE);
@@ -396,85 +480,6 @@ int main8(int argc, char** argv){
 }
 //-------------------------------//
 
-int main7(int argc, char* argv[]) {
-	//test writing speed
-	for(int i=1;i<=5; i++){
-		long width = (1<<(i+10));
-		void* buf = malloc(width*width);
-		Mat img(width,width,CV_8UC1,buf);
-		img = img * 0;
-		//randu(img,Scalar(0),Scalar(255));
-		char name[60];
-		sprintf(name,"volbin-%d.tif",i);
-		cout<<"write "<<name<<", size="<<(width*width)<<"bytes."<<endl;
-
-		TICK_BEG
-		imwrite(name,img);
-		TICK_END("I/O")
-		free(buf);
-		cout<<endl;
-	}
-	return 0;
-}
-//-------------------------------//
-
-int main6(int argc, char* argv[]) {
-
-	long width = (1<<15);
-	long height= (1<<15);
-	void* buf = malloc(width*height);
-
-	double accumTick = 0.;
-
-	const int TEST_ROUND=5;
-
-	for(int i=0; i<TEST_ROUND; i++){
-
-		Mat img(height,width,CV_8UC1,buf);
-
-		randu(img,Scalar(0),Scalar(255));
-
-		/*long cnt;
-		TICK_BEG
-		threshold(img,img,200.,0.,THRESH_TOZERO);
-		cnt = countNonZero(img);
-		long size = (width*height)/1000000;
-		cout<<"size="<<width<<"x"<<height<<"="<<size<<"MByte"<<endl;
-		cout<<"result="<<cnt<<endl;
-		TICK_END2("count",accumTick)*/
-
-		//TICK_BEG
-		//vector<uchar> buf(512*1024*1024);
-		/*vector<uchar> buf;
-		buf.reserve(512*1024*1024);
-		imencode(".tiff",img,buf);
-		long size = buf.size()/1000000;
-		cout<<"compressed size:"<<size<<"MByte"<<endl;
-		buf.clear();*/
-		//TICK_END("encode")
-
-		cout<<endl;
-	}
-
-	accumTick = accumTick/TEST_ROUND;
-
-	cout<<endl<<"average time="<<accumTick<<"sec"<<endl;
-
-	free(buf);
-	//Mat ref = imread("qq0.png",IMREAD_GRAYSCALE);
-	//Mat src = imread("qq3.png",IMREAD_GRAYSCALE);
-	//TICK_BEG
-	//registration(ref,src);
-	//TICK_END("regist")
-	//imwrite("aa1.png",ref);
-	//imwrite("aa2.png",src);
-	//imposition("aa3.png",ref,src);
-	return 0;
-}
-
-//--------------------------------------------//
-
-//------------------------------//
 
 #include "opencv2/stitching.hpp"
 
@@ -503,7 +508,7 @@ static double rateFrame(Mat& frame){
     return (double) sum / (double) size;
 }
 
-int main4(int argc, char** argv){
+int main3(int argc, char** argv){
 
 	//Mat aa1 = imread("./aa1.jpg");
 	Mat aa1 = imread("./artificial-1.png");

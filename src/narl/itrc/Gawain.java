@@ -461,9 +461,9 @@ public class Gawain extends Application {
 	//In this section, we initialize all global variables~~
 	
 	public static final boolean isPOSIX;
-	
+		
+	public static final String pathRoot;//Working directory path
 	public static final String pathHome;//User home directory.
-	public static final String pathRoot;//Working directory path	
 	public static final String pathSock;//the path for storing data or setting file
 		
 	public static final File dirRoot;

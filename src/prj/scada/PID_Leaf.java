@@ -113,6 +113,12 @@ public class PID_Leaf extends Canvas {
 		_update_location();
 		return this;
 	}
+	public int[] getGridIndx(){
+		final int[] res ={0, 0};
+		res[0] = info[2];
+		res[1] = info[3];
+		return res;
+	}
 	
 	public int[] getSize(){
 		final int[] size = {
@@ -143,7 +149,11 @@ public class PID_Leaf extends Canvas {
 		if(info[1]>=skin.length){
 			info[1]= 1;
 		}
-		getGraphicsContext2D().drawImage(skin[info[1]], 0., 0.);
+		GraphicsContext gc = getGraphicsContext2D();
+		//clear previous picture~~~
+		gc.clearRect(0, 0, getWidth(), getHeight());
+		//refresh face.
+		gc.drawImage(skin[info[1]], 0., 0.);		
 		return this;
 	}
 
@@ -171,12 +181,39 @@ public class PID_Leaf extends Canvas {
 		);
 	}
 	
+	public static int[] getImageSize(int type){
+		
+		final int[] res = {0, 0};		
+		
+		Image img = lstSkin.get(type)[0];		
+		
+		res[0] = (int)img.getWidth();
+		res[1] = (int)img.getHeight();		
+		
+		return res;		
+	}
+	
+	private static final String pkg = "/narl/itrc/res/pid";
+	
 	public static ImageView getThumb(int type){
 		switch(type){
 		case PID_Const.CURSOR_SELECT:
 			return Misc.getResIcon("cursor-pointer.png"); 
 		case PID_Const.CURSOR_DELETE:
 			return Misc.getResIcon("trash-can-outline.png");
+			
+		case PID_Const.Valve1:
+			return Misc.getResIcon(pkg,"valve-1.png");
+		case PID_Const.Valve2:
+			return Misc.getResIcon(pkg,"valve-2.png");
+		case PID_Const.Pump:
+			return Misc.getResIcon(pkg,"pump_mech.png");
+		case PID_Const.Cryo:
+			return Misc.getResIcon(pkg,"pump_cryo.png");
+		case PID_Const.Sputer:
+			return Misc.getResIcon(pkg,"sputter.png");
+		case PID_Const.Strata:
+			return Misc.getResIcon(pkg,"strata.png");
 		}
 		return getLastSkin(type);
 	}
@@ -192,9 +229,7 @@ public class PID_Leaf extends Canvas {
 	private static Hashtable<Integer,Image[]> lstSkin = new Hashtable<>();
 	
 	public static void initialize(){
-		
-		final String pkg = "/narl/itrc/res/pid";
-		
+
 		final Image pi1_0 = Misc.getResImage(pkg, "pipe-I1-0.png");
 		final Image pi1_a = Misc.getResImage(pkg, "pipe-I1-A.png");
 		final Image pi1_b = Misc.getResImage(pkg, "pipe-I1-B.png");
@@ -279,14 +314,79 @@ public class PID_Leaf extends Canvas {
 		final Image[] wall_6 = { Misc.getResImage(pkg, "wall-6.png") };
 		final Image[] wall_7 = { Misc.getResImage(pkg, "wall-7.png") };
 		final Image[] wall_8 = { Misc.getResImage(pkg, "wall-8.png") };
-		lstSkin.put(PID_Const.WALL_1, wall_1);
-		lstSkin.put(PID_Const.WALL_2, wall_2);
-		lstSkin.put(PID_Const.WALL_3, wall_3);
-		lstSkin.put(PID_Const.WALL_4, wall_4);
-		lstSkin.put(PID_Const.WALL_5, wall_5);
-		lstSkin.put(PID_Const.WALL_6, wall_6);
-		lstSkin.put(PID_Const.WALL_7, wall_7);
-		lstSkin.put(PID_Const.WALL_8, wall_8);
+		final Image[] join_1 = { Misc.getResImage(pkg, "join-1.png") };
+		final Image[] join_2 = { Misc.getResImage(pkg, "join-2.png") };
+		final Image[] join_3 = { Misc.getResImage(pkg, "join-3.png") };
+		final Image[] join_4 = { Misc.getResImage(pkg, "join-4.png") };
+		lstSkin.put(PID_Const.Wall1, wall_1);
+		lstSkin.put(PID_Const.Wall2, wall_2);
+		lstSkin.put(PID_Const.Wall3, wall_3);
+		lstSkin.put(PID_Const.Wall4, wall_4);
+		lstSkin.put(PID_Const.Wall5, wall_5);
+		lstSkin.put(PID_Const.Wall6, wall_6);
+		lstSkin.put(PID_Const.Wall7, wall_7);
+		lstSkin.put(PID_Const.Wall8, wall_8);
+		lstSkin.put(PID_Const.Join1, join_1);
+		lstSkin.put(PID_Const.Join2, join_2);
+		lstSkin.put(PID_Const.Join3, join_3);
+		lstSkin.put(PID_Const.Join4, join_4);
+		
+		final Image[] gauge = { Misc.getResImage(pkg, "gauge.png"),};
+		lstSkin.put(PID_Const.Gauge, gauge);
+		
+		final Image[] valve_1 = { 
+			Misc.getResImage(pkg, "valve-1-0.png"),
+			Misc.getResImage(pkg, "valve-1-A.png"),
+		};
+		lstSkin.put(PID_Const.Valve1, valve_1);
+		
+		final Image[] valve_2 = { 
+			Misc.getResImage(pkg, "valve-2-0.png"),
+			Misc.getResImage(pkg, "valve-2-A.png"),
+			Misc.getResImage(pkg, "valve-2-B.png"),
+			Misc.getResImage(pkg, "valve-2-C.png"),
+			Misc.getResImage(pkg, "valve-2-D.png"),
+		};
+		lstSkin.put(PID_Const.Valve2, valve_2);
+		
+		final Image[] pump = { 
+			Misc.getResImage(pkg, "pump_mech-0.png"),
+			Misc.getResImage(pkg, "pump_mech-A.png"),
+			Misc.getResImage(pkg, "pump_mech-B.png"),
+			Misc.getResImage(pkg, "pump_mech-C.png"),
+			Misc.getResImage(pkg, "pump_mech-D.png"),
+		};
+		lstSkin.put(PID_Const.Pump, pump);
+		
+		final Image[] cryo = { 
+			Misc.getResImage(pkg, "pump_cryo-0.png"),
+			Misc.getResImage(pkg, "pump_cryo-A.png"),
+			Misc.getResImage(pkg, "pump_cryo-B.png"),
+			Misc.getResImage(pkg, "pump_cryo-C.png"),
+			Misc.getResImage(pkg, "pump_cryo-D.png"),
+			Misc.getResImage(pkg, "pump_cryo-E.png"),
+			Misc.getResImage(pkg, "pump_cryo-F.png"),
+			Misc.getResImage(pkg, "pump_cryo-G.png"),
+		};
+		lstSkin.put(PID_Const.Cryo, cryo);
+			
+		
+		final Image[] sputter = { 
+			Misc.getResImage(pkg, "sputter-0.png"),
+			Misc.getResImage(pkg, "sputter-A.png"),
+			Misc.getResImage(pkg, "sputter-B.png"),
+			Misc.getResImage(pkg, "sputter-C.png"),
+		};
+		lstSkin.put(PID_Const.Sputer, sputter);
+		
+		final Image[] strata = { 
+			Misc.getResImage(pkg, "strata-0.png"),
+			Misc.getResImage(pkg, "strata-A.png"),
+			Misc.getResImage(pkg, "strata-B.png"),
+			Misc.getResImage(pkg, "strata-C.png"),
+			Misc.getResImage(pkg, "strata-D.png"),
+		};
+		lstSkin.put(PID_Const.Strata, strata);
 	}
 	//--------------------------------//
 	

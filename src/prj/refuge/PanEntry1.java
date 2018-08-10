@@ -268,7 +268,7 @@ public class PanEntry1 extends PanBase {
 	
 	private Node layout_actn(){
 
-		Node nd1 = new TitledPane("溫溼度計", cdr.eventLayout(this));		
+		Node nd1 = new TitledPane("溫溼度計", cdr.layout_grid());		
 		Node nd2 = new TitledPane("訊息紀錄",new BoxLogger());
 		HBox.setHgrow(nd2, Priority.ALWAYS);
 		

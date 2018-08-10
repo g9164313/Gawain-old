@@ -131,8 +131,13 @@ char** listFileName(const char* path, const char* part, int* size){
 				continue;
 			}
 		}
-		lst[i] = new char[100];
-		strcpy(lst[i], e->d_name);
+		lst[i] = new char[200];
+		/*sprintf(
+			lst[i],
+			"%s/%s",
+			path, e->d_name
+		);*/
+		strcpy(lst[i],e->d_name);
 		i++;
 	}
 	closedir(dir);

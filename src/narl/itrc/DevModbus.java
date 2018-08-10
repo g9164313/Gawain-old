@@ -1,6 +1,6 @@
 package narl.itrc;
 
-public class DevModbus extends DevBase {
+public class DevModbus {
 
 	private long ptrCntx = 0L;//it is same as NULL point
 	
@@ -15,11 +15,6 @@ public class DevModbus extends DevBase {
 	 */
 	public DevModbus(String path){
 		open(path);
-	}
-
-	@Override
-	public void eventShutdown() {
-		close();		
 	}
 	//---------------------//
 	

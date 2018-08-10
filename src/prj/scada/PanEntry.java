@@ -9,13 +9,16 @@ import javafx.scene.control.Tab;
 import javafx.scene.control.TitledPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
+import narl.itrc.Gawain;
 import narl.itrc.PanBase;
 
 public class PanEntry extends PanBase {
 
-	private DevSPIK2000 dev = new DevSPIK2000();
+	private DevSPIK2000 spik = new DevSPIK2000();
 	
-	private PID_Root pid = new PID_Root();
+	private DevSQM160 sqm = new DevSQM160();
+	
+	private PID_Root pid = new PID_Root(Gawain.pathSock+"ggyy.xml");
 	
 	public PanEntry(){
 	}
@@ -27,7 +30,7 @@ public class PanEntry extends PanBase {
 		//pid.createLeaf(PID_Const.Pipe1UP, 5, 5);
 		
 		final TitledPane tps[] ={
-			new TitledPane("SPIK2000", Layout_1.gen_information(dev)),
+			new TitledPane("SPIK2000", Layout_1.gen_information(spik)),
 			new TitledPane("test1", new Button("test1")),
 			new TitledPane("test2", new Button("test1"))
 		};
@@ -38,7 +41,7 @@ public class PanEntry extends PanBase {
 		//layout-2: diagram, gauge console and script editor
 		final Tab[] tabs = {
 			new Tab("管路控制", pid),
-			new Tab("資訊面板", Layout_1.gen_gauge_scope(dev)),
+			new Tab("資訊面板", Layout_1.gen_gauge_scope(spik)),
 			new Tab("腳本編輯",new PID_Leaf().generate_brick()),
 			new Tab("其他"),	
 		};
@@ -50,13 +53,21 @@ public class PanEntry extends PanBase {
 		final Button[] btn = {
 			PanBase.genButton3("edit-Mode", null),
 			PanBase.genButton3("test-2", null),
+			PanBase.genButton3("test-3", null),
 		};
 		for(int i=0; i<btn.length; i++){
 			btn[i].setMaxWidth(Double.MAX_VALUE);
 			btn[i].setMinWidth(100);
 		}
+		//something or event for test
 		btn[0].setOnAction(event->{
 			pid.editMode(true);
+		});
+		btn[1].setOnAction(event->{
+			sqm.test_event1();
+		});
+		btn[2].setOnAction(event->{
+			sqm.test_event2();
 		});
 		final VBox lay3 = new VBox();
 		lay3.setStyle("-fx-padding: 7; -fx-spacing: 7;");
@@ -73,6 +84,7 @@ public class PanEntry extends PanBase {
 	@Override
 	public void eventShown(PanBase self) {
 		//dev.link("\\\\.\\COM2,19200,8n1");
+		sqm.link();
 	}
 
 	@Override

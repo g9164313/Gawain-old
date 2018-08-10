@@ -44,17 +44,18 @@ public class DevSPIK2000 extends DevTTY {
 	}
 		
 	public void link(){
-		link(null);
+		link(getPathName());
 	}
 	
 	public void link(String pathName){
+		
 		if(open(pathName)==false){
 			return;
 		}
 		lstToken.clear();
 		if(looper!=null){
 			if(looper.isDone()==false){	
-				Misc.logw("Device is linked.");
+				Misc.logw("SPIK2000 is linked.");
 				return;				
 			}
 		}
