@@ -36,7 +36,19 @@ void spot_spot(const char* name, Mat& img, int xx, int yy){
 
 	int _x = py1.cols/2;
 	int _y = py1.rows/2;
-	py1.at<uint8_t>(_y, _x) = 255;
+
+	int val = py1.at<uint8_t>(_y,_x);
+
+	val = 200;
+
+	py1.at<uint8_t>(_y  , _x  ) = val;
+
+	val = (val * 7) / 10;
+
+	py1.at<uint8_t>(_y-1, _x  ) = val;
+	py1.at<uint8_t>(_y+1, _x  ) = val;
+	py1.at<uint8_t>(_y  , _x-1) = val;
+	py1.at<uint8_t>(_y  , _x+1) = val;
 
 	pyrUp(py1, py2, roi.size());
 	//resize(py2, py2, roi.size());
@@ -57,9 +69,6 @@ int main(int argc, char** argv){
 
 	const char* DST_PATH1 = "./wafer/train/OK";
 	const char* DST_PATH2 = "./wafer/train/NG";
-
-	const char* DST_PATH3 = "./wafer/valid/OK";
-	const char* DST_PATH4 = "./wafer/valid/NG";
 
 	char** lst = listFileName(SRC_PATH, ".png", &cnt);
 
@@ -84,7 +93,7 @@ int main(int argc, char** argv){
 
 		//-------------------------//
 
-		for(int j=0; j<16; j++){
+		for(int j=0; j<200; j++){
 
 			sprintf(name, "%s/%s", SRC_PATH, lst[i]);
 			img = imread(name, IMREAD_GRAYSCALE);
@@ -107,7 +116,7 @@ int main(int argc, char** argv){
 			sprintf(name, "%s/%X_%s", DST_PATH2, j, lst[i]);
 			imwrite(name, roi);
 
-			img = imread("",IMREAD_GRAYSCALE);
+			img = imread("",IMREAD_GRAYSCALE);//Is it bug???
 		}
 		cout<<"process "<<lst[i]<<endl;
 	}

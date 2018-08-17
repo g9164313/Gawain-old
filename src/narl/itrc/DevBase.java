@@ -5,83 +5,95 @@ import java.util.concurrent.Delayed;
 import java.util.concurrent.TimeUnit;
 
 import javafx.concurrent.Task;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
 
 abstract public class DevBase {
 	
 	protected String TAG = "Abstract Device Layer";
 	
+	protected final Alert alert = new Alert(AlertType.INFORMATION);
+	
 	public DevBase(String tag){
 		TAG = tag;
+		alert.setHeaderText("");
 	}
 	
-	protected abstract void looper(Object tkn);
+	protected abstract boolean looper(Object token);
 	
-	protected abstract void event_link(); 
+	protected abstract void eventLink(); 
 	
-	protected abstract void event_unlink(); 
+	protected abstract void eventUnlink(); 
 	
-	protected static class Token implements Delayed {
-
+	protected static class TokenBase implements Delayed {
+		
 		//count for delay,
-		//if it is less than zero, this means skipping from looper. 
-		private long cntVal;
+		//base value for time count.
+		//unit is MILLISECONDS
+		private long cntVal = 0L;
 		
-		private TimeUnit cntUnit;
+		private long cntMax = 0L;
 		
-		private boolean repeat;
+		private boolean repeat = false;
 		
-		public Token(){
-			set(false, 0, TimeUnit.MILLISECONDS);
+		public TokenBase(){
 		}
-		public Token(int val){
-			set(false, val, TimeUnit.MILLISECONDS);
-		}
-		public Token(int val, TimeUnit unit){
-			set(false, val, unit);
-		}
-		public Token(boolean flag, int val, TimeUnit unit){
-			set(flag, val, unit);
+		public TokenBase(int val){
+			cntMax = val;
 		}
 		
-		public void set(int val){
-			cntVal = val;
+		/**
+		 * This event must be executed by GUI-thread.
+		 */
+		private EventHandler<ActionEvent> eventHandler = null;
+		/**
+		 * User can get 'Token' from action source.
+		 */
+		private ActionEvent eventSource = new ActionEvent(this, null);
+		/**
+		 * Hook a method for UI response in looper.
+		 * @param event
+		 * @return
+		 */
+		public TokenBase setOnAction(EventHandler<ActionEvent> event){
+			eventHandler = event;
+			return this;
 		}
-		public void set(TimeUnit unit){
-			cntUnit= unit;
-		}
-		public void set(boolean flag){
-			repeat = flag;
-		}
-		public void set(int val, TimeUnit unit){
-			cntVal = val;
-			cntUnit= unit;
-		}
-		public void set(boolean flag, int val, TimeUnit unit){
-			repeat = flag;
-			cntVal = val;
-			cntUnit= unit;			
+		/**
+		 * This event must be executed by GUI-thread.
+		 */
+		public void action(){
+			if(eventHandler==null){
+				return;
+			}
+			
+			eventHandler.handle(eventSource);
 		}
 		
 		@Override
 		public int compareTo(Delayed o) {
-			return (int)(cntVal-o.getDelay(cntUnit));
+			return (int)(cntMax-o.getDelay(null));
 		}
 		@Override
 		public long getDelay(TimeUnit unit) {
-			if(cntVal<0){
+			if(cntMax<0){
 				return 0;
 			}
-			return unit.convert(cntVal,cntUnit);
+			long past = System.currentTimeMillis()-cntVal;
+			if(past>=cntMax){
+				return 0;
+			}
+			return cntMax-past;
 		}
 	}
 	
 	private Task<?> looper = null;
 	
-	private DelayQueue<Token> queuer = new DelayQueue<Token>();
+	private DelayQueue<TokenBase> queuer = new DelayQueue<TokenBase>();
 	
 	public void link(){
-		
-		event_link();
 		
 		if(looper!=null){
 			if(looper.isDone()==false){	
@@ -89,19 +101,27 @@ abstract public class DevBase {
 				return;				
 			}
 		}
-		
+				
 		queuer.clear();//clear previous token...
+		
+		eventLink();
 		
 		looper = new Task<Void>(){
 			@Override
-			protected Void call() throws Exception {				
+			protected Void call() throws Exception {
+				
 				while(looper.isCancelled()==false){
-					Token obj = queuer.take();
+					
+					TokenBase obj = queuer.take();
+					
 					if(obj.cntVal<0){						
-						break;
+						break;//special token~~~
 					}
-					looper(obj);
+					if(looper(obj)==false){
+						break;
+					}	
 					if(obj.repeat==true){
+						obj.cntVal = System.currentTimeMillis();
 						queuer.offer(obj);
 					}
 				}
@@ -109,28 +129,71 @@ abstract public class DevBase {
 				return null;
 			}
 		};
-		
 		Thread th = new Thread(looper,TAG);
 		th.setDaemon(true);
 		th.start();
 	}	
 	
 	public void unlink(){
-		queuer.add(new Token(-1));
+		queuer.add(new TokenBase(-1));
 		if(looper!=null){
 			if(looper.isDone()==false){				
 				looper.cancel();				
 			}
 			looper = null;
 		}
-		event_unlink();
+		eventUnlink();
+	}
+	
+	protected DevBase offer(TokenBase tkn){
+		return offer(
+			tkn,
+			0,
+			TimeUnit.MILLISECONDS,
+			false
+		);
+	}
+	protected DevBase offer(
+		TokenBase tkn, 
+		int value
+	){	
+		return offer(
+			tkn,
+			value,
+			TimeUnit.MILLISECONDS,
+			false
+		);
+	}
+	protected DevBase offer(
+		TokenBase tkn, 
+		int value,
+		TimeUnit unit
+	){
+		return offer(
+			tkn,
+			value,
+			unit,
+			false
+		);
+	}
+	protected DevBase offer(
+		TokenBase tkn, 
+		int value,
+		TimeUnit unit,
+		boolean flag
+	){
+		tkn.cntVal = System.currentTimeMillis();
+		tkn.cntMax = TimeUnit.MILLISECONDS.convert(value, unit);
+		tkn.repeat = flag;
+		queuer.offer(tkn);
+		return this;
 	}
 	
 	/**
 	 * This is special method, it will remove all repeatedly token.
 	 */
 	protected void remove_remainder(){
-		for(Token tkn:queuer){
+		for(TokenBase tkn:queuer){
 			if(tkn.repeat==true){
 				queuer.remove(tkn);
 			}

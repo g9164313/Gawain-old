@@ -376,6 +376,4 @@ public class Layout_1 {
 		gag.valueProperty().bind(prop.multiply(1.));
 		return gag;
 	}
-	
-	
 }

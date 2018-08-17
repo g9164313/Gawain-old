@@ -215,7 +215,7 @@ public abstract class PanBase {
 	
 	private Stage create_stage(Window parent){
 		Stage stg = new Stage(StageStyle.UNIFIED);		
-		stg.initModality(Modality.NONE); 
+		stg.initModality(Modality.WINDOW_MODAL); 
 		stg.initOwner(parent);
 		stg.centerOnScreen();
 		return stg;
@@ -525,6 +525,31 @@ public abstract class PanBase {
 		return gen_def_button(title,iconName,"");
 	}
 	
+	public static Button genButton1(
+		final String title,
+		final String iconName
+	){
+		return gen_fx_button(title,iconName,"btn-raised-1");
+	}
+	public static Button genButton2(
+		final String title,
+		final String iconName
+	){
+		return gen_fx_button(title,iconName,"btn-raised-2");
+	}
+	public static Button genButton3(
+		final String title,
+		final String iconName
+	){
+		return gen_fx_button(title,iconName,"btn-raised-3");
+	}
+	public static Button genButton4(
+		final String title,
+		final String iconName
+	){
+		return gen_fx_button(title,iconName,"btn-raised-4");
+	}
+	
 	private static Button gen_fx_button(
 		final String title,
 		final String iconName,
@@ -538,35 +563,7 @@ public abstract class PanBase {
 			}
 		}
 		return btn;
-	}
-	
-	public static Button genButton1(
-		final String title,
-		final String iconName
-	){
-		return gen_fx_button(title,iconName,"btn-raised-1");
-	}
-	
-	public static Button genButton2(
-		final String title,
-		final String iconName
-	){
-		return gen_fx_button(title,iconName,"btn-raised-2");
-	}
-	
-	public static Button genButton3(
-		final String title,
-		final String iconName
-	){
-		return gen_fx_button(title,iconName,"btn-raised-3");
-	}
-	
-	public static Button genButton4(
-		final String title,
-		final String iconName
-	){
-		return gen_fx_button(title,iconName,"btn-raised-4");
-	}
+	}	
 	//----------------------------------------------//
 	
 	private static void validInteger(

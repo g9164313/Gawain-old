@@ -16,7 +16,7 @@ public class PanEntry extends PanBase {
 
 	private DevSPIK2000 spik = new DevSPIK2000();
 	
-	private DevSQM160 sqm = new DevSQM160();
+	private DevSQM160 sqm = new DevSQM160("\\\\.\\COM2,19600,8n1");
 	
 	private PID_Root pid = new PID_Root(Gawain.pathSock+"ggyy.xml");
 	
@@ -31,12 +31,12 @@ public class PanEntry extends PanBase {
 		
 		final TitledPane tps[] ={
 			new TitledPane("SPIK2000", Layout_1.gen_information(spik)),
-			new TitledPane("test1", new Button("test1")),
+			new TitledPane("SQM160", DevSQM160.gen_panel(sqm)),
 			new TitledPane("test2", new Button("test1"))
 		};
 		final Accordion lay1 = new Accordion();
 		lay1.getPanes().addAll(tps);
-		lay1.setExpandedPane(tps[0]);
+		lay1.setExpandedPane(tps[1]);
 				
 		//layout-2: diagram, gauge console and script editor
 		final Tab[] tabs = {
@@ -52,8 +52,8 @@ public class PanEntry extends PanBase {
 		//layout-3: action button
 		final Button[] btn = {
 			PanBase.genButton3("edit-Mode", null),
+			PanBase.genButton3("test-1", null),
 			PanBase.genButton3("test-2", null),
-			PanBase.genButton3("test-3", null),
 		};
 		for(int i=0; i<btn.length; i++){
 			btn[i].setMaxWidth(Double.MAX_VALUE);
@@ -64,10 +64,8 @@ public class PanEntry extends PanBase {
 			pid.editMode(true);
 		});
 		btn[1].setOnAction(event->{
-			sqm.test_event1();
 		});
 		btn[2].setOnAction(event->{
-			sqm.test_event2();
 		});
 		final VBox lay3 = new VBox();
 		lay3.setStyle("-fx-padding: 7; -fx-spacing: 7;");
@@ -88,7 +86,8 @@ public class PanEntry extends PanBase {
 	}
 
 	@Override
-	public void eventClose(PanBase self) {
+	public void eventClose(PanBase self) {		
 		//dev.unlink();
+		sqm.unlink();
 	}
 }

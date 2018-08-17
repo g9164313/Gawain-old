@@ -7,7 +7,7 @@
 	-fx-padding: 0.7em 0.57em;
 	-fx-font-size: 14px;
 	-fx-button-type: RAISED;
-	-fx-background-color: #ffffff;
+	-fx-background-color: #64B5F6;
 	-fx-text-fill: BLACK;
 }
 
@@ -15,21 +15,21 @@
 	-fx-padding: 0.7em 0.57em;
 	-fx-font-size: 14px;
 	-fx-button-type: RAISED;
-	-fx-background-color: #80d8ff;
+	-fx-background-color: #4FC3F7;
 	-fx-text-fill: BLACK;
 }
 .btn-raised-3 {
 	-fx-padding: 0.7em 0.57em;
 	-fx-font-size: 14px;
 	-fx-button-type: RAISED;
-	-fx-background-color: #b9f6ca;
+	-fx-background-color: #4DD0E1;
 	-fx-text-fill: BLACK;
 }
 .btn-raised-4 {
 	-fx-padding: 0.7em 0.57em;
 	-fx-font-size: 14px;
 	-fx-button-type: RAISED;
-	-fx-background-color: #ffff8d;
+	-fx-background-color: #4DB6AC;
 	-fx-text-fill: BLACK;
 }
 
