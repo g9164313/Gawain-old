@@ -45,7 +45,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_Misc_sendMouseClick(
 	input.mi.mouseData = 0;
 	input.mi.dwExtraInfo = NULL;
 	input.mi.time = 0;
-	API(1, &input, sizeof(INPUT));
+	SendInput(1, &input, sizeof(INPUT));
 }
 
 extern "C" JNIEXPORT void JNICALL Java_narl_itrc_Misc_sendKeyboardText(

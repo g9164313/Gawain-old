@@ -7,7 +7,6 @@ import java.util.concurrent.TimeUnit;
 import com.jfoenix.controls.JFXCheckBox;
 import com.jfoenix.controls.JFXComboBox;
 import com.jfoenix.controls.JFXTextField;
-import com.sun.glass.ui.Application;
 
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
@@ -50,123 +49,123 @@ public class DevSQM160 extends DevBase {
 	}	
 
 	@Override
-	protected boolean looper(Object token) {
+	protected boolean looper(TokenBase obj) {
 		//if(conn.isOpen()==false){
 		//	return false;
 		//}
-		Token tkn = (Token)token;
-		tkn.fetch();
-		
-		final Runnable event = new Runnable(){
-			@Override
-			public void run() {
-				//first, check response status
-				char status = tkn.resp.charAt(0);				
-				switch(status){
-				case 'A':
-					tkn.resp = tkn.resp.substring(1).trim();
-					break;
-				case 'C':
-					Misc.loge("[%s] Invalid command",TAG);
-					alert.setContentText("不合法的命令格式");
-					alert.show();
-					return;
-				case 'D':
-					Misc.loge("[%s] Invalid data in command",TAG);
-					alert.setContentText("不合法的參數格式");
-					alert.show();
-					return;
-				default:
-					Misc.loge("[%s] ERROR!!!",TAG);
-					alert.setContentText("內部錯誤");
-					alert.show();
-					return;
-				}				
-				//second, update device property
-				int idx = 0;
-				try{					
-					switch(tkn.getCMD()){
-					case 'A':
-						if(tkn.isQuery()==true){
-							tkn.action();
-						}else{							
-							alert.setContentText("已更新薄膜參數");
-							alert.show();
-						}						
-						break;
-					
-					case 'B':
-						if(tkn.isQuery()==true){
-							tkn.action();
-						}else{							
-							alert.setContentText("已更新系統-1參數");
-							alert.show();
-						}						
-						break;
-						
-					case 'C':
-						if(tkn.isQuery()==true){
-							tkn.action();
-						}else{							
-							alert.setContentText("已更新系統-2參數");
-							alert.show();
-						}						
-						break;
-						
-					case 'P'://Read the Frequency for a sensor
-						idx = Integer.valueOf(tkn.getArgument())-1;
-						listSwellRate[idx].set(tkn.resp);
-						break;
-						
-					case 'N'://Read the Thickness for a sensor
-						idx = Integer.valueOf(tkn.getArgument())-1;
-						listThickness[idx].set(tkn.resp);
-						break;
-						
-					case 'M'://Read the Frequency for all (Average)
-						propSwellRate.set(tkn.resp);
-						break;
-						
-					case 'O'://Read the Thickness for all (Average)
-						propThickness.set(tkn.resp);
-						break;
-						
-					case 'R'://Read the Crystal Life for a sensor
-						break;
-						
-					case 'W'://Read All sensor simultaneously
-						String[] val = tkn.resp.split(" ");
-						for(int i=0; i<6; i++){
-							listSwellRate[i].set(val[i*3+0]);
-							listThickness[i].set(val[i*3+1]);
-							listFrequency[i].set(val[i*3+2]);
-						}
-						break;
-					
-					case 'S'://Zero Average Thickness and Rate.						
-						alert.setHeaderText("");
-						alert.setContentText("平均厚度與頻率歸零");
-						alert.show();
-						break;
-					case 'T'://Zero Time
-						alert.setHeaderText("");
-						alert.setContentText("計時歸零");
-						alert.show();
-						break;
-					}
-				}catch(NumberFormatException e){
-					Misc.loge(
-						"[%s] Invalid argument - %s",
-						TAG,
-						tkn.getContext()
-					);
-				}
-			}
-		};
-		Application.invokeAndWait(event);
+		((Token)obj).fetch();
 		return true;
 	}
 
+	@Override
+	protected boolean eventReply(TokenBase obj) {
+		
+		Token tkn = (Token)obj;
+		
+		//first, check response status
+		char status = tkn.resp.charAt(0);				
+		switch(status){
+		case 'A':
+			tkn.resp = tkn.resp.substring(1).trim();
+			break;
+		case 'C':
+			Misc.loge("[%s] Invalid command",TAG);
+			alert.setContentText("不合法的命令格式");
+			alert.show();
+			return true;
+		case 'D':
+			Misc.loge("[%s] Invalid data in command",TAG);
+			alert.setContentText("不合法的參數格式");
+			alert.show();
+			return true;
+		default:
+			Misc.loge("[%s] ERROR!!!",TAG);
+			alert.setContentText("內部錯誤");
+			alert.show();
+			return true;
+		}				
+		//second, update device property
+		int idx = 0;
+		try{					
+			switch(tkn.getCMD()){
+			case 'A':
+				if(tkn.isQuery()==true){
+					tkn.action();
+				}else{							
+					alert.setContentText("已更新薄膜參數");
+					alert.show();
+				}						
+				break;
+			
+			case 'B':
+				if(tkn.isQuery()==true){
+					tkn.action();
+				}else{							
+					alert.setContentText("已更新系統-1參數");
+					alert.show();
+				}						
+				break;
+				
+			case 'C':
+				if(tkn.isQuery()==true){
+					tkn.action();
+				}else{							
+					alert.setContentText("已更新系統-2參數");
+					alert.show();
+				}						
+				break;
+				
+			case 'P'://Read the Frequency for a sensor
+				idx = Integer.valueOf(tkn.getArgument())-1;
+				listSwellRate[idx].set(tkn.resp);
+				break;
+				
+			case 'N'://Read the Thickness for a sensor
+				idx = Integer.valueOf(tkn.getArgument())-1;
+				listThickness[idx].set(tkn.resp);
+				break;
+				
+			case 'M'://Read the Frequency for all (Average)
+				propSwellRate.set(tkn.resp);
+				break;
+				
+			case 'O'://Read the Thickness for all (Average)
+				propThickness.set(tkn.resp);
+				break;
+				
+			case 'R'://Read the Crystal Life for a sensor
+				break;
+				
+			case 'W'://Read All sensor simultaneously
+				String[] val = tkn.resp.split(" ");
+				for(int i=0; i<6; i++){
+					listSwellRate[i].set(val[i*3+0]);
+					listThickness[i].set(val[i*3+1]);
+					listFrequency[i].set(val[i*3+2]);
+				}
+				break;
+			
+			case 'S'://Zero Average Thickness and Rate.						
+				alert.setHeaderText("");
+				alert.setContentText("平均厚度與頻率歸零");
+				alert.show();
+				break;
+			case 'T'://Zero Time
+				alert.setHeaderText("");
+				alert.setContentText("計時歸零");
+				alert.show();
+				break;
+			}
+		}catch(NumberFormatException e){
+			Misc.loge(
+				"[%s] Invalid argument - %s",
+				TAG,
+				tkn.getContext()
+			);
+		}
+		return true;
+	}	
+	
 	@Override
 	protected void eventLink() {
 		conn.open();
@@ -769,5 +768,5 @@ public class DevSQM160 extends DevBase {
 			btn5
 		);		
 		return lay1;
-	}	
+	}
 }
