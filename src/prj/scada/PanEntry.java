@@ -10,7 +10,6 @@ import javafx.scene.control.TitledPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
 import narl.itrc.Gawain;
-import narl.itrc.Misc;
 import narl.itrc.PanBase;
 
 public class PanEntry extends PanBase {
@@ -22,6 +21,8 @@ public class PanEntry extends PanBase {
 	private DevPCI9113 pci0 = new DevPCI9113(0);
 	
 	private PID_Root pid = new PID_Root(Gawain.pathSock+"ggyy.xml");
+	
+	private DevHS2000 hs2k = new DevHS2000();
 	
 	public PanEntry(){
 	}
@@ -35,22 +36,23 @@ public class PanEntry extends PanBase {
 		final TitledPane tps[] ={
 			new TitledPane("SPIK2000", Layout_1.gen_information(spik)),
 			new TitledPane("SQM160  ", DevSQM160.gen_panel(sqm)),
-			new TitledPane("PCI9113 ", DevPCI9113.gen_panel(pci0)),
+			new TitledPane("PCI9113 ", DevPCI9113.gen_panel(pci0)),			
 		};
 		final Accordion lay1 = new Accordion();
 		lay1.getPanes().addAll(tps);
-		lay1.setExpandedPane(tps[2]);
+		lay1.setExpandedPane(tps[0]);
 				
 		//layout-2: diagram, gauge console and script editor
 		final Tab[] tabs = {
-			new Tab("管路控制", pid),
+			new Tab("管路控制", pid),			
 			new Tab("資訊面板", Layout_1.gen_gauge_scope(spik)),
-			new Tab("腳本編輯",new PID_Leaf().generate_brick()),
+			new Tab("時間-頻譜", DevHS2000.gen_panel(hs2k)),
+			new Tab("腳本編輯",new PID_Leaf().generate_brick()),			
 			new Tab("其他"),	
 		};
 		final JFXTabPane lay2 = new JFXTabPane();
 		lay2.getTabs().addAll(tabs);
-		lay2.getSelectionModel().select(0);
+		lay2.getSelectionModel().select(2);
 		
 		//layout-3: action button
 		final Button[] btn = {
@@ -86,13 +88,15 @@ public class PanEntry extends PanBase {
 	public void eventShown(PanBase self) {
 		//dev.link("\\\\.\\COM2,19200,8n1");
 		//sqm.link();
-		pci0.link();
+		//pci0.link();
+		hs2k.link();
 	}
 
 	@Override
 	public void eventClose(PanBase self) {		
 		//dev.unlink();
 		//sqm.unlink();
-		pci0.unlink();
+		//pci0.unlink();
+		hs2k.unlink();
 	}
 }

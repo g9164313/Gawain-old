@@ -259,6 +259,61 @@ int main1(int argc, char* argv[]){
 //--------------------------------------------//
 */
 
+int main(int argc, char* argv[]){
+
+	//generate HSV color mapping
+
+	const int ss = 1024 * 16;
+
+	const int ww = 1;
+	const int hh = 100;
+
+	Mat aa = Mat::zeros(hh, ww*ss, CV_32FC3);
+	Mat bb = Mat::zeros(hh, ww*ss, CV_32FC3);
+
+	for(int h=0; h<hh; h++){
+		for(int s=0; s<ss; s++){
+			float frac = ((float)s/(float)ss);
+			Vec3f val(
+				frac * 256,
+				1.,
+				1.
+			);//Hue, Saturation, Value
+			for(int w=0; w<ww; w++){
+				aa.at<Vec3f>(h, s*ww+w) = val;
+			}
+		}
+	}
+
+	cvtColor(aa, bb, COLOR_HSV2RGB);
+
+	bb = bb * 255.;
+
+	//imwrite("ggyy.png",bb);
+
+	//cout<<"\tpublic static final int mapOct[] = {";
+	//cout<<"\tpublic static final int mapDec[] = {";
+	//cout<<"\tpublic static final int mapDuo[] = {";
+	cout<<"\tpublic static final int mapQua[] = {";
+	//cout<<"\tpublic static final int mapSed[] = {";
+	for(int s=0; s<ss; s++){
+		Vec3f val = bb.at<Vec3f>(hh/2, s*ww);
+		int argb = 0xFF000000;
+		argb = argb | ((((int)val[2])&0xFF)<<16);
+		argb = argb | ((((int)val[1])&0xFF)<<8 );
+		argb = argb | ((((int)val[0])&0xFF)<<0 );
+		if(s%64==0){
+			printf("\n\t");
+		}
+		printf("0x%08X, ", argb);
+	}
+	cout<<"\n\t};"<<endl;
+
+	return 0;
+}
+
+//--------------------------------------------//
+
 extern void registration(Mat& imgRef,Mat& imgSrc);
 
 int main5(int argc, char* argv[]){

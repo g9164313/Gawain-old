@@ -43,7 +43,6 @@ inline void msleep(int msec){
 #include <list>
 #include <string>
 #include <vector>
-
 #include <jni.h>
 
 using namespace std;
@@ -53,7 +52,6 @@ using namespace std;
 #endif
 
 extern void   setJDouble(JNIEnv *env,jobject thiz,const char* name,double val);
-
 extern double getJDouble(JNIEnv *env,jobject thiz,const char* name);
 extern void   setFloat(JNIEnv *env,jobject thiz,const char* name,float val);
 extern float  getFloat(JNIEnv *env,jobject thiz,const char* name);
@@ -61,13 +59,19 @@ extern void   setJLong(JNIEnv *env,jobject thiz,const char* name,long val);
 extern long   getJLong(JNIEnv *env,jobject thiz,const char* name);
 extern void   setJInt(JNIEnv *env,jobject thiz,const char* name,int val);
 extern int    getJInt(JNIEnv *env,jobject thiz,const char* name);
+extern void   setJShort(JNIEnv *env, jobject thiz, const char* name, int16_t val);
+extern jshort getJShort(JNIEnv *env, jobject thiz, const char* name);
+extern void   setJByte(JNIEnv *env, jobject thiz, const char* name, uint8_t val);
+extern jbyte  getJByte(JNIEnv *env,jobject thiz,const char* name);
 extern void   setJChar(JNIEnv *env,jobject thiz,const char* name,char val);
 extern char   getJChar(JNIEnv *env,jobject thiz,const char* name);
 extern void   setJBool(JNIEnv *env,jobject thiz,const char* name,bool val);
 extern bool   getJBool(JNIEnv *env,jobject thiz,const char* name);
 
-extern jsize getJString(JNIEnv *env,jobject thiz,const char* name,const char* dst);
+extern jobjectArray create2DArray(JNIEnv * env, size_t cols, size_t rows, jint* value[]);
+extern jobjectArray create2DArray(JNIEnv * env, size_t cols, size_t rows, jlong** value);
 
+extern jsize getJString(JNIEnv *env,jobject thiz,const char* name,const char* dst);
 extern jsize jstrcpy(JNIEnv* env,jstring src,const char* dst);
 
 extern jbyte*   byteArray2Ptr  (JNIEnv* env,jclass _clazz,jobject thiz,const char* name,jbyteArray  & arr);
@@ -76,11 +80,6 @@ extern jint*    intArray2Ptr   (JNIEnv* env,jclass _clazz,jobject thiz,const cha
 extern jlong*   longArray2Ptr  (JNIEnv* env,jclass _clazz,jobject thiz,const char* name,jlongArray  & arr);
 extern jfloat*  floatArray2Ptr (JNIEnv* env,jclass _clazz,jobject thiz,const char* name,jfloatArray & arr);
 extern jdouble* doubleArray2Ptr(JNIEnv* env,jclass _clazz,jobject thiz,const char* name,jdoubleArray& arr);
-
-extern void setIntArray(JNIEnv* env,jobject thiz,const char* name,int* val, size_t len);
-extern void setDoubleArray(JNIEnv* env,jobject thiz,const char* name,double* val, size_t len);
-
-extern void callThreadJoin(JNIEnv* env,jobject thiz,const char* name);
 
 extern void logv(JNIEnv* env,const char* fmt,...);
 extern void logw(JNIEnv* env,const char* fmt,...);

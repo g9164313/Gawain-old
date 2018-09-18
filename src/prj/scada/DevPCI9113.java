@@ -270,7 +270,7 @@ public class DevPCI9113 extends DevDask {
 				dev.offer(tkn,200,true);
 			}else{
 				btnPlay.setText(TXT_START);
-				dev.clear_token();
+				dev.clearAll();
 			}
 		});
 		

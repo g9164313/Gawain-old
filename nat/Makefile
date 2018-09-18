@@ -1,8 +1,10 @@
 
 DIR_JNI=/home/qq/.local/jdk8/include
 
-TARGET_EXE=gawain
-	
+TARGET_EXE = gawain
+
+TARGET_PART= libdevice.so
+
 #### Pleora eBus ####
 
 ROOT_EBUS:=/home/lib/eBus
@@ -56,46 +58,26 @@ LIB_PYLON :=  -L$(ROOT_PYLON)/lib64 \
 	-lGenApi_gcc40_v2_3 -lGCBase_gcc40_v2_3 -lLog_gcc40_v2_3 -lMathParser_gcc40_v2_3 -lXerces-C_gcc40_v2_7_1 -llog4cpp_gcc40_v2_3 \
 	-Wl,-E
 
-#### Euresys Multicam ####
-
-ROOT_MULTICAM := /opt/euresys/multicam
-
-INC_MULTICAM := -I$(ROOT_MULTICAM)/include
-
-LIB_MULTICAM := -L$(ROOT_MULTICAM) -lMultiCam 
 
 #########################
 ####  configuration  ####
 #########################
 
-CC=g++ -DENABLE_LOG -O0
+CC = g++ -DENABLE_LOG -O0
 
 CC_FLAG = -g -I. -I$(DIR_JNI) -I$(DIR_JNI)/linux
 CC_FLAG += -DVISION $(shell pkg-config --cflags opencv) 
-#CC_FLAG += -march=native ???
-#CC_FLAG += $(shell pkg-config --cflags libmodbus) 
-#CC_FLAG += $(shell pkg-config --cflags qt5) 
-#CC_FLAG += $(INC_EBUS)
-#CC_FLAG += $(INC_FLYCAPTURE)
-#CC_FLAG += $(INC_XIMEA)
-#CC_FLAG += $(INC_PYLON)
-#CC_FLAG += $(INC_MULTICAM)
+CC_FLAG += $(shell pkg-config --cflags libusb-1.0) 
+CC_FLAG += $(shell pkg-config --cflags libmodbus)
 
-LD_LIBS = $(shell pkg-config --libs opencv)  -lmodbus
-#LD_LIBS += $(shell pkg-config --libs libmodbus) 
-#LD_LIBS += $(shell pkg-config --libs Qt5Core Qt5Gui Qt5Widgets Qt5Test)
-#LD_LIBS += $(LIB_EBUS)
-LD_LIBS += $(LIB_FLYCAPTURE)
-LD_LIBS += $(LIB_XIMEA)
-#LD_LIBS += $(LIB_PYLON)
-#LD_LIBS += $(LIB_MULTICAM)
+LD_LIBS = $(shell pkg-config --libs opencv)
+LD_LIBS += $(shell pkg-config --libs libusb-1.0) 
+LD_LIBS += $(shell pkg-config --libs libmodbus)
 
 ########################
 
 CORE_SO = libspringboard.so
 CORE_FILE = util_miscellany.cpp wrap_PanPuppetter.cpp
-
-DEVICE_FILE = ./device/DevTTY.cpp ./util_jni.cpp
 
 VISION_SO = libvision.so
 VISION_FILE =  util_jni.cpp util_cv.cpp ./vision/CamBundle.cpp ./vision/CamDummy.cpp 
@@ -107,7 +89,6 @@ VISION_FILE += ./vision/CamVidcap.cpp
 #IMG_FILTER =
 LIB_SFRISO = ./SFR/FltrSlangEdge.cpp ./SFR/sfr_iso.c 
 
-#PRJ_CUSTOM = PrjLetterpress.cpp
 ########################
 
 OBJECTS = $(SOURCES:.cpp=.o)
@@ -125,6 +106,7 @@ else
 	@echo "process is running!!!"
 endif
 
+####################################################
 $(VISION_SO): $(VISION_FILE) 
 	$(CC) -fPIC -shared -o $@ $^ $(LD_LIBS) $(CC_FLAG)
 	cp -rf $@ ../bin/narl/itrc/nat
@@ -137,29 +119,26 @@ else
 endif
 
 ####################################################
-libdevice.so: $(DEVICE_FILE)
+libdevice.so: ./util_jni.cpp ./device/DevTTY.cpp ./device/DevUSB.cpp
 	$(CC) -fPIC -shared -o $@ $^ $(LD_LIBS) $(CC_FLAG)
 	cp -rf $@ ../bin/narl/itrc/nat
 	cp -rf $@ ../src/narl/itrc/nat
 ifeq ($(CHECK_EXEC),)
-	@echo "no process is running, so we move it~~"
+	@echo "no process is running, so we rewrite it~~"
 	cp -rf $@ ~/.gawain/$@
 else
 	@echo "process is running!!!"
 endif
 
+####################################################
 
-
-#$(TARGET_EXE):  ./test/main2.cpp ./test/misc.cpp ./util_cv.cpp $(CORE_FILE) $(LIB_SFRISO)
-$(TARGET_EXE):  ./test/main-xx1.cpp ./test/misc.cpp
-#$(TARGET_EXE):  ./test/main-glance.cpp
-#$(TARGET_EXE):  $(wildcard ./traincascade/*.cpp)
-#$(TARGET_EXE):  ./running/FlyCap2.cpp
+$(TARGET_EXE):  ./test/main-xx4.cpp ./test/misc.cpp
 	$(CC) -o $@ $^ $(CC_FLAG) $(LD_LIBS)
+	
+####################################################
 
-#all: $(CORE_SO)
-#all: $(CORE_SO) $(VISION_SO)
-all: $(TARGET_EXE) libdevice.so
+
+all: $(TARGET_EXE) $(TARGET_PART)
 
 clean:
 	rm -rf $(TARGET_EXE) $(TARGET_SO) $(DIR_SRC)/*.o ./*.o

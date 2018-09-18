@@ -241,10 +241,15 @@ abstract public class DevBase {
 		return this;
 	}
 	
+	protected DevBase withdraw(TokenBase tkn){
+		queuer.remove(tkn);
+		return this;
+	}
+	
 	/**
 	 * clear all token
 	 */
-	protected void clear_token(){
+	protected void clearAll(){
 		queuer.clear();
 	}
 	
