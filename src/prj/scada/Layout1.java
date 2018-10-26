@@ -23,9 +23,9 @@ import javafx.scene.layout.VBox;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
 
-public class Layout_1 {
+public class Layout1 {
 
-	public static Node gen_information(final DevSPIK2000 dev){
+	public static Node gen_information(final DevSPIK2k dev){
 		
 		final int MIN_COL_WIDTH = 53;
 		
@@ -97,16 +97,6 @@ public class Layout_1 {
 		lay2.addRow(2, chk[2], chk[6]); 
 		lay2.addRow(3, chk[3], chk[7]); 
 		
-		final JFXToggleButton tglUpdate = new JFXToggleButton();
-		tglUpdate.setText("Auto Update");
-		tglUpdate.setSelected(dev.autoUpdate);
-		tglUpdate.setOnAction(event->{
-			dev.autoUpdate = tglUpdate.isSelected();
-			if(dev.autoUpdate==true){
-				dev.update();
-			}
-		});
-		
 		final JFXToggleButton tglRun = new JFXToggleButton();
 		tglRun.setText("Running");
 		tglRun.selectedProperty().unbindBidirectional(dev.State_Running);
@@ -138,7 +128,7 @@ public class Layout_1 {
 				}
 				@Override
 				public void eventShown(PanBase self) {
-					//dev.getRegister();//get the first initialization
+					dev.getRegister();//get the first initialization
 				}
 			}.appear();
 		});
@@ -153,7 +143,6 @@ public class Layout_1 {
 		lay0.setStyle("-fx-padding: 7; -fx-spacing: 7;");
 		lay0.getChildren().addAll(
 			lay1, lay2,
-			tglUpdate,
 			tglRun,
 			tglDC_1, 
 			tglDC_2,			
@@ -187,7 +176,7 @@ public class Layout_1 {
 		}
 	};
 	
-	private static Node gen_setting(DevSPIK2000 dev){
+	private static Node gen_setting(DevSPIK2k dev){
 		
 		final ItemParam[] parm = {
 			new ItemParam("Pulse_Pos", dev.Reg_Puls_Pos),

@@ -51,7 +51,7 @@ int main(int argc, char* argv[]) {
 	//struct libusb_device_descriptor desc;
 	//libusb_get_device_descriptor(dev, &desc);
 
-	int num_conf;
+	int num_conf, res;
 	libusb_get_configuration(handle, &num_conf);
 
 	libusb_config_descriptor* conf;

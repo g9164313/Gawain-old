@@ -25,31 +25,31 @@ extern "C" JNIEXPORT jboolean JNICALL Java_narl_itrc_DevUSB_configure(
 		return JNI_FALSE;
 	}
 
-	int res = libusb_set_auto_detach_kernel_driver(handle,1);
-
 	libusb_device* dev = libusb_get_device(handle);
 
 	libusb_config_descriptor* conf;
 
+	int res = libusb_set_auto_detach_kernel_driver(handle,1);
+
 	res = libusb_get_active_config_descriptor(dev, &conf);
 	if(res!=0){
-		printf("fail to get configure");
+		cout<<"fail to get configure"<<endl;
 		return JNI_FALSE;
 	}
 
 	const libusb_interface* p_face = conf->interface;
+
 	int numFace = conf->bNumInterfaces;
-	/*
+
 	for(int i=0; i<numFace; i++){
 
 		const libusb_interface_descriptor* face = p_face[i].altsetting;
 
 		res = libusb_claim_interface(handle, face->bInterfaceNumber);
 		if(res!=0){
-			printf("fail to claim interface[%d]",i);
+			cout<<"fail to claim-"<<(int)face->bInterfaceNumber<<endl;
 		}
-	}*/
-	libusb_claim_interface(handle, 0);
+	}
 
 	setJLong(env,thiz, DEVICE_FIELD, (long)handle);
 	setJLong(env,thiz, FACE_FIELD  , (long)(p_face));

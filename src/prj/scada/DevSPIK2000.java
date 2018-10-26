@@ -78,9 +78,9 @@ public class DevSPIK2000 extends DevTTY {
 						break;
 					case MSG_MEASURE:
 						proc_read_meas();
-						//lstToken.add(tkn);//for next turn~~~~
 						break;
-					case MSG_UPDATE://update status, error flag and measurement
+					case MSG_UPDATE:
+						//update status, error flag and measurement
 						proc_read_meas();
 						proc_read_data(tkn);
 						if(autoUpdate==true){
@@ -239,12 +239,15 @@ public class DevSPIK2000 extends DevTTY {
 		}
 		return this; 
 	}
+	
 	public DevSPIK2000 clearErr(){ 
 		return setRegister(1, 1, 0x03);
 	}
+	
 	public DevSPIK2000 Save_CFG(){ 
 		return setRegister(1, 1, 0x10); 
 	}
+	
 	public DevSPIK2000 setDC1(boolean enable){ 
 		if(enable==false){
 			setRegister(1, 1, 0x20);	

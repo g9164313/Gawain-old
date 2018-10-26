@@ -20,7 +20,7 @@ import javafx.stage.FileChooser;
 import narl.itrc.Gawain;
 import narl.itrc.PanBase;
 import narl.itrc.UtilRandom;
-import narl.itrc.vision.ImgPreview;
+import narl.itrc.vision.ImgPreviewX;
 
 /**
  * This panel is designed for control virtual machine.<br>
@@ -43,7 +43,7 @@ public class PanSandbox extends PanBase{
 		final Tab tabView = new Tab("螢幕畫面");
 		tabView.setClosable(false);
 		tabView.setId("");
-		tabView.setContent(new ImgPreview());
+		tabView.setContent(new ImgPreviewX());
 		
 		final TabPane lay2 = new TabPane();
 		lay2.getTabs().add(tabView);

@@ -92,7 +92,7 @@ public class UtilPhysical {
 		return 0.;//??? what is going on ???
 	}
 
-	private static String[] split_value_unit(String txt){
+	public static String[] split_value_unit(String txt){
 		txt = txt.replaceAll("\\s+", "");		
 		int i = 0;
 		for(i=0; i<txt.length(); i++){

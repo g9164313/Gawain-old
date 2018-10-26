@@ -7,7 +7,7 @@ import javafx.animation.Timeline;
 import javafx.collections.ObservableList;
 import javafx.util.Duration;
 
-public abstract class CamBundle extends ImgPreview {
+public abstract class CamBundle extends ImgPreviewX {
 
 	public CamBundle(){
 	}

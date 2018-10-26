@@ -23,9 +23,9 @@ abstract public class DevBase {
 		alert.setHeaderText("");
 	}
 	
-	protected abstract boolean looper(TokenBase token);
+	protected abstract boolean looper(TokenBase obj);
 	
-	protected abstract boolean eventReply(TokenBase token);
+	protected abstract boolean eventReply(TokenBase obj);
 	
 	protected abstract void eventLink(); 
 	
@@ -48,12 +48,12 @@ abstract public class DevBase {
 		/**
 		 * Whether Looper decides to invoke GUI event.<p> 
 		 */
-		private boolean isEvent = true;
+		public boolean isEvent = true;
 		
 		/**
 		 * Whether Looper queues token again.<p> 
 		 */
-		private boolean isRerun = false;
+		public boolean isPermanent = false;
 		
 		public TokenBase(){
 		}
@@ -141,10 +141,7 @@ abstract public class DevBase {
 				return;				
 			}
 		}
-		
-		//clear previous tokens...
-		queuer.clear();
-		
+
 		//let user prepare something
 		eventLink();
 		
@@ -171,7 +168,7 @@ abstract public class DevBase {
 							break;
 						}
 					}
-					if(obj.isRerun==true){
+					if(obj.isPermanent==true){
 						obj.cntBegin = System.currentTimeMillis();//count again~~~
 						queuer.offer(obj);
 					}
@@ -193,8 +190,9 @@ abstract public class DevBase {
 				looper.cancel();				
 			}
 			looper = null;
-		}
+		}		
 		eventUnlink();
+		queuer.clear();//clear token for next turn~~~
 	}
 	
 	protected DevBase offer(TokenBase tkn){
@@ -219,24 +217,24 @@ abstract public class DevBase {
 	protected DevBase offer(
 		TokenBase tkn, 
 		int delay,
-		boolean repeat
+		boolean permanent
 	){	
 		return offer(
 			tkn,
 			delay,
 			TimeUnit.MILLISECONDS,
-			repeat
+			permanent
 		);
 	}
 	protected DevBase offer(
 		TokenBase tkn, 
 		int delay,
 		TimeUnit unit,
-		boolean repeat
+		boolean permanent
 	){
 		tkn.cntBegin= System.currentTimeMillis();
 		tkn.cntDelay= TimeUnit.MILLISECONDS.convert(delay, unit);
-		tkn.isRerun = repeat;
+		tkn.isPermanent = permanent;
 		queuer.offer(tkn);
 		return this;
 	}
@@ -258,7 +256,7 @@ abstract public class DevBase {
 	 */
 	protected void remove_remainder(){
 		for(TokenBase tkn:queuer){
-			if(tkn.isRerun==true){
+			if(tkn.isPermanent==true){
 				queuer.remove(tkn);
 			}
 		}

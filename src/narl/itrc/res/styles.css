@@ -95,6 +95,7 @@
 	-fx-alignment: center;
     -fx-spacing: 13.0;
 }
+/**********************/
 
 .pad-small {
     -fx-padding: 3px;
@@ -105,6 +106,30 @@
 .pad-huge{
     -fx-padding: 24px;
 }
+
+.group-border-0 {
+	-fx-border-width: 3px; 
+	-fx-border-color: red;
+}
+.group-border-1 {
+	-fx-border-width: 1px; 
+	-fx-border-color: black;
+}
+.group-border-2 {
+	-fx-border-width: 2px; 
+	-fx-border-color: red;
+}
+.group-border-3 {
+	-fx-border-width: 2px; 
+	-fx-border-color: aquamarine;
+}
+.group-border {
+	-fx-padding: 7px;
+	-fx-border-width: 1px; 
+	-fx-border-color: black;
+}
+
+/**********************/
 
 .grid-small {
     -fx-padding: 3px;
@@ -132,6 +157,14 @@
     -fx-padding: 13px;
     -fx-hgap: 13px;
     -fx-vgap: 13px;
+}
+
+.grid-small-with-boarder {
+	-fx-hgap: 7px; 
+	-fx-vgap: 7px; 
+	-fx-padding: 7; 
+	-fx-border-width: 1; 
+	-fx-border-color: black;
 }
 
 /**********************/

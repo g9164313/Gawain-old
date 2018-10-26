@@ -176,6 +176,9 @@ public class Misc {
 	public static ImageView getResIcon(String pkg, String name){
 		return new ImageView(getResImage(pkg, name));
 	}
+	public static Image getResImage(String name){
+		return getResImage("/narl/itrc/res/icon",name);
+	}
 	public static Image getResImage(String pkg, String name){
 		return new Image(Gawain.class.getResourceAsStream(pkg+"/"+name));
 	}

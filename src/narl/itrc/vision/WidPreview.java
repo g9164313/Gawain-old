@@ -20,7 +20,7 @@ import javafx.scene.shape.Rectangle;
 import narl.itrc.Gawain;
 import narl.itrc.Misc;
 
-public class WidPreview extends ImgPreview {
+public class WidPreview extends ImgPreviewX {
 
 	private final int STA_IDLE = 0;
 	private final int STA_MARK_NAIL = 1;

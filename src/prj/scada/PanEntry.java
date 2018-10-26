@@ -14,7 +14,7 @@ import narl.itrc.PanBase;
 
 public class PanEntry extends PanBase {
 
-	private DevSPIK2000 spik = new DevSPIK2000();
+	private DevSPIK2k spik = new DevSPIK2k();
 	
 	private DevSQM160 sqm = new DevSQM160("\\\\.\\COM2,19600,8n1");
 	
@@ -34,7 +34,7 @@ public class PanEntry extends PanBase {
 		//pid.createLeaf(PID_Const.Pipe1UP, 5, 5);
 		
 		final TitledPane tps[] ={
-			new TitledPane("SPIK2000", Layout_1.gen_information(spik)),
+			new TitledPane("SPIK2000", Layout1.gen_information(spik)),
 			new TitledPane("SQM160  ", DevSQM160.gen_panel(sqm)),
 			new TitledPane("PCI9113 ", DevPCI9113.gen_panel(pci0)),			
 		};
@@ -45,7 +45,7 @@ public class PanEntry extends PanBase {
 		//layout-2: diagram, gauge console and script editor
 		final Tab[] tabs = {
 			new Tab("管路控制", pid),			
-			new Tab("資訊面板", Layout_1.gen_gauge_scope(spik)),
+			new Tab("資訊面板", null),
 			new Tab("時間-頻譜", DevHS2000.gen_panel(hs2k)),
 			new Tab("腳本編輯",new PID_Leaf().generate_brick()),			
 			new Tab("其他"),	

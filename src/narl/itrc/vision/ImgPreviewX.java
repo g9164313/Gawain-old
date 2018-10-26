@@ -20,7 +20,7 @@ import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.StackPane;
 import narl.itrc.Misc;
 
-public class ImgPreview extends ScrollPane {	
+public class ImgPreviewX extends ScrollPane {	
 	
 	protected IntegerProperty propFPS = new SimpleIntegerProperty(0);
 	protected StringProperty propSize = new SimpleStringProperty(Misc.TXT_UNKNOW);
@@ -31,11 +31,11 @@ public class ImgPreview extends ScrollPane {
 	
 	private final ImageView vew = new ImageView();
 
-	public ImgPreview(){
+	public ImgPreviewX(){
 		this(640,480);
 	}
 	
-	public ImgPreview(int width, int height){
+	public ImgPreviewX(int width, int height){
 		
 		//for(AnchorPane pan:overlay){
 			//pan.setStyle("-fx-border-color: mediumorchid; -fx-border-width: 4px;");//for debug

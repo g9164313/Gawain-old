@@ -73,7 +73,7 @@ public class DevUSB {
 		listEndpoint();
 	}
 	
-	public int timeout = 100;
+	public int timeout = 200;
 	
 	public int write(int id, byte[] buffer){
 		return write(id, buffer, -1, timeout);

@@ -41,7 +41,7 @@ import javafx.util.StringConverter;
 import narl.itrc.DiaChoice;
 import narl.itrc.Gawain;
 import narl.itrc.Misc;
-import narl.itrc.vision.ImgPreview;
+import narl.itrc.vision.ImgPreviewX;
 import narl.itrc.vision.UtilPerceive;
 
 public class TaskSandbox extends Task<Integer> {
@@ -388,10 +388,10 @@ public class TaskSandbox extends Task<Integer> {
 			final Runnable event = new Runnable(){
 				@Override
 				public void run() {
-					if(node instanceof ImgPreview){
-						((ImgPreview)node).setImage(buf);
+					if(node instanceof ImgPreviewX){
+						((ImgPreviewX)node).setImage(buf);
 					}else if(node instanceof ImageView){
-						ImgPreview.file2image(buf, ((ImageView)node));
+						ImgPreviewX.file2image(buf, ((ImageView)node));
 					}
 				}
 			};
