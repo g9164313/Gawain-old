@@ -182,14 +182,6 @@ public class Misc {
 	public static Image getResImage(String pkg, String name){
 		return new Image(Gawain.class.getResourceAsStream(pkg+"/"+name));
 	}
-	
-	public static Image getFileImage(String name){
-		File fs = new File(name);
-		if(fs.isFile()==false){
-			return null;
-		}		
-		return new Image(fs.toURI().toString());
-	}
 
 	/*public static FileChooser genChooseImage(){
 		final FileChooser.ExtensionFilter exts[] = {

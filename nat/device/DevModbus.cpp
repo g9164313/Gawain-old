@@ -146,7 +146,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevModbus_write(
 	if(addr>0){
 		modbus_set_slave(ctx,addr);
 	}
-	jsize len = env->GetArrayLength(jbuf);
+	jsize   len = env->GetArrayLength(jbuf);
 	jshort* buf = env->GetShortArrayElements(jbuf,NULL);
 	modbus_write_registers(ctx,off,len,(uint16_t*)buf);
 	env->ReleaseShortArrayElements(jbuf,buf,0);

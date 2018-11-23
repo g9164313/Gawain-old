@@ -27,7 +27,6 @@ import java.util.jar.JarFile;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Application;
-import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.Scene;
@@ -408,20 +407,16 @@ public class Gawain extends Application {
 	}
 	
 	@Override
-	public void start(Stage primaryStage) throws Exception {
-		
-		new Loader().standby();
-		
-		String name;
-		try {
-			name = prop.getProperty("LAUNCH","");
-			Object obj = Class.forName(name).newInstance();
+	public void start(Stage primaryStage) throws Exception {		
+		try {			
+			String name = prop.getProperty("LAUNCH","");
 			//$ Demo how to pass arguments~~~
 			//Param1Type param1;
 			//Class cl = Class.forName(className);
 			//Constructor con = cl.getConstructor(Param1Type.class);
 			//obj = con.newInstance(param1,param2);
-			panRoot = (PanBase)obj;			
+			panRoot = (PanBase)Class.forName(name).newInstance();
+			new Loader().standby();
 			panRoot.appear(primaryStage);
 			hookShown();
 			//Misc.logv("啟動 launch [%s]",name);
@@ -462,9 +457,9 @@ public class Gawain extends Application {
 	
 	public static final boolean isPOSIX;
 		
-	public static final String pathRoot;//Working directory path
+	public static final String pathRoot;//Working directory.
 	public static final String pathHome;//User home directory.
-	public static final String pathSock;//the path for storing data or setting file
+	public static final String pathSock;//Data or setting directory.
 		
 	public static final File dirRoot;
 	public static final File dirHome;

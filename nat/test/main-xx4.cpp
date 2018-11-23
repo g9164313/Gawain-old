@@ -261,6 +261,32 @@ int main1(int argc, char* argv[]){
 
 int main(int argc, char* argv[]){
 
+	const int gird = 255;
+
+	Mat aaa = Mat::zeros(1,gird,CV_8UC1);
+	for(int i=0; i<gird; i++){
+		aaa.at<uint8_t>(0,i) = i+1;
+	}
+
+	Mat bbb = Mat::zeros(1,gird,CV_8UC3);
+	applyColorMap(aaa, bbb, COLORMAP_JET);
+
+	printf("const Scalar ccmap[] = {\n");
+	for(int i=0; i<gird; i++){
+		Vec3b val = bbb.at<Vec3b>(0,i);
+		printf("\tScalar(0x%02X,0x%02X,0x%02X),\n",
+			(int)val[2],
+			(int)val[1],
+			(int)val[0]
+		);
+	}
+	printf("};\n");
+
+	return 0;
+}
+
+int main1(int argc, char* argv[]){
+
 	//generate HSV color mapping
 
 	const int ss = 1024 * 16;
@@ -294,9 +320,9 @@ int main(int argc, char* argv[]){
 	//cout<<"\tpublic static final int mapOct[] = {";
 	//cout<<"\tpublic static final int mapDec[] = {";
 	//cout<<"\tpublic static final int mapDuo[] = {";
-	cout<<"\tpublic static final int mapQua[] = {";
+	//cout<<"\tpublic static final int mapQua[] = {";
 	//cout<<"\tpublic static final int mapSed[] = {";
-	for(int s=0; s<ss; s++){
+	/*for(int s=0; s<ss; s++){
 		Vec3f val = bb.at<Vec3f>(hh/2, s*ww);
 		int argb = 0xFF000000;
 		argb = argb | ((((int)val[2])&0xFF)<<16);
@@ -307,7 +333,7 @@ int main(int argc, char* argv[]){
 		}
 		printf("0x%08X, ", argb);
 	}
-	cout<<"\n\t};"<<endl;
+	cout<<"\n\t};"<<endl;*/
 
 	return 0;
 }

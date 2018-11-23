@@ -18,11 +18,13 @@ public class PanEntry extends PanBase {
 	
 	private DevSQM160 sqm = new DevSQM160("\\\\.\\COM2,19600,8n1");
 	
-	private DevPCI9113 pci0 = new DevPCI9113(0);
+	//private DevPCI9113 pci0 = new DevPCI9113(0);
 	
 	private PID_Root pid = new PID_Root(Gawain.pathSock+"ggyy.xml");
 	
 	private DevHS2000 hs2k = new DevHS2000();
+	
+	private DevCoupler cup = new DevCoupler();
 	
 	public PanEntry(){
 	}
@@ -34,9 +36,9 @@ public class PanEntry extends PanBase {
 		//pid.createLeaf(PID_Const.Pipe1UP, 5, 5);
 		
 		final TitledPane tps[] ={
+			new TitledPane("總線耦合器", DevCoupler.gen_panel(cup)),
 			new TitledPane("SPIK2000", Layout1.gen_information(spik)),
-			new TitledPane("SQM160  ", DevSQM160.gen_panel(sqm)),
-			new TitledPane("PCI9113 ", DevPCI9113.gen_panel(pci0)),			
+			new TitledPane("SQM160", DevSQM160.gen_panel(sqm)),
 		};
 		final Accordion lay1 = new Accordion();
 		lay1.getPanes().addAll(tps);
@@ -86,17 +88,17 @@ public class PanEntry extends PanBase {
 
 	@Override
 	public void eventShown(PanBase self) {
-		//dev.link("\\\\.\\COM2,19200,8n1");
 		//sqm.link();
 		//pci0.link();
-		hs2k.link();
+		//hs2k.link();
+		cup.link("TCP:172.16.2.144");
 	}
 
 	@Override
-	public void eventClose(PanBase self) {		
-		//dev.unlink();
+	public void eventClose(PanBase self) {
 		//sqm.unlink();
 		//pci0.unlink();
-		hs2k.unlink();
+		//hs2k.unlink();
+		cup.unlink();
 	}
 }

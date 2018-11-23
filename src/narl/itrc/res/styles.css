@@ -77,23 +77,23 @@
 
 .hbox-medium-space, .vbox-medium-space{
 	-fx-padding: 7;
-    -fx-spacing: 13;
+  -fx-spacing: 13;
 }
 
 .hbox-test, .vbox-test {
 	-fx-border-color: #3375FF;
-    -fx-padding: 13;
-    -fx-spacing: 13;
+  -fx-padding: 13;
+  -fx-spacing: 13;
 }
 
 .hbox-one-line {
 	-fx-alignment: center-left;
-    -fx-spacing: 7.0;
+  -fx-spacing: 7.0;
 }
 
 .hbox-spacing {
 	-fx-alignment: center;
-    -fx-spacing: 13.0;
+  -fx-spacing: 13.0;
 }
 /**********************/
 
@@ -107,6 +107,10 @@
     -fx-padding: 24px;
 }
 
+.group-border-d1 {
+	-fx-border-width: 3px; 
+	-fx-border-color: aqua;
+}
 .group-border-0 {
 	-fx-border-width: 3px; 
 	-fx-border-color: red;
@@ -132,7 +136,7 @@
 /**********************/
 
 .grid-small {
-    -fx-padding: 3px;
+    -fx-padding: 7px;
     -fx-hgap: 7px;
     -fx-vgap: 7px;
 }
@@ -168,17 +172,19 @@
 }
 
 /**********************/
-.table-row-hbox {
+
+.pad-space-small, .table-row-hbox{
 	-fx-padding: 13px;
-    -fx-spacing: 13px;
+  -fx-spacing: 13px;
 }
 .table-col-vbox {
-    -fx-spacing: 13px;
+   -fx-spacing: 13px;
 }
 
 .table-col-grid {
-    -fx-vgap: 13px;
+   -fx-vgap: 13px;
 }
+
 /**********************/
 
 .flow-small {
@@ -301,6 +307,12 @@
 			chocolate,
 			derive(chocolate, 50%)
 		);
+}
+
+.mylistview .scroll-bar:vertical .decrement-button {
+    -fx-background-color:transparent;
+    -fx-background-radius: 0em;
+    -fx-padding:0 10 0 0;
 }
 
 

@@ -14,7 +14,7 @@ using namespace std;
 
 #include <libusb.h>
 
-int main(int argc, char* argv[]) {
+int main1(int argc, char* argv[]) {
 
 	int resp = libusb_init(NULL);
 
@@ -106,31 +106,61 @@ int main(int argc, char* argv[]) {
 
 #include <modbus.h>
 
-int main2(int argc, char* argv[]) {
+int main(int argc, char* argv[]) {
 
 	modbus_t *ctx;
 	uint16_t tab_reg[64];
 	int rc;
 	int i;
 
-	ctx = modbus_new_rtu("/dev/ttyUSB0",9600,'N',8,1);
-	if (modbus_connect(ctx) == -1) {
+	//ctx = modbus_new_rtu("/dev/ttyUSB0",9600,'N',8,1);
+	ctx = modbus_new_tcp("172.16.2.144", MODBUS_TCP_DEFAULT_PORT);
+
+	if(modbus_connect(ctx) == -1){
 		fprintf(stderr, "Connection failed: %s\n", modbus_strerror(errno));
 		modbus_free(ctx);
 		return -1;
 	}
 
+	timeval timeout;
+	modbus_get_response_timeout(ctx, &timeout);
+	timeout.tv_sec = 1;
+	timeout.tv_usec= 0;
+	modbus_set_response_timeout(ctx, &timeout);
+
+
+	modbus_set_debug(ctx,ON);
+
+	//uint8_t id=0xFF;
+	//modbus_report_slave_id(ctx,&id);
 	modbus_set_slave(ctx,1);
 
-	rc = modbus_read_input_registers(ctx,100,1,tab_reg);
+	uint16_t val[] = { 0x01, 0x00FF };
+	rc = modbus_write_registers(ctx, 8001, 1, val);
+
+	//rc = modbus_write_register(ctx, 8001,0x04);
+
+	//uint8_t bits[] = {ON,ON,ON};
+	//rc = modbus_write_register(ctx, 8001, 1);
+
+	//uint16_t src[1]={0x03};
+	//uint16_t dst[1]={0x04};
+	//modbus_write_and_read_registers(
+	//	ctx,
+	//	8001, 1, src,
+	//	8001, 1, dst
+	//);
+
+	//fprintf(stderr, "write failed: %s\n", modbus_strerror(errno));
+
+	/*rc = modbus_read_input_registers(ctx,100,1,tab_reg);
 	if (rc == -1) {
 		fprintf(stderr, "%s\n",modbus_strerror(errno));
 		return -1;
 	}
-
 	for (i = 0; i < rc; i++) {
 		printf("reg[%d]=%d (0x%X)\n", i, tab_reg[i], tab_reg[i]);
-	}
+	}*/
 
 	modbus_close(ctx);
 	modbus_free(ctx);

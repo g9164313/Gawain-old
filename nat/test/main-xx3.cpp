@@ -9,10 +9,8 @@
 #include <zlib.h>
 #include <vector>
 #include <list>
-#include <opencv/cv.h>
-#include <opencv2/opencv.hpp>
 #include <opencv2/line_descriptor.hpp>
-#include "opencv2/stitching/detail/blenders.hpp"
+#include <opencv2/stitching/detail/blenders.hpp>
 
 using namespace cv;
 using namespace line_descriptor;
@@ -65,7 +63,7 @@ void convolveDFT(Mat& A, Mat& B, Mat& C)
     // you need only the first C.rows of them, and thus you
     // pass nonzeroRows == C.rows
 
-    dft(tempA, tempA, DFT_INVERSE + DFT_SCALE);
+    //dft(tempA, tempA, DFT_INVERSE + DFT_SCALE);
     // now copy the result back to C.
     C = tempA(Rect((dftSize.width - A.cols) / 2, (dftSize.height - A.rows) / 2, A.cols, A.rows)).clone();
     // all the temporary buffers will be deallocated automatically
@@ -79,7 +77,7 @@ void ForwardFFT(Mat &Src, Mat *FImg)
     int M = getOptimalDFTSize(Src.rows);
     int N = getOptimalDFTSize(Src.cols);
     Mat padded;
-    copyMakeBorder(Src, padded, 0, M - Src.rows, 0, N - Src.cols, BORDER_CONSTANT, Scalar::all(0));
+    //copyMakeBorder(Src, padded, 0, M - Src.rows, 0, N - Src.cols, BORDER_CONSTANT, Scalar::all(0));
     Mat planes[] = { Mat_<double>(padded), Mat::zeros(padded.size(), CV_64FC1) };
     Mat complexImg;
     merge(planes, 2, complexImg);
@@ -98,7 +96,7 @@ void InverseFFT(Mat *FImg, Mat &Dst)
 {
     Mat complexImg;
     merge(FImg, 2, complexImg);
-    dft(complexImg, complexImg, DFT_INVERSE + DFT_SCALE);
+    //dft(complexImg, complexImg, DFT_INVERSE + DFT_SCALE);
     split(complexImg, FImg);
     Dst = FImg[0];
 }

@@ -1,14 +1,11 @@
 package narl.itrc.vision;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 
 import javax.imageio.ImageIO;
 
-import javafx.beans.property.IntegerProperty;
-import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.embed.swing.SwingFXUtils;
@@ -20,16 +17,12 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.image.PixelReader;
 import javafx.scene.image.WritableImage;
 import javafx.scene.layout.AnchorPane;
-import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
-import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import narl.itrc.ControlWheel;
 import narl.itrc.DevBase;
@@ -55,8 +48,6 @@ public class DevPreview extends DevBase {
 	protected final StringProperty infoMagValue= new SimpleStringProperty("1:1");
 	//frame per second 
 	protected final StringProperty infoFPSValue= new SimpleStringProperty(Misc.TXT_UNKNOW);
-	
-	private WritableImage buff = null;
 
 	private final ImageView view = new ImageView();
 	
@@ -72,7 +63,7 @@ public class DevPreview extends DevBase {
 	
 	public DevPreview() {
 		super(String.format("Previewer-%02d", ref_counter++));
-		root.setMinSize(320,240);
+		root.setMinSize(640,480);
 		root.getChildren().addAll(
 			lay0, 
 			lay2, lay3
@@ -114,15 +105,38 @@ public class DevPreview extends DevBase {
 				change_scope('r', ww, hh);
 			}			
 		});
+		lay.setOnMouseMoved(event->{
+			if(buff==null){
+				return;
+			}
+			int cx = (int)event.getX();
+			int cy = (int)event.getY();
+			int xx = cx;
+			int yy = cy;
+			int argb = buff.getPixelReader().getArgb(xx, yy);
+			infoPixValue.set(String.format(
+				"%3d, %3d, %3d",
+				(argb & 0xFF0000)>>16,
+				(argb & 0x00FF00)>>8,
+				(argb & 0x0000FF)
+			));
+			infoCurLoca.set(String.format(
+				"(%3d,%3d)", 
+				xx, yy
+			));
+		});
 		return lay;
 	}
 
 	private Pane gen_panel_info(){
 		
+		final int FIX_WIDTH = 164;
+		
 		final GridPane lay = new GridPane();
 		//lay.setVisible(false);//default is invisible
 		AnchorPane.setTopAnchor(lay, MARGIN);
 		AnchorPane.setLeftAnchor(lay, MARGIN);
+		lay.setPrefWidth(FIX_WIDTH);
 		lay.setStyle(
 			"-fx-background-color: palegreen; "+
 			"-fx-padding: 7;"+
@@ -158,7 +172,8 @@ public class DevPreview extends DevBase {
 		btnZoomOut.setOnAction(event->change_scope('m',-1, 0));
 		HBox.setHgrow(btnZoomOut, Priority.ALWAYS);
 		
-		final HBox lay1 = new HBox(); 
+		final HBox lay1 = new HBox();
+		lay1.setPrefWidth(FIX_WIDTH);
 		lay1.getChildren().addAll(
 			btnZoomIn, 
 			btnZoomFit, 
@@ -259,6 +274,7 @@ public class DevPreview extends DevBase {
 		}
 		view.setViewport(new Rectangle2D(xx,yy,ww,hh));		
 	}
+	//--------------------------------------//
 	
 	protected void test_draw(
 		final Canvas can, 
@@ -293,14 +309,16 @@ public class DevPreview extends DevBase {
 	}
 	//--------------------------------------//
 	
+	private WritableImage buff = null;
+
 	@Override
 	protected boolean looper(TokenBase obj) {
-		return false;
+		return true;
 	}
 
 	@Override
 	protected boolean eventReply(TokenBase obj) {
-		return false;
+		return true;
 	}
 
 	@Override

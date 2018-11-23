@@ -8,6 +8,7 @@ import com.sun.glass.ui.Application;
 
 import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
+import javafx.event.Event;
 import javafx.event.EventHandler;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
@@ -57,6 +58,9 @@ abstract public class DevBase {
 		
 		public TokenBase(){
 		}
+		public TokenBase(EventHandler<Event> task){
+			hooker = task;
+		}
 		public TokenBase(int delay){
 			cntDelay = delay;
 		}
@@ -86,7 +90,11 @@ abstract public class DevBase {
 				return;
 			}
 			eventHandler.handle(eventSource);
-		}
+		}		
+		/**
+		 * Override looper event, let thread execute some code~~~ 
+		 */
+		private EventHandler<Event> hooker = null;		
 		
 		@Override
 		public int compareTo(Delayed o) {
@@ -103,7 +111,7 @@ abstract public class DevBase {
 			return cntDelay;
 		}
 	}
-	
+
 	protected static class EventRun implements Runnable{
 		
 		private DevBase dev = null;
@@ -150,7 +158,7 @@ abstract public class DevBase {
 			@Override
 			protected Void call() throws Exception {
 				
-				EventRun event = new EventRun(DevBase.this);
+				final EventRun event = new EventRun(DevBase.this);
 				
 				//this is main looper and device core.
 				while(looper.isCancelled()==false){
@@ -160,9 +168,13 @@ abstract public class DevBase {
 					if(obj.cntBegin<0){						
 						break;//special token~~~
 					}
-					if(looper(obj)==false){
-						break;
-					}
+					if(obj.hooker==null){
+						if(looper(obj)==false){
+							break;
+						}
+					}else{
+						obj.hooker.handle(null);
+					}					
 					if(obj.isEvent==true){
 						if(event.invoke(obj)==false){
 							break;
@@ -173,6 +185,7 @@ abstract public class DevBase {
 						queuer.offer(obj);
 					}
 				}
+				
 				Misc.logv("%s looper is done!!!", TAG);
 				return null;
 			}
@@ -205,27 +218,51 @@ abstract public class DevBase {
 	}
 	protected DevBase offer(
 		TokenBase tkn, 
-		int delay
+		int delay_ms
 	){	
 		return offer(
 			tkn,
-			delay,
+			delay_ms,
 			TimeUnit.MILLISECONDS,
 			false
 		);
 	}
 	protected DevBase offer(
 		TokenBase tkn, 
-		int delay,
+		int delay_ms,
 		boolean permanent
 	){	
 		return offer(
 			tkn,
-			delay,
+			delay_ms,
 			TimeUnit.MILLISECONDS,
 			permanent
 		);
 	}
+	protected DevBase offerTask(
+		final int delay_ms,
+		final EventHandler<Event> task
+	){
+		return offer(
+			new TokenBase(task),
+			delay_ms,
+			TimeUnit.MILLISECONDS,
+			false
+		);
+	}
+			
+	protected DevBase offerAnony(
+		int delay_ms,
+		boolean permanent
+	){
+		return offer(
+			new TokenBase(),
+			delay_ms,
+			TimeUnit.MILLISECONDS,
+			permanent
+		);
+	}
+	
 	protected DevBase offer(
 		TokenBase tkn, 
 		int delay,
