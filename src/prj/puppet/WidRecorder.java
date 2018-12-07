@@ -18,7 +18,7 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
-import narl.itrc.ButtonExtra;
+import narl.itrc.ButtonEx;
 import narl.itrc.Gawain;
 import narl.itrc.PanBase;
 import narl.itrc.UtilTaskTool;
@@ -45,22 +45,22 @@ public class WidRecorder extends PanBase {
 		final Label txtRecog = new Label();
 		txtRecog.setMaxWidth(Double.MAX_VALUE);
 			
-		final ButtonExtra btnMarkSet= new ButtonExtra("定位標記").setStyleBy("btn-raised-4");		
+		final ButtonEx btnMarkSet= new ButtonEx("定位標記").setStyleBy("btn-raised-4");		
 		btnMarkSet.setOnAction(e->monitor.markLocate(boxROI));
 		btnMarkSet.setMaxWidth(Double.MAX_VALUE);
 			
-		final ButtonExtra btnRecTest = new ButtonExtra("OCR 測試").setStyleBy("btn-raised-4");
+		final ButtonEx btnRecTest= new ButtonEx("OCR 測試").setStyleBy("btn-raised-4");
 		btnRecTest.setOnTask(e1->{
 			int[] roi = UtilTaskTool.getTextRoi(boxROI);
-			((ButtonExtra)e1.getSource()).arg = monitor.recognizeDigital(roi);
+			((ButtonEx)e1.getSource()).arg = monitor.recognizeDigital(roi);
 		}, e2->{
-			String txt = (String)((ButtonExtra)e2.getSource()).arg;
+			String txt = (String)((ButtonEx)e2.getSource()).arg;
 			txtRecog.setText(txt);
 		});
 				
 		btnRecTest.setMaxWidth(Double.MAX_VALUE);
 			
-		final ButtonExtra btnMarkDel = new ButtonExtra("清除標記").setStyleBy("btn-raised-4");		
+		final ButtonEx btnMarkDel= new ButtonEx("清除標記").setStyleBy("btn-raised-4");		
 		btnMarkDel.setOnAction(e->monitor.markClear());
 		btnMarkDel.setMaxWidth(Double.MAX_VALUE);
 			
@@ -83,7 +83,7 @@ public class WidRecorder extends PanBase {
 		//boxScript.setMaxHeight(Double.MAX_VALUE);
 		//boxScript.setPrefSize(143, 143);
 
-		final ButtonExtra btnMouseTrace = new ButtonExtra(
+		final ButtonEx btnMouseTrace = new ButtonEx(
 			"追蹤右鍵",null,
 			"取消追蹤",null
 		);
@@ -114,7 +114,7 @@ public class WidRecorder extends PanBase {
 			boxScript.setScrollTop(Double.MAX_VALUE);
 		});
 			
-		final ButtonExtra btnScriptExec = new ButtonExtra(
+		final ButtonEx btnScriptExec = new ButtonEx(
 			"執行","play.png",
 			"取消","pause.png"
 		).setStyleBy("btn-raised-3");
@@ -131,7 +131,7 @@ public class WidRecorder extends PanBase {
 			}
 		},null);
 				
-		final ButtonExtra btnScriptSave = new ButtonExtra(
+		final ButtonEx btnScriptSave = new ButtonEx(
 			"儲存","content-save.png"
 		).setStyleBy("btn-raised-3");	
 		btnScriptSave.setMaxWidth(Double.MAX_VALUE);
@@ -152,7 +152,7 @@ public class WidRecorder extends PanBase {
 			}
 		});
 			
-		final ButtonExtra btnScriptLoad = new ButtonExtra(
+		final ButtonEx btnScriptLoad = new ButtonEx(
 			"載入","upload.png"
 		).setStyleBy("btn-raised-3");	
 		btnScriptLoad.setMaxWidth(Double.MAX_VALUE);

@@ -11,11 +11,11 @@ public class ComboExtra<T> extends ComboBox<String> {
 	public ComboExtra(){
 	}
 	
-	@SuppressWarnings("unchecked")
 	public ComboExtra(Object... args){
 		addItems(args);
 	}
 	
+	@SuppressWarnings("unchecked")
 	public ComboExtra<T> addItems(Object... args){
 		
 		getItems().clear();

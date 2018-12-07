@@ -20,7 +20,7 @@ public class ButtonBounce extends Button {
 			setText(title);
 		}
 		if(iconName.length()!=0){
-			setGraphic(Misc.getResIcon(iconName));
+			setGraphic(Misc.getIconView(iconName));
 		}
 	}
 
@@ -30,7 +30,7 @@ public class ButtonBounce extends Button {
 	}
 	
 	public ButtonBounce setIcon(String iconName){
-		setGraphic(Misc.getResIcon(iconName));
+		setGraphic(Misc.getIconView(iconName));
 		return this;
 	}
 	

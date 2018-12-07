@@ -1,4 +1,4 @@
-package prj.plan;
+package prj.economy;
 
 import java.util.Optional;
 
@@ -21,9 +21,9 @@ import narl.itrc.PanBase;
 
 public class FragAuth extends HBox {
 
-	private TableView<ItemHand> hand = new TableView<ItemHand>();
+	private TableView<ItemHands> hand = new TableView<ItemHands>();
 	
-	private ListView<ItemBill> pool = new ListView<ItemBill>();
+	private ListView<ItemBills> pool = new ListView<ItemBills>();
 	
 	public FragForm form;
 	
@@ -36,7 +36,7 @@ public class FragAuth extends HBox {
 		final Button btnAssign = PanBase.genButton2("指派", null);
 		btnAssign.setMaxWidth(Double.MAX_VALUE);
 		btnAssign.setOnAction(event->{
-			final ObservableList<ItemBill> lst = form.getBill();
+			final ObservableList<ItemBills> lst = form.getBill();
 			if(lst.size()==0){
 				return;
 			}
@@ -53,7 +53,7 @@ public class FragAuth extends HBox {
 		final Button btnCancel = PanBase.genButton2("退回", null);
 		btnCancel.setMaxWidth(Double.MAX_VALUE);
 		btnCancel.setOnAction(event->{
-			final ObservableList<ItemBill> lst = pool.getSelectionModel().getSelectedItems();
+			final ObservableList<ItemBills> lst = pool.getSelectionModel().getSelectedItems();
 			if(lst.size()==0){
 				return;
 			}
@@ -73,14 +73,14 @@ public class FragAuth extends HBox {
 	@SuppressWarnings("unchecked")
 	private void init_hand_pool(){
 		
-		final TableColumn<ItemHand,String> col1 = new TableColumn<ItemHand,String>("姓名");
-		col1.setCellValueFactory(new PropertyValueFactory<ItemHand,String>("name"));
+		final TableColumn<ItemHands,String> col1 = new TableColumn<ItemHands,String>("姓名");
+		col1.setCellValueFactory(new PropertyValueFactory<ItemHands,String>("name"));
 
-		final TableColumn<ItemHand,String> col2 = new TableColumn<ItemHand,String>("地點");
-		col2.setCellValueFactory(new PropertyValueFactory<ItemHand,String>("zone"));
+		final TableColumn<ItemHands,String> col2 = new TableColumn<ItemHands,String>("地點");
+		col2.setCellValueFactory(new PropertyValueFactory<ItemHands,String>("zone"));
 		
-		final TableColumn<ItemHand,Integer> col3 = new TableColumn<ItemHand,Integer>("負載");
-		col3.setCellValueFactory(new PropertyValueFactory<ItemHand,Integer>("loading"));
+		final TableColumn<ItemHands,Integer> col3 = new TableColumn<ItemHands,Integer>("負載");
+		col3.setCellValueFactory(new PropertyValueFactory<ItemHands,Integer>("loading"));
 		
 		hand.getColumns().addAll(col1,col2,col3);
 		hand.setEditable(false);
@@ -94,8 +94,8 @@ public class FragAuth extends HBox {
 		});
 		
 		final MenuItem itm2 = new MenuItem("刪除");
-		itm2.setOnAction(event->{			
-			ItemHand obj = hand.getSelectionModel().getSelectedItem();
+		itm2.setOnAction(event->{
+			ItemHands obj = hand.getSelectionModel().getSelectedItem();
 			if(obj==null){
 				return;
 			}

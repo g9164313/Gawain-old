@@ -1,23 +1,12 @@
 package prj.scada;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.Hashtable;
 
-import javax.imageio.ImageIO;
-
-import javafx.embed.swing.SwingFXUtils;
-import javafx.scene.SnapshotParameters;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.image.WritableImage;
 import javafx.scene.layout.AnchorPane;
-import javafx.scene.paint.Color;
-import javafx.scene.paint.CycleMethod;
-import javafx.scene.paint.LinearGradient;
-import javafx.scene.paint.Stop;
 import narl.itrc.Misc;
 import narl.itrc.UtilRandom;
 
@@ -198,22 +187,22 @@ public class PID_Leaf extends Canvas {
 	public static ImageView getThumb(int type){
 		switch(type){
 		case PID_Const.CURSOR_SELECT:
-			return Misc.getResIcon("cursor-pointer.png"); 
+			return Misc.getIconView("cursor-pointer.png"); 
 		case PID_Const.CURSOR_DELETE:
-			return Misc.getResIcon("trash-can-outline.png");
+			return Misc.getIconView("trash-can-outline.png");
 			
 		case PID_Const.Valve1:
-			return Misc.getResIcon(pkg,"valve-1.png");
+			return Misc.getResView(pkg,"valve-1.png");
 		case PID_Const.Valve2:
-			return Misc.getResIcon(pkg,"valve-2.png");
+			return Misc.getResView(pkg,"valve-2.png");
 		case PID_Const.Pump:
-			return Misc.getResIcon(pkg,"pump_mech.png");
+			return Misc.getResView(pkg,"pump_mech.png");
 		case PID_Const.Cryo:
-			return Misc.getResIcon(pkg,"pump_cryo.png");
+			return Misc.getResView(pkg,"pump_cryo.png");
 		case PID_Const.Sputer:
-			return Misc.getResIcon(pkg,"sputter.png");
+			return Misc.getResView(pkg,"sputter.png");
 		case PID_Const.Strata:
-			return Misc.getResIcon(pkg,"strata.png");
+			return Misc.getResView(pkg,"strata.png");
 		}
 		return getLastSkin(type);
 	}

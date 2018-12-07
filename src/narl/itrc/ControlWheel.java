@@ -300,7 +300,7 @@ public class ControlWheel extends AnchorPane {
 	public ControlWheel setOnFocusView(final EventHandler<ActionEvent> eventFocus){
 		area[0].resetEvent();
 		area[0].eventHook(
-			Misc.getResImage("image-filter-center-focus-weak.png"), 
+			Misc.getIconImage("image-filter-center-focus-weak.png"), 
 			eventFocus, null, null
 		);
 		return this;
@@ -312,8 +312,8 @@ public class ControlWheel extends AnchorPane {
 	){ 
 		area[0].resetEvent();
 		area[0].eventHook(
-			Misc.getResImage("play.png"), 
-			Misc.getResImage("pause.png"),
+			Misc.getIconImage("play.png"), 
+			Misc.getIconImage("pause.png"),
 			eventPlay, 
 			eventPause
 		);
@@ -327,7 +327,7 @@ public class ControlWheel extends AnchorPane {
 	){
 		area[2].resetEvent();
 		area[2].eventHook(
-			Misc.getResImage("dir-up.png"), 
+			Misc.getIconImage("dir-up.png"), 
 			event1, event2, event3
 		);
 		return this;
@@ -340,7 +340,7 @@ public class ControlWheel extends AnchorPane {
 	){
 		area[4].resetEvent();
 		area[4].eventHook(
-			Misc.getResImage("dir-down.png"), 
+			Misc.getIconImage("dir-down.png"), 
 			event1, event2, event3
 		);
 		return this;
@@ -353,7 +353,7 @@ public class ControlWheel extends AnchorPane {
 	){
 		area[3].resetEvent();
 		area[3].eventHook(
-			Misc.getResImage("dir-left.png"), 
+			Misc.getIconImage("dir-left.png"), 
 			event1, event2, event3
 		);
 		return this;
@@ -366,7 +366,7 @@ public class ControlWheel extends AnchorPane {
 	){
 		area[1].resetEvent();
 		area[1].eventHook(
-			Misc.getResImage("dir-right.png"), 
+			Misc.getIconImage("dir-right.png"), 
 			event1, event2, event3
 		);
 		return this;

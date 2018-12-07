@@ -136,13 +136,11 @@
 /**********************/
 
 .grid-small {
-    -fx-padding: 7px;
     -fx-hgap: 7px;
     -fx-vgap: 7px;
 }
 
 .grid-medium {
-    -fx-padding: 7px;
     -fx-hgap: 13px;
     -fx-vgap: 13px;
 }
@@ -183,6 +181,13 @@
 
 .table-col-grid {
    -fx-vgap: 13px;
+}
+
+/**********************/
+
+.checkbox-no-dimness {
+	-jfx-checked-color: red;
+	-fx-opacity: 1;
 }
 
 /**********************/

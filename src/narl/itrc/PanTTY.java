@@ -137,13 +137,13 @@ public class PanTTY extends PanBase {
 		
 	private void event_linked(){
 		btnLink.setText(TXT_CONNECT);
-		btnLink.setGraphic(Misc.getResIcon(ICON_CONNECT));
+		btnLink.setGraphic(Misc.getIconView(ICON_CONNECT));
 		layCtrl.setDisable(false);
 	}
 	
 	private void event_unlink(){
 		btnLink.setText(TXT_DISCONNECT);
-		btnLink.setGraphic(Misc.getResIcon(ICON_DISCONNECT));
+		btnLink.setGraphic(Misc.getIconView(ICON_DISCONNECT));
 		layCtrl.setDisable(true);
 	}
 	

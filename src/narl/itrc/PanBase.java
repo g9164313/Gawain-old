@@ -1,6 +1,8 @@
 package narl.itrc;
 
+import java.io.File;
 import java.math.BigDecimal;
+import java.util.List;
 
 import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXSpinner;
@@ -11,7 +13,7 @@ import javafx.beans.property.FloatProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.concurrent.Task;
 import javafx.concurrent.WorkerStateEvent;
-import javafx.event.ActionEvent;
+import javafx.event.Event;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -27,11 +29,10 @@ import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.input.KeyEvent;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
+import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
@@ -50,8 +51,8 @@ public abstract class PanBase {
 	protected String customStyle = null;
 
 	private Node  panel;
-	private Scene scene;
 	private Stage stage;
+	private Scene scene;
 	
 	public PanBase(){
 		this("",null);
@@ -67,8 +68,8 @@ public abstract class PanBase {
 	}
 	
 	public Node  getPanel(){ return panel; }
-	public Scene getScene(){ return scene; }
-	public Stage getStage(){ return stage; }	
+	public Stage getStage(){ return stage; }
+	public Scene getScene(){ return scene; }	
 	//------------------------//
 	
 	/**
@@ -103,7 +104,7 @@ public abstract class PanBase {
 	public PanBase appear(Stage owner){
 		stage = create_stage(owner);
 		prepare(stage);
-		stage.show();
+		stage.show();	
 		return this;
 	}
 
@@ -124,43 +125,16 @@ public abstract class PanBase {
 	}
 	
 	/**
-	 * present a new 'dialog' with buttons, and blocking for dismissing.<p>
-	 * If user want create buttons, just give a lambda function.<p>
-	 * @param parent - it can be null
-	 * @param eventCancel - when user press cancel button
-	 * @param eventConfirm - when user press confirm button 
-	 */
-	public void popup(
-		final Window parent,
-		final EventHandler<ActionEvent> eventCancel,
-		final EventHandler<ActionEvent> eventConfirm
-	){
-		stage = create_dialog(parent);
-		init_dialog(eventCancel,eventConfirm);		
-		init_stage(stage).showAndWait();
-	}
-	/**
-	 * present a new 'dialog'.<p>
-	 * @param parent - root panel
-	 */
-	public void popup(final Window parent){
-		popup(parent,null,null);
-	}
-	/**
-	 * present a new 'dialog'.<p>
-	 */
-	public void popup(){
-		popup(null,null,null);
-	}
-	/**
 	 * close panel
 	 */
 	public void dismiss(){		
 		if(stage==null){
 			return;
-		}		
+		}
 		stage.close();
 		stage = null;
+		scene = null;
+		panel = null;
 	}
 	//------------------------//
 		
@@ -169,55 +143,11 @@ public abstract class PanBase {
 	public abstract void eventShown(PanBase self);
 	protected       void eventClose(PanBase self){ }//let user override this function
 	
-	private Stage create_dialog(Window parent){
-		Stage stg = new Stage(StageStyle.UNIFIED);		
-		stg.initModality(Modality.WINDOW_MODAL); 
-		stg.initOwner(parent);
-		stg.setResizable(false);
-		stg.centerOnScreen();
-		return stg;
-	}
-	private void init_dialog(
-		final EventHandler<ActionEvent> eventCancel,
-		final EventHandler<ActionEvent> eventConfirm
-	){		
-		if(panel!=null){
-			return;
-		}
-		panel = eventLayout(this);
-		
-		BorderPane _root = new BorderPane();		
-		_root.setCenter(panel);
-		if(eventCancel!=null || eventConfirm!=null){			
-			HBox lay0 = new HBox();
-			lay0.setAlignment(Pos.BASELINE_RIGHT);
-			lay0.getStyleClass().add("hbox-small");
-			if(eventCancel!=null){
-				Button btn = genButton3("取消","close.png");
-				btn.setOnAction(event->{
-					eventCancel.handle(event);
-					dismiss();
-				});
-				lay0.getChildren().add(btn);
-			}
-			if(eventConfirm!=null){
-				Button btn = genButton2("確認","check.png");				
-				btn.setOnAction(event->{					
-					eventConfirm.handle(event);
-					dismiss();
-				});
-				lay0.getChildren().add(btn);
-			}
-			_root.setBottom(lay0);
-		}
-		init_scene(_root);
-	}
-	
 	private Stage create_stage(Window parent){
 		Stage stg = new Stage(StageStyle.UNIFIED);		
 		stg.initModality(Modality.WINDOW_MODAL); 
 		stg.initOwner(parent);
-		stg.centerOnScreen();
+		stg.centerOnScreen();		
 		return stg;
 	}
 	private Stage init_stage(Stage stg){		
@@ -298,18 +228,14 @@ public abstract class PanBase {
 			KeyCode cc = event.getCode();
 			if(cc==KeyCode.ESCAPE){
 				if(Gawain.isMainWindow(PanBase.this)==true){
-					final Alert dia = new Alert(AlertType.CONFIRMATION);
-					dia.setTitle("提示");
-					dia.setHeaderText("確認離開主程式？");
-					if(dia.showAndWait().get()==ButtonType.CANCEL){
+					if(notifyConfirm("！！注意！！","確認離開主程式？")==ButtonType.CANCEL){
 						return;
-					}
+					}			
 				}
 				dismiss();
 			}else if(hotkey_console.match(event)==true){
 				Gawain.showLogger();
 			}else if(hotkey_debug.match(event)==true){
-				//do something~~~
 				spinner.kick();
 			}			
 		}
@@ -325,18 +251,14 @@ public abstract class PanBase {
 		public Spinner(){
 			icon.setRadius(48);
 			icon.setOnMouseClicked(e->{
-				final Alert dia = new Alert(AlertType.CONFIRMATION);
-				dia.setTitle("提示");
-				dia.setHeaderText("確認取消工作？");
-				if(dia.showAndWait().get()==ButtonType.CANCEL){
+				if(notifyConfirm("！！注意！！","確認離開主程式？")==ButtonType.CANCEL){
 					return;
 				}
 				if(task!=null){
 					task.cancel(true);
 				}
 				done();			
-			});
-						
+			});		
 			text.setFont(Font.font("Arial", 27));
 			text.setAlignment(Pos.CENTER);
 			
@@ -345,6 +267,12 @@ public abstract class PanBase {
 			getChildren().addAll(icon,text);
 			setVisible(false);
 		}
+		private void prepare(){
+			text.textProperty().unbind();
+			text.setText("工作中");
+			panel.setDisable(true);
+			setVisible(true);
+		}
 		private void done(){
 			task = null;//reset it for next turn~~~
 			panel.setDisable(false);
@@ -352,16 +280,12 @@ public abstract class PanBase {
 		}
 		
 		private void kick(){
-			text.textProperty().unbind();
-			text.setText("工作中");
-			panel.setDisable(true);
-			setVisible(true);			
+			prepare();		
 		};
 		
 		public void kick(final Task<?> tsk){
 			kick("panel-task", '?', tsk);
 		}
-		
 		public void kick(String name, final Task<?> tsk){
 			kick(name, '?', tsk);
 		}
@@ -385,7 +309,7 @@ public abstract class PanBase {
 			char type, 
 			final Task<?> tsk
 		){
-			kick();
+			prepare();
 			switch(type){
 			case 'p':
 				text.textProperty().bind(
@@ -398,15 +322,42 @@ public abstract class PanBase {
 				text.textProperty().bind(tsk.messageProperty());
 				break;
 			}
-			final EventHandler<WorkerStateEvent> org = tsk.getOnSucceeded();
+			//replace original handle
+			final EventHandler<WorkerStateEvent> old = tsk.getOnSucceeded();
 			tsk.setOnSucceeded(event->{
-				if(org!=null){
-					org.handle(event);
+				if(old!=null){
+					old.handle(event);
 				}				
 				done();
 			});
 			task = tsk;//keep this variable~~~
 			new Thread(tsk,name).start();
+		}
+		/**
+		 * lamda-style task function
+		 */
+		public void kick(			
+			final EventHandler<Event> task,
+			final EventHandler<WorkerStateEvent> event1 
+		){
+			prepare();
+			final Task<Integer> tsk = new Task<Integer>(){
+				@Override
+				protected Integer call() throws Exception {
+					task.handle(null);
+					return 0;
+				}
+			};
+			tsk.setOnSucceeded(event->{
+				if(event1!=null){
+					event1.handle(event);
+				}
+				done();
+			});
+			tsk.setOnCancelled(event->{
+				done();
+			});
+			new Thread(tsk,"").start();
 		}
 	};
 	protected Spinner spinner = new Spinner();
@@ -417,13 +368,13 @@ public abstract class PanBase {
 	 * @param title
 	 * @param message
 	 */
-	public static void notifyInfo(
+	public static ButtonType notifyInfo(
 		final String title,
 		final String message
 	){
-		popup_alter(
+		return popup_alter(
 			AlertType.INFORMATION,
-			title,message,
+			title, message,
 			null
 		);
 	}
@@ -433,13 +384,13 @@ public abstract class PanBase {
 	 * @param title
 	 * @param message
 	 */
-	public static void notifyWarning(
+	public static ButtonType notifyWarning(
 		final String title,
 		final String message
 	){
-		popup_alter(
+		return popup_alter(
 			AlertType.WARNING,
-			title,message,
+			title, message,
 			null
 		);
 	}
@@ -449,18 +400,29 @@ public abstract class PanBase {
 	 * @param title 
 	 * @param message
 	 */
-	public static void notifyError(
+	public static ButtonType notifyError(
 		final String title,
 		final String message
 	){
-		popup_alter(
+		return popup_alter(
 			AlertType.ERROR,
 			title,message,
 			null
 		);
 	}
 	
-	private static void popup_alter(
+	public static ButtonType notifyConfirm(
+		final String title,
+		final String message
+	){
+		return popup_alter(
+			AlertType.CONFIRMATION,
+			title,message,
+			null
+		);
+	}
+	
+	private static ButtonType popup_alter(
 		final AlertType type,
 		final String title,
 		final String message,
@@ -468,11 +430,27 @@ public abstract class PanBase {
 	){
 		Alert dia = new Alert(type);
 		dia.setTitle(title);
-		dia.setContentText(message);
+		dia.setHeaderText(message);
+		dia.setContentText(null);
 		if(expand!=null){
 			dia.getDialogPane().setExpandableContent(expand);
 		}
-		dia.showAndWait();
+		return dia.showAndWait().get();
+	}
+	//------------------------//
+	
+	protected List<File> chooseFiles(String title){
+		final FileChooser dia = new FileChooser();
+		dia.setTitle(title);
+		dia.setInitialDirectory(Gawain.dirRoot);
+		return dia.showOpenMultipleDialog(stage);
+	}
+	
+	protected File chooseFile(String title){
+		final FileChooser dia = new FileChooser();
+		dia.setTitle(title);
+		dia.setInitialDirectory(Gawain.dirRoot);
+		return dia.showOpenDialog(stage);
 	}
 	//------------------------//
 
@@ -489,7 +467,7 @@ public abstract class PanBase {
 			btn.setText(title);
 		}
 		if(iconName.length()!=0){
-			ImageView img = Misc.getResIcon(iconName);
+			ImageView img = Misc.getIconView(iconName);
 			img.setFitWidth(def_size);
 			img.setFitHeight(def_size);
 			btn.setGraphic(img);
@@ -511,7 +489,7 @@ public abstract class PanBase {
 		}
 		if(iconName!=null){
 			if(iconName.length()!=0){
-				btn.setGraphic(Misc.getResIcon(iconName));
+				btn.setGraphic(Misc.getIconView(iconName));
 			}
 		}		
 		btn.setMaxWidth(Double.MAX_VALUE);
@@ -559,7 +537,7 @@ public abstract class PanBase {
 		btn.getStyleClass().add(styleName);
 		if(iconName!=null){
 			if(iconName.length()!=0){
-				btn.setGraphic(Misc.getResIcon(iconName));
+				btn.setGraphic(Misc.getIconView(iconName));
 			}
 		}
 		return btn;

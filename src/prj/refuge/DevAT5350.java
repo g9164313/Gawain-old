@@ -45,7 +45,7 @@ public class DevAT5350 extends DevTTY {
 	
 	public void connect(String attr){
 		if(attr.length()==0){
-			attr = Gawain.prop.getProperty("DevAT5350","/dev/ttyS0,9600,8n1");
+			attr = Gawain.getSetting().getProperty("DevAT5350","/dev/ttyS0,9600,8n1");
 		}
 		open(attr);
 	}

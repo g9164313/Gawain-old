@@ -97,7 +97,7 @@ public class Loader extends Task<Integer> {
 		
 		lay0.getStyleClass().add("splash-board");
 		
-		ImageView img = Misc.getResIcon("logo.jpg");
+		ImageView img = Misc.getIconView("logo.jpg");
 		
 		ProgressBar bar = new ProgressBar();
 		bar.prefWidthProperty().bind(stg.widthProperty().subtract(3));
@@ -110,7 +110,7 @@ public class Loader extends Task<Integer> {
 	
 	public void standby(){
 		
-		String val = Gawain.prop.getProperty("LIB_DEBUG","false");
+		String val = Gawain.getSetting().getProperty("LIB_DEBUG","false");
 		if(val.toLowerCase().endsWith("true")==true){
 			debug = true;
 		}

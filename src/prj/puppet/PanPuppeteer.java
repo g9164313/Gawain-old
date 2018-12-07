@@ -10,7 +10,7 @@ import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
-import narl.itrc.ButtonExtra;
+import narl.itrc.ButtonEx;
 import narl.itrc.Gawain;
 import narl.itrc.PanBase;
 
@@ -39,7 +39,7 @@ public class PanPuppeteer extends PanBase {
 		
 		final JFXTextField boxAddress = new JFXTextField("172.16.2.144");
 		
-		final ButtonExtra btnConnect = new ButtonExtra(
+		final ButtonEx btnConnect = new ButtonEx(
 			"連線","lan-disconnect.png",
 			"離線","lan-connect.png"
 		).setOnToggle(eventOn->{
@@ -69,10 +69,10 @@ public class PanPuppeteer extends PanBase {
 				return name.endsWith(".js");
 			}
 		});
-		final ButtonExtra[] lstAction = new ButtonExtra[lstName.length];
+		final ButtonEx[] lstAction = new ButtonEx[lstName.length];
 		for(int i=0; i<lstName.length; i++){
 			String name = lstName[i].substring(0, lstName[i].length()-3);
-			lstAction[i] = new ButtonExtra(name);
+			lstAction[i] = new ButtonEx(name);
 			lstAction[i].setOnTaskScriptFile(
 				Gawain.pathSock+lstName[i], 
 				"mo", monitor

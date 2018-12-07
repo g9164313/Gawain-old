@@ -170,14 +170,20 @@ public class Misc {
 		return name.substring(0,pos)+"."+appx;
 	}
 	
-	public static ImageView getResIcon(String name){
-		return getResIcon("/narl/itrc/res/icon",name);
+	public static ImageView getIconView(String name){
+		return getResView("/narl/itrc/res/icon",name);
 	}
-	public static ImageView getResIcon(String pkg, String name){
-		return new ImageView(getResImage(pkg, name));
-	}
-	public static Image getResImage(String name){
+	public static Image getIconImage(String name){
 		return getResImage("/narl/itrc/res/icon",name);
+	}
+	public static ImageView getPicView(String name){
+		return getResView("/narl/itrc/res/pic",name);
+	}
+	public static Image getPicImage(String name){
+		return getResImage("/narl/itrc/res/pic",name);
+	}
+	public static ImageView getResView(String pkg, String name){
+		return new ImageView(getResImage(pkg,name));
 	}
 	public static Image getResImage(String pkg, String name){
 		return new Image(Gawain.class.getResourceAsStream(pkg+"/"+name));

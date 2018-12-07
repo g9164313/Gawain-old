@@ -1,4 +1,4 @@
-package prj.plan;
+package prj.economy;
 
 import java.time.format.DateTimeFormatter;
 import java.util.Optional;
@@ -43,7 +43,7 @@ public class FragForm extends HBox {
 		new JFXTextField(),//備註
 	};
 	
-	private TableView<ItemBill> pool = new TableView<ItemBill>();
+	private TableView<ItemBills> pool = new TableView<ItemBills>();
 
 	public FragForm(){
 		
@@ -65,15 +65,15 @@ public class FragForm extends HBox {
 		getChildren().addAll(lay1, lay2);
 	}
 	
-	public ObservableList<ItemBill> getBill(){
+	public ObservableList<ItemBills> getBill(){
 		return pool.getSelectionModel().getSelectedItems();
 	} 
 	
-	public void putBill(ObservableList<ItemBill> lst){
+	public void putBill(ObservableList<ItemBills> lst){
 		pool.getItems().addAll(lst);
 	}
 	
-	public void clearBill(ObservableList<ItemBill> lst){
+	public void clearBill(ObservableList<ItemBills> lst){
 		pool.getItems().removeAll(lst);
 	}
 	
@@ -120,13 +120,13 @@ public class FragForm extends HBox {
 		btn1.visibleProperty().bind(flagEdit.not());
 		btn1.setMaxWidth(Double.MAX_VALUE);
 		btn1.setOnAction(event->{			
-			ItemBill obj = new ItemBill(
+			ItemBills obj=null;/* = new ItemBills(
 				workingDate.getValue().format(fmt),
 				informField[0].getText(),
 				informField[1].getText(),
 				informField[2].getText(),
 				informField[3].getText()
-			);
+			);*/
 			pool.getItems().add(obj);
 			clear_field();
 			//LocalDate date = day.getValue();
@@ -141,17 +141,17 @@ public class FragForm extends HBox {
 		btn2.visibleProperty().bind(flagEdit);
 		btn2.setMaxWidth(Double.MAX_VALUE);
 		btn2.setOnAction(event->{
-			ObservableList<ItemBill> lst = pool.getSelectionModel().getSelectedItems();
+			ObservableList<ItemBills> lst = pool.getSelectionModel().getSelectedItems();
 			if(lst.size()==0){
 				return;
 			}
-			lst.get(0).setAll(
+			/*lst.get(0).setAll(
 				workingDate.getValue().format(fmt),
 				informField[0].getText(),
 				informField[1].getText(),
 				informField[2].getText(),
 				informField[3].getText()
-			);
+			);*/
 		});
 		
 		final StackPane lay0 = new StackPane(btn1, btn2);		
@@ -167,22 +167,22 @@ public class FragForm extends HBox {
 		informField[3].setText("");
 	}
 	
-	private void fresh_field(ItemBill obj){
+	private void fresh_field(ItemBills obj){
 		workingDate.setValue(null);
-		informField[0].setText(obj.name.get());
-		informField[1].setText(obj.phone.get());
-		informField[2].setText(obj.addr.get());
-		informField[3].setText(obj.memo.get());
+		//informField[0].setText(obj.name.get());
+		//informField[1].setText(obj.phone.get());
+		//informField[2].setText(obj.addr.get());
+		//informField[3].setText(obj.memo.get());
 	}
 	
 	@SuppressWarnings("unchecked")
 	private void init_data_pool(){
 		
-		final TableColumn<ItemBill,String> col1 = new TableColumn<ItemBill,String>("日期");
-		col1.setCellValueFactory(new PropertyValueFactory<ItemBill,String>("workingDate"));
+		final TableColumn<ItemBills,String> col1 = new TableColumn<ItemBills,String>("日期");
+		col1.setCellValueFactory(new PropertyValueFactory<ItemBills,String>("workingDate"));
 
-		final TableColumn<ItemBill,String> col2 = new TableColumn<ItemBill,String>("編號");
-		col2.setCellValueFactory(new PropertyValueFactory<ItemBill,String>("serialNumber"));
+		final TableColumn<ItemBills,String> col2 = new TableColumn<ItemBills,String>("編號");
+		col2.setCellValueFactory(new PropertyValueFactory<ItemBills,String>("serialNumber"));
 		
 		pool.getColumns().addAll(col1,col2);
 		pool.setEditable(false);
@@ -198,7 +198,7 @@ public class FragForm extends HBox {
 		final MenuItem itm1 = new MenuItem(TXT_EDIT); 
 		itm1.setOnAction(event->{
 			if(flagEdit.get()==false){
-				ObservableList<ItemBill> lst = pool.getSelectionModel().getSelectedItems();
+				ObservableList<ItemBills> lst = pool.getSelectionModel().getSelectedItems();
 				if(lst.size()==0){
 					return;
 				}
@@ -218,7 +218,7 @@ public class FragForm extends HBox {
 		
 		final MenuItem itm2 = new MenuItem("刪除"); 
 		itm2.setOnAction(event->{
-			ObservableList<ItemBill> lst = pool.getSelectionModel().getSelectedItems();
+			ObservableList<ItemBills> lst = pool.getSelectionModel().getSelectedItems();
 			int cnt = lst.size();
 			if(cnt==0){
 				return;

@@ -187,9 +187,9 @@ public class WidMarkTable extends JFXTabPane {
 			cc.get(Calendar.MONTH)+1,
 			cc.get(Calendar.DATE)
 		);
-		String title1 = Gawain.prop.getProperty("title1","ATOMTEX AT5350/1(s/n:10527)");
-		String title2 = Gawain.prop.getProperty("title2","PTW TM32002(s/n: 0298)");
-		String title3 = Gawain.prop.getProperty("title3","NRSL-104140，2015/05/15，INER");
+		String title1 = Gawain.getSetting().getProperty("title1","ATOMTEX AT5350/1(s/n:10527)");
+		String title2 = Gawain.getSetting().getProperty("title2","PTW TM32002(s/n: 0298)");
+		String title3 = Gawain.getSetting().getProperty("title3","NRSL-104140，2015/05/15，INER");
 		try {
 			HSSFWorkbook bok = new HSSFWorkbook();
 			DataFormat fmt_num = bok.createDataFormat();

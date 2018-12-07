@@ -22,63 +22,34 @@ import javafx.scene.image.ImageView;
  * @author qq
  *
  */
-public class ButtonExtra extends JFXButton {
+public class ButtonEx extends JFXButton {
 
-	private String text1 = "";
-	private String text2 = "";
-	private ImageView icon1 = null;
-	private ImageView icon2 = null;
+	private int indx = 0;
+	private String[]    text = null;
+	private ImageView[] icon = null;
 	
-	public ButtonExtra(){
-		this("",null,"",null);
+	public ButtonEx(){
+		
+	}
+		
+	public ButtonEx(String... args){
+		
+		getStyleClass().add("button");
+		
+		int cnt = args.length/2;
+		if(cnt==0){
+			return;
+		}
+		text = new String[cnt];
+		icon = new ImageView[cnt];
+		for(int i=0; i<cnt; i++){
+			text[i] = args[i*2+0];
+			icon[i] = Misc.getIconView(args[i*2+1]);
+		}
+		setFace(0);
 	}
 	
-	public ButtonExtra(
-		final String caption
-	){
-		this(caption,null,caption,null);
-	}
-	
-	public ButtonExtra(
-		final String caption,
-		final String symbol
-	){
-		this(caption,symbol,caption,symbol);
-	}
-	
-	public ButtonExtra(
-		final String caption1,
-		final String symbol1,
-		final String caption2,
-		final String symbol2
-	){
-		getStyleClass().add("btn-raised-2");
-		if(caption1!=null){
-			text1 = caption1;
-		}else{
-			text1 = "";
-		}
-		if(caption2!=null){
-			text2 = caption2;
-		}else{
-			text2 = "";
-		}
-		if(symbol1!=null){
-			icon1 = Misc.getResIcon(symbol1);
-		}else{
-			icon1 = null;
-		}
-		if(symbol2!=null){
-			icon2 = Misc.getResIcon(symbol2);
-		}else{
-			icon2 = null;
-		}
-		setText(text1);
-		setGraphic(icon1);
-		//setOnAction(eventHook);
-	}
-	
-	public ButtonExtra setStyleBy(String name){
+	public ButtonEx setStyleBy(String name){
 		final Predicate<String> filter = new Predicate<String>(){
 			@Override
 			public boolean test(String t) {
@@ -89,31 +60,61 @@ public class ButtonExtra extends JFXButton {
 		getStyleClass().add(name);
 		return this;
 	}
+
+	public void setFace(int i){
+		if(i>=text.length){
+			i = 0;
+		}
+		setText(text[i]);
+		setGraphic(icon[i]);
+		indx = i;
+	}
+	public void nextFace(){
+		setFace(++indx);
+	}
 	
-	private boolean isToggle = false;
+	/**
+	 * just a warp for 'setOnAction' function
+	 * @param event - same as function 'setOnAction'
+	 * @return
+	 */
+	public ButtonEx setOnClick(EventHandler<ActionEvent> event){
+		setOnAction(event);
+		return this;
+	}
 	
-	public ButtonExtra setOnToggle(
-		EventHandler<ActionEvent> value_on,
-		EventHandler<ActionEvent> value_off
+	/**
+	 * The default is always jumping to next face.<p>
+	 * It means always changing face between the first and second.<p>
+	 */
+	public boolean nextToggle = true;
+	
+	public ButtonEx setOnToggle(
+		EventHandler<ActionEvent> event1,
+		EventHandler<ActionEvent> event2
 	){
-		setOnAction(event->{
-			if(isToggle==false){
-				setText(text2);
-				setGraphic(icon2);
-				if(value_on!=null){
-					value_on.handle(event);
+		setOnAction(e->{
+			switch(indx){
+			case 0: 
+				if(event1!=null){
+					event1.handle(e);
+					if(nextToggle==true && event2!=null){
+						setFace(1);
+					}
 				}
-			}else{
-				setText(text1);
-				setGraphic(icon1);
-				if(value_off!=null){
-					value_off.handle(event);
+				break;
+			case 1:
+				if(event2!=null){ 
+					event2.handle(e);
+					if(nextToggle==true && event1!=null){
+						setFace(0);
+					}					
 				}
-			}
-			isToggle = !isToggle;
+				break;
+			}			
 		});
 		return this;
-	}	
+	}
 
 	
 	public Object arg = null;
@@ -125,13 +126,14 @@ public class ButtonExtra extends JFXButton {
 		EventHandler<ActionEvent> finish
 	){
 		setOnAction(event->{
+			
 			if(task!=null){
 				if(task.isDone()==false){				
 					return;
 				}
 			}
-			setText(text2);
-			setGraphic(icon2);
+			//setText(text2);
+			//setGraphic(icon2);
 			
 			final ActionEvent eventRef = new ActionEvent(this,event.getTarget());
 			
@@ -143,19 +145,19 @@ public class ButtonExtra extends JFXButton {
 				}
 			};
 			task.setOnSucceeded(e1->{
-				setText(text1);
-				setGraphic(icon1);
+				//setText(text1);
+				//setGraphic(icon1);
 				if(finish!=null){
 					finish.handle(eventRef);
 				}
 			});
 			task.setOnCancelled(e2->{
-				setText(text1);
-				setGraphic(icon1);
+				///setText(text1);
+				//setGraphic(icon1);
 			});
 			task.setOnFailed(e3->{
-				setText(text1);
-				setGraphic(icon1);
+				//setText(text1);
+				//setGraphic(icon1);
 			});			
 			new Thread(task,"ButtonExtra-task").start();
 		});

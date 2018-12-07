@@ -1,10 +1,12 @@
 package narl.itrc;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
@@ -73,44 +75,75 @@ public class Gawain extends Application {
 	}
 	//--------------------------------------------//
 	
-	public static Properties prop = new Properties();
+	private static final Properties propCache = new Properties();
 	private static final String propName = "conf.properties";
 	
 	private static void propInit(){
 		try {
-			File fs = new File(pathSock+propName);
 			InputStream stm=null;
+			File fs = new File(pathSock+propName);			
 			if(fs.exists()==false){
 				stm = Gawain.class.getResourceAsStream("/narl/itrc/res/"+propName);
 			}else{
 				stm = new FileInputStream(fs);
 			}
-			prop.load(stm);
+			propCache.load(stm);
 			stm.close();			
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
 	
+	public static Properties getSetting(){
+		return propCache;
+	}
+	
 	private static void propRestore(){
 		try {
 			File fs = new File(pathSock+propName);
-			FileOutputStream stm=null;
 			if(fs.exists()==false){
-				//Here!!,we dump the first configure file
-				stm = new FileOutputStream(pathSock+propName);
-				prop.store(stm,"");
-				stm.close();
 				return;
 			}
-			//check whether to restore data~~~
-			String txt = prop.getProperty("PROP_RESTORE","false");
-			if(txt.equalsIgnoreCase("false")==true){
-				return;
-			}			
-			stm = new FileOutputStream(pathSock+propName);
-			prop.store(stm,"");
-			stm.close();
+			//cache the old data
+			ArrayList<String> lst =new ArrayList<String>();
+			BufferedReader rd = new BufferedReader(new FileReader(fs));
+			while(rd.ready()==true){
+				String txt = rd.readLine();
+				if(txt==null){
+					break;
+				}
+				lst.add(txt);
+			}
+			rd.close();
+			//check all options again~~~
+			for(int i=0; i<lst.size(); i++){
+				String txt = lst.get(i).trim();
+				if(txt.length()==0 || txt.charAt(0)=='#'){
+					continue;
+				}
+				String[] col = txt.split("=");				
+				if(col.length<=1){
+					continue;
+				}
+				col[0] = col[0].trim();
+				String val = propCache.getProperty(col[0],null);
+				if(val==null){
+					continue;//is this possible???
+				}
+				lst.set(i, col[0]+"="+val);
+				propCache.remove(col[0]);
+			}
+			//add the new options...
+			for(Object key:propCache.keySet()){
+				String val = (String)propCache.get(key);
+				lst.add(String.format("%s = %s\n", (String)key, (String)val));
+			}
+			//dump data and option!!!
+			BufferedWriter wr = new BufferedWriter(new FileWriter(fs));
+			for(String txt:lst){				
+				wr.write(txt+"\n");
+			}
+			wr.close();
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
@@ -205,7 +238,7 @@ public class Gawain extends Application {
 	private static void streamHooker(){
 		//Check whether we need logger file.
 		try {
-			String name = prop.getProperty("Logger","");
+			String name = propCache.getProperty("logger","");
 			if(name.length()!=0){
 				logFile = new FileWriter("logger.txt",true);
 			}
@@ -339,7 +372,7 @@ public class Gawain extends Application {
 					System.exit(-204);
 				}
 				//first,bind a license~~
-				txt = prop.getProperty("LICENCE=","1");//default is one day~~~
+				txt = propCache.getProperty("LICENCE","1");//default is one day~~~
 				liceDay = Float.valueOf(txt);
 				liceCip.init(Cipher.ENCRYPT_MODE,liceKey);
 				liceWrite(liceCip.doFinal(txt.getBytes()));
@@ -409,7 +442,7 @@ public class Gawain extends Application {
 	@Override
 	public void start(Stage primaryStage) throws Exception {		
 		try {			
-			String name = prop.getProperty("LAUNCH","");
+			String name = propCache.getProperty("LAUNCH","");
 			//$ Demo how to pass arguments~~~
 			//Param1Type param1;
 			//Class cl = Class.forName(className);

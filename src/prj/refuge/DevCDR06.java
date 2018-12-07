@@ -42,7 +42,7 @@ public class DevCDR06 extends DevModbus {
 	public void connect(String attr){
 		title = null;
 		if(attr.length()==0){
-			attr = Gawain.prop.getProperty("CDR06","TCP,127.0.0.1;CH0;CH1;CH3");
+			attr = Gawain.getSetting().getProperty("CDR06","TCP,127.0.0.1;CH0;CH1;CH3");
 		}
 		//format: [IPv4 address];[CH0 title];[CH1 title];...
 		String[] argv = attr.split(";");
