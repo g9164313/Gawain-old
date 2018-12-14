@@ -12,6 +12,7 @@ import com.jfoenix.controls.JFXButton;
 import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
+import javafx.scene.control.ContentDisplay;
 import javafx.scene.image.ImageView;
 
 
@@ -34,7 +35,8 @@ public class ButtonEx extends JFXButton {
 		
 	public ButtonEx(String... args){
 		
-		getStyleClass().add("button");
+		getStyleClass().add("button");		
+		setContentDisplay(ContentDisplay.TOP);
 		
 		int cnt = args.length/2;
 		if(cnt==0){

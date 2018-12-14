@@ -8,13 +8,18 @@ public class ItemHands {
 	 */
 	public String name = "";	
 	/**
-	 * operator phone
+	 * operator phone, this is also key or UUID.<p>
 	 */
 	public String phone= "";	
 	/**
-	 * where operator can take care.<p>
+	 * Where operator can take care.<p>
 	 */
-	public String zone ="";	
+	public String zone ="";
+	/**
+	 * Where operator is.<p>
+	 * This will be updated by operator phone.<p>
+	 */
+	public String geom ="";
 	/**
 	 * other information.<p>
 	 */

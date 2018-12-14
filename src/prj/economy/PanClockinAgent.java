@@ -18,15 +18,15 @@ public class PanClockinAgent extends PanBase {
 			@Override
 			public void run() {
 				DataProvider.init(null);
-				//DataProvider.test1();
-				//DataProvider.test0();
 			}
 		};
 	}
+		
+	private final FragDispatch fragDisp = new FragDispatch();
 	
 	@Override
 	public Node eventLayout(PanBase self) {
-		
+
 		final ButtonEx btnConn = new ButtonEx(
 			"斷線","lan-disconnect.png",
 			"連接","lan-connect.png"			
@@ -37,15 +37,23 @@ public class PanClockinAgent extends PanBase {
 			btnConn.setFace(1);
 		}
 		
-		final ButtonEx btnEdit = new ButtonEx(
-			"編輯器","file-document-outline.png"
+		final ButtonEx btnEdit1 = new ButtonEx(
+			"新增訂單","file-document-outline.png"
 		).setOnClick(event->{
-			new PanBillsEditor().appear();
+			new PanEditBills().appear();
+		});
+		
+		final ButtonEx btnEdit2 = new ButtonEx(
+			"新增人員","account-plus.png"
+		).setOnClick(event->{
+			new PanEditHands().appear();
 		});
 		
 		final ButtonEx btnDisp = new ButtonEx(
 			"分派工作","directions-fork.png"
-		);
+		).setOnClick(e->{
+			fragDisp.setVisible(true);
+		});
 		
 		final ButtonEx btnBank = new ButtonEx(
 			"查詢帳單","file-search-outline.png"
@@ -55,13 +63,18 @@ public class PanClockinAgent extends PanBase {
 			"計數","file-search-outline.png"
 		);
 		btnSetIndx.textProperty().bind(DataProvider.propIndex.asString("計數(%04d)"));
+		btnSetIndx.setOnAction(event->{
+			
+		});
 		
-		final StackPane lay1 = new StackPane();
+		final StackPane lay1 = new StackPane(fragDisp);
 		
 		final ToolBar bar = new ToolBar(
 			btnConn,
 			new Separator(Orientation.VERTICAL),
-			btnEdit,
+			btnEdit1,
+			btnEdit2,
+			new Separator(Orientation.VERTICAL),
 			btnDisp,
 			btnBank,
 			new Separator(Orientation.VERTICAL),
@@ -74,8 +87,8 @@ public class PanClockinAgent extends PanBase {
 	}
 
 	@Override
-	public void eventShown(PanBase self) {		
-		//connect_database();
+	public void eventShown(PanBase self) {
+		fragDisp.init();
 	}
 	
 	private void connect_database(){

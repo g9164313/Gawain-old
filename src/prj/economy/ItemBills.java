@@ -1,101 +1,128 @@
 package prj.economy;
 
 import java.text.DateFormat;
-import java.text.DecimalFormat;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.Date;
 
-import org.threeten.bp.ZonedDateTime;
-
-import narl.itrc.Misc;
-
 public class ItemBills {
-
+	
 	private static final DateFormat fmtDate= new SimpleDateFormat("yyyy-MM-dd HH:mm");  
-	private static final DateFormat fmtTick = new SimpleDateFormat("HH:mm:ss");
-	private static final DecimalFormat fmtDeci = new DecimalFormat("###,###,###");
-		
-	public static String getOpenDate(){
-		return fmtDate.format(new Date());
-	}
 	
 	/**
-	 * when to create this object.
+	 * key in data-base.<p>
+	 * It is also time-stamp when creating this object.<p>
 	 */
-	public String stampOpen = "";
+	private long serial = -1L;
+	
 	/**
-	 * meeting day or working date.
+	 * the text format of serial number.<p>
 	 */
-	public String stampMeet = "";	
+	public String order = "";
+	
 	/**
-	 * when to close account(this bills).
+	 * time-stamp for open account, meet custom, and close account.<p>
 	 */
-	public String stampDone = "";
+	public String stampMeet="", stampClose="";
 	
 	/**
 	 * custom information, contact name
 	 */
-	public String infoName = "";	
+	public String name = "";	
 	/**
-	 * custom information, contact phone
+	 * custom information, contact information
 	 */
-	public String infoPhone= "";	
+	public String info= "";	
 	/**
-	 * custom information, contact address or home
+	 * custom information, contact address
 	 */
-	public String infoHome ="";	
-	/**
-	 * custom information, memo for other things
-	 */
-	public String infoMemo = "";
+	public String addr ="";	
+	
 	/**
 	 * Price and name of item.<p>
 	 * It include 3 format.Fee can't contain delimiter.<p>
 	 * Format:<p>
-	 * [item-name,fee];...<p>
-	 * [item-name,fee,count];...<p>
-	 * [time-name,fee,tick.1,tick.2];...<p>
+	 * [name,fee];...<p>
+	 * [name,fee,count];...<p>
+	 * [name,fee,count,tick];...<p>
 	 * Example:<p>
-	 * 時段(秒計)-01,x1.23,12:33:03,13:21:15;...
-	 * 品項-01,+234;品項-02,x23.3,78;折扣,-100;
+	 * 折扣,-100;...<p>
+	 * 品項,23.3,78;...<p>
+	 * 時段(秒計),1.23,100,13:21:15;...<p>
 	 */
 	public String listCart = "";
 	
-	private static final String ITEM_DELIMITER = ";";
-	private static final String ATTR_DELIMITER = ",";
-	private static final String TXT_PERIOD_SEC = "時段(秒計)";
-	private static final String TXT_PERIOD_MIN = "時段(分鐘)";
-	private static final String TXT_PERIOD_HUR = "時段(小時)";
-	
 	public ItemBills(){
+		serial = new Date().getTime();
 	}
 	
-	public void setMeeting(final Date day){
-		if(day==null){
-			stampMeet = "";
-		}else{
-			stampMeet = fmtDate.format(day);
-		}
-	}
-	public void setMeeting(final LocalDate day){
-		if(day==null){
-			stampMeet = "";
-		}else{
-			final ZoneId id = ZoneId.systemDefault();
-			setMeeting(Date.from(day.atStartOfDay(id).toInstant()));
-		}
+	public void setSerial(long serial_number){
+		serial = serial_number;
 	}
 	
-	public void setClose(){
-		stampDone = fmtDate.format(new Date());
+	public long takeSerial(){
+		return serial;
 	}
+	
+	public String takeSerialTxt(){
+		return fmtDate.format(new Date(serial));
+	}
+	
+	public String stampOpen(){
+		return fmtDate.format(new Date(serial));
+	}
+	
+	public void stampClose(){
+		stampClose = fmtDate.format(new Date());
+	}
+	
+	//private static final DateFormat fmtTick = new SimpleDateFormat("HH:mm:ss");
+	//private static final DecimalFormat fmtDeci = new DecimalFormat("###,###,###");
+	
+	/*public static String getCurrentOpenDate(){
+		return fmtDate.format(new Date());
+	}
+	public static String toMeeting(final Date day){
+		if(day==null){
+			return "";
+		}
+		return fmtDate.format(day);
+	}
+	public static String toMeeting(final LocalDate day){
+		if(day==null){
+			return "";
+		}
+		final ZoneId id = ZoneId.systemDefault();
+		return toMeeting(Date.from(day.atStartOfDay(id).toInstant()));
+	}
+	public static Date meeting2date(final ItemBills itm){
+		try {
+			if(itm.stampMeet.length()==0){
+				return null;
+			}
+			return fmtDate.parse(itm.stampMeet);
+		} catch (ParseException e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+	public static LocalDate meeting2local(final ItemBills itm){
+		Date day = meeting2date(itm);
+		if(day==null){
+			return null;
+		}
+		final ZoneId id = ZoneId.systemDefault();
+		return day.toInstant().atZone(id).toLocalDate();
+	}*/
 	
 	//---below lines are processing cart things---//
 	
-	private int index_period = 1;
+	//private static final String ITEM_DELIMITER = ";";
+	//private static final String ATTR_DELIMITER = ",";
+	//private static final String TXT_PERIOD_SEC = "時段(秒計)";
+	//private static final String TXT_PERIOD_MIN = "時段(分鐘)";
+	//private static final String TXT_PERIOD_HUR = "時段(小時)";
+		
+	/*private int index_period = 1;
 	
 	public ItemBills addThingSec(
 		final Date tick1, 
@@ -231,5 +258,5 @@ public class ItemBills {
 			diff = diff / 3600;
 		}
 		return get_price(attr[1],""+diff);
-	}
+	}*/
 }
