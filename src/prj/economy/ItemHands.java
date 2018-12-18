@@ -4,26 +4,28 @@ package prj.economy;
 public class ItemHands {
 
 	/**
-	 * operator name
+	 * operator name.<p>
 	 */
 	public String name = "";	
+	
 	/**
-	 * operator phone, this is also key or UUID.<p>
+	 * operator contact information or identify-serial-number.<p>
 	 */
-	public String phone= "";	
+	public String info = "";	
+	
 	/**
 	 * Where operator can take care.<p>
 	 */
 	public String zone ="";
-	/**
-	 * Where operator is.<p>
-	 * This will be updated by operator phone.<p>
-	 */
-	public String geom ="";
+	
+	
+	
 	/**
 	 * other information.<p>
 	 */
 	public String memo ="";
+	
+	
 	
 	public ItemHands(){		
 	}

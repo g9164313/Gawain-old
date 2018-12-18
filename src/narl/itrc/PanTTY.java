@@ -330,7 +330,7 @@ public class PanTTY extends PanBase {
 	}
 
 	@Override
-	public void eventShown(PanBase self) {
+	public void eventShown(Object[] args) {
 		if(dev==null){
 			return;
 		}

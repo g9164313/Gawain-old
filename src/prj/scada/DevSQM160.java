@@ -553,7 +553,7 @@ public class DevSQM160 extends DevBase {
 			return lay2;
 		}
 		@Override
-		public void eventShown(PanBase self) {
+		public void eventShown(Object[] args) {
 			dev.queryFilm(box);
 		}
 	};
@@ -626,7 +626,7 @@ public class DevSQM160 extends DevBase {
 			return lay2;
 		}
 		@Override
-		public void eventShown(PanBase self) {
+		public void eventShown(Object[] args) {
 			dev.querySystem1(chkSim, cmbUnit, chkRes, boxVal);
 		}
 	};
@@ -679,7 +679,7 @@ public class DevSQM160 extends DevBase {
 			return lay2;
 		}
 		@Override
-		public void eventShown(PanBase self) {
+		public void eventShown(Object[] args) {
 			dev.querySystem2(chkEtch,boxVal);
 		}
 	};

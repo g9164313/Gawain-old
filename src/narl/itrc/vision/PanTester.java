@@ -2,7 +2,6 @@ package narl.itrc.vision;
 
 import javafx.scene.Node;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.Group;
 import narl.itrc.PanBase;
 
 public class PanTester extends PanBase {
@@ -29,7 +28,7 @@ public class PanTester extends PanBase {
 	}
 
 	@Override
-	public void eventShown(PanBase self) {
+	public void eventShown(Object[] args) {
 		prvw.test_load_file();
 	}
 }

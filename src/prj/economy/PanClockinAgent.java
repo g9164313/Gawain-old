@@ -22,15 +22,20 @@ public class PanClockinAgent extends PanBase {
 		};
 	}
 		
-	private final FragDispatch fragDisp = new FragDispatch();
-	
 	@Override
 	public Node eventLayout(PanBase self) {
-
+		
+		final FragDispatch fragDisp = new FragDispatch();		
+		final FragAccount fragAcct = new FragAccount();
+		
+		//keep it, this nodes will use in next state....
+		args[0] = fragDisp;
+		args[1] = fragAcct;
+		
 		final ButtonEx btnConn = new ButtonEx(
 			"斷線","lan-disconnect.png",
 			"連接","lan-connect.png"			
-		).setOnToggle(event0->{
+		).setOnToggle(event->{
 			connect_database();
 		}, null);
 		if(DataProvider.isReady()==true){
@@ -51,13 +56,17 @@ public class PanClockinAgent extends PanBase {
 		
 		final ButtonEx btnDisp = new ButtonEx(
 			"分派工作","directions-fork.png"
-		).setOnClick(e->{
+		).setOnClick(event->{
 			fragDisp.setVisible(true);
+			fragAcct.setVisible(false);
 		});
 		
 		final ButtonEx btnBank = new ButtonEx(
 			"查詢帳單","file-search-outline.png"
-		);
+		).setOnClick(event->{
+			fragDisp.setVisible(false);
+			fragAcct.setVisible(true);
+		});
 		
 		final ButtonEx btnSetIndx = new ButtonEx(
 			"計數","file-search-outline.png"
@@ -87,8 +96,9 @@ public class PanClockinAgent extends PanBase {
 	}
 
 	@Override
-	public void eventShown(PanBase self) {
-		fragDisp.init();
+	public void eventShown(Object[] args) {
+		((FragDispatch)args[0]).init();
+		((FragAccount )args[1]).init();
 	}
 	
 	private void connect_database(){

@@ -5,8 +5,11 @@ import java.util.ArrayList;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.ValueEventListener;
+import com.jfoenix.controls.JFXBadge;
 import com.sun.glass.ui.Application;
 
+import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.SimpleIntegerProperty;
 import javafx.geometry.Pos;
 
 import javafx.scene.control.Button;
@@ -23,7 +26,7 @@ public class FragDispatch extends HBox {
 	
 	private static class FaceBills extends GridPane {
 		
-		private static Image img = Misc.getPicImage("sticker-emoji.png");
+		private static Image img_bills = Misc.getPicImage("sticker-emoji.png");
 		
 		public final ItemBills ref;
 		
@@ -44,7 +47,7 @@ public class FragDispatch extends HBox {
 				new Label(ref.addr),
 				new Label(ref.info)
 			};
-			final ImageView icon = new ImageView(img);
+			final ImageView icon = new ImageView(img_bills);
 			icon.setPickOnBounds(true);
 			add(icon,0,0,3,3);			
 			add(new Label("日期："), 3, 0);
@@ -56,6 +59,69 @@ public class FragDispatch extends HBox {
 		}
 	}
 	
+	public static class FaceHands extends GridPane {
+
+		private static Image img_accnt = Misc.getPicImage("account.png");
+		
+		private final IntegerProperty loading = new SimpleIntegerProperty();
+
+		private ItemHands ref;
+		
+		public FaceHands(final ItemHands itm){
+			ref = itm;//make reference~~~
+			init_layout();
+			setOnMouseClicked(event->{
+				if(event.getClickCount()<2){
+					return;
+				}
+				new PanEditHands(itm).appear();
+			});
+			DataProvider.refer("/pool-2/"+ref.info, new ValueEventListener(){
+				int val = 0;
+				Runnable event = new Runnable(){
+					@Override
+					public void run() {
+						loading.set(val);
+					}
+				};
+				@Override
+				public void onCancelled(DatabaseError arg0) {	
+				}
+				@Override
+				public void onDataChange(DataSnapshot arg0) {
+					if(arg0.exists()==false){
+						val = 0;
+					}else{
+						val = (int)arg0.getChildrenCount();
+					}
+					//trick!! Property doesn't be changed when node is showing...
+					Application.invokeLater(event);
+				}
+			});
+		}
+
+		private void init_layout(){
+			
+			final Label[] info = {
+				new Label(ref.name),
+				new Label(ref.info),
+				new Label(ref.zone)
+			};
+			
+			final ImageView icon = new ImageView(img_accnt);
+			final JFXBadge badge = new JFXBadge(icon,Pos.TOP_LEFT);
+			badge.getStyleClass().add("icons-badge");
+			badge.textProperty().bind(loading.asString());
+			
+			add(badge,0,0,3,3);
+			add(new Label("人員名稱："), 3, 0);
+			add(new Label("聯絡電話："), 3, 1);
+			add(new Label("負責區域："), 3, 2);
+			add(info[0], 4, 0);
+			add(info[1], 4, 1);
+			add(info[2], 4, 2);
+		}
+	};
 	
 	private ListView<FaceBills> lstBills = new ListView<>();
 	
@@ -63,49 +129,6 @@ public class FragDispatch extends HBox {
 	
 	public FragDispatch(){
 
-		/*final TableColumn<ItemBills, String> col_indx = new TableColumn<>("編號");
-		col_indx.setCellValueFactory(new Callback<CellDataFeatures<ItemBills,String>,ObservableValue<String>>(){
-			@Override
-			public ObservableValue<String> call(CellDataFeatures<ItemBills, String> param) {
-				ItemBills itm = param.getValue();
-				return new SimpleStringProperty(itm.order_idx());
-			}
-		});
-		final TableColumn<ItemBills, String> col_name = new TableColumn<>("客戶");
-		col_name.setCellValueFactory(new Callback<CellDataFeatures<ItemBills,String>,ObservableValue<String>>(){
-			@Override
-			public ObservableValue<String> call(CellDataFeatures<ItemBills, String> param) {
-				ItemBills itm = param.getValue();
-				return new SimpleStringProperty(itm.name);
-			}
-		});
-		
-		final TableColumn<ItemBills, String> col_phone= new TableColumn<>("聯絡方式");
-		col_phone.setCellValueFactory(new Callback<CellDataFeatures<ItemBills,String>,ObservableValue<String>>(){
-			@Override
-			public ObservableValue<String> call(CellDataFeatures<ItemBills, String> param) {
-				ItemBills itm = param.getValue();
-				return new SimpleStringProperty(itm.info);
-			}
-		});
-		lstBills.setRowFactory(new Callback<TableView<ItemBills>,TableRow<ItemBills>>(){
-			@Override
-			public TableRow<ItemBills> call(TableView<ItemBills> param) {
-				TableRow<ItemBills> row = new TableRow<>();
-				row.setOnMouseClicked(event->{
-					if(event.getClickCount()==2 && row.isEmpty()==false){
-						new PanEditBills(row.getItem()).appear();
-					}
-				});
-				return row;
-			}
-		});
-		lstBills.getColumns().addAll(
-			col_indx,
-			col_name,
-			col_phone
-		);*/
-		
 		final Button btnForward = new Button();
 		btnForward.setGraphic(Misc.getIconView("chevron-double-right.png"));
 		btnForward.setOnAction(e->forward());
@@ -138,11 +161,11 @@ public class FragDispatch extends HBox {
 		if(hands==null){
 			return;
 		}
-		final long b_id = bills.ref.takeSerial();
-		final String h_id = hands.descr_idx();
+		final String b_id = bills.ref.takeSerial();
+		final String h_id = hands.ref.info;
 				
-		DataProvider.push_item(String.format(
-			"/pool-2/%s/%d", 
+		DataProvider.push_bills(String.format(
+			"/pool-2/%s/%s", 
 			h_id, b_id
 		), bills.ref);
 		
@@ -156,8 +179,7 @@ public class FragDispatch extends HBox {
 	 */
 	private void backward(){
 		final FaceHands hands = lstHands.getSelectionModel().getSelectedItem();
-		final String h_id = hands.descr_idx();
-		final String org_path = "/pool-2/"+h_id;		
+		final String org_path = "/pool-2/"+hands.ref.info;		
 		DataProvider.refer_once_last(
 			org_path, 
 			1, 
@@ -172,7 +194,7 @@ public class FragDispatch extends HBox {
 				}
 				arg0 = arg0.getChildren().iterator().next();	
 				
-				DataProvider.push_item(String.format(
+				DataProvider.push_bills(String.format(
 					"/pool-1/%s", 
 					arg0.getKey()
 				), arg0.getValue(ItemBills.class));
@@ -185,8 +207,8 @@ public class FragDispatch extends HBox {
 	public void init(){
 		
 		DataProvider.refer("/worker", new ValueEventListener(){
-			private ArrayList<FaceHands> lst = null;
-			private Runnable event = new Runnable(){
+			ArrayList<FaceHands> lst = null;
+			Runnable event = new Runnable(){
 				@Override
 				public void run() {
 					if(lst==null){
@@ -205,21 +227,19 @@ public class FragDispatch extends HBox {
 			public void onDataChange(DataSnapshot arg0) {
 				lst = null;
 				if(arg0.exists()==false){
-					Application.invokeAndWait(event);
-					return;
-				}
-				lst = new ArrayList<FaceHands>();
-				for(DataSnapshot ss:arg0.getChildren()){
-					ItemHands itm = ss.getValue(ItemHands.class);
-					lst.add(new FaceHands(itm));
+					lst = new ArrayList<FaceHands>();
+					for(DataSnapshot ss:arg0.getChildren()){
+						ItemHands itm = ss.getValue(ItemHands.class);
+						lst.add(new FaceHands(itm));
+					}
 				}
 				Application.invokeAndWait(event);
 			}
 		});
 		
 		DataProvider.refer("/pool-1", new ValueEventListener(){
-			private ArrayList<FaceBills> lst = null;
-			private Runnable event = new Runnable(){
+			ArrayList<FaceBills> lst = null;
+			Runnable event = new Runnable(){
 				@Override
 				public void run() {
 					if(lst==null){
@@ -237,15 +257,13 @@ public class FragDispatch extends HBox {
 			@Override
 			public void onDataChange(DataSnapshot arg0) {
 				lst = null;
-				if(arg0.exists()==false){					
-					Application.invokeAndWait(event);
-					return;
-				}
-				lst = new ArrayList<FaceBills>();
-				for(DataSnapshot ss:arg0.getChildren()){
-					ItemBills itm = ss.getValue(ItemBills.class);
-					itm.setSerial(Long.valueOf(ss.getKey()));
-					lst.add(new FaceBills(itm));
+				if(arg0.exists()==true){					
+					lst = new ArrayList<FaceBills>();
+					for(DataSnapshot ss:arg0.getChildren()){
+						ItemBills itm = ss.getValue(ItemBills.class);
+						itm.hangSerial(ss.getKey());
+						lst.add(new FaceBills(itm));
+					}
 				}
 				Application.invokeAndWait(event);
 			}	

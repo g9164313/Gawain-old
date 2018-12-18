@@ -137,11 +137,20 @@ public abstract class PanBase {
 		panel = null;
 	}
 	//------------------------//
-		
+	
+	protected Object[] args = {
+		null, null, null, null,
+		null, null, null, null
+	};
+	
 	public abstract Node eventLayout(PanBase self);
-	protected       void eventShowing(PanBase self){ }//let user override this function
-	public abstract void eventShown(PanBase self);
-	protected       void eventClose(PanBase self){ }//let user override this function
+	protected void eventShowing(Object[] args){
+		//let user override this function
+	}
+	public abstract void eventShown(Object[] args);
+	protected void eventClose(PanBase self){ 
+		//let user override this function
+	}
 	
 	private Stage create_stage(Window parent){
 		Stage stg = new Stage(StageStyle.UNIFIED);		
@@ -155,12 +164,16 @@ public abstract class PanBase {
 			return stg;
 		}		
 		//hook all events
-		stg.setOnShowing(e->{
-			eventShowing(PanBase.this);
+		stg.setOnShowing(event->{
+			eventShowing(args);
 			//Platform.runLater(() -> panel.requestFocus());//it may cause screen not fresh~~~
 		});
-		stg.setOnShown  (e->{ eventShown(PanBase.this); });
-		stg.setOnHidden (e->{ eventClose(PanBase.this); });		
+		stg.setOnShown(event->{ 
+			eventShown(args); 
+		});
+		stg.setOnHidden(event->{ 
+			eventClose(PanBase.this); 
+		});		
 		//set title and some properties~~~
 		stg.setScene(scene);
 		stg.sizeToScene();

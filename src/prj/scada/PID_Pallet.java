@@ -293,7 +293,7 @@ public class PID_Pallet extends PanBase {
 		return lay0;
 	}
 	@Override
-	public void eventShown(PanBase self) {
+	public void eventShown(Object[] args) {
 	}
 	@Override
 	protected void eventClose(PanBase self) {

@@ -121,7 +121,7 @@ public class PanFringeEditor extends PanBase{
 	}
 
 	@Override
-	public void eventShown(PanBase self) {
+	public void eventShown(Object[] args) {
 		dia.setInitialDirectory(Gawain.dirHome);
 	}
 }

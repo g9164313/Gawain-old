@@ -87,7 +87,7 @@ public class PanEntry extends PanBase {
 	}
 
 	@Override
-	public void eventShown(PanBase self) {
+	public void eventShown(Object[] args) {
 		//sqm.link();
 		//pci0.link();
 		//hs2k.link();

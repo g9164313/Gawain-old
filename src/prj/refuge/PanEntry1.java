@@ -327,7 +327,7 @@ public class PanEntry1 extends PanBase {
 	}
 
 	@Override
-	public void eventShown(PanBase self) {
+	public void eventShown(Object[] args) {
 		//cdr.connect("");
 		//cdr.layout_grid();//re-layout again!!!
 		//cdr.update_auto(true);

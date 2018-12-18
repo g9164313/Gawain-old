@@ -127,7 +127,7 @@ public class Layout1 {
 					return gen_setting(dev);
 				}
 				@Override
-				public void eventShown(PanBase self) {
+				public void eventShown(Object[] args) {
 					dev.getRegister();//get the first initialization
 				}
 			}.appear();

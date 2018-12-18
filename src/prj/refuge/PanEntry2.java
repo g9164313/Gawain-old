@@ -135,7 +135,7 @@ public class PanEntry2 extends PanBase {
 	private PanSandbox panelSandbox = new PanSandbox();
 		
 	@Override
-	public void eventShown(PanBase self) {
+	public void eventShown(Object[] args) {
 		sandbox = TaskSandbox.factory(sandbox)
 				.sendScript(SCRIPT_FIRST, null);
 	}

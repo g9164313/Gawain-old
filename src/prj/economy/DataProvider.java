@@ -101,7 +101,7 @@ public class DataProvider {
 		});
 	}
 	
-	public static void push_item(
+	public static void push_bills(
 		final String path,
 		final ItemBills itm
 	){
@@ -113,14 +113,12 @@ public class DataProvider {
 		.setValueAsync(itm);
 	}
 	
-	public static void push_item(
-		final ItemHands itm
-	){
+	public static void push_hands(final ItemHands itm){
 		if(base==null){
 			return;
 		}
 		DataProvider.base
-		.getReference("/worker/"+itm.phone)
+		.getReference("/worker/"+itm.info)
 		.setValueAsync(itm);
 	}
 	

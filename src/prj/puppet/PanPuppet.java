@@ -114,7 +114,7 @@ public class PanPuppet extends PanBase {
 	}
 
 	@Override
-	public void eventShown(PanBase self) {
+	public void eventShown(Object[] args) {
 		try {
 			serv = HttpServer.create(new InetSocketAddress(9911),0);
 			serv.createContext("/input" ,eventInput);

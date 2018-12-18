@@ -26,7 +26,7 @@ public class PanEditHands extends PanBase {
 	
 	private final JFXTextField[] info = {
 		new JFXTextField(),//人員名稱
-		new JFXTextField(),//工作電話
+		new JFXTextField(),//聯絡電話
 		new JFXTextField(),//負責區域
 		new JFXTextField(),//備註
 	};
@@ -73,7 +73,7 @@ public class PanEditHands extends PanBase {
 		btnNew.setOnAction(event->{
 			ItemHands itm = new ItemHands();
 			stuff_field(itm);
-			DataProvider.push_item(itm);
+			DataProvider.push_hands(itm);
 			clear_field();
 		});
 		final Button btnImp = PanBase.genButton2("匯入",null);
@@ -84,12 +84,12 @@ public class PanEditHands extends PanBase {
 		btnMod.setMaxWidth(Double.MAX_VALUE);
 		btnMod.setOnAction(event->{
 			stuff_field(target);
-			DataProvider.push_item(target);
+			DataProvider.push_hands(target);
 		});		
 		final Button btnDel = PanBase.genButton4("刪除",null);
 		btnDel.setMaxWidth(Double.MAX_VALUE);
 		btnDel.setOnAction(event->{
-			DataProvider.delete("/worker/"+target.phone);
+			DataProvider.delete("/worker/"+target.info);
 			//TODO: pop-up all bills!!!!!
 			dismiss();
 		});
@@ -116,7 +116,7 @@ public class PanEditHands extends PanBase {
 
 	private ItemHands stuff_field(final ItemHands itm){
 		itm.name = info[0].getText().trim();
-		itm.phone= info[1].getText().trim();
+		itm.info = info[1].getText().trim();
 		itm.zone = info[2].getText().trim();
 		itm.memo = info[3].getText().trim();
 		return itm;
@@ -130,10 +130,10 @@ public class PanEditHands extends PanBase {
 	}
 	
 	@Override
-	public void eventShown(PanBase self) {
+	public void eventShown(Object[] args) {
 		if(target!=null){
 			info[0].setText(target.name);
-			info[1].setText(target.phone);
+			info[1].setText(target.info);
 			info[2].setText(target.zone);
 			info[3].setText(target.memo);
 		}

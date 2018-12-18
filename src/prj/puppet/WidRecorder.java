@@ -216,8 +216,6 @@ public class WidRecorder extends PanBase {
 	}
 
 	@Override
-	public void eventShown(PanBase self) {
-		// TODO Auto-generated method stub
-		
+	public void eventShown(Object[] args) {
 	}
 }

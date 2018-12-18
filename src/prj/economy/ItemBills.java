@@ -1,8 +1,11 @@
 package prj.economy;
 
 import java.text.DateFormat;
+import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 public class ItemBills {
 	
@@ -31,11 +34,40 @@ public class ItemBills {
 	/**
 	 * custom information, contact information
 	 */
-	public String info= "";	
+	public String info = "";	
 	/**
 	 * custom information, contact address
 	 */
 	public String addr ="";	
+	
+	public ItemBills(){
+		serial = new Date().getTime();
+	}
+	
+	public void hangSerial(final String val){
+		serial = Long.valueOf(val, 16);
+	}
+	public String takeSerial(){
+		return String.format("%08X", serial);
+	}	
+	
+	//public String takeSerialTxt(){
+	//	return fmtDate.format(new Date(serial));
+	//}
+	
+	public void stampOpen(){
+		stampClose = "";
+	}
+	public void stampClose(){
+		stampClose = fmtDate.format(new Date());
+	}
+	
+	public boolean isClosed(){
+		if(stampClose.length()==0){
+			return false;
+		}
+		return true;
+	}
 	
 	/**
 	 * Price and name of item.<p>
@@ -51,212 +83,126 @@ public class ItemBills {
 	 */
 	public String listCart = "";
 	
-	public ItemBills(){
-		serial = new Date().getTime();
-	}
-	
-	public void setSerial(long serial_number){
-		serial = serial_number;
-	}
-	
-	public long takeSerial(){
-		return serial;
-	}
-	
-	public String takeSerialTxt(){
-		return fmtDate.format(new Date(serial));
-	}
-	
-	public String stampOpen(){
-		return fmtDate.format(new Date(serial));
-	}
-	
-	public void stampClose(){
-		stampClose = fmtDate.format(new Date());
-	}
-	
-	//private static final DateFormat fmtTick = new SimpleDateFormat("HH:mm:ss");
-	//private static final DecimalFormat fmtDeci = new DecimalFormat("###,###,###");
-	
-	/*public static String getCurrentOpenDate(){
-		return fmtDate.format(new Date());
-	}
-	public static String toMeeting(final Date day){
-		if(day==null){
-			return "";
-		}
-		return fmtDate.format(day);
-	}
-	public static String toMeeting(final LocalDate day){
-		if(day==null){
-			return "";
-		}
-		final ZoneId id = ZoneId.systemDefault();
-		return toMeeting(Date.from(day.atStartOfDay(id).toInstant()));
-	}
-	public static Date meeting2date(final ItemBills itm){
-		try {
-			if(itm.stampMeet.length()==0){
-				return null;
-			}
-			return fmtDate.parse(itm.stampMeet);
-		} catch (ParseException e) {
-			e.printStackTrace();
-			return null;
-		}
-	}
-	public static LocalDate meeting2local(final ItemBills itm){
-		Date day = meeting2date(itm);
-		if(day==null){
-			return null;
-		}
-		final ZoneId id = ZoneId.systemDefault();
-		return day.toInstant().atZone(id).toLocalDate();
-	}*/
-	
 	//---below lines are processing cart things---//
-	
-	//private static final String ITEM_DELIMITER = ";";
-	//private static final String ATTR_DELIMITER = ",";
-	//private static final String TXT_PERIOD_SEC = "時段(秒計)";
-	//private static final String TXT_PERIOD_MIN = "時段(分鐘)";
-	//private static final String TXT_PERIOD_HUR = "時段(小時)";
-		
-	/*private int index_period = 1;
-	
-	public ItemBills addThingSec(
-		final Date tick1, 
-		final Date tick2,
-		final String feeRate
-	){
-		return  _add_thing_time(TXT_PERIOD_SEC,tick1,tick2,feeRate);
-	}	
-	public ItemBills addThingMin(
-		final Date tick1, 
-		final Date tick2,
-		final String feeRate
-	){
-		return  _add_thing_time(TXT_PERIOD_MIN,tick1,tick2,feeRate);
-	}	
-	public ItemBills addThingHour(
-		final Date tick1, 
-		final Date tick2,
-		final String feeRate
-	){
-		return  _add_thing_time(TXT_PERIOD_HUR,tick1,tick2,feeRate);
-	}
-	
-	private ItemBills _add_thing_time(
-		final String tick_type,
-		final Date tick1, 
-		final Date tick2,
-		final String feeRate
-	){
-		String txt = String.format(
-			"%s%02d, %s~%s",
-			tick_type,
-			index_period++,
-			fmtTick.format(tick1),
-			fmtTick.format(tick2)
-		);
-		listCart = listCart + txt + ITEM_DELIMITER;
-		return this;
-	}
-	
-	public ItemBills delThing(int idx){
-		final String[] arg = listCart.split(ITEM_DELIMITER);
-		listCart = "";//reset context~~~
-		for(int i=0; i<arg.length; i++){
-			if(i==idx){
-				continue;
-			}
-			listCart = listCart + arg[i] + ITEM_DELIMITER;
+
+	public static class Thing {
+		public String name="";
+		public float  fee=0.f;
+		public float  cnt=1.f;
+		public String memo="";
+		public Thing(){			
 		}
+		public Thing(final String txt){
+			unflatten(txt);
+		}
+		public Thing unflatten(final String txt){
+			String[] arg = txt.split(",");
+			if(arg.length>=1){ name = arg[0]; }
+			if(arg.length>=2){ fee = Float.valueOf(arg[1]); }
+			if(arg.length>=3){ cnt = Float.valueOf(arg[2]); }
+			if(arg.length>=4){
+				memo = arg[3];
+				for(int i=4; i<arg.length; i++){
+					memo = memo + "," + arg[i];
+				}
+			}
+			return this;
+		}
+		public String flatten(){
+			return String.format(
+				"%s,%03f,%03f,%s;", 
+				name, fee, cnt, memo
+			);
+		}
+		public String toString(){
+			return flatten();
+		}
+		public int amount(){
+			return (int)Math.ceil(fee * cnt);
+		}
+		public String amountText(){
+			return fmtDeci.format(amount());
+		}
+	};
+	
+	private static final String TXT_PERIOD_SEC = "時段(秒計)";
+	private static final String TXT_PERIOD_MIN = "時段(分鐘)";
+	private static final String TXT_PERIOD_HUR = "時段(小時)";
+	
+	public ItemBills addPeriodHour(
+		float price,
+		float count
+	){
+		return addThing(TXT_PERIOD_HUR,price,count,"");
+	}
+	public ItemBills addPeriodMinute(
+		float price,
+		float count
+	){
+		return addThing(TXT_PERIOD_MIN,price,count,"");
+	}	
+	public ItemBills addPeriodSecond(
+		float price,
+		float count
+	){
+		return addThing(TXT_PERIOD_SEC,price,count,"");
+	}	
+	public ItemBills addThing(
+		final String name,
+		float price
+	){
+		return addThing(name,price,1,"");
+	}
+	public ItemBills addThing(
+		final String name,
+		float price,
+		float count
+	){
+		return addThing(name,price,count,"");
+	}
+	public ItemBills addThing(
+		final String name,
+		float price,
+		float count,
+		final String memo
+	){
+		Thing itm = new Thing();
+		itm.name= name;
+		itm.fee = price;
+		itm.cnt = count;
+		itm.memo= memo;
+		listCart = listCart + itm.flatten();
 		return this;
 	}
 	
-	public ItemBills delThing(String name){
-		final String[] arg = listCart.split(ITEM_DELIMITER);
-		listCart = "";//reset context~~~
-		for(int i=0; i<arg.length; i++){
-			if(arg[i].startsWith(name)==true){
-				continue;
-			}
-			listCart = listCart + arg[i] + ITEM_DELIMITER;
+	public ArrayList<ItemBills.Thing> takeThing(){
+		ArrayList<ItemBills.Thing> lst = new ArrayList<ItemBills.Thing>();
+		String[] arg = listCart.split(";");
+		for(String txt:arg){
+			lst.add(new Thing(txt));
 		}
-		return this;
+		return lst;
 	}
+	
+	public static String thing2cart(final List<ItemBills.Thing> lst){
+		String txt = "";
+		for(ItemBills.Thing itm:lst){
+			txt = txt + itm.flatten() + ";";
+		}
+		return txt;
+	}
+	
+	private static final DecimalFormat fmtDeci = new DecimalFormat("###,###,###");
 	
 	public String amountText(){		
 		return fmtDeci.format(amount());
 	}
-	
 	public int amount(){
-		final String[] item = listCart.split(ITEM_DELIMITER);
 		int total = 0;
-		for(int i=0; i<item.length; i++){
-			final String[] attr = item[i].split(ATTR_DELIMITER);
-			switch(attr.length){
-			case 2://[item-name,fee]
-				total += get_price(attr[1]);
-				break;
-			case 3://[item-name,fee,count]
-				total += get_price(attr[1],attr[2]);
-				break;
-			case 4://[time-name,fee,t1,t2]
-				total += get_price(attr);
-				break;
-			default:
-				Misc.logw("Ignore: %s", item[i]);
-				break;
-			}
+		ArrayList<Thing> lst = takeThing();
+		for(Thing itm:lst){
+			total = total + (int)Math.ceil(itm.fee * itm.cnt);
 		}
 		return total;
 	}
-
-	private int get_price(String fee){
-		if(fee.charAt(0)=='+'){
-			fee = fee.substring(1);
-		}
-		try{
-			return Integer.valueOf(fee);
-		}catch(NumberFormatException e){
-			Misc.logw("Ignore --> %s", fee);
-		}
-		return 0;
-	}
-	
-	private int get_price(String fee, String cnt){
-		if(fee.charAt(0)=='x'){
-			fee = fee.substring(1);
-		}
-		try{
-			float _fee = Float.valueOf(fee);
-			int _cnt = Integer.valueOf(cnt);
-			return (int)(_fee * _cnt);
-		}catch(NumberFormatException e){
-			Misc.logw("Ignore --> %s,%s", fee, cnt);
-		}
-		return 0;
-	}
-	
-	private int get_price(String[] attr){
-		int diff = 0;
-		try {
-			long t1 = fmtTick.parse(attr[2]).getTime();
-			long t2 = fmtTick.parse(attr[3]).getTime();
-			diff = (int)(t2 - t1)/1000;
-		} catch (ParseException e) {
-			Misc.logw("Ignore tick --> %s,%s",attr[2],attr[3]);
-			return 0;
-		}		
-		if(attr[0].startsWith(TXT_PERIOD_SEC)==true){
-			diff = diff / 1;
-		}else if(attr[0].startsWith(TXT_PERIOD_MIN)==true){
-			diff = diff / 60;
-		}else if(attr[0].startsWith(TXT_PERIOD_HUR)==true){
-			diff = diff / 3600;
-		}
-		return get_price(attr[1],""+diff);
-	}*/
 }

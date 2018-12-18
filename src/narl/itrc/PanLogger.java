@@ -160,7 +160,7 @@ public class PanLogger extends PanBase {
 	}
 
 	@Override
-	public void eventShown(PanBase self) {	
+	public void eventShown(Object[] args) {
 		while(Gawain.logQueue.peek()!=null){
 			table.getItems().add(Gawain.logQueue.poll());
 		}		

@@ -65,7 +65,7 @@ public class PanXIMEA extends PanBase {
 	}
 
 	@Override
-	public void eventShown(PanBase self) {
+	public void eventShown(Object[] args) {
 		if(dev.isReady()==false){
 			return;
 		}		
