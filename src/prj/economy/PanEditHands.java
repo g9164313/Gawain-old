@@ -89,7 +89,7 @@ public class PanEditHands extends PanBase {
 		final Button btnDel = PanBase.genButton4("刪除",null);
 		btnDel.setMaxWidth(Double.MAX_VALUE);
 		btnDel.setOnAction(event->{
-			DataProvider.delete("/worker/"+target.info);
+			DataProvider.delete("/hands/"+target.info);
 			//TODO: pop-up all bills!!!!!
 			dismiss();
 		});

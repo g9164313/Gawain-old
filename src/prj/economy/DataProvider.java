@@ -118,7 +118,7 @@ public class DataProvider {
 			return;
 		}
 		DataProvider.base
-		.getReference("/worker/"+itm.info)
+		.getReference("/hands/"+itm.info)
 		.setValueAsync(itm);
 	}
 	

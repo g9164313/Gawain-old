@@ -9,10 +9,10 @@ import java.util.List;
 
 public class ItemBills {
 	
-	private static final DateFormat fmtDate= new SimpleDateFormat("yyyy-MM-dd HH:mm");  
+	private static final DateFormat fmtDate= new SimpleDateFormat("yyyy-MM-dd HH:mm");
 	
 	/**
-	 * key in data-base.<p>
+	 * stamp in data-base.<p>
 	 * It is also time-stamp when creating this object.<p>
 	 */
 	private long serial = -1L;
@@ -86,7 +86,7 @@ public class ItemBills {
 	//---below lines are processing cart things---//
 
 	public static class Thing {
-		public String name="";
+		public String name="???";
 		public float  fee=0.f;
 		public float  cnt=1.f;
 		public String memo="";
@@ -110,42 +110,55 @@ public class ItemBills {
 		}
 		public String flatten(){
 			return String.format(
-				"%s,%03f,%03f,%s;", 
+				"%s,%.1f,%.1f,%s;",
 				name, fee, cnt, memo
 			);
 		}
 		public String toString(){
 			return flatten();
 		}
-		public int amount(){
-			return (int)Math.ceil(fee * cnt);
+		public String feeText(){
+			return String.format("%.1f",fee);
 		}
-		public String amountText(){
-			return fmtDeci.format(amount());
+		public String cntText(){
+			if(name.startsWith(TXT_PERIOD_SEC)==true){
+				return String.format("%.1f 秒",cnt);
+			}else if(name.startsWith(TXT_PERIOD_MIN)==true){
+				return String.format("%.1f 分",cnt);
+			}else if(name.startsWith(TXT_PERIOD_HUR)==true){
+				return String.format("%.1f 時",cnt);
+			}
+			return String.format("%.1f",cnt);
+		}
+		public String totalText(){
+			return String.format("%.1f",fee*cnt);
 		}
 	};
-	
+
 	private static final String TXT_PERIOD_SEC = "時段(秒計)";
 	private static final String TXT_PERIOD_MIN = "時段(分鐘)";
 	private static final String TXT_PERIOD_HUR = "時段(小時)";
 	
 	public ItemBills addPeriodHour(
 		float price,
-		float count
+		float count,
+		String memo
 	){
-		return addThing(TXT_PERIOD_HUR,price,count,"");
+		return addThing(TXT_PERIOD_HUR,price,count,memo);
 	}
 	public ItemBills addPeriodMinute(
 		float price,
-		float count
+		float count,
+		String memo
 	){
-		return addThing(TXT_PERIOD_MIN,price,count,"");
+		return addThing(TXT_PERIOD_MIN,price,count,memo);
 	}	
 	public ItemBills addPeriodSecond(
 		float price,
-		float count
+		float count,
+		String memo
 	){
-		return addThing(TXT_PERIOD_SEC,price,count,"");
+		return addThing(TXT_PERIOD_SEC,price,count,memo);
 	}	
 	public ItemBills addThing(
 		final String name,
@@ -175,8 +188,14 @@ public class ItemBills {
 		return this;
 	}
 	
-	public ArrayList<ItemBills.Thing> takeThing(){
-		ArrayList<ItemBills.Thing> lst = new ArrayList<ItemBills.Thing>();
+	public List<ItemBills.Thing> takeThing(List<ItemBills.Thing> lst){
+		if(lst==null){
+			lst = new ArrayList<ItemBills.Thing>();
+		}
+		if(listCart.length()==0){
+			return lst;
+		}
+		lst.clear();
 		String[] arg = listCart.split(";");
 		for(String txt:arg){
 			lst.add(new Thing(txt));
@@ -192,14 +211,14 @@ public class ItemBills {
 		return txt;
 	}
 	
-	private static final DecimalFormat fmtDeci = new DecimalFormat("###,###,###");
+	private static final DecimalFormat fmtDeci = new DecimalFormat("$ ###,###,###");
 	
 	public String amountText(){		
 		return fmtDeci.format(amount());
 	}
 	public int amount(){
 		int total = 0;
-		ArrayList<Thing> lst = takeThing();
+		List<Thing> lst = takeThing(null);
 		for(Thing itm:lst){
 			total = total + (int)Math.ceil(itm.fee * itm.cnt);
 		}

@@ -73,23 +73,6 @@ public abstract class PanBase {
 	//------------------------//
 	
 	/**
-	 * prepare a stage or panel. no showing!!!
-	 * @return self
-	 */
-	public PanBase prepare(){
-		return prepare(create_stage(null));
-	}
-	/**
-	 * prepare a stage or panel. no showing!!!
-	 * @return self
-	 */
-	public PanBase prepare(Stage stg){
-		init_panel();		
-		init_stage(stg);
-		return this;
-	}
-	
-	/**
 	 * present a new panel, but no-blocking
 	 * @return self
 	 */
@@ -102,9 +85,14 @@ public abstract class PanBase {
 	 * @return self
 	 */
 	public PanBase appear(Stage owner){
-		stage = create_stage(owner);
-		prepare(stage);
-		stage.show();	
+		if(owner==null){
+			stage = create_stage(null);
+		}else{
+			stage = owner;
+		}
+		init_panel();
+		init_stage(stage);
+		stage.show();
 		return this;
 	}
 
@@ -118,10 +106,11 @@ public abstract class PanBase {
 	 * present a new panel, and blocking for dismissing 
 	 * @param stg - parent stage
 	 */
-	public void standby(Stage stg){
-		stage = stg;
-		prepare(stg);
-		stg.showAndWait();
+	public void standby(Stage owner){
+		stage = owner;
+		init_panel();		
+		init_stage(stage);
+		stage.showAndWait();
 	}
 	
 	/**
@@ -153,7 +142,7 @@ public abstract class PanBase {
 	}
 	
 	private Stage create_stage(Window parent){
-		Stage stg = new Stage(StageStyle.UNIFIED);		
+		Stage stg = new Stage(StageStyle.DECORATED);		
 		stg.initModality(Modality.WINDOW_MODAL); 
 		stg.initOwner(parent);
 		stg.centerOnScreen();		
@@ -210,9 +199,9 @@ public abstract class PanBase {
 		}
 		init_scene(node);
 	}
-	private void init_scene(Parent root){
+	private void init_scene(Parent node){
 		
-		scene = new Scene(root);		
+		scene = new Scene(node);		
 		//load a default style...
 		scene.getStylesheets().add(Gawain.class.getResource("res/styles.css").toExternalForm());				
 		//if user give us a URL, try to load a custom style file....		

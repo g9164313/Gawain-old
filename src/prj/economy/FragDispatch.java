@@ -169,7 +169,7 @@ public class FragDispatch extends HBox {
 			h_id, b_id
 		), bills.ref);
 		
-		DataProvider.delete(String.format("/pool-1/%d", b_id));
+		DataProvider.delete(String.format("/pool-1/%s", b_id));
 
 		lstBills.getSelectionModel().clearSelection();
 	}
@@ -206,7 +206,7 @@ public class FragDispatch extends HBox {
 	
 	public void init(){
 		
-		DataProvider.refer("/worker", new ValueEventListener(){
+		DataProvider.refer("/hands", new ValueEventListener(){
 			ArrayList<FaceHands> lst = null;
 			Runnable event = new Runnable(){
 				@Override
@@ -226,7 +226,7 @@ public class FragDispatch extends HBox {
 			@Override
 			public void onDataChange(DataSnapshot arg0) {
 				lst = null;
-				if(arg0.exists()==false){
+				if(arg0.exists()==true){
 					lst = new ArrayList<FaceHands>();
 					for(DataSnapshot ss:arg0.getChildren()){
 						ItemHands itm = ss.getValue(ItemHands.class);

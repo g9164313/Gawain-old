@@ -451,8 +451,8 @@ public class Gawain extends Application {
 			panRoot = (PanBase)Class.forName(name).newInstance();
 			new Loader().standby();
 			panRoot.appear(primaryStage);
-			hookShown();
-			//Misc.logv("啟動 launch [%s]",name);
+			//hookShown();
+			Misc.logv("啟動 launch [%s]",name);
 		} catch (
 			InstantiationException | 
 			IllegalAccessException | 
