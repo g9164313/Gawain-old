@@ -99,15 +99,13 @@ public class FragDispatch extends HBox {
 				}
 			});
 		}
-
+		
 		private void init_layout(){
-			
 			final Label[] info = {
 				new Label(ref.name),
 				new Label(ref.info),
 				new Label(ref.zone)
 			};
-			
 			final ImageView icon = new ImageView(img_accnt);
 			final JFXBadge badge = new JFXBadge(icon,Pos.TOP_LEFT);
 			badge.getStyleClass().add("icons-badge");

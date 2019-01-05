@@ -100,7 +100,7 @@ public class PanEditBills extends PanBase {
 			@Override
 			public ObservableValue<String> call(CellDataFeatures<ItemBills.Thing, String> param) {
 				ItemBills.Thing itm = param.getValue();
-				return new SimpleStringProperty(itm.amountText());
+				return new SimpleStringProperty(itm.totalText());
 			}
 		});
 		
