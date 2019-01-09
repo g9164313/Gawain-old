@@ -1,5 +1,6 @@
+#include "deprecated/square.hpp"
+
 #include <global.hpp>
-#include <square.hpp>
 
 #define ADP_SIZE 7
 

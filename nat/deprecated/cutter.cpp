@@ -1,5 +1,6 @@
+#include "deprecated/cutter.hpp"
+
 #include <global.hpp>
-#include <cutter.hpp>
 
 #define STRATEGY_OSTU     0
 #define STRATEGY_OSTU_INV 1

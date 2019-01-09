@@ -119,7 +119,7 @@ else
 endif
 
 ####################################################
-libdevice.so: ./util_jni.cpp ./device/DevTTY.cpp ./device/DevModbus.cpp ./device/DevUSB.cpp
+libdevice.so: ./deprecated/util_jni.cpp ./device/DevTTY.cpp ./device/DevModbus.cpp ./device/DevUSB.cpp
 	$(CC) -fPIC -shared -o $@ $^ $(LD_LIBS) $(CC_FLAG)
 	cp -rf $@ ../bin/narl/itrc/nat
 	cp -rf $@ ../src/narl/itrc/nat
@@ -132,7 +132,7 @@ endif
 
 ####################################################
 
-$(TARGET_EXE):  ./test/misc.cpp ./test/main-xx2.cpp 
+$(TARGET_EXE):  ./test/misc.cpp ./test/main-xx4.cpp 
 	$(CC) -o $@ $^ $(CC_FLAG) $(LD_LIBS)
 	
 ####################################################

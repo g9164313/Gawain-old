@@ -1,515 +1,305 @@
-#include <sys/ipc.h>
-#include <sys/msg.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 #include <fstream>
-#include <global.hpp>
 #include <algorithm>
-#include <opencv2/face.hpp>
 #include <iostream>
-#include "../util_ipc.hpp"
+#include <opencv/cv.h>
+#include <opencv2/opencv.hpp>
 
 using namespace cv;
-using namespace face;
 using namespace std;
 
+void meld(const Mat& src1, const Mat& src2, const char* name){
+    Mat result;
+    addWeighted( src1, 0.5, src2, 0.5, 0.0, result);
+    imwrite(name,result);
+}
 
-/*extern int test_sfr(
-	Mat& img,
-	double scale,
-	vector<double>& frq,
-	vector<double>& sfr
-);
+RotatedRect getShape(
+	const Mat& img,
+	vector<Point>& cts,
+	double epsilon
+){
+	vector<vector<Point> > ctors;
 
-Point findRedCross(Mat& img){
-	Point loc;
+	findContours(
+		img, ctors,
+		RETR_EXTERNAL,
+		CHAIN_APPROX_SIMPLE
+	);
 
-	Mat chan[3];
-	split(img,chan);
+	size_t idx = -1;
+	for(size_t i=0, max=0; i<ctors.size(); i++){
+		size_t c = ctors[i].size();
+		if(c>max){
+			idx = i;
+			max = c;
+		}
+	}
 
-	Mat out1,out2,out3;
-	bitwise_xor(chan[2],chan[0],out1);
-	bitwise_xor(chan[2],chan[1],out2);
-	bitwise_and(out1,out2,out3);
+	approxPolyDP(ctors[idx], cts, epsilon, true);
 
-	threshold(out3,out1,254,255,THRESH_BINARY);
+	return minAreaRect(cts);
+}
 
-	const int len = 11;
+/**
+ * modify angle from function, minAreaRect().<p>
+ * This function may 'flip' data, so we will get a wrong angle.<p>
+ * In other word, it means the first vertex may be bottom-right.<p>
+ */
+double getAngle(RotatedRect& rect){
 
-	out2 = Mat::zeros(len,len,CV_8UC1);
-	line(out2, Point(5,0), Point(len/2,len), Scalar::all(255));
-	line(out2, Point(0,5), Point(len,len/2), Scalar::all(255));
+	double angle = rect.angle;
 
-	out3 = Mat::zeros(
-		img.rows - out2.rows + 1,
-		img.cols - out2.cols + 1,
+	Point2f vtx[4];
+	rect.points(vtx);
+
+	Point2f va, vb;
+
+	float e0 = hypot(vtx[0].x, vtx[0].y);
+	float e1 = hypot(vtx[1].x, vtx[1].y);
+	float e2 = hypot(vtx[2].x, vtx[2].y);
+
+	if(!(e1<e0 && e1<e2)){
+		//the first vertex is bottom-right.
+		//why ???
+		angle = angle + 84.5f;
+	}
+	return angle;
+}
+
+/**
+ * 'refer' mean standard or golden-sample.<p>
+ */
+void matchShape(
+	const vector<Point>& target,
+	vector<Point>& refer
+){
+	RotatedRect r_tar = minAreaRect(target);
+	RotatedRect r_ref = minAreaRect(refer);
+
+	double a_ref = getAngle(r_tar);
+	double a_tar = getAngle(r_ref);
+
+	//adjust rotation
+	Mat h1 =getRotationMatrix2D(r_ref.center, -a_ref+a_tar, 1.);
+	transform(refer, refer, h1);
+
+	//adjust offset to corner, top-left
+	Mat h2 = Mat::eye(2,3,CV_64FC1);
+	h2.at<double>(0,2) = -r_ref.center.x + r_ref.size.width/2.f;
+	h2.at<double>(1,2) = -r_ref.center.y + r_ref.size.height/2.f;
+	transform(refer, refer, h2);
+
+	//try to match the location where we can have maximum correlation value.
+	Rect b_tar = r_tar.boundingRect();
+
+	Mat m_tar = Mat::zeros(
+		r_tar.center.y + b_tar.height,
+		r_tar.center.x + b_tar.width,
+		CV_8UC1
+	);
+	polylines(m_tar, target, false, Scalar::all(255), 1, LINE_4);
+
+	Mat m_ref = Mat::zeros(
+		b_tar.height,
+		b_tar.width,
+		CV_8UC1
+	);
+	polylines(m_ref, refer, false, Scalar::all(255), 1, LINE_4);
+
+	Mat result(
+		m_tar.cols - m_ref.cols + 1,
+		m_tar.rows - m_ref.rows + 1,
 		CV_32FC1
 	);
+	matchTemplate(m_tar, m_ref, result, CV_TM_CCORR);//TODO: mask for speed???
 
-	matchTemplate(out1, out2, out3, CV_TM_SQDIFF_NORMED);
+	Point maxLoc;
 
-	minMaxLoc(out3,NULL,NULL,&loc,NULL);
+	minMaxLoc(result, NULL, NULL, NULL, &maxLoc, Mat());
 
-	loc.x = loc.x + len/2;
-	loc.y = loc.y + len/2;
-
-	circle(img,loc,5,Scalar(0,255,255));
-
-	return loc;
+	h2.at<double>(0,2) = maxLoc.x;
+	h2.at<double>(1,2) = maxLoc.y;
+	transform(refer, refer, h2);
 }
 
-Rect findCornerBoard(
-	const Mat& src,
-	Point& ce,
-	float degree,
-	int roiW, int roiH
-){
+int main(int argc, char* argv[]) {
 
-	float rad = src.rows/2;
-	float cox = rad*cos((degree*M_PI)/180);
-	float siy = rad*sin((degree*M_PI)/180) * -1.;
-	Point pol(ce.x+cox,ce.y+siy);
-	Rect roi;
-	roi.x = pol.x - roiW;
-	roi.y = pol.y - roiH;
-	roi.width = roiW*2;
-	roi.height= roiH*2;
-	valid_roi(roi,src);
+	const char* name1 = "./cv_sample2/10-1.png";
+	const char* name2 = "./cv_sample2/9-1.png";
+	//const char* name1 = "./pad_sample/aaa.png";
+	//const char* name2 = "./pad_sample/bbb.png";
 
-	Mat img = src(roi);
-	Mat edg;
-	preCornerDetect(img,edg,5);
-	dilate(edg, edg, Mat());
+	Mat src1 = imread(name1,IMREAD_GRAYSCALE);
+	Mat src2 = imread(name2,IMREAD_GRAYSCALE);
 
-	Point loca;
-	minMaxLoc(edg, NULL, NULL, NULL, &loca);
+	Mat ova1 = imread(name1,IMREAD_COLOR);
+	Mat ova2 = imread(name2,IMREAD_COLOR);
 
-	loca.x += roi.x;
-	loca.y += roi.y;
+	threshold(src1,src1,150,255,THRESH_BINARY);
 
-	if(loca.x<(src.cols/2)){
-		//right
-		roi.x = loca.x - roiW/2 - 10;
-	}else{
-		//left
-		roi.x = loca.x - roiW/2 + 10;
-	}
+	//meld(src1,src2,"cc2.png");
 
-	if(loca.y<(src.rows/2)){
-		//top
-		roi.y = loca.y + 11;
-	}else{
-		//bottom
-		roi.y = loca.y - roiH - 11;
-	}
-	roi.width = roiW;
-	roi.height= roiH;
+	vector<Point> cts1, cts2;
+	getShape(src1,cts1,2);
+	getShape(src2,cts2,2);
 
-	//Mat tmp = src(roi);
-	//Mat tmp;
-	//cvtColor(src,tmp,COLOR_GRAY2BGR);
-	//rectangle(tmp,roi,Scalar(0,255,0));
-	//imwrite("cc.png",tmp);
-	//circle(tmp,loca,3,Scalar(0,255,0));
-	//imwrite("cc.png",tmp);
-	return roi;
-}
+	//RotatedRect rr = minAreaRect(cts1);
+	//Point2f vv[4]; rr.points(vv);
+	//line(ova1,vv[1],vv[2],Scalar(250,0,250),2);
+	//line(ova1,vv[2],vv[3],Scalar(250,0,250),2);
+	//polylines(ova1, cts1, true, Scalar(0,250,0), 1, LINE_8);
 
-void calculate_mtf(
-	Mat& src,
-	Mat& ova,
-	const Rect& roi,
-	float scale,
-	float cutoff,
-	bool flag
-) {
-	Mat img = src(roi);
-	if(flag==true){
-		//GaussianBlur(img, _img, Size(3,3), 0.3, 8.0);
-		//imwrite("cc1.png",img);
-		//unsharpen(img, 0.7, 0.3);
-		//imwrite("cc2.png",img);
-	}
-	vector<double> frq, sfr;
-	int idx = test_sfr(img, scale, frq, sfr);
-	idx = (int)(frq.size()*cutoff);
-	int val = (int)(sfr[idx]*10000);
+	matchShape(cts1,cts2);
 
-	printf("%d\t",val);
-
-	Point off(5,30);
-	Scalar clr(0,255,255);
-	char txt[100];
-	sprintf(txt,"%d",val);
-	putText(ova, txt, Point(roi.x,roi.y)+off, FONT_HERSHEY_COMPLEX, 1., clr);
-	rectangle(ova, roi, clr);
-}
-
-void check_all_mtf(const char* name, const char* out_dir){
-
-	Mat img = imread(name);
-	Mat gray = imread(name,IMREAD_GRAYSCALE);
-
-	Point aa = findRedCross(img);
-	if(aa.x<(img.cols/2-50) || (img.cols/2+50)<aa.x){
-		printf("0\t0\t0\t0\t0\t\n");
-		return;
-	}
-	if(aa.x<(img.cols/2-50) || (img.cols/2+50)<aa.x){
-		printf("0\t0\t0\t0\t0\t\n");
-		return;
-	}
-
-	//third test~~~
-	Rect centr (aa.x - 30, aa.y + 11, 48, 60);
-	Rect lf_tp = findCornerBoard(gray, aa,  90+55, 48, 60);
-	Rect lf_bm = findCornerBoard(gray, aa, 180+35, 48, 60);
-	Rect rh_tp = findCornerBoard(gray, aa,  35   , 48, 60);
-	Rect rh_bm = findCornerBoard(gray, aa, -35   , 48, 60);
-
-	double scale = (1./6.6)*1000.;
-
-	calculate_mtf(gray,img,centr,scale,0.5,false);
-	calculate_mtf(gray,img,lf_tp,scale,0.5,true);
-	calculate_mtf(gray,img,rh_tp,scale,0.5,true);
-	calculate_mtf(gray,img,lf_bm,scale,0.5,true);
-	calculate_mtf(gray,img,rh_bm,scale,0.5,true);
-	printf("\n");
-
-	if(out_dir!=NULL){
-		string fs_name(name);
-		fs_name = fs_name.substr(
-			0,
-			fs_name.find_last_of(".")
-		);
-		fs_name = fs_name.substr(
-			fs_name.find_last_of("/")+1,
-			fs_name.length()
-		);
-		char txt[100];
-		sprintf(txt,"%s/%s.png",out_dir,fs_name.c_str());
-		imwrite(txt,img);
-	}else{
-		imwrite("dd.png",img);
-	}
-
-	printf("RH_BM:MTF50=(%.1f, %.1f)\n\n",frq[idx],sfr[idx]);
-	printf("Freq    SFR    \n");
-	for(int i=0; i<frq.size(); i++){
-		printf("%d) %.2f    %.2f\n", i, frq[i], sfr[i]);
-	}
-	printf("===[%ld]===\n",frq.size());
-}
-
-int main6(int argc, char* argv[]){
-
-	const char* name = "./fisheye-test3/20170615_13_54_15_CurrentImage.bmp";
-
-	Mat img = imread(name);
-	Mat gray = imread(name,IMREAD_GRAYSCALE);
-
-	Point aa = findRedCross(img);
-
-	Rect cent (aa.x- 28, aa.y+ 11, 48, 60);
-	Rect lf_tp(aa.x-249, aa.y-157, 48, 60);
-
-	int idx,val;
-	char txt[100];
-	double scale = (1./6.)*1000.;
-	vector<double> frq, sfr;
-
-	Mat roi1 = gray(cent);
-	idx = test_sfr(roi1, scale, frq, sfr);
-	imwrite("dd1.png",roi1);
-	for(int i=0; i<frq.size(); i++){
-		printf("%.3f\t  %.3f\t  \n", frq[i], sfr[i]);
-	}
-
-	printf("\n--------\n");
-
-	Mat roi2 = gray(lf_tp);
-	idx = test_sfr(roi2, scale, frq, sfr);
-	imwrite("dd2.png",roi1);
-	for(int i=0; i<frq.size(); i++){
-		printf("%.3f\t  %.3f\t  \n", frq[i], sfr[i]);
-	}
+	polylines(ova1, cts1, true, Scalar(0,250,0), 1, LINE_4);
+	polylines(ova1, cts2, true, Scalar(0,0,255), 1, LINE_4);
+	imwrite("cc3.png",ova1);
 	return 0;
 }
 
+/*float trimShape(vector<Point>& aa, vector<Point>& bb){
 
-int main1(int argc, char* argv[]){
+	int count = aa.size() - bb.size();
 
-#define DIR_NAME "fisheye-test4"
+	vector<Point>& ref = (count>0)?(bb):(aa);
+	vector<Point>& tar = (count>0)?(aa):(bb);
 
-	//const char* name = "./fisheye-test3/20170615_13_54_15_CurrentImage.bmp";
-	//check_all_mtf(name,"./"DIR_NAME"/result");
-	//return 1;
+	count = abs(count);
 
-	printf("file\tCenter\tLT\tRT\tLB\tRB\n");
-	ifstream lstFile("./"DIR_NAME"/list.txt");
-	string line;
-	while(getline(lstFile, line)){
-		printf("%s\t",line.c_str());
-		char name[100];
-		sprintf(name,"./"DIR_NAME"/%s",line.c_str());
-		check_all_mtf(name,"./"DIR_NAME"/result");
-	}
-	return 0;
-}
-//--------------------------------------------//
-*/
+	Ptr<ShapeContextDistanceExtractor> dist = createShapeContextDistanceExtractor();
 
-int main(int argc, char* argv[]){
+	float score = dist->computeDistance(ref,tar);
 
-	const int gird = 255;
+	//choose one point and let distance small.
+#ifdef BRUTE_FORCE
 
-	Mat aaa = Mat::zeros(1,gird,CV_8UC1);
-	for(int i=0; i<gird; i++){
-		aaa.at<uint8_t>(0,i) = i+1;
-	}
+	while(count>0){
 
-	Mat bbb = Mat::zeros(1,gird,CV_8UC3);
-	applyColorMap(aaa, bbb, COLORMAP_JET);
+		vector<float> bins;
 
-	printf("const Scalar ccmap[] = {\n");
-	for(int i=0; i<gird; i++){
-		Vec3b val = bbb.at<Vec3b>(0,i);
-		printf("\tScalar(0x%02X,0x%02X,0x%02X),\n",
-			(int)val[2],
-			(int)val[1],
-			(int)val[0]
-		);
-	}
-	printf("};\n");
+		for(size_t i=0; i<tar.size(); i++){
 
-	return 0;
-}
+			Point tmp = tar[i];
 
-int main1(int argc, char* argv[]){
+			tar.erase(tar.begin()+i);
 
-	//generate HSV color mapping
+			bins.push_back(dist->computeDistance(ref,tar));
 
-	const int ss = 1024 * 16;
-
-	const int ww = 1;
-	const int hh = 100;
-
-	Mat aa = Mat::zeros(hh, ww*ss, CV_32FC3);
-	Mat bb = Mat::zeros(hh, ww*ss, CV_32FC3);
-
-	for(int h=0; h<hh; h++){
-		for(int s=0; s<ss; s++){
-			float frac = ((float)s/(float)ss);
-			Vec3f val(
-				frac * 256,
-				1.,
-				1.
-			);//Hue, Saturation, Value
-			for(int w=0; w<ww; w++){
-				aa.at<Vec3f>(h, s*ww+w) = val;
-			}
+			tar.insert(tar.begin()+i, tmp);
 		}
-	}
 
-	cvtColor(aa, bb, COLOR_HSV2RGB);
-
-	bb = bb * 255.;
-
-	//imwrite("ggyy.png",bb);
-
-	//cout<<"\tpublic static final int mapOct[] = {";
-	//cout<<"\tpublic static final int mapDec[] = {";
-	//cout<<"\tpublic static final int mapDuo[] = {";
-	//cout<<"\tpublic static final int mapQua[] = {";
-	//cout<<"\tpublic static final int mapSed[] = {";
-	/*for(int s=0; s<ss; s++){
-		Vec3f val = bb.at<Vec3f>(hh/2, s*ww);
-		int argb = 0xFF000000;
-		argb = argb | ((((int)val[2])&0xFF)<<16);
-		argb = argb | ((((int)val[1])&0xFF)<<8 );
-		argb = argb | ((((int)val[0])&0xFF)<<0 );
-		if(s%64==0){
-			printf("\n\t");
-		}
-		printf("0x%08X, ", argb);
-	}
-	cout<<"\n\t};"<<endl;*/
-
-	return 0;
-}
-
-//--------------------------------------------//
-
-extern void registration(Mat& imgRef,Mat& imgSrc);
-
-int main5(int argc, char* argv[]){
-
-	Mat ref = imread("./reg-ref.bmp",IMREAD_GRAYSCALE);
-
-	Mat src1 = imread("./reg-src-a15.bmp",IMREAD_GRAYSCALE);
-	Mat src2 = imread("./reg-src-a30.bmp",IMREAD_GRAYSCALE);
-	Mat src3 = imread("./reg-src-a45.bmp",IMREAD_GRAYSCALE);
-	Mat src4 = imread("./reg-src-a60.bmp",IMREAD_GRAYSCALE);
-
-	Mat src5 = imread("./reg-src-o+13+13.bmp",IMREAD_GRAYSCALE);
-	Mat src6 = imread("./reg-src-o+35+35.bmp",IMREAD_GRAYSCALE);
-
-	Mat src7 = imread("./reg-src-test.bmp",IMREAD_GRAYSCALE);
-
-
-	Mat src = src7;
-
-	//registration(ref,src);
-
-	Mat sum;
-	addWeighted( ref, 0.5, src, 0.5, 0.0, sum);
-
-	imwrite("cc4.bmp",sum);
-	return 0;
-}
-//--------------------------------------------//
-
-Mat reduce_dark(Mat& src){
-
-	Mat msk = Mat::ones(src.size(),CV_8UC1);
-
-	int bnd = (std::min(src.cols,src.rows)*10)/100;
-
-	msk(Rect(bnd,bnd,src.cols-2*bnd,src.rows-2*bnd)) = 0;
-
-	double max;
-	minMaxIdx(src, NULL, &max, NULL, NULL, msk);
-
-	Scalar avg,dev;
-	meanStdDev(src,avg,dev,msk);
-
-	Mat edg;
-	threshold(src,edg,max+dev[0],0.,THRESH_TOZERO);
-
-	return edg;
-}
-
-Mat bound_nonzero(Mat& src){
-	int i,cnt;
-
-	int top = 0;
-	for(i=top; i<src.rows/2-1; i++){
-		cnt = countNonZero(src.row(i));
-		if(cnt!=0){
-			top = i;
-			break;
-		}
-	}
-
-	int bottom = src.rows-1;
-	for(i=bottom; i>src.rows/2+1; --i){
-		cnt = countNonZero(src.row(i));
-		if(cnt!=0){
-			bottom = i;
-			break;
-		}
-	}
-
-	int left = 0;
-	for(i=left; i<src.cols/2-1; i++){
-		cnt = countNonZero(src.col(i));
-		if(cnt!=0){
-			left = i;
-			break;
-		}
-	}
-
-	int right = src.cols - 1;
-	for(i=right; i>src.cols/2+1; --i){
-		cnt = countNonZero(src.col(i));
-		if(cnt!=0){
-			right = i;
-			break;
-		}
-	}
-
-
-
-	Rect roi(left,top,right-left,bottom-top);
-
-	Mat res;
-
-	src(roi).copyTo(res);
-
-	return res;
-}
-
-
-Mat align_center(Mat& Src){
-
-	Mat src;
-
-	const int BORD = 4;
-
-	copyMakeBorder(
-		Src,src,
-		0,0,
-		BORD,BORD,
-		BORDER_CONSTANT,
-		Scalar(0,0,0)
-	);
-
-	Mat res = Mat::zeros(Src.size(),src.type());
-
-	for(int i=0; i<src.rows; i++){
-
-		Mat _src = src.row(i);
-
-		Moments mm = moments(_src,true);
-
-		float cx = mm.m10 / mm.m00;
-
-		Mat _dst;
-
-		getRectSubPix(
-			_src,
-			Size(_src.cols-BORD*2,1),Point2f(cx,0),
-			_dst
+		int idx = distance(
+			bins.begin(),
+			min_element(bins.begin(), bins.end())
 		);
 
-		//printf("%03d) mx = %.2f\n",i,cx);
+		tar.erase(tar.begin()+idx);
 
-		_dst.copyTo(res.row(i));
+		count--;
 	}
+#else
 
-	//cout<<endl;
-	return res;
+	for(size_t i=0; count>0; i++){
+
+		if(i>=tar.size()){
+			tar.erase(tar.end()-count,tar.end());
+			break;
+		}
+
+		Point tmp = tar[i];
+
+		tar.erase(tar.begin()+i);
+
+		float s_val = dist->computeDistance(ref,tar);
+
+		if(s_val<score){
+			score = s_val;
+			count--;
+		}else{
+			tar.insert(tar.begin()+i, tmp);
+		}
+	}
+#endif
+	return dist->computeDistance(ref,tar);
+}*/
+
+/*Mat hat = estimateAffinePartial2D(_b,_a);
+cout<<hat<<endl;
+Mat _hat(3,3,hat.type());
+_hat.at<double>(0,0) = hat.at<double>(0,0);
+_hat.at<double>(0,1) = hat.at<double>(0,1);
+_hat.at<double>(0,2) = hat.at<double>(0,2);
+_hat.at<double>(1,0) = hat.at<double>(1,0);
+_hat.at<double>(1,1) = hat.at<double>(1,1);
+_hat.at<double>(1,2) = hat.at<double>(1,2);
+_hat.at<double>(2,0) = 0.0;
+_hat.at<double>(2,1) = 0.0;
+_hat.at<double>(2,2) = 1.0;
+
+Mat res;
+warpPerspective(ova2, res, _hat, src1.size());
+meld(ova1,res,"cc1.png");*/
+
+/*vector<Point3f>& eign = (*ptr_eign);
+
+Mat tmp(cts.size(), 2, CV_32FC1);
+for(size_t i=0; i<cts.size(); i++){
+	tmp.at<float>(i,0) = cts[i].x;
+	tmp.at<float>(i,1) = cts[i].y;
 }
+PCA pca(tmp,noArray(),PCA::DATA_AS_ROW);
 
-int main4(int argc, char* argv[]){
+eign.push_back(Point3f(
+	pca.eigenvectors.at<float>(0,0),
+	pca.eigenvectors.at<float>(0,1),
+	pca.eigenvalues.at<float>(0,0)
+));
+eign.push_back(Point3f(
+	pca.eigenvectors.at<float>(1,0),
+	pca.eigenvectors.at<float>(1,1),
+	pca.eigenvalues.at<float>(0,1)
+));*/
 
-	Vec4i gg;
 
-	/*Mat src = imread("./wiggle/snap-04.png",IMREAD_GRAYSCALE);
-
-	Rect roi;
-
-	TICK_BEG
-
-	src = reduce_dark(src);
-
-	src = bound_nonzero(src);
-
-	src = align_center(src);
-
-	TICK_END("thres")
-	*/
-
-	//Rect rect(bord,bord,src.cols-bord*2,src.rows-bord*2);
-	//TICK_BEG
-	//grabCut( src, msk, rect, bgd, fgd, 1, GC_INIT_WITH_RECT);
-	//msk = 250 * (msk - GC_PR_BGD);
-	//TICK_END("grabcut")
-
-	//imwrite("./wiggle/mask.png",src);
-
-	return 0;
+/*Ptr<AffineTransformer> trf = createAffineTransformer(true);
+vector<DMatch> match;
+vector<Point2f> f_a, f_b;
+for(size_t i=0; i<_a.size(); i++){
+	match.push_back(DMatch(i,i,0));
+	f_a.push_back(Point2f(_a[i].x,_a[i].y));
+	f_b.push_back(Point2f(_b[i].x,_b[i].y));
 }
+trf->estimateTransformation(_b,_a,match);
+trf->applyTransformation(f_b,f_a);
+Mat res;
+trf->warpImage(src2,res);
+imwrite("cc1.png",res);*/
+
+
+/*vector<Point3f> eign1, eign2;
+getShape(src1,cts1,&eign1);
+getShape(src2,cts2,&eign2);
+
+Point2f tri0[3], tri1[3], tri2[3];
+
+tri0[0] = Point2f(128,128);
+tri0[1] = tri0[0] + Point2f(1,0);
+tri0[2] = tri0[0] + Point2f(0,1);
+
+tri1[0] = Point2f(128,128);
+tri1[1] = tri1[0] + Point2f(eign1[0].x,eign1[0].y);
+tri1[2] = tri1[0] + Point2f(eign1[1].x,eign1[1].y);
+
+tri2[0] = Point2f(128,128);
+tri2[1] = tri2[0] + Point2f(eign2[0].x,eign2[0].y);
+tri2[2] = tri2[0] + Point2f(eign2[1].x,eign2[1].y);
+
+Mat ww21 = getAffineTransform(tri2,tri1);
+Mat _res;
+warpAffine(src2, _res, ww21, src1.size());
+imwrite("cc1.png",_res);
+meld(src1,_res,"cc2.png");*/
+
 //-------------------------------------------//
 
 int main3(int argc, char* argv[]) {
@@ -603,32 +393,6 @@ int main3(int argc, char* argv[]) {
 
 
 	imwrite("./wiggle/cc1.png",dst);
-
-	return 0;
-}
-
-int main2(int argc, char* argv[]) {
-
-	Mat aa(3,3,CV_8UC1);
-
-	aa.at<uint8_t>(0,0) = 10;
-	aa.at<uint8_t>(0,1) = 70;
-	aa.at<uint8_t>(0,2) = 33;
-
-	aa.at<uint8_t>(1,0) = 33;
-	aa.at<uint8_t>(1,1) = 173;
-	aa.at<uint8_t>(1,2) = 50;
-
-	aa.at<uint8_t>(2,0) = 67;
-	aa.at<uint8_t>(2,1) = 33;
-	aa.at<uint8_t>(2,2) = 200;
-
-	cout<<"src="<<endl<<aa<<endl<<endl;
-
-	Mat bb;
-	getRectSubPix(aa,Size(5,5),Point2f(0.2f,0.2f),bb);
-
-	cout<<"dst="<<endl<<bb<<endl;
 
 	return 0;
 }
