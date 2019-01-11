@@ -30,33 +30,33 @@ Mat thresClamp(const Mat& src,int lower,int upper){
 }
 //-----------------------------------//
 
-Mat filterVariance(
-	const Mat& src,
-	const int radius,
-	double* min,
-	double* max
-){
+Mat variance(const Mat& src,const int radius){
+
 	Size range(radius,radius);
-	Mat node1;
-	src.convertTo(node1, CV_32F);
+
 	Mat mu;
-	blur(node1, mu, range);
+	boxFilter(src, mu, CV_32FC1, range);
+
 	Mat mu2;
-	blur(node1.mul(node1), mu2, range);
-	Mat sigma;
-	cv::sqrt(mu2 - mu.mul(mu), sigma);
-	Mat dst;
-	normalize(sigma, dst, 0., 255., NORM_MINMAX, CV_8UC1);
-	if(min!=NULL||max!=NULL){
-		double _min,_max;
-		minMaxLoc(sigma,&_min,&_max);
-		if(min!=NULL){ *min = _min; }
-		if(max!=NULL){ *max = _max; }
+	sqrBoxFilter(src, mu2, CV_32FC1, range);
+
+	Mat var = mu2 - mu.mul(mu);
+
+	double min;
+	minMaxLoc(var,&min);
+
+	if(min<0.){
+		var = var - (float)min;
+	}else{
+		min = 0.;
 	}
-	return dst;
+
+	Mat img;
+	var.convertTo(img,CV_8UC1, 1., min);
+	img = img * 2;
+	return img;
 }
 //-----------------------------------//
-
 
 int findMaxBlob(vector<vector<Point> >& blob){
 	int idx=0;

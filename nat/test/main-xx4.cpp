@@ -52,16 +52,13 @@ double getAngle(RotatedRect& rect){
 	Point2f vtx[4];
 	rect.points(vtx);
 
-	Point2f va, vb;
-
 	float e0 = hypot(vtx[0].x, vtx[0].y);
 	float e1 = hypot(vtx[1].x, vtx[1].y);
 	float e2 = hypot(vtx[2].x, vtx[2].y);
 
 	if(!(e1<e0 && e1<e2)){
 		//the first vertex is bottom-right.
-		//why ???
-		angle = angle + 84.5f;
+		angle = angle + 90.f;
 	}
 	return angle;
 }
@@ -76,11 +73,11 @@ void matchShape(
 	RotatedRect r_tar = minAreaRect(target);
 	RotatedRect r_ref = minAreaRect(refer);
 
-	double a_ref = getAngle(r_tar);
-	double a_tar = getAngle(r_ref);
+	double a_tar = getAngle(r_tar);
+	double a_ref = getAngle(r_ref);
 
 	//adjust rotation
-	Mat h1 =getRotationMatrix2D(r_ref.center, -a_ref+a_tar, 1.);
+	Mat h1 =getRotationMatrix2D(r_ref.center,a_ref-a_tar,1.);
 	transform(refer, refer, h1);
 
 	//adjust offset to corner, top-left
@@ -111,7 +108,11 @@ void matchShape(
 		m_tar.rows - m_ref.rows + 1,
 		CV_32FC1
 	);
-	matchTemplate(m_tar, m_ref, result, CV_TM_CCORR);//TODO: mask for speed???
+	matchTemplate(
+		m_tar, m_ref,
+		result,
+		CV_TM_CCORR
+	);//TODO: mask for speed???
 
 	Point maxLoc;
 
@@ -122,12 +123,14 @@ void matchShape(
 	transform(refer, refer, h2);
 }
 
+extern Mat variance(const Mat& src, const int radius);
+
 int main(int argc, char* argv[]) {
 
-	const char* name1 = "./cv_sample2/10-1.png";
-	const char* name2 = "./cv_sample2/9-1.png";
-	//const char* name1 = "./pad_sample/aaa.png";
-	//const char* name2 = "./pad_sample/bbb.png";
+	//const char* name1 = "./cv_sample2/13.png";
+	//const char* name2 = "./cv_sample2/14.png";
+	const char* name1 = "./pad_sample/aaa.png";
+	const char* name2 = "./pad_sample/bbb.png";
 
 	Mat src1 = imread(name1,IMREAD_GRAYSCALE);
 	Mat src2 = imread(name2,IMREAD_GRAYSCALE);
@@ -140,20 +143,19 @@ int main(int argc, char* argv[]) {
 	//meld(src1,src2,"cc2.png");
 
 	vector<Point> cts1, cts2;
-	getShape(src1,cts1,2);
-	getShape(src2,cts2,2);
-
-	//RotatedRect rr = minAreaRect(cts1);
-	//Point2f vv[4]; rr.points(vv);
-	//line(ova1,vv[1],vv[2],Scalar(250,0,250),2);
-	//line(ova1,vv[2],vv[3],Scalar(250,0,250),2);
-	//polylines(ova1, cts1, true, Scalar(0,250,0), 1, LINE_8);
+	getShape(src1,cts1,1);
+	getShape(src2,cts2,1);
 
 	matchShape(cts1,cts2);
 
-	polylines(ova1, cts1, true, Scalar(0,250,0), 1, LINE_4);
-	polylines(ova1, cts2, true, Scalar(0,0,255), 1, LINE_4);
-	imwrite("cc3.png",ova1);
+	//polylines(ova1, cts1, true, Scalar(0,250,0), 1, LINE_4);
+	//polylines(ova1, cts2, true, Scalar(0,0,255), 1, LINE_4);
+	//imwrite("cc3.png",ova1);
+
+	Mat kk = variance(src1,3);
+
+
+
 	return 0;
 }
 
@@ -239,26 +241,6 @@ _hat.at<double>(2,2) = 1.0;
 Mat res;
 warpPerspective(ova2, res, _hat, src1.size());
 meld(ova1,res,"cc1.png");*/
-
-/*vector<Point3f>& eign = (*ptr_eign);
-
-Mat tmp(cts.size(), 2, CV_32FC1);
-for(size_t i=0; i<cts.size(); i++){
-	tmp.at<float>(i,0) = cts[i].x;
-	tmp.at<float>(i,1) = cts[i].y;
-}
-PCA pca(tmp,noArray(),PCA::DATA_AS_ROW);
-
-eign.push_back(Point3f(
-	pca.eigenvectors.at<float>(0,0),
-	pca.eigenvectors.at<float>(0,1),
-	pca.eigenvalues.at<float>(0,0)
-));
-eign.push_back(Point3f(
-	pca.eigenvectors.at<float>(1,0),
-	pca.eigenvectors.at<float>(1,1),
-	pca.eigenvalues.at<float>(0,1)
-));*/
 
 
 /*Ptr<AffineTransformer> trf = createAffineTransformer(true);

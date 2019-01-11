@@ -132,7 +132,7 @@ endif
 
 ####################################################
 
-$(TARGET_EXE):  ./test/misc.cpp ./test/main-xx4.cpp 
+$(TARGET_EXE):  ./test/misc.cpp ./vision/util_cv.cpp ./test/main-xx4.cpp 
 	$(CC) -o $@ $^ $(CC_FLAG) $(LD_LIBS)
 	
 ####################################################
