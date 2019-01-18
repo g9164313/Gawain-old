@@ -4,8 +4,8 @@
 #include <opencv/cv.h>
 #include <opencv2/opencv.hpp>
 
-using namespace cv;
 using namespace std;
+using namespace cv;
 
 void meld(const Mat& src1, const Mat& src2, const char* name){
     Mat result;
@@ -77,7 +77,7 @@ void matchShape(
 	double a_ref = getAngle(r_ref);
 
 	//adjust rotation
-	Mat h1 =getRotationMatrix2D(r_ref.center,a_ref-a_tar,1.);
+	Mat h1 = getRotationMatrix2D(r_ref.center,a_ref-a_tar,1.);
 	transform(refer, refer, h1);
 
 	//adjust offset to corner, top-left
@@ -123,14 +123,199 @@ void matchShape(
 	transform(refer, refer, h2);
 }
 
+Scalar getMoment(const Mat& img, const Mat& msk){
+
+	Scalar result;
+
+	double area;
+
+	Mat img1, img2, img3, img4;
+
+	img.convertTo(img1,CV_64FC1);
+
+	if(msk.empty()==false){
+		img1 = img1 * msk;
+		area = countNonZero(msk);
+	}else{
+		area = img.cols * img.rows;
+	}
+
+	//blow lines refer to ImageJ(https://github.com/imagej/imagej1/blob/master/ij/process/FloatStatistics.java)
+	Scalar avg,dev;
+	meanStdDev(img1,avg,dev,msk);
+
+	pow(img1, 2., img2);
+	pow(img1, 3., img3);
+	pow(img1, 4., img4);
+
+	float sum2 = sum(img2)[0];
+	float sum3 = sum(img3)[0];
+	float sum4 = sum(img4)[0];
+	float avg2 = avg[0] * avg[0];
+	float var  = dev[0] * dev[0];
+
+	double skewness = ((sum3 - 3.0*avg[0]*sum2)/area + 2.0*avg[0]*avg2) / (var*dev[0]);
+
+	double kurtosis = (((sum4 - 4.0*avg[0]*sum3 + 6.0*avg2*sum2)/area - 3.0*avg2*avg2)/(var*var)-3.0);
+
+	result[0] = avg[0];
+	result[1] = dev[0];
+	result[2] = skewness;
+	result[3] = kurtosis;
+
+	return result;
+}
+
+Mat genMask(const Size& size, const vector<Point>& contour, int dist=1, int epsilon=-1){
+
+	vector<Point> cts;
+
+	if(epsilon>=1){
+		approxPolyDP(contour, cts, epsilon, true);
+	}else{
+		cts = contour;
+	}
+
+	Scalar cc0 = Scalar::all(0);
+	Scalar cc1 = Scalar::all(1);
+
+	Mat msk;
+
+	if(dist>=1){
+
+		//mask is inside contour.
+		dist = (dist==1)?(1):(2*dist);
+
+
+		msk = Mat::ones(size,CV_8UC1);
+
+		polylines(msk, cts, true, cc0, dist, LINE_8);
+
+		floodFill(msk, Point(0,0), cc0);
+
+	}else if(dist<-1){
+
+		//mask is outside contour.
+		dist = -2*dist;
+
+		msk = Mat::zeros(size,CV_8UC1);
+
+		polylines(msk, cts, true, cc1, dist, LINE_8);
+
+		RotatedRect box = minAreaRect(cts);
+
+		floodFill(msk, box.center, cc1);
+	}
+	return msk;
+}
+
+void drawRect(const Mat& ova, const vector<Rect>& tile){
+
+	Mat msk = Mat::zeros(ova.size(),CV_8UC1);
+
+	for(size_t i=0; i<tile.size(); i++){
+		rectangle(msk,tile[i],Scalar::all(255),-1);
+	}
+
+	vector<vector<Point> > cts;
+
+	findContours(
+		msk, cts,
+		RETR_EXTERNAL,
+		CHAIN_APPROX_SIMPLE
+	);
+
+	drawContours(ova, cts, -1 ,Scalar(0,0,255), 1);
+}
+
+
+vector<Rect> process_1(const Mat& src, const Mat& msk){
+
+	Mat img = (255 - src);
+
+	if(msk.empty()==false){
+		img = img.mul(msk);
+	}
+
+	equalizeHist(img,img);
+
+	morphologyEx(
+		img, img,
+		MORPH_OPEN,
+		getStructuringElement(MORPH_ELLIPSE,Size(25,25))
+	);
+
+	imwrite("cc1.png",img);
+
+	threshold(img, img, 200, 255, THRESH_BINARY);
+
+	vector<vector<Point> > cts_all;
+
+	findContours(
+		img, cts_all,
+		RETR_EXTERNAL,
+		CHAIN_APPROX_SIMPLE
+	);
+
+	const int TILE_SIZE = 5;
+
+	vector<Rect> result;
+
+	for(size_t i=0; i<cts_all.size(); i++){
+
+		vector<Point> cts = cts_all[i];
+
+		Rect box = boundingRect(cts);
+
+		Point pp;
+
+		int lf = box.x + (box.width %TILE_SIZE)/2;
+		int tp = box.y + (box.height%TILE_SIZE)/2;
+		int rh = (box.x+box.width);
+		int bm = (box.y+box.height);
+
+		for(size_t yy=tp; yy<bm; yy+=TILE_SIZE){
+
+			for(size_t xx=lf; xx<rh; xx+=TILE_SIZE){
+
+				pp.x = xx;
+				pp.y = yy;
+				if(pointPolygonTest(cts,pp,false)<0){
+					continue;
+				}
+				pp.x = xx+TILE_SIZE;
+				pp.y = yy;
+				if(pointPolygonTest(cts,pp,false)<0){
+					continue;
+				}
+				pp.x = xx;
+				pp.y = yy+TILE_SIZE;
+				if(pointPolygonTest(cts,pp,false)<0){
+					continue;
+				}
+				pp.x = xx+TILE_SIZE;
+				pp.y = yy+TILE_SIZE;
+				if(pointPolygonTest(cts,pp,false)<0){
+					continue;
+				}
+
+				result.push_back(Rect(xx,yy,TILE_SIZE,TILE_SIZE));
+			}
+		}
+	}
+
+	return result;
+}
+
+
 extern Mat variance(const Mat& src, const int radius);
 
 int main(int argc, char* argv[]) {
 
 	//const char* name1 = "./cv_sample2/13.png";
 	//const char* name2 = "./cv_sample2/14.png";
-	const char* name1 = "./pad_sample/aaa.png";
-	const char* name2 = "./pad_sample/bbb.png";
+	const char* name1 = "./pad_sample/ccc.png";
+	const char* name2 = "./pad_sample/template.png";
 
 	Mat src1 = imread(name1,IMREAD_GRAYSCALE);
 	Mat src2 = imread(name2,IMREAD_GRAYSCALE);
@@ -138,23 +323,48 @@ int main(int argc, char* argv[]) {
 	Mat ova1 = imread(name1,IMREAD_COLOR);
 	Mat ova2 = imread(name2,IMREAD_COLOR);
 
-	threshold(src1,src1,150,255,THRESH_BINARY);
+	Mat b_src1;
+	threshold(src1,b_src1,150,255,THRESH_BINARY);
 
 	//meld(src1,src2,"cc2.png");
 
-	vector<Point> cts1, cts2;
-	getShape(src1,cts1,1);
-	getShape(src2,cts2,1);
+	vector<Point> cts1, cts2, cts_a;
+	RotatedRect box1 = getShape(b_src1,cts1,15);
+	RotatedRect box2 = getShape(src2,cts2,15);
 
-	matchShape(cts1,cts2);
-
+	//matchShape(cts1,cts2);
 	//polylines(ova1, cts1, true, Scalar(0,250,0), 1, LINE_4);
 	//polylines(ova1, cts2, true, Scalar(0,0,255), 1, LINE_4);
 	//imwrite("cc3.png",ova1);
 
-	Mat kk = variance(src1,3);
+	//create a mask;
+	Mat msk = genMask(src1.size(), cts1, 7);
 
+	vector<Rect> tile = process_1(src1,msk);
 
+	drawRect(ova1,tile);
+
+	imwrite("cc2.png", ova1);
+
+	//Scalar res = getMoment(equ_src,Mat());
+
+	//Mat msk1,msk2,msk,mask;
+	//threshold(skw, msk1,  5, 255, THRESH_BINARY);
+	//threshold(skw, msk2, -5, 255, THRESH_BINARY_INV);
+	//msk = msk1 + msk2;
+	//msk.convertTo(mask,CV_8UC1);
+	//imwrite("cc2.png",mask);
+
+	/*Mat hist;
+	int histChan[] = {0};
+	int histSize[] = {10};
+	float _range[] = {-1.f, 1.f};
+	const float* histRang[] = {_range};
+	calcHist(
+		&skw, 1, histChan, Mat(),
+		hist, 1, histSize, histRang
+	);
+	cout<<"HIST:"<<hist<<endl;*/
 
 	return 0;
 }

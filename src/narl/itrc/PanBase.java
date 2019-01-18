@@ -199,6 +199,7 @@ public abstract class PanBase {
 		}
 		init_scene(node);
 	}
+	
 	private void init_scene(Parent node){
 		
 		scene = new Scene(node);		

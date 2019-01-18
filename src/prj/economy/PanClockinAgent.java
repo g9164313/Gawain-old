@@ -1,12 +1,21 @@
 package prj.economy;
 
 import java.io.File;
+
+import com.jfoenix.controls.JFXDialog;
+import com.jfoenix.controls.JFXTextField;
+
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Separator;
 import javafx.scene.control.ToolBar;
+import javafx.scene.control.Alert.AlertType;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Label;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import narl.itrc.ButtonEx;
 import narl.itrc.PanBase;
 import narl.itrc.nat.Loader;
@@ -25,12 +34,10 @@ public class PanClockinAgent extends PanBase {
 	@Override
 	public Node eventLayout(PanBase self) {
 		
-		final FragDispatch fragDisp = new FragDispatch();		
-		final FragAccount fragAcct = new FragAccount();
+		final FragDispatch frag1 = new FragDispatch();
+		args[0] = frag1;
 		
-		//keep it, this nodes will use in next state....
-		args[0] = fragDisp;
-		args[1] = fragAcct;
+		final BorderPane lay0 = new BorderPane();
 		
 		final ButtonEx btnConn = new ButtonEx(
 			"斷線","lan-disconnect.png",
@@ -42,12 +49,6 @@ public class PanClockinAgent extends PanBase {
 			btnConn.setFace(1);
 		}
 		
-		final ButtonEx btnEdit1 = new ButtonEx(
-			"新增訂單","file-document-outline.png"
-		).setOnClick(event->{
-			new PanEditBills().appear();
-		});
-		
 		final ButtonEx btnEdit2 = new ButtonEx(
 			"新增人員","account-plus.png"
 		).setOnClick(event->{
@@ -57,31 +58,40 @@ public class PanClockinAgent extends PanBase {
 		final ButtonEx btnDisp = new ButtonEx(
 			"分派工作","directions-fork.png"
 		).setOnClick(event->{
-			fragDisp.setVisible(true);
-			fragAcct.setVisible(false);
 		});
 		
 		final ButtonEx btnBank = new ButtonEx(
 			"查詢帳單","file-search-outline.png"
 		).setOnClick(event->{
-			fragDisp.setVisible(false);
-			fragAcct.setVisible(true);
 		});
 		
 		final ButtonEx btnSetIndx = new ButtonEx(
-			"計數","file-search-outline.png"
+			"計數器","file-search-outline.png"
 		);
 		btnSetIndx.textProperty().bind(DataProvider.propIndex.asString("計數(%04d)"));
 		btnSetIndx.setOnAction(event->{
-			
+			final Alert dia = new Alert(AlertType.CONFIRMATION);
+			dia.setTitle(null);
+			dia.setContentText(null);
+			final VBox _lay0 = new VBox(
+				new Label("計數"),
+				new JFXTextField()
+			);
+			_lay0.getStyleClass().add("vbox-small");
+			dia.getDialogPane().setContent(_lay0);
+			if(dia.showAndWait().get()==ButtonType.OK){
+				JFXTextField box = (JFXTextField)lay0.getChildren().get(1);
+				try{
+					int val = Integer.valueOf(box.getText());
+					DataProvider.propIndex.set(val);
+				}catch(NumberFormatException e){					
+				}
+			}
 		});
-		
-		final StackPane lay1 = new StackPane(fragDisp);
-		
+
 		final ToolBar bar = new ToolBar(
 			btnConn,
 			new Separator(Orientation.VERTICAL),
-			btnEdit1,
 			btnEdit2,
 			new Separator(Orientation.VERTICAL),
 			btnDisp,
@@ -89,16 +99,15 @@ public class PanClockinAgent extends PanBase {
 			new Separator(Orientation.VERTICAL),
 			btnSetIndx			
 		);
-		final BorderPane lay0 = new BorderPane();
+		
 		lay0.setTop(bar);
-		lay0.setCenter(lay1);
+		lay0.setCenter(frag1);
 		return lay0;
 	}
 
 	@Override
 	public void eventShown(Object[] args) {
-		((FragDispatch)args[0]).init();
-		((FragAccount )args[1]).init();
+		((FragDispatch)args[0]).eventShow();
 	}
 	
 	private void connect_database(){

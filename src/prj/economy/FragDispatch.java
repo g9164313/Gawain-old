@@ -11,19 +11,17 @@ import com.sun.glass.ui.Application;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.geometry.Pos;
-
-import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.VBox;
 import narl.itrc.Misc;
+import prj.economy.Calendar.DayInfo;
 
 public class FragDispatch extends HBox {
-	
+
 	private static class FaceBills extends GridPane {
 		
 		private static Image img_bills = Misc.getPicImage("sticker-emoji.png");
@@ -57,7 +55,7 @@ public class FragDispatch extends HBox {
 			add(info[1], 4, 1);
 			add(info[2], 4, 2);
 		}
-	}
+	};	
 	
 	public static class FaceHands extends GridPane {
 
@@ -76,7 +74,7 @@ public class FragDispatch extends HBox {
 				}
 				new PanEditHands(itm).appear();
 			});
-			DataProvider.refer("/pool-2/"+ref.info, new ValueEventListener(){
+			DataProvider.refer("/pool-2/"+ref.takeUID(), new ValueEventListener(){
 				int val = 0;
 				Runnable event = new Runnable(){
 					@Override
@@ -112,159 +110,114 @@ public class FragDispatch extends HBox {
 			badge.textProperty().bind(loading.asString());
 			
 			add(badge,0,0,3,3);
-			add(new Label("人員名稱："), 3, 0);
-			add(new Label("聯絡電話："), 3, 1);
-			add(new Label("負責區域："), 3, 2);
+			add(new Label("名稱："), 3, 0);
+			add(new Label("電話："), 3, 1);
+			add(new Label("區域："), 3, 2);
 			add(info[0], 4, 0);
 			add(info[1], 4, 1);
 			add(info[2], 4, 2);
 		}
 	};
 	
-	private ListView<FaceBills> lstBills = new ListView<>();
+	private final Calendar calendar = new Calendar();
 	
-	private ListView<FaceHands> lstHands = new ListView<>();
+	private final ListView<FaceHands> lstHands = new ListView<>();
+	
+	private final ListView<FaceBills> lstBills = new ListView<>();
 	
 	public FragDispatch(){
 
-		final Button btnForward = new Button();
-		btnForward.setGraphic(Misc.getIconView("chevron-double-right.png"));
-		btnForward.setOnAction(e->forward());
-		
-		final Button btnBackward = new Button();
-		btnBackward.setGraphic(Misc.getIconView("chevron-double-left.png"));
-		btnBackward.setOnAction(e->backward());
-		
-		VBox lay1 = new VBox(btnForward,btnBackward);
-		lay1.getStyleClass().add("vbox-one-direction");
-		
-		lay1.setAlignment(Pos.CENTER);
-		getChildren().addAll(
-			lstBills,
-			lay1,
-			lstHands
-		);		
-	}
-	
-	/**
-	 * push the selected bills into pool.<p>
-	 */
-	private void forward(){
-		
-		final FaceBills bills = lstBills.getSelectionModel().getSelectedItem();
-		if(bills==null){
-			return;
-		}		
-		final FaceHands hands = lstHands.getSelectionModel().getSelectedItem();
-		if(hands==null){
-			return;
-		}
-		final String b_id = bills.ref.takeSerial();
-		final String h_id = hands.ref.info;
-				
-		DataProvider.push_bills(String.format(
-			"/pool-2/%s/%s", 
-			h_id, b_id
-		), bills.ref);
-		
-		DataProvider.delete(String.format("/pool-1/%s", b_id));
-
-		lstBills.getSelectionModel().clearSelection();
-	}
-	
-	/**
-	 * pop-up the last bills item from pool.<p>
-	 */
-	private void backward(){
-		final FaceHands hands = lstHands.getSelectionModel().getSelectedItem();
-		final String org_path = "/pool-2/"+hands.ref.info;		
-		DataProvider.refer_once_last(
-			org_path, 
-			1, 
-			new ValueEventListener(){
+		calendar.eventPickup = new Calendar.DayHook() {			
 			@Override
-			public void onCancelled(DatabaseError arg0) {
-			}
-			@Override
-			public void onDataChange(DataSnapshot arg0) {
-				if(arg0.exists()==false){
+			public void callback(DayInfo info) {
+				if(hands==null){
 					return;
 				}
-				arg0 = arg0.getChildren().iterator().next();	
-				
-				DataProvider.push_bills(String.format(
-					"/pool-1/%s", 
-					arg0.getKey()
-				), arg0.getValue(ItemBills.class));
-		
-				DataProvider.delete(org_path+"/"+arg0.getKey());
+				for(FaceHands h:hands){
+					h.setDisable(false);
+				}
+				if(info==null){
+					//user cancel pick-up day
+					return;
+				}
+				String day = info2day(info);
+				for(FaceHands h:hands){
+					if(h.ref.holiday.contains(day)==true){
+						h.setDisable(true);
+					}
+				}
 			}
-		});
+		};
+		calendar.eventUpdate = new Calendar.DayHook() {
+			@Override
+			public void callback(DayInfo info) {
+				if(hands==null){
+					info.memo = "?";
+					return;
+				}
+				int cnt = hands.size();
+				String day = info2day(info);
+				for(FaceHands h:hands){
+					if(h.ref.holiday.contains(day)==true){
+						cnt--;
+					}
+				}
+				info.memo = String.format("<%d",cnt);
+			}
+		};
+		
+		getStyleClass().add("layout-medius");
+		getChildren().addAll(
+			calendar,
+			lstHands,
+			lstBills
+		);
 	}
 	
-	public void init(){
+	private String info2day(DayInfo info){
+		return String.format(
+			"%d-%02d-%02d",
+			info.year,
+			info.month,
+			info.day
+		);
+	}
+	
+	private ArrayList<FaceHands> hands = null;
+	 
+	private Runnable eventUpdateHands = new Runnable(){
+		@Override
+		public void run() {
+			if(hands==null){
+				lstHands.getItems().clear();
+			}else{
+				lstHands.getItems().setAll(hands);
+			}
+			calendar.update();
+		}
+	};
+	
+	public void eventShow(){
 		
 		DataProvider.refer("/hands", new ValueEventListener(){
-			ArrayList<FaceHands> lst = null;
-			Runnable event = new Runnable(){
-				@Override
-				public void run() {
-					if(lst==null){
-						lstHands.getItems().clear();
-					}else{
-						lstHands.getItems().setAll(lst);
-					}
-				}
-			};
 			@Override
 			public void onCancelled(DatabaseError arg0) {
-				lst = null;
-				Application.invokeAndWait(event);
+				hands = null;
+				Application.invokeAndWait(eventUpdateHands);
 			}
 			@Override
 			public void onDataChange(DataSnapshot arg0) {
-				lst = null;
+				hands = null;
 				if(arg0.exists()==true){
-					lst = new ArrayList<FaceHands>();
+					hands = new ArrayList<FaceHands>();
 					for(DataSnapshot ss:arg0.getChildren()){
 						ItemHands itm = ss.getValue(ItemHands.class);
-						lst.add(new FaceHands(itm));
+						itm.fillUID(ss.getKey());
+						hands.add(new FaceHands(itm));
 					}
 				}
-				Application.invokeAndWait(event);
+				Application.invokeAndWait(eventUpdateHands);
 			}
-		});
-		
-		DataProvider.refer("/pool-1", new ValueEventListener(){
-			ArrayList<FaceBills> lst = null;
-			Runnable event = new Runnable(){
-				@Override
-				public void run() {
-					if(lst==null){
-						lstBills.getItems().clear();
-					}else{
-						lstBills.getItems().setAll(lst);
-					}
-				}
-			};
-			@Override
-			public void onCancelled(DatabaseError arg0) {
-				lst = null;
-				Application.invokeAndWait(event);
-			}
-			@Override
-			public void onDataChange(DataSnapshot arg0) {
-				lst = null;
-				if(arg0.exists()==true){					
-					lst = new ArrayList<FaceBills>();
-					for(DataSnapshot ss:arg0.getChildren()){
-						ItemBills itm = ss.getValue(ItemBills.class);
-						itm.hangSerial(ss.getKey());
-						lst.add(new FaceBills(itm));
-					}
-				}
-				Application.invokeAndWait(event);
-			}	
 		});
 	}
 }

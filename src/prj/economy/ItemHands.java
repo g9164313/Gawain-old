@@ -56,4 +56,23 @@ public class ItemHands {
 
 	public ItemHands(){		
 	}
+
+	public void clear(){
+		name = "";
+		info = "";
+		zone = "";
+		memo = "";
+		holiday = "";
+	}
+	
+	private String uid = null;
+	
+	public String takeUID(){
+		return uid;
+	}
+	
+	public void fillUID(String txt){
+		uid = txt;
+	}
+	
 }
