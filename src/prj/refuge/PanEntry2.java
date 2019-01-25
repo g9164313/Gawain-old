@@ -80,7 +80,7 @@ public class PanEntry2 extends PanBase {
 			tsk.nmark= new Alert(AlertType.CONFIRMATION,"是否使用預測值？")
 				.showAndWait()
 				.get();
-			spinner.kick('p',tsk);
+			spin.kick('p',tsk);
 		});
 		
 		final Button btnAutoMark = PanBase.genButton3("產生標定","toc.png");
@@ -89,7 +89,7 @@ public class PanEntry2 extends PanBase {
 		final Button btnMeasure  = PanBase.genButton3("自動量測","toc.png");
 		btnMeasure.setMaxWidth(Double.MAX_VALUE);
 		btnMeasure.setOnAction(event->{
-			spinner.kick('p',new TaskMeasure(lstSheet, sandbox));
+			spin.kick('p',new TaskMeasure(lstSheet, sandbox));
 		});
 		
 		final Button btnSaveMark = PanBase.genButton2("匯出Excel","briefcase-download.png");

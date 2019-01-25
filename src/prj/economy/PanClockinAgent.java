@@ -119,7 +119,7 @@ public class PanClockinAgent extends PanBase {
 			//notifyInfo("!!注意!!", "無鑰匙");
 			return;
 		}
-		spinner.kick(eventTask->{
+		spin.kick(eventTask->{
 			DataProvider.init(fs.getPath());
 		},eventDone->{
 			if(DataProvider.isReady()==false){

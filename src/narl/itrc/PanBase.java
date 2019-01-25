@@ -48,7 +48,6 @@ public abstract class PanBase {
 	protected int firstAction = FIRST_NONE;
 	
 	protected java.net.URL customCSS = null;
-	protected String customStyle = null;
 
 	private Node  panel;
 	private Stage stage;
@@ -187,16 +186,13 @@ public abstract class PanBase {
 		panel = eventLayout(this);
 		if(panel==null){
 			//We don't have panel,so create a default node....
-			Label txt = new Label("?");
+			Label txt = new Label("X");
 			txt.setFont(Font.font("Arial", 60));
 			txt.setPrefSize(200, 200);
 			txt.setAlignment(Pos.CENTER);
 			panel = txt;
 		}
-		Parent node = new StackPane(panel,spinner);
-		if(customStyle!=null){
-			node.setStyle(customStyle);
-		}
+		Parent node = new StackPane(panel,spin);
 		init_scene(node);
 	}
 	
@@ -239,7 +235,7 @@ public abstract class PanBase {
 			}else if(hotkey_console.match(event)==true){
 				Gawain.showLogger();
 			}else if(hotkey_debug.match(event)==true){
-				spinner.kick();
+				spin.kick();
 			}			
 		}
 	};
@@ -363,7 +359,7 @@ public abstract class PanBase {
 			new Thread(tsk,"").start();
 		}
 	};
-	protected Spinner spinner = new Spinner();
+	protected Spinner spin = new Spinner();
 	//------------------------//
 	
 	/**

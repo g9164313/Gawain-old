@@ -228,6 +228,62 @@ void drawRect(const Mat& ova, const vector<Rect>& tile){
 	drawContours(ova, cts, -1 ,Scalar(0,0,255), 1);
 }
 
+Mat process_2(const Mat& src, const Mat& mask){
+
+	int chan[] = { 0 };
+	Mat hist;
+	int bins[] = { 256 };
+	float rng1[] = {0.f, 255.f};
+	const float* rang[] = { rng1 };
+	calcHist(
+		&src, 1, chan,
+		mask,
+		hist, 1, bins, rang
+	);
+
+	normalize(hist, hist, 1.,0., NORM_L1);
+
+	Sobel(hist,hist,-1,0,1);
+
+	double minVal, maxVal;
+	Point maxLoc;
+	minMaxLoc(hist,NULL,&maxVal,NULL,&maxLoc);
+
+	minVal = maxVal * 0.01;
+
+	int lower=maxLoc.y, upper=maxLoc.y;
+
+	//find range from left
+	for(int i=0; i<maxLoc.y; i++){
+		if(hist.at<float>(0,i)>=minVal){
+			lower = i;
+			break;
+		}
+	}
+	//find range from right
+	for(int i=255; i>maxLoc.y; --i){
+		if(hist.at<float>(0,i)>=minVal){
+			upper = i;
+			break;
+		}
+	}
+	//create look-up table
+	Mat tab = Mat::zeros(1,256,CV_8UC1);
+	int delta = 256 / (upper - lower);
+	int value = delta;
+	for(int i=lower; i<=upper; i++){
+		tab.at<uint8_t>(0,i) = value;
+		value += delta;
+	}
+	for(int i=upper; i<256; i++){
+		tab.at<uint8_t>(0,i) = 255;
+	}
+	cout<<tab<<endl;
+	Mat dst;
+	LUT(src, tab, dst);
+	return dst;
+}
+
 
 vector<Rect> process_1(const Mat& src, const Mat& msk){
 
@@ -312,10 +368,10 @@ extern Mat variance(const Mat& src, const int radius);
 
 int main(int argc, char* argv[]) {
 
-	//const char* name1 = "./cv_sample2/13.png";
-	//const char* name2 = "./cv_sample2/14.png";
-	const char* name1 = "./pad_sample/ccc.png";
-	const char* name2 = "./pad_sample/template.png";
+	//const char* name1 = "./cv-sample2/13.png";
+	//const char* name2 = "./cv-sample2/14.png";
+	const char* name1 = "./sample-pad/aaa.png";
+	const char* name2 = "./sample-pad/template.png";
 
 	Mat src1 = imread(name1,IMREAD_GRAYSCALE);
 	Mat src2 = imread(name2,IMREAD_GRAYSCALE);
@@ -340,11 +396,21 @@ int main(int argc, char* argv[]) {
 	//create a mask;
 	Mat msk = genMask(src1.size(), cts1, 7);
 
-	vector<Rect> tile = process_1(src1,msk);
+	Mat dst1 = process_2(src1,msk);
 
-	drawRect(ova1,tile);
+	dst1 = 255 - dst1;
 
-	imwrite("cc2.png", ova1);
+	morphologyEx(
+		dst1, dst1,
+		MORPH_OPEN,
+		getStructuringElement(MORPH_ELLIPSE,Size(30,30))
+	);
+
+	imwrite("cc1.png",dst1);
+
+	//vector<Rect> tile = process_1(src1,msk);
+	//drawRect(ova1,tile);
+	//imwrite("cc2.png", ova1);
 
 	//Scalar res = getMoment(equ_src,Mat());
 

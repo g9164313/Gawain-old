@@ -41,7 +41,6 @@ public class PanEntry1 extends PanBase {
 	
 	public PanEntry1(){
 		firstAction = FIRST_MAXIMIZED;
-		customStyle = "-fx-background-color: white;";
 	}
 	//-------------------------------//
 	
