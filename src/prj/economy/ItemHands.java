@@ -54,9 +54,6 @@ public class ItemHands {
 		return this;
 	}
 
-	public ItemHands(){		
-	}
-
 	public void clear(){
 		name = "";
 		info = "";
@@ -65,6 +62,9 @@ public class ItemHands {
 		holiday = "";
 	}
 	
+	/**
+	 * database use this text to identify each operator/hand
+	 */
 	private String uid = null;
 	
 	public String takeUID(){

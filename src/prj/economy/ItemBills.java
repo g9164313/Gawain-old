@@ -12,12 +12,6 @@ public class ItemBills {
 	private static final DateFormat fmtDate= new SimpleDateFormat("yyyy-MM-dd HH:mm");
 	
 	/**
-	 * stamp in data-base.<p>
-	 * It is also time-stamp when creating this object.<p>
-	 */
-	private long serial = -1L;
-	
-	/**
 	 * the text format of serial number.<p>
 	 */
 	public String order = "";
@@ -44,13 +38,19 @@ public class ItemBills {
 		serial = new Date().getTime();
 	}
 	
+	/**
+	 * stamp in data-base.<p>
+	 * It is also time-stamp when creating this object.<p>
+	 */
+	private long serial = -1L;
+	
+	
 	public void hangSerial(final String val){
 		serial = Long.valueOf(val, 16);
 	}
 	public String takeSerial(){
 		return String.format("%08X", serial);
-	}	
-	
+	}		
 	//public String takeSerialTxt(){
 	//	return fmtDate.format(new Date(serial));
 	//}
@@ -62,7 +62,7 @@ public class ItemBills {
 		stampClose = fmtDate.format(new Date());
 	}
 	
-	public boolean isClosed(){
+	public boolean closed(){
 		if(stampClose.length()==0){
 			return false;
 		}

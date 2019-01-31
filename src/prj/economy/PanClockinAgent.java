@@ -34,9 +34,10 @@ public class PanClockinAgent extends PanBase {
 	@Override
 	public Node eventLayout(PanBase self) {
 		
-		final FragDispatch frag1 = new FragDispatch();
-		args[0] = frag1;
+		final FragDispatch frag1 = new FragDispatch(); 
 		
+		final FragSummary frag2 = new FragSummary();
+
 		final BorderPane lay0 = new BorderPane();
 		
 		final ButtonEx btnConn = new ButtonEx(
@@ -45,24 +46,27 @@ public class PanClockinAgent extends PanBase {
 		).setOnToggle(event->{
 			connect_database();
 		}, null);
-		if(DataProvider.isReady()==true){
-			btnConn.setFace(1);
-		}
-		
+
 		final ButtonEx btnEdit2 = new ButtonEx(
 			"新增人員","account-plus.png"
-		).setOnClick(event->{
-			new PanEditHands().appear();
-		});
+		).setOnClick(e->frag1.dialog_hand(null));
 		
-		final ButtonEx btnDisp = new ButtonEx(
-			"分派工作","directions-fork.png"
+		final ButtonEx btnDisp1 = new ButtonEx(
+			"工作排程","event.png"
 		).setOnClick(event->{
+			frag1.modeCalendar();
+			lay0.setCenter(frag1);			
 		});
-		
+		final ButtonEx btnDisp2 = new ButtonEx(
+			"工作清單","subject.png"
+		).setOnClick(event->{
+			frag1.modeWaitingList();
+			lay0.setCenter(frag1);
+		});
 		final ButtonEx btnBank = new ButtonEx(
 			"查詢帳單","file-search-outline.png"
 		).setOnClick(event->{
+			lay0.setCenter(frag2);
 		});
 		
 		final ButtonEx btnSetIndx = new ButtonEx(
@@ -77,7 +81,7 @@ public class PanClockinAgent extends PanBase {
 				new Label("計數"),
 				new JFXTextField()
 			);
-			_lay0.getStyleClass().add("vbox-small");
+			_lay0.getStyleClass().add("layout-small");
 			dia.getDialogPane().setContent(_lay0);
 			if(dia.showAndWait().get()==ButtonType.OK){
 				JFXTextField box = (JFXTextField)lay0.getChildren().get(1);
@@ -88,13 +92,18 @@ public class PanClockinAgent extends PanBase {
 				}
 			}
 		});
-
+		
+		if(DataProvider.isReady()==true){
+			btnConn.setFace(1);
+		}
+		
 		final ToolBar bar = new ToolBar(
 			btnConn,
 			new Separator(Orientation.VERTICAL),
 			btnEdit2,
 			new Separator(Orientation.VERTICAL),
-			btnDisp,
+			btnDisp1,
+			btnDisp2,
 			btnBank,
 			new Separator(Orientation.VERTICAL),
 			btnSetIndx			
@@ -102,12 +111,16 @@ public class PanClockinAgent extends PanBase {
 		
 		lay0.setTop(bar);
 		lay0.setCenter(frag1);
+		
+		args[0] = frag1;
+		args[1] = frag2;		
 		return lay0;
 	}
 
 	@Override
 	public void eventShown(Object[] args) {
-		((FragDispatch)args[0]).eventShow();
+		((FragDispatch)args[0]).eventShown();
+		((FragSummary)args[1]).eventShown();
 	}
 	
 	private void connect_database(){

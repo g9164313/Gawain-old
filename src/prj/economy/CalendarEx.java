@@ -20,10 +20,10 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 
-public class Calendar extends VBox {
+public class CalendarEx extends VBox {
 
 	public static interface DayHook {
-		void callback(Calendar.DayInfo info);
+		void callback(CalendarEx.DayInfo info);
 	};
 	
 	public static class DayInfo {
@@ -54,7 +54,26 @@ public class Calendar extends VBox {
 	private Label capText;
 	private DateCell[] dayText, dayWeek;
 
-	public Calendar() {
+	public CalendarEx.DayInfo getDayPick(){
+		if(dayPick==null){
+			return null;
+		}
+		return (DayInfo)dayPick.getUserData();
+	}
+	
+	public void cancelPickup(){
+		dayPick = null;
+		if(eventPickup!=null){
+			eventPickup.callback(null);
+		}
+	}
+	public void launchPickup(){
+		if(dayPick!=null && eventPickup!=null){
+			eventPickup.callback((DayInfo)dayPick.getUserData());
+		}
+	}
+	
+	public CalendarEx() {
 		getStyleClass().addAll("bg-white");
 		getChildren().addAll(create_head(), create_body());
 		update();
@@ -237,6 +256,7 @@ public class Calendar extends VBox {
 				if(cell.getText().length()==0){
 					return;
 				}
+				DayInfo info = (DayInfo)cell.getUserData();
 				if(dayPick==cell){
 					dayPick = null;
 					if(eventPickup!=null){
@@ -249,12 +269,12 @@ public class Calendar extends VBox {
 					if(dayPick!=null){
 						set_text_color(dayPick);
 						dayPick.setBackground(b_week_exit);
-					}
-					dayPick = cell;
+					}					
+					dayPick = cell;//set pick-up day
 					cell.setTextFill(Color.WHITE);
 					cell.setBackground(b_week_pick);
 					if(eventPickup!=null){
-						eventPickup.callback((DayInfo)cell.getUserData());
+						eventPickup.callback(info);
 					}
 				}
 			});

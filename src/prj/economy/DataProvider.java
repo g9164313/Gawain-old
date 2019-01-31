@@ -40,8 +40,8 @@ public class DataProvider {
 	}
 	
 	public static void refer_once(
-			final String path, 
-			final ValueEventListener event
+		final String path, 
+		final ValueEventListener event
 	){
 		if(base==null){
 			return;
@@ -111,15 +111,32 @@ public class DataProvider {
 		DataProvider.base
 		.getReference(path)
 		.setValueAsync(itm);
+		int idx = propIndex.get();
+		propIndex.set(idx+1);
 	}
 	
-	public static void push_hands(final ItemHands itm){
+	public static void push_hands(
+		final String uuid,
+		final ItemHands itm
+	){
 		if(base==null){
 			return;
 		}
 		DataProvider.base
-		.getReference("/hands/"+itm.info)
+		.getReference("/hands/"+uuid)
 		.setValueAsync(itm);
+	}
+	
+	public static void move(
+		final String src, 
+		final String dst
+	){
+		if(base==null){
+			return;
+		}
+		DataProvider.base
+		.getReference(src)
+		.setValueAsync(dst);
 	}
 	
 	public static void delete(final String path){

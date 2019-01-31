@@ -131,6 +131,11 @@ public abstract class PanBase {
 		null, null, null, null
 	};
 	
+	protected Object _args(Object obj){
+		return obj;
+	}
+	
+	
 	public abstract Node eventLayout(PanBase self);
 	protected void eventShowing(Object[] args){
 		//let user override this function

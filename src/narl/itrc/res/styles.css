@@ -43,42 +43,46 @@
 }
 
 .layout-small {
-   -fx-padding: 3;
+   -fx-padding: 5;
    -fx-spacing: 5;
+   -fx-hgap: 5;
+   -fx-vgap: 5;
 }
 
 .layout-medius {
    -fx-padding: 13;
    -fx-spacing: 13;
+   -fx-hgap: 13;
+   -fx-vgap: 13;
 }
 
 .vbox-one-dir, .vbox-one-direction{
-   -fx-padding: 13 0 0 0;
    -fx-spacing: 13;
+   -fx-padding: 13 0 0 0;   
 }
 .hbox-one-dir, .hbox-one-direction{
-    -fx-padding: 0 13 0 0;
     -fx-spacing: 13;
+    -fx-padding: 0 13 0 0;    
 }
 
 .hbox-small, .vbox-small{
-    -fx-padding: 7;
     -fx-spacing: 7;
+    -fx-padding: 7;
 }
 
 .hbox-medium, .vbox-medium{
-    -fx-padding: 13;
     -fx-spacing: 13;
+    -fx-padding: 13;    
 }
 
 .hbox-small-space, .vbox-small-space{
-	-fx-padding: 3;
-  -fx-spacing: 7;
+	-fx-spacing: 7;
+	-fx-padding: 3;  
 }
 
 .hbox-medium-space, .vbox-medium-space{
-	-fx-padding: 7;
-  -fx-spacing: 13;
+	-fx-spacing: 13;
+	-fx-padding: 7;  
 }
 
 .hbox-test, .vbox-test {

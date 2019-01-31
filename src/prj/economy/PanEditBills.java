@@ -209,13 +209,13 @@ public class PanEditBills extends PanBase {
 		
 		if(target!=null){
 			clk_done.setPickOnBounds(true);			
-			if(target.isClosed()==true){
+			if(target.closed()==true){
 				clk_done.setImage(img_lock);
 			}else{
 				clk_done.setImage(img_unlock);
 			}
 			clk_done.setOnMouseClicked(e->{
-				if(target.isClosed()==true){
+				if(target.closed()==true){
 					//open account again!!!
 					target.stampOpen();
 					clk_done.setImage(img_unlock);
@@ -281,7 +281,7 @@ public class PanEditBills extends PanBase {
 		btnMod.setOnAction(event->{
 			stuff_field(target);
 			String b_id = target.takeSerial();
-			if(target.isClosed()==false){
+			if(target.closed()==false){
 				DataProvider.push_bills("/pool-1/"+b_id, target);
 				DataProvider.delete("/pool-3/"+b_id);
 			}else{				
