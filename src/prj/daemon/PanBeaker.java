@@ -1,9 +1,15 @@
 package prj.daemon;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 
+import org.apache.commons.math3.stat.descriptive.moment.Kurtosis;
+import org.apache.commons.math3.stat.inference.TestUtils;
 import org.apache.commons.math3.util.Combinations;
 import org.apache.commons.math3.util.CombinatoricsUtils;
 
@@ -30,13 +36,18 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.util.Callback;
 import narl.itrc.ButtonEx;
+import narl.itrc.Misc;
 import narl.itrc.PanBase;
 
 public class PanBeaker extends PanBase {
 	
+
+	//private final File data_base = new File("c:\\\\Users\\qq\\Desktop\\lotter.csv");
+	
 	private final static DecimalFormat fmt = new DecimalFormat("###,###,###,###,###");
 
 	private static class Ballot {
+		String txt = "";
 		int[] val;
 		Ballot(int[] data){
 			val = data;
@@ -45,13 +56,24 @@ public class PanBeaker extends PanBase {
 			}
 		}
 		int getRepetition(){
-			int cnt = 0;
-			for(int i=0; i<val.length-1; i++){
-				if(Math.abs(val[i]-val[i+1])==1){
-					cnt++;
-				}				
+			int max = 0;
+			for(int i=0,j=0; i<val.length-1; i++){
+				int cnt = 0;
+				int aa = val[i];
+				for(j=i+1; j<val.length; j++){
+					int bb = val[j];
+					if(Math.abs(aa-bb)!=1){		
+						break;
+					}
+					cnt+=1;
+					aa = bb;//for next turn~~~
+				}
+				i = j;
+				if(cnt>max){
+					max = cnt;
+				}
 			}
-			return cnt;
+			return max;
 		}
 		//rank-0, it means "equality"
 		int getRank(final int[] target){
@@ -72,12 +94,22 @@ public class PanBeaker extends PanBase {
 		Callback<CellDataFeatures<Ballot,String>,ObservableValue<String>>
 	{
 		int idx = 0;
+		final SimpleStringProperty txt = new SimpleStringProperty();
 		ColValue(int i){
 			idx = i;
 		}
 		@Override
 		public ObservableValue<String> call(CellDataFeatures<Ballot, String> param) {
-			return new SimpleStringProperty(String.format("%02d", param.getValue().val[idx]));
+			final Ballot itm = param.getValue();
+			if(idx==0){
+				txt.set(itm.txt);
+			}else{
+				txt.set(String.format(
+					"%02d", 
+					itm.val[idx-1]
+				));
+			}
+			return txt;
 		}
 	};
 	
@@ -96,8 +128,9 @@ public class PanBeaker extends PanBase {
 		pageIdx = 0;
 		pageMax = 1 + (int)(size / ONE_PAGE_SIZE);
 		tabComb.getColumns().clear();
-		for(int i=0; i<k; i++){
-			TableColumn<Ballot, String> col = new TableColumn<>("***");			
+		for(int i=0; i<=k; i++){
+			final String title = (i==0)?("-"):("");
+			TableColumn<Ballot, String> col = new TableColumn<>(title);			
 			col.setCellValueFactory(new ColValue(i));
 			tabComb.getColumns().add(col);
 		}
@@ -149,22 +182,33 @@ public class PanBeaker extends PanBase {
 	};
 	
 	private class TaskRedunType1 extends Task<Void> {
-		int maxRepet = 0;
 		int work = 0;
 		int size = lstComb.size();
-		TaskRedunType1(int repeat){
-			maxRepet = repeat;
+		TaskRedunType1(){
 		}
 		@Override
 		protected Void call() throws Exception {
-			ArrayList<Ballot> mark = new ArrayList<Ballot>();			
+			updateProgress(0, size);
+			final ArrayList<Ballot> ref = new ArrayList<Ballot>();
 			lstComb.forEach(itm->{
-				if(itm.getRepetition()>=maxRepet){
-					mark.add(itm);
+				int[] diff = {
+					itm.val[1] - itm.val[0],
+					itm.val[2] - itm.val[1],
+					itm.val[3] - itm.val[2],
+					itm.val[4] - itm.val[3],
+					itm.val[5] - itm.val[4],
+				};
+				Arrays.sort(diff);
+				if( (diff[0]!=diff[1]) &&
+					(diff[1]!=diff[2]) &&
+					(diff[2]!=diff[3]) &&
+					(diff[3]!=diff[4])
+				){
+					ref.add(itm);
 				}
 				updateProgress(++work, size);
 			});
-			lstComb.removeAll(mark);
+			lstComb = ref;
 			Application.invokeAndWait(()->refresh());
 			return null;
 		}
@@ -181,14 +225,30 @@ public class PanBeaker extends PanBase {
 		}
 		@Override
 		protected Void call() throws Exception {
-			ArrayList<Ballot> mark = new ArrayList<Ballot>();			
+			final ArrayList<Ballot> ref = new ArrayList<Ballot>();			
 			lstComb.forEach(itm->{
-				if(itm.getRank(target)<=minRank){
-					mark.add(itm);
+				if(itm.getRank(target)>=minRank){
+					ref.add(itm);
 				}
 				updateProgress(++work, size);
 			});
-			lstComb.removeAll(mark);
+			lstComb = ref;
+			Application.invokeAndWait(()->refresh());
+			return null;
+		}
+	};
+	
+	private class TaskCluster extends Task<Void> {
+		int work = 0;
+		int size = lstComb.size();
+		TaskCluster(){
+		}
+		@Override
+		protected Void call() throws Exception {			
+			lstComb.forEach(itm->{
+				
+				updateProgress(++work, size);
+			});
 			Application.invokeAndWait(()->refresh());
 			return null;
 		}
@@ -196,8 +256,6 @@ public class PanBeaker extends PanBase {
 	
 	public PanBeaker(){
 	}
-	
-	private File script = null;
 	
 	@Override
 	public Node eventLayout(PanBase self) {
@@ -249,10 +307,9 @@ public class PanBeaker extends PanBase {
 			pageIdx = p;
 			list2table();
 		});
-		final ButtonEx btnWork = new ButtonEx(
+		/*final ButtonEx btnWork = new ButtonEx(
 			"蒸餾","coffee-to-go.png"
-		).setOnClick(e->{
-			
+		).setOnClick(e->{	
 		});
 		final ButtonEx btnText = new ButtonEx(
 			"腳本","file-document.png"
@@ -263,12 +320,12 @@ public class PanBeaker extends PanBase {
 			}else{
 				getStage().setTitle("");
 			}
-		});
+		});*/
 
 		final ButtonEx btn1 = new ButtonEx(
 			"remove-1","coffee-to-go.png"
 		).setOnClick(e->{
-			final TextField box1 = new TextField();
+			/*final TextField box1 = new TextField();
 			final GridPane lay = new GridPane();
 			lay.addRow(0, new Label("repeat："), box1);
 			final Alert dia = new Alert(AlertType.CONFIRMATION);
@@ -276,7 +333,8 @@ public class PanBeaker extends PanBase {
 			if(dia.showAndWait().get()==ButtonType.OK){
 				int rr = Integer.valueOf(box1.getText().trim());
 				spin.kick('p', new TaskRedunType1(rr));
-			}
+			}*/
+			spin.kick('p', new TaskRedunType1());
 		});
 		final ButtonEx btn2 = new ButtonEx(
 			"remove-2","coffee-to-go.png"
@@ -294,18 +352,24 @@ public class PanBeaker extends PanBase {
 				spin.kick('p', new TaskRedunType2(rank,target));
 			}
 		});
+		final ButtonEx btn3 = new ButtonEx(
+			"group","coffee-to-go.png"
+		).setOnClick(e->{
+			spin.kick('p', new TaskCluster());
+		});
 		
 		final ToolBar bar = new ToolBar(
 			btnMake,
 			new Separator(Orientation.VERTICAL),
 			btnPrv,
 			btnNxt,
-			new Separator(Orientation.VERTICAL),
-			btnWork,
-			btnText,
+			//new Separator(Orientation.VERTICAL),
+			//btnWork,
+			//btnText,
 			new Separator(Orientation.VERTICAL),
 			btn1,
-			btn2
+			btn2,
+			btn3
 		);		
 		final BorderPane lay0 = new BorderPane();
 		lay0.setTop(bar);
@@ -316,8 +380,9 @@ public class PanBeaker extends PanBase {
 
 	@Override
 	public void eventShown(Object[] args) {
-		//spin.kick('p', new TaskCreateCombo(49,6));
-		spin.kick('p', new TaskMakeCombo(16,4));
+		spin.kick('p', new TaskMakeCombo(49,6));
+		//spin.kick('p', new TaskMakeCombo(16,4));
+		//spin.kick('p', new TaskRedunType1(data_base));
 	}
 	
 	private int[] text2int(String txt){
