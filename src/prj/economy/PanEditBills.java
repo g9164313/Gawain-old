@@ -35,11 +35,11 @@ import narl.itrc.PanBase;
 public class PanEditBills extends PanBase {
 
 	public PanEditBills(){
-		super("新增帳單");
+		//TODO: add title --> super("新增帳單");
 	}
 	
 	public PanEditBills(ItemBills itm){
-		super("修改帳單");
+		//TODO: add title --> ("修改帳單");
 		target = itm;
 	}
 	
@@ -293,7 +293,7 @@ public class PanEditBills extends PanBase {
 		btnDel.setMaxWidth(Double.MAX_VALUE);
 		btnDel.setOnAction(event->{
 			DataProvider.delete("/pool-1/"+target.takeSerial());
-			dismiss();
+			stage().close();
 		});
 		HBox.setHgrow(btnNew, Priority.ALWAYS);
 		HBox.setHgrow(btnImp, Priority.ALWAYS);
@@ -316,6 +316,15 @@ public class PanEditBills extends PanBase {
 			layData,
 			layCtrl
 		);
+		stage().setOnShown(e->{
+			if(target==null){
+				clear_field();
+				txt_order.textProperty().bind(DataProvider.propIndex.asString("%04d"));
+			}else{
+				stuff_field(target);
+				txt_order.setText(target.order);
+			}
+		});
 		return lay0;
 	}
 	
@@ -356,16 +365,5 @@ public class PanEditBills extends PanBase {
 		info[1].setText("");
 		info[2].setText("");
 		tab_cart.getItems().clear();
-	}
-
-	@Override
-	public void eventShown(Object[] args) {
-		if(target==null){
-			clear_field();
-			txt_order.textProperty().bind(DataProvider.propIndex.asString("%04d"));
-		}else{
-			stuff_field(target);
-			txt_order.setText(target.order);
-		}
 	}
 }

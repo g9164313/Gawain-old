@@ -124,11 +124,8 @@ public class Layout1 {
 			new PanBase(){
 				@Override
 				public Node eventLayout(PanBase self) {
+					stage().setOnShown(e->dev.getRegister());
 					return gen_setting(dev);
-				}
-				@Override
-				public void eventShown(Object[] args) {
-					dev.getRegister();//get the first initialization
 				}
 			}.appear();
 		});

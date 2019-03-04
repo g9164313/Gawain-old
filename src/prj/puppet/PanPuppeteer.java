@@ -60,7 +60,7 @@ public class PanPuppeteer extends PanBase {
 		btnAdvance.setMaxWidth(Double.MAX_VALUE);
 		//btnAdvance.disableProperty().bind(layLinkIP.disabledProperty().not());
 		btnAdvance.setOnAction(event->{
-			recorder.appear(PanPuppeteer.this.getStage());
+			recorder.appear();
 		});
 				
 		String[] lstName = Gawain.dirSock.list(new FilenameFilter(){
@@ -101,9 +101,5 @@ public class PanPuppeteer extends PanBase {
 		lay0.setCenter(monitor);
 		lay0.setRight(layDefault);
 		return lay0;
-	}
-
-	@Override
-	public void eventShown(Object[] args) {
 	}
 }

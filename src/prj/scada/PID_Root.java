@@ -181,7 +181,7 @@ public class PID_Root extends AnchorPane {
 	
 	public void editMode(boolean flag){
 		if(flag==false){
-			pallet.dismiss();
+			pallet.stage().close();
 			looper.play();
 		}else{			
 			pallet.appear();

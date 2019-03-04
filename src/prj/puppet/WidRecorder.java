@@ -139,7 +139,7 @@ public class WidRecorder extends PanBase {
 			FileChooser dia = new FileChooser();
 			dia.setTitle("另存...");
 			dia.setInitialDirectory(Gawain.dirSock);
-			File fs = dia.showSaveDialog(getScene().getWindow());
+			File fs = dia.showSaveDialog(stage().getScene().getWindow());
 			if(fs==null){
 				return;
 			}
@@ -160,7 +160,7 @@ public class WidRecorder extends PanBase {
 			FileChooser dia = new FileChooser();
 			dia.setTitle("讀取...");
 			dia.setInitialDirectory(Gawain.dirSock);
-			File fs = dia.showOpenDialog(getScene().getWindow());
+			File fs = dia.showOpenDialog(stage().getScene().getWindow());
 			if(fs==null){
 				return;
 			}
@@ -213,9 +213,5 @@ public class WidRecorder extends PanBase {
 			Integer.valueOf(box[3].getText()),
 		};
 		return geom;
-	}
-
-	@Override
-	public void eventShown(Object[] args) {
 	}
 }

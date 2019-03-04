@@ -19,6 +19,24 @@ import narl.itrc.Misc;
 
 public class DevCoupler extends DevBase {
 
+	/**
+	 * 4 (A) in --> 1.1 out1
+	 * 11 in --> 2.1 out2
+	 * 9  switch, com --> 1.2 gnd
+	 * 12 safety, com --> 2.2 gnd
+	 * 13 (B) in --> 1.4 out3
+	 * 7 (A) out DC-on --> 1.1 sin1 
+	 * 1 (b) out DC-on --> 2.1 sin2 
+	 * 8 DC-on com --> 1.3 gnd
+	 * 2 (A) out --> 1.1 ain1
+	 * 6 com --> 2.1 gnd
+	 * 3 (A) out --> 1.2 ain2
+	 * 5 (A) in  --> 1.1 aout1
+	 * 14(B) out --> 1.3 ain3
+	 * 15(B) out --> 1.4 ain4
+	 * 10(B) in  --> 1.2 aout2
+	 */
+	
 	public DevCoupler() {
 		super("COUPLER");
 	}

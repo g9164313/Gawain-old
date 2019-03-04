@@ -17,7 +17,6 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.stage.FileChooser;
-import javafx.stage.Stage;
 import narl.itrc.Gawain;
 import narl.itrc.PanBase;
 
@@ -140,10 +139,10 @@ public class PID_Pallet extends PanBase {
 			cursor.setLoca(event.getX(), event.getY());
 			cursor.putBrick();
 		});
-		super.appear((Stage)(root.getScene().getWindow()));
+		appear();
 		
 		//short key for move cursor and place brick-tile.
-		getScene().setOnKeyPressed(event->{
+		stage().getScene().setOnKeyPressed(event->{
 			KeyCode kc = event.getCode();
 			if(kc==KeyCode.W){
 				cursor.moveUp();
@@ -160,15 +159,6 @@ public class PID_Pallet extends PanBase {
 			}
 		});
 		return this;
-	}
-	
-	@Override
-	public void dismiss(){		
-		root.getChildren().remove(cursor);
-		getScene().setOnKeyPressed(null);		
-		root.setOnMouseMoved(event_1);
-		root.setOnMouseClicked(event_2);
-		super.dismiss();
 	}
 	
 	private final FileChooser dia = new FileChooser();
@@ -271,13 +261,13 @@ public class PID_Pallet extends PanBase {
 		btnSave.setMaxWidth(Double.MAX_VALUE);
 		btnSave.setOnAction(event->{
 			dia.setTitle("儲存 PID");
-			root.save(dia.showSaveDialog(getStage()));
+			root.save(dia.showSaveDialog(stage()));
 		});
 		final Button btnLoad = PanBase.genButton2("讀取", "inbox-arrow-up.png");
 		btnLoad.setMaxWidth(Double.MAX_VALUE);
 		btnLoad.setOnAction(event->{
 			dia.setTitle("讀取 PID");
-			root.load(dia.showOpenDialog(getStage()));
+			root.load(dia.showOpenDialog(stage()));
 		});
 		
 		final HBox lay1 = new HBox();
@@ -289,14 +279,15 @@ public class PID_Pallet extends PanBase {
 		
 		final VBox lay0 = new VBox();
 		lay0.setStyle("-fx-padding: 7; -fx-spacing: 7;");
-		lay0.getChildren().addAll(layList, lay1);			
+		lay0.getChildren().addAll(layList, lay1);
+		
+		stage().setOnHidden(e->root.editMode(false));
+		stage().setOnHidden(e->{
+			root.getChildren().remove(cursor);
+			stage().getScene().setOnKeyPressed(null);		
+			root.setOnMouseMoved(event_1);
+			root.setOnMouseClicked(event_2);
+		});
 		return lay0;
-	}
-	@Override
-	public void eventShown(Object[] args) {
-	}
-	@Override
-	protected void eventClose(PanBase self) {
-		root.editMode(false);//exit edit mode
 	}
 }

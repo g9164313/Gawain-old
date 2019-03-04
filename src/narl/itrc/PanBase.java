@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import com.jfoenix.controls.JFXButton;
+import com.jfoenix.controls.JFXDecorator;
 import com.jfoenix.controls.JFXSpinner;
 import com.jfoenix.controls.JFXTextField;
 
@@ -12,8 +13,6 @@ import javafx.beans.binding.Bindings;
 import javafx.beans.property.FloatProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.concurrent.Task;
-import javafx.concurrent.WorkerStateEvent;
-import javafx.event.Event;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -33,183 +32,210 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import javafx.stage.FileChooser;
-import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
-import javafx.stage.Window;
 import javafx.util.converter.NumberStringConverter;
 
 public abstract class PanBase {	
 	
-	protected static final int FIRST_NONE = 0;
-	protected static final int FIRST_FULLSCREEN = 1;
-	protected static final int FIRST_MAXIMIZED = 2;
-	
-	protected int firstAction = FIRST_NONE;
-	
-	protected java.net.URL customCSS = null;
-
-	private Node  panel;
 	private Stage stage;
-	private Scene scene;
 	
 	public PanBase(){
-		this("",null);
-	}
-	public PanBase(String title){
-		this(title,null);
-	}
-	public PanBase(Parent root){
-		this("",root);
-	}
-	public PanBase(String title, Parent pan){
-		this.panel = pan;
+		stage = new Stage(StageStyle.DECORATED);
 	}
 	
-	public Node  getPanel(){ return panel; }
-	public Stage getStage(){ return stage; }
-	public Scene getScene(){ return scene; }	
+	public PanBase(Stage owner){
+		stage = owner;
+	}
 	//------------------------//
+	
+	public Stage stage(){ 
+		return stage; 
+	}
+
+	private boolean use_decor = false;
+	
+	/**
+	 * use JFXDecorator, Attention call this before standby() or appear().<p> 
+	 * @return
+	 */
+	public PanBase useDecorator(boolean flag){
+		use_decor = flag;
+		return this;
+	}
+	
+	/**
+	 * present a new panel, user can provide a owner
+	 * @return self
+	 */
+	public PanBase appear(Stage owner){
+		stage = owner;
+		init();
+		stage.show();
+		return this;
+	}
 	
 	/**
 	 * present a new panel, but no-blocking
 	 * @return self
 	 */
 	public PanBase appear(){
-		return appear(null);
-	}
-	/**
-	 * present a new panel, but no-blocking
-	 * @param stg - parent stage
-	 * @return self
-	 */
-	public PanBase appear(Stage owner){
-		if(owner==null){
-			stage = create_stage(null);
-		}else{
-			stage = owner;
-		}
-		init_panel();
-		init_stage(stage);
+		init();
 		stage.show();
 		return this;
 	}
 
 	/**
-	 * present a new panel, and blocking for dismissing 
+	 * present a new panel, and blocking for dismissing.<p>
+	 * Never return to caller.<p>
 	 */
 	public void standby(){
-		standby(create_stage(null));
-	}
-	/**
-	 * present a new panel, and blocking for dismissing 
-	 * @param stg - parent stage
-	 */
-	public void standby(Stage owner){
-		stage = owner;
-		init_panel();		
-		init_stage(stage);
+		init();
 		stage.showAndWait();
 	}
 	
-	/**
-	 * close panel
-	 */
-	public void dismiss(){		
-		if(stage==null){
-			return;
-		}
-		stage.close();
-		stage = null;
-		scene = null;
-		panel = null;
-	}
-	//------------------------//
-	
-	protected Object[] args = {
-		null, null, null, null,
-		null, null, null, null
-	};
-	
-	protected Object _args(Object obj){
-		return obj;
-	}
-	
-	
-	public abstract Node eventLayout(PanBase self);
-	protected void eventShowing(Object[] args){
-		//let user override this function
-	}
-	public abstract void eventShown(Object[] args);
-	protected void eventClose(PanBase self){ 
-		//let user override this function
-	}
-	
-	private Stage create_stage(Window parent){
-		Stage stg = new Stage(StageStyle.DECORATED);		
-		stg.initModality(Modality.WINDOW_MODAL); 
-		stg.initOwner(parent);
-		stg.centerOnScreen();		
-		return stg;
-	}
-	private Stage init_stage(Stage stg){		
-		if(stg.isShowing()==true){
-			return stg;
-		}		
-		//hook all events
-		stg.setOnShowing(event->{
-			eventShowing(args);
-			//Platform.runLater(() -> panel.requestFocus());//it may cause screen not fresh~~~
-		});
-		stg.setOnShown(event->{ 
-			eventShown(args); 
-		});
-		stg.setOnHidden(event->{ 
-			eventClose(PanBase.this); 
-		});		
-		//set title and some properties~~~
-		stg.setScene(scene);
-		stg.sizeToScene();
-		stg.setUserData(PanBase.this);
-		//user may need a special action~~~
-		switch(firstAction){
-		case FIRST_FULLSCREEN:
-			stg.setFullScreen(true);
-			break;
-		case FIRST_MAXIMIZED:
-			stg.setMaximized(true);
-			break;
-		}
-		return stg;
-	}
-	private void init_panel(){
-		//first initialization...
-		//require children generate GUI-layout
-		if(panel!=null){
-			return;
-		}
-		panel = eventLayout(this);
-		if(panel==null){
-			//We don't have panel,so create a default node....
-			Label txt = new Label("X");
+	private void init(){
+		
+		spin.visibleProperty().set(false);
+		
+		Node r_face = eventLayout(this);
+		if(r_face==null){
+			//default panel node
+			Label txt = new Label("===\n X \n===");
 			txt.setFont(Font.font("Arial", 60));
 			txt.setPrefSize(200, 200);
 			txt.setAlignment(Pos.CENTER);
-			panel = txt;
+			r_face = txt;
 		}
-		Parent node = new StackPane(panel,spin);
-		init_scene(node);
-	}
-	
-	private void init_scene(Parent node){
+		r_face.disableProperty().bind(spin.visibleProperty());
 		
-		scene = new Scene(node);		
+		final Node pan1 = new StackPane(r_face,spin);
+		
+		Parent root;		
+		if(use_decor==true){
+			JFXDecorator dec = new JFXDecorator(stage, pan1);
+			dec.setCustomMaximize(true);
+			root = dec;
+		}else{
+			root = (Parent)pan1;
+		}
+		
+		final Scene se = new Scene(root);		
 		//load a default style...
-		scene.getStylesheets().add(Gawain.class.getResource("res/styles.css").toExternalForm());				
+		se.getStylesheets().add(Gawain.class.getResource("res/styles.css").toExternalForm());				
 		//if user give us a URL, try to load a custom style file....		
 		//scene.getStylesheets().add(customCSS.toExternalForm());
 		//capture some short-key
-		scene.setOnKeyPressed(eventHookPress);
+		se.setOnKeyPressed(eventHookPress);
+		
+		stage.setScene(se);
+		stage.sizeToScene();
+		stage.centerOnScreen();
+		//stage.setUserData(this);
+	}	
+	//------------------------//
+	
+	public abstract Node eventLayout(PanBase self);
+
+	private class DutyFace extends VBox {
+		JFXSpinner icon = new JFXSpinner();//show that we are waiting
+		Label      mesg = new Label();//show progress value
+		DutyFace(){
+			icon.setRadius(48);
+			icon.setOnMouseClicked(e->{
+				if(notifyConfirm("！！注意！！","確認停止？")==ButtonType.CANCEL){
+					return;
+				}
+				if(duty==null){
+					return;
+				}
+				duty.cancel(true);
+			});		
+			mesg.setFont(Font.font("Arial", 27));
+			mesg.setAlignment(Pos.CENTER);
+			setStyle("-fx-spacing: 13;-fx-padding: 7;");
+			setAlignment(Pos.CENTER);			
+			getChildren().addAll(icon,mesg);
+			setVisible(false);
+		}
+		void event_take_on(final Runnable hook){
+			mesg.textProperty().bind(duty.messageProperty());
+			setVisible(true);			
+			if(hook==null){
+				return;
+			}
+			hook.run();
+		}
+		void event_complete(final Runnable hook){
+			mesg.textProperty().unbind();
+			setVisible(false);
+			if(hook==null){
+				return;
+			}
+			hook.run();
+		}
+	};
+	private DutyFace spin = new DutyFace();
+	
+	protected class Duty extends Task<Integer> {
+		int p_idx = 0;
+		int p_stp = 1;
+		int p_end = 100;
+		Runnable task;
+		Duty(final Runnable hook){
+			task = hook;
+		}
+		public void setMessage(String msg){
+			updateMessage(msg);
+		}
+		public void setProgressIndex(int idx){
+			p_idx = idx;
+			int val = (p_idx * 100) / p_end;
+			updateMessage(String.format("%d.%%", val));
+		}
+		public void incProgress(){
+			p_idx = p_idx + p_stp;
+			int val = (p_idx * 100) / p_end;
+			updateMessage(String.format("%d.%%", val));
+		}
+		public void setProgressTotal(int beg, int stp, int end){
+			p_idx = beg;
+			p_stp = stp;
+			p_end = end;
+			updateMessage("0.%%");
+		}
+		@Override
+		protected Integer call() throws Exception {
+			task.run();
+			return 0;
+		}		
+	}
+	protected Duty duty;
+	
+	protected void doDuty(
+		final Runnable hookWorking
+	){
+		doDuty(null,hookWorking,null);
+	}
+	protected void doDuty(
+		final Runnable hookWorking,
+		final Runnable hookOffDuty
+	){
+		doDuty(null,hookWorking,hookOffDuty);
+	}
+	protected void doDuty(
+		final Runnable hookOnDuty,
+		final Runnable hookWorking,
+		final Runnable hookOffDuty		
+	){
+		if(duty!=null){
+			return;
+		}
+		duty = new Duty(hookWorking);
+		duty.setOnScheduled(e->spin.event_take_on(hookOnDuty));
+		duty.setOnSucceeded(e->spin.event_complete(hookOffDuty));
+		duty.setOnCancelled(e->spin.event_complete(hookOffDuty));
+		new Thread(duty,"Panel-Task").start();
 	}
 	//------------------------//
 	
@@ -236,135 +262,14 @@ public abstract class PanBase {
 						return;
 					}			
 				}
-				dismiss();
+				stage.close();
 			}else if(hotkey_console.match(event)==true){
 				Gawain.showLogger();
 			}else if(hotkey_debug.match(event)==true){
-				spin.kick();
+				
 			}			
 		}
 	};
-	//------------------------//
-	
-	protected class Spinner extends VBox {
-		
-		private JFXSpinner icon = new JFXSpinner();//show that we are waiting
-		private Label      text = new Label();//show progress value
-		private Task<?>    task = null;
-		
-		public Spinner(){
-			icon.setRadius(48);
-			icon.setOnMouseClicked(e->{
-				if(notifyConfirm("！！注意！！","確認離開主程式？")==ButtonType.CANCEL){
-					return;
-				}
-				if(task!=null){
-					task.cancel(true);
-				}
-				done();			
-			});		
-			text.setFont(Font.font("Arial", 27));
-			text.setAlignment(Pos.CENTER);
-			
-			setStyle("-fx-spacing: 13;-fx-padding: 7;");
-			setAlignment(Pos.CENTER);			
-			getChildren().addAll(icon,text);
-			setVisible(false);
-		}
-		private void prepare(){
-			text.textProperty().unbind();
-			text.setText("工作中");
-			panel.setDisable(true);
-			setVisible(true);
-		}
-		private void done(){
-			task = null;//reset it for next turn~~~
-			panel.setDisable(false);
-			setVisible(false);	
-		}
-		
-		private void kick(){
-			prepare();		
-		};
-		
-		public void kick(final Task<?> tsk){
-			kick("panel-task", '?', tsk);
-		}
-		public void kick(String name, final Task<?> tsk){
-			kick(name, '?', tsk);
-		}
-		
-		/**
-		 * kick a task to do heavy working.
-		 * @param type - 'p' mean bar, 'm' mean label
-		 * @param tsk - the instance of task class.
-		 */
-		public void kick(char type, final Task<?> tsk){
-			kick("panel-task", type, tsk);
-		}
-		/**
-		 * kick a task to do heavy working.
-		 * @param name - the name of task.
-		 * @param type - the bottom label will show what kind of information.
-		 * @param tsk - the instance of task class.
-		 */
-		public void kick(
-			String name, 
-			char type, 
-			final Task<?> tsk
-		){
-			prepare();
-			switch(type){
-			case 'p':
-				text.textProperty().bind(
-					tsk.progressProperty()
-					.multiply(100)
-					.asString("%.0f%%")
-				);
-				break;
-			case 'm':
-				text.textProperty().bind(tsk.messageProperty());
-				break;
-			}
-			//replace original handle
-			final EventHandler<WorkerStateEvent> old = tsk.getOnSucceeded();
-			tsk.setOnSucceeded(event->{
-				if(old!=null){
-					old.handle(event);
-				}				
-				done();
-			});
-			task = tsk;//keep this variable~~~
-			new Thread(tsk,name).start();
-		}
-		/**
-		 * lamda-style task function
-		 */
-		public void kick(			
-			final EventHandler<Event> task,
-			final EventHandler<WorkerStateEvent> event1 
-		){
-			prepare();
-			final Task<Integer> tsk = new Task<Integer>(){
-				@Override
-				protected Integer call() throws Exception {
-					task.handle(null);
-					return 0;
-				}
-			};
-			tsk.setOnSucceeded(event->{
-				if(event1!=null){
-					event1.handle(event);
-				}
-				done();
-			});
-			tsk.setOnCancelled(event->{
-				done();
-			});
-			new Thread(tsk,"").start();
-		}
-	};
-	protected Spinner spin = new Spinner();
 	//------------------------//
 	
 	/**
@@ -446,14 +351,14 @@ public abstract class PanBase {
 	protected List<File> chooseFiles(String title){
 		final FileChooser dia = new FileChooser();
 		dia.setTitle(title);
-		dia.setInitialDirectory(Gawain.dirRoot);
+		dia.setInitialDirectory(Gawain.dirHome);
 		return dia.showOpenMultipleDialog(stage);
 	}
 	
 	protected File chooseFile(String title){
 		final FileChooser dia = new FileChooser();
 		dia.setTitle(title);
-		dia.setInitialDirectory(Gawain.dirRoot);
+		dia.setInitialDirectory(Gawain.dirHome);
 		return dia.showOpenDialog(stage);
 	}
 	//------------------------//

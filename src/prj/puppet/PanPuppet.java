@@ -110,28 +110,24 @@ public class PanPuppet extends PanBase {
 		lay0.getChildren().addAll(boxMsg,lay1);
 		HBox.setHgrow(boxMsg, Priority.ALWAYS);
 		
+		stage().setOnShown(e->{
+			try {
+				serv = HttpServer.create(new InetSocketAddress(9911),0);
+				serv.createContext("/input" ,eventInput);
+				serv.createContext("/output",eventOutput);
+				serv.createContext("/screen",eventOutput);//alias,another name
+				serv.setExecutor(null);
+				serv.start();
+				Misc.logv("Turn on HTTP server !!!");
+			} catch (IOException e1) {
+				e1.printStackTrace();
+			}
+		});
+		stage().setOnHiding(e->{
+			Misc.logv("Shutdown...");
+			Misc.deleteScreenshot(null);//release allocated memory~~
+			serv.stop(1);
+		});
 		return lay0;
-	}
-
-	@Override
-	public void eventShown(Object[] args) {
-		try {
-			serv = HttpServer.create(new InetSocketAddress(9911),0);
-			serv.createContext("/input" ,eventInput);
-			serv.createContext("/output",eventOutput);
-			serv.createContext("/screen",eventOutput);//alias,another name
-			serv.setExecutor(null);
-			serv.start();
-			Misc.logv("Turn on HTTP server !!!");
-		} catch (IOException e1) {
-			e1.printStackTrace();
-		}
-	}
-	
-	@Override
-	protected void eventClose(PanBase self){
-		Misc.logv("Shutdown...");
-		Misc.deleteScreenshot(null);//release allocated memory~~
-		serv.stop(1);
 	}
 }

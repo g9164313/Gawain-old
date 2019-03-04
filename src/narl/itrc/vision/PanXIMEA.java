@@ -13,7 +13,6 @@ public class PanXIMEA extends PanBase {
 	private CamXIMEA dev = null;
 	
 	public PanXIMEA(CamXIMEA device){
-		super("XIMEA setting");
 		dev = device;
 	}
 	
@@ -60,18 +59,16 @@ public class PanXIMEA extends PanBase {
 		root.add(barExpose, 0,1, 5,1);
 		
 		GridPane.setHgrow(barExpose, Priority.ALWAYS);
-				
+		
+		stage().setOnShown(e->{
+			if(dev.isReady()==false){
+				return;
+			}		
+			refresh_param();//refresh all parameter~~~~~
+		});
 		return root;
 	}
 
-	@Override
-	public void eventShown(Object[] args) {
-		if(dev.isReady()==false){
-			return;
-		}		
-		refresh_param();//refresh all parameter~~~~~
-	}
-	
 	//append syntax
 	public static final String  XI_PRM_INFO_SETTABLE  =":settable"          ;// Is parameter settable(xiSetParamInt(handler, XI_PRM_ABC XI_PRM_INFO_SETTABLE, param_value);)
 	public static final String  XI_PRM_INFO_MIN       =":min"               ;// Parameter minimum

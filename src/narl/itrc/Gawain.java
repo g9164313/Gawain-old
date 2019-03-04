@@ -421,18 +421,11 @@ public class Gawain extends Application {
 		panLogger.appear();
 	}
 	
-	public static Window getMainWindow(){
-		if(panRoot==null){
-			return null;
-		}
-		return panRoot.getScene().getWindow();
-	}
-	
 	public static Scene getMainScene(){
 		if(panRoot==null){
 			return null;
 		}
-		return panRoot.getScene();
+		return panRoot.stage().getScene();
 	}
 	
 	public static boolean isMainWindow(PanBase pan){
@@ -443,15 +436,14 @@ public class Gawain extends Application {
 	public void start(Stage primaryStage) throws Exception {		
 		try {			
 			String name = propCache.getProperty("LAUNCH","");
-			//$ Demo how to pass arguments~~~
-			//Param1Type param1;
-			//Class cl = Class.forName(className);
-			//Constructor con = cl.getConstructor(Param1Type.class);
-			//obj = con.newInstance(param1,param2);
-			panRoot = (PanBase)Class.forName(name).newInstance();
-			new Loader().standby();
+			//panRoot = (PanBase)Class.forName(name)
+			//	.getConstructor(Stage.class)
+			//	.newInstance(primaryStage);
+			panRoot = (PanBase)Class.forName(name)
+				.getConstructor()
+				.newInstance();			
+			//new Loader().standby();
 			panRoot.appear(primaryStage);
-			//hookShown();
 			Misc.logv("啟動 launch [%s]",name);
 		} catch (
 			InstantiationException | 
@@ -459,7 +451,7 @@ public class Gawain extends Application {
 			ClassNotFoundException e
 		) {
 			Misc.loge("fail to load "+e.getMessage());
-			panLogger.appear(primaryStage);
+			panLogger.appear();
 		}
 	}
 	

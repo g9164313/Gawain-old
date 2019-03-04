@@ -2,7 +2,6 @@ package prj.economy;
 
 import java.io.File;
 
-import com.jfoenix.controls.JFXDialog;
 import com.jfoenix.controls.JFXTextField;
 
 import javafx.geometry.Orientation;
@@ -14,7 +13,6 @@ import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import narl.itrc.ButtonEx;
 import narl.itrc.PanBase;
@@ -35,7 +33,6 @@ public class PanClockinAgent extends PanBase {
 	public Node eventLayout(PanBase self) {
 		
 		final FragDispatch frag1 = new FragDispatch(); 
-		
 		final FragSummary frag2 = new FragSummary();
 
 		final BorderPane lay0 = new BorderPane();
@@ -112,17 +109,13 @@ public class PanClockinAgent extends PanBase {
 		lay0.setTop(bar);
 		lay0.setCenter(frag1);
 		
-		args[0] = frag1;
-		args[1] = frag2;		
+		stage().setOnShown(e->{
+			frag1.eventShown();
+			frag2.eventShown();
+		});		
 		return lay0;
 	}
 
-	@Override
-	public void eventShown(Object[] args) {
-		((FragDispatch)args[0]).eventShown();
-		((FragSummary)args[1]).eventShown();
-	}
-	
 	private void connect_database(){
 		if(DataProvider.isReady()==true){
 			return;
@@ -132,12 +125,12 @@ public class PanClockinAgent extends PanBase {
 			//notifyInfo("!!注意!!", "無鑰匙");
 			return;
 		}
-		spin.kick(eventTask->{
+		/*spin.kick(eventTask->{
 			DataProvider.init(fs.getPath());
 		},eventDone->{
 			if(DataProvider.isReady()==false){
 				notifyInfo("!!注意!!", "內部錯誤");
 			}
-		});
+		});*/
 	}
 }

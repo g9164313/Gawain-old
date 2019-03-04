@@ -37,6 +37,7 @@ public class PanLogger extends PanBase {
 	
 	public PanLogger(){
 		watcher.setCycleCount(Timeline.INDEFINITE);
+		stage().setOnHidden(e->watcher.stop());
 	}
 
 	@SuppressWarnings("unchecked")
@@ -156,19 +157,13 @@ public class PanLogger extends PanBase {
 		//lay0.setLeft(layAdvn);
 		lay0.setCenter(table);
 		lay0.setRight(lay1);
+		
+		stage().setOnShown(e->{
+			while(Gawain.logQueue.peek()!=null){
+				table.getItems().add(Gawain.logQueue.poll());
+			}		
+			watcher.play();
+		});
 		return lay0;
-	}
-
-	@Override
-	public void eventShown(Object[] args) {
-		while(Gawain.logQueue.peek()!=null){
-			table.getItems().add(Gawain.logQueue.poll());
-		}		
-		watcher.play();
-	}
-	
-	@Override
-	protected void eventClose(PanBase self) {	
-		watcher.stop();
 	}
 }

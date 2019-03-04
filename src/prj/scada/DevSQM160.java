@@ -22,7 +22,6 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
-import javafx.stage.Stage;
 import narl.itrc.DevBase;
 import narl.itrc.DevTTY;
 import narl.itrc.Misc;
@@ -550,11 +549,8 @@ public class DevSQM160 extends DevBase {
 			final VBox lay2 = new VBox();
 			lay2.setStyle("-fx-padding: 13; -fx-spacing: 7;");
 			lay2.getChildren().addAll(lay0, lay1);
+			stage().setOnShown(e->dev.queryFilm(box));
 			return lay2;
-		}
-		@Override
-		public void eventShown(Object[] args) {
-			dev.queryFilm(box);
 		}
 	};
 	
@@ -623,11 +619,8 @@ public class DevSQM160 extends DevBase {
 			final VBox lay2 = new VBox();
 			lay2.setStyle("-fx-padding: 13; -fx-spacing: 7;");
 			lay2.getChildren().addAll(lay3, lay0, lay1);
+			stage().setOnShown(e->dev.querySystem1(chkSim, cmbUnit, chkRes, boxVal));
 			return lay2;
-		}
-		@Override
-		public void eventShown(Object[] args) {
-			dev.querySystem1(chkSim, cmbUnit, chkRes, boxVal);
 		}
 	};
 	
@@ -676,11 +669,8 @@ public class DevSQM160 extends DevBase {
 			final VBox lay2 = new VBox();
 			lay2.setStyle("-fx-padding: 13; -fx-spacing: 7;");
 			lay2.getChildren().addAll(lay0, lay1);
+			stage().setOnShown(e->dev.querySystem2(chkEtch,boxVal));
 			return lay2;
-		}
-		@Override
-		public void eventShown(Object[] args) {
-			dev.querySystem2(chkEtch,boxVal);
 		}
 	};
 	
@@ -744,15 +734,15 @@ public class DevSQM160 extends DevBase {
 		
 		final Button btn3 = PanBase.genButton2("薄膜參數",null);
 		btn3.setMaxWidth(Double.MAX_VALUE);
-		btn3.setOnAction(e->new PanFilm(dev).appear((Stage)lay1.getScene().getWindow()));
+		btn3.setOnAction(e->new PanFilm(dev).appear());
 		
 		final Button btn4 = PanBase.genButton2("系統設定-1",null);
 		btn4.setMaxWidth(Double.MAX_VALUE);
-		btn4.setOnAction(e->new PanSys1(dev).appear((Stage)lay1.getScene().getWindow()));
+		btn4.setOnAction(e->new PanSys1(dev).appear());
 		
 		final Button btn5 = PanBase.genButton2("系統設定-2",null);
 		btn5.setMaxWidth(Double.MAX_VALUE);
-		btn5.setOnAction(e->new PanSys2(dev).appear((Stage)lay1.getScene().getWindow()));
+		btn5.setOnAction(e->new PanSys2(dev).appear());
 		
 		//final Button btnX = PanBase.genButton1("test-test",null);
 		//btnX.setMaxWidth(Double.MAX_VALUE);

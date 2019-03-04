@@ -40,7 +40,6 @@ public class PanEntry1 extends PanBase {
 	);
 	
 	public PanEntry1(){
-		firstAction = FIRST_MAXIMIZED;
 	}
 	//-------------------------------//
 	
@@ -322,13 +321,11 @@ public class PanEntry1 extends PanBase {
 			btnKickOff
 		);
 		lay0.getChildren().addAll(nd1, nd2, lay1);
+		stage().setOnShown(e->{
+			//cdr.connect("");
+			//cdr.layout_grid();//re-layout again!!!
+			//cdr.update_auto(true);
+		});
 		return lay0;
-	}
-
-	@Override
-	public void eventShown(Object[] args) {
-		//cdr.connect("");
-		//cdr.layout_grid();//re-layout again!!!
-		//cdr.update_auto(true);
 	}
 }

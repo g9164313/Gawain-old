@@ -1,4 +1,4 @@
-package narl.itrc;
+package prj.daemon;
 
 import java.io.File;
 import java.io.FilenameFilter;
@@ -20,6 +20,10 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import narl.itrc.DevTTY;
+import narl.itrc.Gawain;
+import narl.itrc.Misc;
+import narl.itrc.PanBase;
 
 public class PanTTY extends PanBase {
 
@@ -156,7 +160,7 @@ public class PanTTY extends PanBase {
 			looper.cancel();
 			dev.close();
 			event_linked();
-			getScene().setRoot(gen_layout_control());			
+			stage().getScene().setRoot(gen_layout_control());			
 		});
 		
 		final Button btnClear = PanBase.genButton2("清除",null);
@@ -309,7 +313,7 @@ public class PanTTY extends PanBase {
 					//generate a looper to take data~~~
 					looper = new TaskDataDrain();
 					new Thread(looper).start();
-					getScene().setRoot(gen_layout_contact());
+					stage().getScene().setRoot(gen_layout_contact());
 				}
 			}
 		});
@@ -321,33 +325,31 @@ public class PanTTY extends PanBase {
 			txtInfo, 
 			btnLink
 		);
+		
 		return lay0;
 	}
 	
 	@Override
 	public Node eventLayout(PanBase self) {
-		return gen_layout_control();
-	}
-
-	@Override
-	public void eventShown(Object[] args) {
-		if(dev==null){
-			return;
-		}
-		if(dev.isOpen()==true){
-			event_unlink();
-		}else{
-			event_linked();
-		}
-	}
-	
-	@Override
-	public void eventClose(PanBase self) {
-		if(useContactBox==true){
-			if(looper!=null){
-				looper.cancel();
+		Node pan = gen_layout_control();
+		stage().setOnShown(e->{
+			if(dev==null){
+				return;
 			}
-			dev.close();
-		}
+			if(dev.isOpen()==true){
+				event_unlink();
+			}else{
+				event_linked();
+			}
+		});
+		stage().setOnHidden(e->{
+			if(useContactBox==true){
+				if(looper!=null){
+					looper.cancel();
+				}
+				dev.close();
+			}
+		});
+		return pan;
 	}
 }

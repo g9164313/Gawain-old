@@ -83,22 +83,8 @@ public class PanEntry extends PanBase {
 		lay0.setLeft(lay1);
 		lay0.setCenter(lay2);
 		lay0.setRight(lay3);
+		stage().setOnShown(e->cup.link("TCP:172.16.2.144"));
+		stage().setOnHidden(e->cup.unlink());
 		return lay0;
-	}
-
-	@Override
-	public void eventShown(Object[] args) {
-		//sqm.link();
-		//pci0.link();
-		//hs2k.link();
-		cup.link("TCP:172.16.2.144");
-	}
-
-	@Override
-	public void eventClose(PanBase self) {
-		//sqm.unlink();
-		//pci0.unlink();
-		//hs2k.unlink();
-		cup.unlink();
 	}
 }
