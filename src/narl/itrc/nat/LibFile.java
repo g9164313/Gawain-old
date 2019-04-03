@@ -4,7 +4,7 @@ import java.io.File;
 
 import narl.itrc.Gawain;
 
-class Token extends File {		
+class LibFile extends File {		
 	
 	private static final long serialVersionUID = -1208089454397724000L;
 
@@ -17,7 +17,7 @@ class Token extends File {
 	
 	public int fail = 0;
 	
-	public Token(String pathname) {
+	public LibFile(String pathname) {
 		super(pathname);
 	}
 	

@@ -47,8 +47,7 @@ public class DevSQM160 extends DevBase {
 		conn.setPathName(tty);
 	}	
 
-	@Override
-	protected boolean looper(TokenBase obj) {
+	protected boolean looper(Work obj) {
 		//if(conn.isOpen()==false){
 		//	return false;
 		//}
@@ -56,8 +55,7 @@ public class DevSQM160 extends DevBase {
 		return true;
 	}
 
-	@Override
-	protected boolean eventReply(TokenBase obj) {
+	protected boolean eventReply(Work obj) {
 		
 		Token tkn = (Token)obj;
 		
@@ -89,7 +87,7 @@ public class DevSQM160 extends DevBase {
 			switch(tkn.getCMD()){
 			case 'A':
 				if(tkn.isQuery()==true){
-					tkn.action();
+					//tkn.action();
 				}else{							
 					alert.setContentText("已更新薄膜參數");
 					alert.show();
@@ -98,7 +96,7 @@ public class DevSQM160 extends DevBase {
 			
 			case 'B':
 				if(tkn.isQuery()==true){
-					tkn.action();
+					//tkn.action();
 				}else{							
 					alert.setContentText("已更新系統-1參數");
 					alert.show();
@@ -107,7 +105,7 @@ public class DevSQM160 extends DevBase {
 				
 			case 'C':
 				if(tkn.isQuery()==true){
-					tkn.action();
+					//tkn.action();
 				}else{							
 					alert.setContentText("已更新系統-2參數");
 					alert.show();
@@ -166,13 +164,20 @@ public class DevSQM160 extends DevBase {
 	}	
 	
 	@Override
-	protected void eventLink() {
+	protected boolean eventLink() {
 		conn.open();
 		//update device parameter, firstly
 		//period update device status
-		setInterval(1);		
+		setInterval(1);
+		return true;
 	}
-
+	@Override
+	protected boolean afterLink() {
+		return true;
+	}
+	@Override
+	protected void beforeUnlink() {
+	}
 	@Override
 	protected void eventUnlink() {
 		conn.close();
@@ -219,9 +224,8 @@ public class DevSQM160 extends DevBase {
 	protected final StringProperty propCrystalLife = new SimpleStringProperty();
 	
 	public void setInterval(int sec){
-		remove_remainder();
-		offer(new Token("M"), sec, TimeUnit.SECONDS, true);
-		offer(new Token("O"), sec, TimeUnit.SECONDS, true);
+		offer(sec, TimeUnit.SECONDS, true, new Token("M"));
+		offer(sec, TimeUnit.SECONDS, true, new Token("O"));
 	}
 	
 	/**
@@ -275,7 +279,7 @@ public class DevSQM160 extends DevBase {
 		final int idx, 
 		final TextField[] box
 	){
-		offer(new Token(String.format("A%d?", idx)).setOnAction(event->{
+		/*offer(new Token(String.format("A%d?", idx)).setOnAction(event->{
 			Token tkn = (Token)event.getSource();
 			String name = tkn.resp.substring(0,8);
 			box[0].setText(name);//name
@@ -290,7 +294,7 @@ public class DevSQM160 extends DevBase {
 			int ss = time % 60;
 			box[6].setText(String.format("%02d:%02d", mm, ss));//Time set-point
 			//filmSensor.set(Integer.valueOf(val[7]));
-		}));
+		}));*/
 	}
 	
 	public void updateSystem1(
@@ -320,7 +324,7 @@ public class DevSQM160 extends DevBase {
 		final CheckBox    resolution,
 		final TextField[] box
 	){
-		offer(new Token("B?").setOnAction(event->{
+		/*offer(new Token("B?").setOnAction(event->{
 			Token tkn = (Token)event.getSource();
 			String[] val = get_values(tkn.resp);
 			box[0].setText(val[0]);
@@ -334,7 +338,7 @@ public class DevSQM160 extends DevBase {
 			box[5].setText(val[ 8]);//Crystal-4 Tooling
 			box[6].setText(val[ 9]);//Crystal-5 Tooling
 			box[7].setText(val[10]);//Crystal-6 Tooling
-		}));
+		}));*/
 	}
 	
 	public void updateSystem2(
@@ -353,7 +357,7 @@ public class DevSQM160 extends DevBase {
 		final CheckBox etch, 
 		final TextField[] box
 	){
-		offer(new Token("C?").setOnAction(event->{
+		/*offer(new Token("C?").setOnAction(event->{
 			Token tkn = (Token)event.getSource();
 			String[] val = get_values(tkn.resp);
 			box[0].setText(val[0]);//minimum frequency
@@ -364,7 +368,7 @@ public class DevSQM160 extends DevBase {
 			box[5].setText(val[5]);//maximum thickness
 			int _etch = Integer.valueOf(val[6]);
 			etch.setSelected((_etch==0)?(false):(true));
-		}));
+		}));*/
 	}
 	
 	private String[] get_values(String txt){
@@ -394,7 +398,7 @@ public class DevSQM160 extends DevBase {
 		offer(new Token("T"));
 	}
 	
-	private class Token extends TokenBase {
+	private class Token extends Work {
 		
 		public byte[] buff;
 		
@@ -466,6 +470,14 @@ public class DevSQM160 extends DevBase {
 				2+getLength(temp)-1
 			));
 			//I don't know why checking CRC is always fail.... 
+		}
+		@Override
+		public int looper(Work obj, final int pass) {
+			return 0;
+		}
+		@Override
+		public int event(Work obj,final int pass) {
+			return 0;
 		}
 	};
 	

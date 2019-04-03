@@ -52,12 +52,12 @@ extern "C" void setupCallback(
 	MACRO_FIELD_PREP \
 	if(cntx==NULL){ return; } \
 
-extern "C" void fetchCallback(
+/*extern "C" void fetchCallback(
 	JNIEnv * env,
 	jobject thiz,
 	jobject bundle,
 	const Mat& data
-);
+);*/
 
 //-----------------------------------------------------------------------//
 

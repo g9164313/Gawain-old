@@ -3,7 +3,7 @@
 #define VISION
 #endif
 #include <global.hpp>
-#include "vision/CamBundle.hpp"
+#include "CamBundle.hpp"
 
 void unsharpen(Mat& src,int rad,double scale) {
 	rad = (rad%2==0)?(rad+1):(rad);

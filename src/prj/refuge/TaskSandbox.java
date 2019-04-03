@@ -38,11 +38,8 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.image.ImageView;
 import javafx.util.StringConverter;
-import narl.itrc.DiaChoice;
 import narl.itrc.Gawain;
 import narl.itrc.Misc;
-import narl.itrc.vision.ImgPreviewX;
-import narl.itrc.vision.UtilPerceive;
 
 public class TaskSandbox extends Task<Integer> {
 	

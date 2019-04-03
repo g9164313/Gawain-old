@@ -210,7 +210,7 @@ public abstract class PanBase {
 			return 0;
 		}		
 	}
-	protected Duty duty;
+	private Duty duty;
 	
 	protected void doDuty(
 		final Runnable hookWorking

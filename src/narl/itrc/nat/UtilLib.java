@@ -42,9 +42,9 @@ class UtilLib {
 	}
 	
 	private static void loadLibraryFile(String[] lstName){
-		LinkedList<Token> lstTkn = new LinkedList<Token>();
+		LinkedList<LibFile> lstTkn = new LinkedList<LibFile>();
 		for(String name:lstName){
-			Token tkn = new Token(name);
+			LibFile tkn = new LibFile(name);
 			if(tkn.isValid()==false){
 				continue;
 			}			
@@ -65,16 +65,16 @@ class UtilLib {
 			//updateProgress(0, 0);
 			return;
 		}
-		LinkedList<Token> lstTkn = new LinkedList<Token>();
+		LinkedList<LibFile> lstTkn = new LinkedList<LibFile>();
 		list_all_files(path, lstTkn);
 		//load_from_list(lstTkn);
 	}
 	
 	
 	
-	public static LinkedList<Token> flatten(){
+	public static LinkedList<LibFile> flatten(){
 		
-		LinkedList<Token> lst = new LinkedList<Token>();
+		LinkedList<LibFile> lst = new LinkedList<LibFile>();
 		
 		//STEP.1: prepare(copy) the build-in library
 		
@@ -88,7 +88,7 @@ class UtilLib {
 	 * @param rootName - path
 	 * @param lst - result
 	 */
-	private static void list_all_files(String rootName, LinkedList<Token> lst) {
+	private static void list_all_files(String rootName, LinkedList<LibFile> lst) {
 		
 		File dir = new File(rootName);
 		if(dir.exists()==false){
@@ -99,7 +99,7 @@ class UtilLib {
 	    File[] lstFS = dir.listFiles();
 	    for (File fs : lstFS) {
 	        if(fs.isFile()==true){
-	        	Token tkn = new Token(fs.getAbsolutePath());
+	        	LibFile tkn = new LibFile(fs.getAbsolutePath());
 	        	if(tkn.isValid()==true){
 	        		lst.add(tkn);
 	        	}

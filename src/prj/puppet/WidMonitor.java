@@ -16,7 +16,6 @@ import javafx.scene.control.TextField;
 import javafx.scene.shape.Rectangle;
 import narl.itrc.Gawain;
 import narl.itrc.Misc;
-import narl.itrc.WidImageView;
 
 public class WidMonitor extends WidImageView {
 

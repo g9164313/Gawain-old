@@ -38,13 +38,13 @@ public class ButtonBounce extends Button {
 		EventHandler<ActionEvent> eventPress,
 		EventHandler<ActionEvent> eventRelease
 	){
-		this.setOnMousePressed(e->{
+		setOnMousePressed(e->{
 			MouseButton btn = e.getButton();				
 			if(btn==MouseButton.PRIMARY){
 				eventPress.handle(null);
 			}
 		});
-		this.setOnMouseReleased(e->{
+		setOnMouseReleased(e->{
 			MouseButton btn = e.getButton();				
 			if(btn==MouseButton.PRIMARY){
 				eventRelease.handle(null);

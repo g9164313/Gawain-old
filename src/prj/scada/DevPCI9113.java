@@ -34,13 +34,13 @@ public class DevPCI9113 extends DevDask {
 	/**
 	 * mapping all channels value
 	 */
-	private static class Token extends TokenBase {
+	private static class Token extends Work {
 		
 		int   chann = 0;
 		int[] range = new int[32];		
 				
 		int[]    toll = new int[32];
-		double[] volt = new double[32];		
+		//double[] volt = new double[32];		
 		Label[]  stamp= new Label[32];
 		
 		Token(){
@@ -55,11 +55,11 @@ public class DevPCI9113 extends DevDask {
 			range[ch] = rng;
 			return this;
 		}
-		Token observe(int ch, Label txt){
-			chann = chann | (1<<ch);
-			stamp[ch] = txt;
-			return this;
-		}		
+		//Token observe(int ch, Label txt){
+		//	chann = chann | (1<<ch);
+		//	stamp[ch] = txt;
+		//	return this;
+		//}		
 		Token observe(int ch, int rng, Label txt){
 			chann = chann | (1<<ch);
 			range[ch] = rng;
@@ -71,6 +71,15 @@ public class DevPCI9113 extends DevDask {
 			stamp[ch] = null;
 			return this;
 		}
+
+		@Override
+		public int looper(Work obj, final int pass) {
+			return 0;
+		}
+		@Override
+		public int event(Work obj,final int pass) {
+			return 0;
+		}
 	};
 	
 	public DevPCI9113(int id) {
@@ -78,8 +87,7 @@ public class DevPCI9113 extends DevDask {
 		bus_num = id;
 	}
 
-	@Override
-	protected boolean looper(TokenBase obj) {
+	protected boolean looper(Work obj) {
 		Token tkn = (Token)obj;
 		for(int ch=0; ch<32; ch++){
 			if( ((1<<ch)&tkn.chann)==0 ){
@@ -91,8 +99,7 @@ public class DevPCI9113 extends DevDask {
 		return true;
 	}
 
-	@Override
-	protected boolean eventReply(TokenBase obj) {
+	protected boolean eventReply(Work obj) {
 		Token tkn = (Token)obj;
 		for(int ch=0; ch<32; ch++){
 			if( ((1<<ch)&tkn.chann)==0 ){
@@ -154,13 +161,21 @@ public class DevPCI9113 extends DevDask {
 	}
 	
 	@Override
-	protected void eventLink() {
+	protected boolean eventLink() {
 		card = RegisterCard(PCI_9113, bus_num);
 		if(card<0){
 			Misc.loge("Fail to open %s", TAG);
-		}	
+			return false;
+		}
+		return true;
 	}
-
+	@Override
+	protected boolean afterLink() {
+		return true;
+	}
+	@Override
+	protected void beforeUnlink() {
+	}
 	@Override
 	protected void eventUnlink() {
 		if(card<0){
@@ -267,10 +282,9 @@ public class DevPCI9113 extends DevDask {
 		btnPlay.setOnAction(event->{			
 			if(btnPlay.getText().equals(TXT_START)==true){
 				btnPlay.setText(TXT_STOP);				
-				dev.offer(tkn,200,true);
+				dev.offer(200,true,tkn);
 			}else{
 				btnPlay.setText(TXT_START);
-				dev.clearAll();
 			}
 		});
 		

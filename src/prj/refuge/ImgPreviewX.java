@@ -1,4 +1,4 @@
-package narl.itrc.vision;
+package prj.refuge;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;

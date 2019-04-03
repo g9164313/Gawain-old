@@ -21,7 +21,6 @@ import javafx.stage.FileChooser;
 import narl.itrc.ButtonEx;
 import narl.itrc.Gawain;
 import narl.itrc.PanBase;
-import narl.itrc.UtilTaskTool;
 
 public class WidRecorder extends PanBase {
 	

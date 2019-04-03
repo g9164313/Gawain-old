@@ -39,7 +39,7 @@ public class DevSPIK2k extends DevBase {
 	private static final int MSG_GET_REG= 0x82000000;
 	private static final int MSG_SET_REG= 0x83000000;
 	
-	protected static class Token extends TokenBase {
+	protected static class Token extends Work {
 		
 		private int msg;		
 		private byte[] buf;
@@ -90,6 +90,14 @@ public class DevSPIK2k extends DevBase {
 			buf[9] = (byte)(0xFF);
 			return buf;
 		}
+		@Override
+		public int looper(Work obj, final int pass) {
+			return 0;
+		}
+		@Override
+		public int event(Work obj,final int pass) {
+			return 0;
+		}
 	};
 		
 	private static final byte STX = 0x02;
@@ -98,8 +106,7 @@ public class DevSPIK2k extends DevBase {
 	//private static final byte NAK = 0x15;
 	private static final byte EM_ = 0x25;//end of medium
 	
-	@Override
-	protected boolean looper(TokenBase obj) {
+	protected boolean looper(Work obj) {
 		
 		conn.readBuff();//clear buffer, but why???
 		
@@ -138,8 +145,7 @@ public class DevSPIK2k extends DevBase {
 		return true;
 	}
 
-	@Override
-	protected boolean eventReply(TokenBase obj) {
+	protected boolean eventReply(Work obj) {
 		
 		Token tkn = (Token)obj;
 		
@@ -159,11 +165,18 @@ public class DevSPIK2k extends DevBase {
 	}
 	
 	@Override
-	protected void eventLink() {
+	protected boolean eventLink() {
 		conn.open();
 		getRegister();
+		return true;
 	}
-
+	@Override
+	protected boolean afterLink() {
+		return true;
+	}
+	@Override
+	protected void beforeUnlink() {
+	}
 	@Override
 	protected void eventUnlink() {
 		conn.close();

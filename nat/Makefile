@@ -76,24 +76,15 @@ LD_LIBS += $(shell pkg-config --libs libmodbus)
 
 ########################
 
-CORE_SO = libspringboard.so
-CORE_FILE = util_miscellany.cpp wrap_PanPuppetter.cpp
+#OBJECTS = $(SOURCES:.cpp=.o)
+#CHECK_EXEC := $(word 2,$(shell pgrep -f "narl.itrc.Gawain"))
 
-VISION_SO = libvision.so
-VISION_FILE =  util_jni.cpp util_cv.cpp ./vision/CamBundle.cpp ./vision/CamDummy.cpp 
-VISION_FILE += ./vision/CamVidcap.cpp 
-#VISION_FILE += ./vision/CamMulticam.cpp 
-#VISION_FILE += ./vision/CamFlyCapture.cpp
-#VISION_FILE += ./vision/CamXIMEA.cpp
-
-#IMG_FILTER =
 LIB_SFRISO = ./SFR/FltrSlangEdge.cpp ./SFR/sfr_iso.c 
 
-########################
+#####[springboard]######
 
-OBJECTS = $(SOURCES:.cpp=.o)
-
-CHECK_EXEC := $(word 2,$(shell pgrep -f "narl.itrc.Gawain"))
+CORE_SO = libspringboard.so
+CORE_FILE = util_miscellany.cpp wrap_PanPuppetter.cpp
 
 $(CORE_SO): $(CORE_FILE)
 	$(CC) -fPIC -shared -o $@ $^ $(LD_LIBS) $(CC_FLAG)
@@ -106,7 +97,12 @@ else
 	@echo "process is running!!!"
 endif
 
-####################################################
+#####[capture device]######
+
+VISION_SO = libvision.so
+VISION_FILE = ./vision/CapVidcap.cpp    
+
+
 $(VISION_SO): $(VISION_FILE) 
 	$(CC) -fPIC -shared -o $@ $^ $(LD_LIBS) $(CC_FLAG)
 	cp -rf $@ ../bin/narl/itrc/nat
@@ -118,8 +114,15 @@ else
 	@echo "process is running!!!"
 endif
 
-####################################################
-libdevice.so: ./deprecated/util_jni.cpp ./device/DevTTY.cpp ./device/DevModbus.cpp ./device/DevUSB.cpp
+#####[peripheral device]######
+
+PERIPHERAL_SO = libdevice.so
+PERIPHERAL_FILE = ./deprecated/util_jni.cpp
+PERIPHERAL_FILE+= ./device/DevTTY.cpp
+PERIPHERAL_FILE+= ./device/DevModbus.cpp
+PERIPHERAL_FILE+= ./device/DevUSB.cpp
+
+$(PERIPHERAL_SO): $(PERIPHERAL_FILE)
 	$(CC) -fPIC -shared -o $@ $^ $(LD_LIBS) $(CC_FLAG)
 	cp -rf $@ ../bin/narl/itrc/nat
 	cp -rf $@ ../src/narl/itrc/nat
@@ -138,7 +141,10 @@ $(TARGET_EXE):  ./test/misc.cpp ./vision/util_cv.cpp ./test/main-xx4.cpp
 ####################################################
 
 
-all: $(TARGET_EXE) libdevice.so
+#all: $(TARGET_EXE)
+#all: $(CORE_SO)
+all: $(VISION_SO)
+#all: $(PERIPHERAL_SO)
 
 clean:
 	rm -rf $(TARGET_EXE) $(TARGET_SO) $(DIR_SRC)/*.o ./*.o

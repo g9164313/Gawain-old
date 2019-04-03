@@ -7,11 +7,9 @@ import java.util.concurrent.TimeUnit;
 import com.sun.glass.ui.Application;
 
 import javafx.concurrent.Task;
-import javafx.event.ActionEvent;
-import javafx.event.Event;
-import javafx.event.EventHandler;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
+
 
 abstract public class DevBase {
 	
@@ -24,15 +22,15 @@ abstract public class DevBase {
 		alert.setHeaderText("");
 	}
 	
-	protected abstract boolean looper(TokenBase obj);
+	protected abstract boolean eventLink();
 	
-	protected abstract boolean eventReply(TokenBase obj);
+	protected abstract boolean afterLink();
 	
-	protected abstract void eventLink(); 
+	protected abstract void beforeUnlink();
 	
 	protected abstract void eventUnlink(); 
 	
-	protected static class TokenBase implements Delayed {
+	protected static abstract class Work implements Delayed {
 		
 		/**
 		 * initial time tick for counting delay.<p>
@@ -47,54 +45,23 @@ abstract public class DevBase {
 		private long cntDelay = 0L;
 		
 		/**
-		 * Whether Looper decides to invoke GUI event.<p> 
-		 */
-		public boolean isEvent = true;
-		
-		/**
 		 * Whether Looper queues token again.<p> 
 		 */
 		public boolean isPermanent = false;
 		
-		public TokenBase(){
+		public Work(){
 		}
-		public TokenBase(EventHandler<Event> task){
-			hooker = task;
+		public Work(int delay_ms){
+			cntDelay = delay_ms;
 		}
-		public TokenBase(int delay){
-			cntDelay = delay;
+		public Work(int delay_ms, boolean permanent){
+			cntDelay = delay_ms;
+			isPermanent = permanent;
 		}
 		
-		/**
-		 * This event must be executed by GUI-thread.
-		 */
-		private EventHandler<ActionEvent> eventHandler = null;
-		/**
-		 * User can get 'Token' from action source.
-		 */
-		private ActionEvent eventSource = new ActionEvent(this, null);
-		/**
-		 * Hook a method for UI response in looper.
-		 * @param event
-		 * @return
-		 */
-		public TokenBase setOnAction(EventHandler<ActionEvent> event){
-			eventHandler = event;
-			return this;
-		}
-		/**
-		 * This event must be executed by GUI-thread.
-		 */
-		public void action(){
-			if(eventHandler==null){
-				return;
-			}
-			eventHandler.handle(eventSource);
-		}		
-		/**
-		 * Override looper event, let thread execute some code~~~ 
-		 */
-		private EventHandler<Event> hooker = null;		
+		public abstract int looper(Work obj, final int pass);
+		
+		public abstract int event(Work obj, final int pass);
 		
 		@Override
 		public int compareTo(Delayed o) {
@@ -111,82 +78,62 @@ abstract public class DevBase {
 			return cntDelay;
 		}
 	}
-
-	protected static class EventRun implements Runnable{
-		
-		private DevBase dev = null;
-		
-		private TokenBase tkn = null;		
-		
-		private boolean isExit = false;
-		
-		EventRun(DevBase self){
-			dev= self;			
-		}		
-		public boolean invoke(TokenBase obj){
-			if(obj.isEvent==false){
-				return true;
-			}
-			tkn = obj;
-			Application.invokeAndWait(this);
-			return isExit;
-		} 		
-		@Override
-		public void run() {
-			isExit = dev.eventReply(tkn);
-		}
-	}
 	
 	private Task<?> looper = null;
 	
-	private DelayQueue<TokenBase> queuer = new DelayQueue<TokenBase>();
+	private DelayQueue<Work> queuer = new DelayQueue<Work>();
 	
 	public void link(){
+		
 		//check whether looper is running
 		if(looper!=null){
-			if(looper.isDone()==false){	
-				Misc.logw("SQM160 is linked.");
+			if(looper.isDone()==false){
 				return;				
 			}
 		}
 
 		//let user prepare something
-		eventLink();
+		if(eventLink()==false){
+			return;
+		}
 		
 		//go, working and working~~~~
 		looper = new Task<Void>(){
+			int pass = 0;
 			@Override
 			protected Void call() throws Exception {
-				
-				final EventRun event = new EventRun(DevBase.this);
-				
+				//initialize everything or setup
+				if(afterLink()==false){
+					return null;
+				}								
 				//this is main looper and device core.
 				while(looper.isCancelled()==false){
 					
-					TokenBase obj = queuer.take();
+					Work obj = queuer.take();					
+					if(obj.cntBegin<0){
+						//special case!!!
+						//user want to escape looper~~~
+						break;
+					}
 					
-					if(obj.cntBegin<0){						
-						break;//special token~~~
-					}
-					if(obj.hooker==null){
-						if(looper(obj)==false){
-							break;
-						}
-					}else{
-						obj.hooker.handle(null);
-					}					
-					if(obj.isEvent==true){
-						if(event.invoke(obj)==false){
-							break;
-						}
-					}
+					pass = 0;
+					do{
+						pass = obj.looper(obj, pass);
+						if(pass>0){
+							Application.invokeAndWait(()->{
+								pass = obj.event(obj, pass);						
+							});
+						}	
+					}while(pass!=0 && looper.isCancelled()==false);
+
 					if(obj.isPermanent==true){
-						obj.cntBegin = System.currentTimeMillis();//count again~~~
+						//push-back and count again~~~
+						obj.cntBegin = System.currentTimeMillis();
 						queuer.offer(obj);
 					}
-				}
-				
-				Misc.logv("%s looper is done!!!", TAG);
+				}				
+				//Before ending, release resource.
+				beforeUnlink();				
 				return null;
 			}
 		};
@@ -196,8 +143,19 @@ abstract public class DevBase {
 		th.start();
 	}
 	
+	private static final Work work_done = new Work(-1){
+		@Override
+		public int looper(Work obj, int pass) {
+			return 0;
+		}
+		@Override
+		public int event(Work obj,int pass) {
+			return 0;
+		}
+	};
+	
 	public void unlink(){
-		queuer.add(new TokenBase(-1));
+		queuer.add(work_done);
 		if(looper!=null){
 			if(looper.isDone()==false){				
 				looper.cancel();				
@@ -208,66 +166,39 @@ abstract public class DevBase {
 		queuer.clear();//clear token for next turn~~~
 	}
 	
-	protected DevBase offer(TokenBase tkn){
-		return offer(
-			tkn,
-			0,
-			TimeUnit.MILLISECONDS,
-			false
-		);
+	public DevBase offer(Work token){
+		queuer.offer(token);
+		return this;
 	}
-	protected DevBase offer(
-		TokenBase tkn, 
-		int delay_ms
-	){	
-		return offer(
-			tkn,
-			delay_ms,
-			TimeUnit.MILLISECONDS,
-			false
-		);
-	}
-	protected DevBase offer(
-		TokenBase tkn, 
+	public DevBase offer(
 		int delay_ms,
-		boolean permanent
+		Work token		
 	){	
-		return offer(
-			tkn,
+		return offer(			
 			delay_ms,
 			TimeUnit.MILLISECONDS,
-			permanent
+			false,
+			token
 		);
 	}
-	protected DevBase offerTask(
-		final int delay_ms,
-		final EventHandler<Event> task
-	){
-		return offer(
-			new TokenBase(task),
-			delay_ms,
-			TimeUnit.MILLISECONDS,
-			false
-		);
-	}
-			
-	protected DevBase offerAnony(
+	public DevBase offer(		
 		int delay_ms,
-		boolean permanent
-	){
-		return offer(
-			new TokenBase(),
+		boolean permanent,
+		Work token
+	){	
+		return offer(			
 			delay_ms,
 			TimeUnit.MILLISECONDS,
-			permanent
+			permanent,
+			token
 		);
 	}
 	
-	protected DevBase offer(
-		TokenBase tkn, 
+	public DevBase offer(		
 		int delay,
 		TimeUnit unit,
-		boolean permanent
+		boolean permanent,
+		Work tkn
 	){
 		tkn.cntBegin= System.currentTimeMillis();
 		tkn.cntDelay= TimeUnit.MILLISECONDS.convert(delay, unit);
@@ -276,26 +207,9 @@ abstract public class DevBase {
 		return this;
 	}
 	
-	protected DevBase withdraw(TokenBase tkn){
+	public DevBase remove(Work tkn){
+		tkn.isPermanent = false;
 		queuer.remove(tkn);
 		return this;
-	}
-	
-	/**
-	 * clear all token
-	 */
-	protected void clearAll(){
-		queuer.clear();
-	}
-	
-	/**
-	 * This is special method, it will remove all 'rerun' token.
-	 */
-	protected void remove_remainder(){
-		for(TokenBase tkn:queuer){
-			if(tkn.isPermanent==true){
-				queuer.remove(tkn);
-			}
-		}
 	}
 }

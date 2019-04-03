@@ -433,7 +433,10 @@ public class Gawain extends Application {
 	}
 	
 	@Override
-	public void start(Stage primaryStage) throws Exception {		
+	public void start(Stage primaryStage) throws Exception {
+		
+		new Loader().standby();
+		
 		try {			
 			String name = propCache.getProperty("LAUNCH","");
 			//panRoot = (PanBase)Class.forName(name)

@@ -1,4 +1,4 @@
- package narl.itrc;
+ package prj.puppet;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -30,6 +30,8 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Line;
 import javafx.scene.shape.Rectangle;
+import narl.itrc.Gawain;
+import narl.itrc.Misc;
 
 
 public class WidImageView extends StackPane {

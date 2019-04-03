@@ -44,10 +44,10 @@ public class DevCoupler extends DevBase {
 	private DevModbus conn = new DevModbus();
 	
 	public void link(final String ip_addr){		
-		offerTask(0,event->{
-			conn.open(ip_addr);
-		});
-		offerAnony(100,true);//period-task for looper!!!
+		//offerTask(0,event->{
+		//	conn.open(ip_addr);
+		//});
+		//offerAnony(100,true);//period-task for looper!!!
 		super.link();		
 	}
 	
@@ -209,8 +209,7 @@ public class DevCoupler extends DevBase {
 		}
 	}
 	
-	@Override
-	protected boolean looper(TokenBase obj) {
+	protected boolean looper(Work obj) {
 		if(conn.isValid()==false){
 			return false;
 		}
@@ -219,8 +218,7 @@ public class DevCoupler extends DevBase {
 		return true;
 	}
 
-	@Override
-	protected boolean eventReply(TokenBase obj) {
+	protected boolean eventReply(Work obj) {
 		
 		int val = ((int)_INT[0])&0xFFFF;
 		p_INT0[0].set(((val&0x1)!=0)?(true):(false));
@@ -247,9 +245,16 @@ public class DevCoupler extends DevBase {
 	}
 
 	@Override
-	protected void eventLink() {
+	protected boolean eventLink() {
+		return true;
 	}
-
+	@Override
+	protected boolean afterLink() {
+		return true;
+	}
+	@Override
+	protected void beforeUnlink() {
+	}
 	@Override
 	protected void eventUnlink() {
 		conn.close();

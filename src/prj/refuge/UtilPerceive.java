@@ -1,4 +1,4 @@
-package narl.itrc.vision;
+package prj.refuge;
 
 import java.awt.image.BufferedImage;
 

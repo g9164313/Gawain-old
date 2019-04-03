@@ -47,10 +47,6 @@ inline void msleep(int msec){
 
 using namespace std;
 
-#ifdef VISION
-#include "vision/vision.hpp"
-#endif
-
 extern void   setJDouble(JNIEnv *env,jobject thiz,const char* name,double val);
 extern double getJDouble(JNIEnv *env,jobject thiz,const char* name);
 extern void   setFloat(JNIEnv *env,jobject thiz,const char* name,float val);
@@ -84,11 +80,6 @@ extern jdouble* doubleArray2Ptr(JNIEnv* env,jclass _clazz,jobject thiz,const cha
 extern void logv(JNIEnv* env,const char* fmt,...);
 extern void logw(JNIEnv* env,const char* fmt,...);
 extern void loge(JNIEnv* env,const char* fmt,...);
-
-#ifdef USE_VISION
-#include "vision/vision.hpp"
-extern void unsharpen(Mat& src, int rad, double scale);
-#endif
 
 #endif /* GLOBAL_H_ */
 

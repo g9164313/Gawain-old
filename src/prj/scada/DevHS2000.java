@@ -27,17 +27,16 @@ public class DevHS2000 extends DevBase {
 		super(TAG);
 	}
 
-	@Override
-	protected boolean looper(TokenBase obj) {
+	protected boolean looper(Work obj) {
 		Token tkn = (Token)obj;
 		if(tkn.suspend==true){
 			return true;
 		}
-		tkn.isEvent = get_spectrum();
-		if(tkn.isEvent==false){
+		//tkn.isEvent = get_spectrum();
+		//if(tkn.isEvent==false){
 			//not sure why the first acquisition is fail?
-			return true;
-		}
+		//	return true;
+		//}
 		for(int i=0; i<DATA_SIZE; i++){
 			normPix[i] = pixel[i] / pBase;
 		}
@@ -45,8 +44,7 @@ public class DevHS2000 extends DevBase {
 		return true;
 	}
 
-	@Override
-	protected boolean eventReply(TokenBase obj) {
+	protected boolean eventReply(Work obj) {
 		Token tkn = (Token)obj;
 		if(tkn.suspend==true){
 			return true;
@@ -56,18 +54,24 @@ public class DevHS2000 extends DevBase {
 	}
 
 	@Override
-	protected void eventLink() {
+	protected boolean eventLink() {
 		conn.open();
 		//get information from device		
 		get_information();
 		get_calibration();
 		//initialize parameters
 		set_parameter();
+		return true;
 	}
-
+	@Override
+	protected boolean afterLink() {
+		return true;
+	}
+	@Override
+	protected void beforeUnlink() {
+	}
 	@Override
 	protected void eventUnlink() {
-		clearAll();
 	}
 	//---------------------------------------//
 	
@@ -312,7 +316,7 @@ public class DevHS2000 extends DevBase {
 	}
 	//------------------------------------//
 	
-	private static class Token extends TokenBase {
+	private static class Token extends Work {
 		ChartLine chart = null;
 		ImgSpectrum image = null;
 		boolean suspend = false;
@@ -332,6 +336,14 @@ public class DevHS2000 extends DevBase {
 			if(image!=null){
 				image.setFreq(value, 0, 1, 600);
 			}
+		}
+		@Override
+		public int looper(Work obj, final int pass) {
+			return 0;
+		}
+		@Override
+		public int event(Work obj,final int pass) {
+			return 0;
 		}
 	};
 	
@@ -369,7 +381,7 @@ public class DevHS2000 extends DevBase {
 		tkn.chart = chart;
 		tkn.image = image;
 		tkn.suspend = false;
-		dev.offer(tkn, 200, true);
+		dev.offer(200, true, tkn);
 				
 		return lay0;
 	}	

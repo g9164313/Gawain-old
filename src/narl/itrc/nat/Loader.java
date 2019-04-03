@@ -43,9 +43,9 @@ public class Loader extends Task<Integer> {
 	 */
 	private static boolean debug = false;
 	
-	private void loadLibrary(final LinkedList<Token> lstTkn){
+	private void loadLibrary(final LinkedList<LibFile> lst){
 		
-		long barCur=0L,  barMax=lstTkn.size();
+		long barCur=0L,  barMax=lst.size();
 		
 		updateProgress(0, barMax);
 		if(barMax==0L){
@@ -54,9 +54,9 @@ public class Loader extends Task<Integer> {
 		
 		String msg = null;
 		
-		while(lstTkn.isEmpty()==false){
+		while(lst.isEmpty()==false){
 			
-			Token tkn = lstTkn.pollFirst();
+			LibFile tkn = lst.pollFirst();
 			
 			try {
 				System.loadLibrary(tkn.getLibName());
@@ -81,7 +81,7 @@ public class Loader extends Task<Integer> {
 					break;
 				}else{
 					//this file have the dependency problem, deal with it later.
-					lstTkn.addLast(tkn);
+					lst.addLast(tkn);
 					if(debug==true){
 						System.out.println("重排 "+tkn.getName());
 					}
