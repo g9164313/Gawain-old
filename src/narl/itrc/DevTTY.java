@@ -1,9 +1,11 @@
 package narl.itrc;
 
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicReference;
+
+import javafx.concurrent.Task;
 
 
 public class DevTTY {
@@ -57,7 +59,7 @@ public class DevTTY {
 	
 	/**
 	 * Open tty device and parser path name.<p>
-	 * Format is "[baud rate], [data bit][mask][stop bit]".<p>
+	 * Format is "[device name],[baud rate],[data bit][mask][stop bit]".<p>
 	 * Mask type:<p>
 	 *   'n' mean "none".<p>
 	 *   'o' mean "odd".<p>
@@ -74,21 +76,21 @@ public class DevTTY {
 			return false;
 		}
 		//check path name is valid~~~
-		String[] sets = pathName.split(",");
-		if(sets.length!=3){
+		String[] attr = pathName.split(",");
+		if(attr.length!=3){
 			return false;
 		}		
 		try{
-			String name = sets[0];			
+			String name = attr[0];			
 			
-			int baud = Integer.valueOf(sets[1]);			
+			int baud = Integer.valueOf(attr[1]);			
 			
-			char[] attr = sets[2].toCharArray();
-			if(attr.length<3){
+			char[] vals = attr[2].toCharArray();
+			if(vals.length<3){
 				return false;
 			}
 			
-			implOpen(name, baud, attr[0], attr[1], attr[2], '?');
+			implOpen(name, baud, vals[0], vals[1], vals[2], '?');
 			
 		}catch(NumberFormatException e){
 			return false;
@@ -103,26 +105,27 @@ public class DevTTY {
 		if(handle==0L){
 			return;
 		}
+		stream.cancel();
 		implClose();
 	}
 	//-----------------------//
 	
+	public byte readByte1(){
+		final byte[] buf = {0};
+		implRead(buf,0);
+		return buf[0];
+	}
+	
 	public Byte readByteOne(){
 		final byte[] buf = {0};
-		if(implRead(buf)==0L){
+		if(implRead(buf,0)==0L){
 			return null;
 		}
 		return buf[0];
 	}
 	
-	public byte readByte1(){
-		final byte[] buf = {0};
-		implRead(buf);
-		return buf[0];
-	}
-	
 	public int readBuff(byte[] buf){
-		return (int)implRead(buf);
+		return (int)implRead(buf,0);
 	}
 	
 	public byte[] readBuff(){
@@ -131,7 +134,7 @@ public class DevTTY {
 	
 	public byte[] readBuff(final int maxSize){
 		final byte[] buf = new byte[maxSize];
-		int len = (int)implRead(buf);
+		int len = (int)implRead(buf,0);
 		if(len==0){
 			return null;
 		}
@@ -172,10 +175,7 @@ public class DevTTY {
 	
 	public byte[] readByte(byte beg, byte end, int ms){
 		for(;;){
-			Byte cc = readByteOne();
-			if(cc==null){
-				continue;
-			}
+			Byte cc = readByte1();
 			if(cc==beg){
 				return readByte(end,ms);
 			}		
@@ -189,7 +189,7 @@ public class DevTTY {
 	 */
 	public Character readChar(){
 		final byte[] buf = {0};
-		if(implRead(buf)==0L){
+		if(implRead(buf,0)==0L){
 			return null;
 		}//example for char value: '\u0000' ~ '\uffff'
 		return (char)(buf[0]);
@@ -212,23 +212,15 @@ public class DevTTY {
 	 * @param bufSize - buffer size
 	 * @return NULL - if no data<p> Text - what we read.<p>
 	 */
-	public String readTxt(int bufSize){
-		final byte[] buf = new byte[bufSize];		
-		if(implRead(buf)==0L){
+	public String readTxt(final int bufSize){
+		final byte[] buf = new byte[bufSize];
+		int len = implRead(buf,0);
+		if(len<=0){
 			return null;
 		}
-		try {
-			return new String(buf,"UTF-8");
-		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();			
-		}
-		return "";
+		return new String(buf).substring(0, len);
 	}
-	
-	public String readTxt(char end){
-		return readTxt(end, -1);
-	}
-	
+
 	/**
 	 * Read data until encountering the tail token
 	 * @param end - the tail token.
@@ -286,6 +278,83 @@ public class DevTTY {
 			}		
 		}
 	}
+		
+	private Task<Integer> stream = null;
+
+	private AtomicReference<String> s_text = new AtomicReference<>();
+	
+	private static final int s_size = 512;
+	
+	public String getStream(){
+		if(stream==null){
+			return "";
+		}
+		return s_text.get();
+	}
+
+	public String getStreamTail(
+		final String delimiter,
+		final int count
+	){		
+		if(stream==null){
+			return "";
+		}
+		int off = delimiter.length();
+		while(stream.isCancelled()==false){			
+			String txt = s_text.get();
+			int beg = txt.length();
+			int end = -1;
+			int cnt = 0;
+			for(;beg>0;){
+				beg = txt.lastIndexOf(delimiter, beg);
+				if(end==-1){
+					end = beg;//this is tail~~~
+				}
+				if(beg>=0){
+					cnt+=1;
+					if(cnt>count){
+						s_text.set(txt.substring(end-off));
+						return txt.substring(beg+off,end);
+					}
+					if(beg==0){
+						break;
+					}else{
+						beg-=1;
+					}
+				}
+			}
+			Misc.delay(5);
+		}
+		return "";
+	}
+	
+	public void createStream(){		
+		if(stream!=null){
+			return;
+		}
+		s_text.set("");
+		stream = new Task<Integer>(){
+			@Override
+			protected Integer call() throws Exception {
+				do{
+					if(handle==0L){
+						return 0;
+					}
+					String old = s_text.get();
+					if(old.length()>=s_size){
+						old = old.substring(s_size/2);
+					}
+					String txt = readTxt();
+					if(txt==null){
+						continue;
+					}
+					s_text.set(old + txt);										
+				}while(stream.isCancelled()==false);
+				return 1;
+			}
+		};
+		new Thread(stream,"tty-stream").start();
+	}	
 	//------------------------------------//
 	
 	/**
@@ -352,7 +421,7 @@ public class DevTTY {
 		char flow_mode
 	);
 
-	private native long implRead(byte[] buf);
+	private native int implRead(byte[] buf, int offset);
 	
 	private native void implWrite(byte[] buf);
 	

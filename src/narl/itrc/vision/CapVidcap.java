@@ -1,26 +1,43 @@
 package narl.itrc.vision;
 
-public class CapVidcap implements DevCamera.Capture {
+public class CapVidcap extends Capture {
 
-	private long context;
+	private native boolean implSetup();
+	private native void implFetch(ImgData img);
+	private native void implDone();
+	
+	private native void setFrameSize(int ww, int hh);
+	
+	public CapVidcap(){
+	}
+	
+	private int[] frameSize = {0,0};
+	
+	public CapVidcap(int width, int height){
+		frameSize[0] = width;
+		frameSize[1] = height;
+	}
 	
 	@Override
 	public boolean setup() {
 		boolean flag = implSetup();
-		setFrameSize(640,480);
+
 		return flag;
 	}
 	@Override
-	public void fetch(DevCamera cam) {
-		implFetch(cam);
+	protected void afterSetup(){
+		if(frameSize[0]>0 && frameSize[1]>0){
+			setFrameSize(frameSize[0],frameSize[1]);
+		}
+	}
+	
+	@Override
+	public void fetch(ImgData data) {
+		implFetch(data);
+		return;
 	}
 	@Override
 	public void done() {
 		implDone();
-	}	
-	private native boolean implSetup();
-	private native void implFetch(DevCamera cam);
-	private native void implDone();
-	
-	private native void setFrameSize(int ww, int hh);
+	}
 }

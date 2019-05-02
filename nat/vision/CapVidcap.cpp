@@ -24,19 +24,22 @@ extern "C" JNIEXPORT jboolean JNICALL Java_narl_itrc_vision_CapVidcap_implSetup(
 extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_CapVidcap_implFetch(
 	JNIEnv* env,
 	jobject thiz,
-	jobject objCamera
+	jobject objImgData
 ){
 	PREPARE_CONTEXT;
-	PREPARE_CAMERA;
+	PREPARE_IMG_DAT(objImgData);
 
 	VideoCapture* vid = (VideoCapture*)(env->GetLongField(thiz,f_cntx));
 	if(vid->grab()==false){
 		return;
 	}
-	Mat img;
-	vid->retrieve(img);
+	Mat img[60];
+	if(snap>60){ snap = 60; } //maximum capability
+	for(int i=0; i<snap; i++){
+		vid->retrieve(img[i]);
+	}
 
-	FINISH_CAMERA(img);
+	FINISH_IMG_DAT(objImgData, img);
 }
 
 extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_CapVidcap_implDone(
@@ -44,10 +47,10 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_CapVidcap_implDone(
 	jobject thiz
 ){
 	PREPARE_CONTEXT;
-
 	VideoCapture* vid = (VideoCapture*)(cntx);
 	vid->release();
 	delete vid;
+	CHECK_OUT_CONTEXT;
 }
 
 extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_CapVidcap_setFrameSize(

@@ -134,9 +134,7 @@ public class ButtonEx extends JFXButton {
 					return;
 				}
 			}
-			//setText(text2);
-			//setGraphic(icon2);
-			
+
 			final ActionEvent eventRef = new ActionEvent(this,event.getTarget());
 			
 			task = new Task<Integer>(){
@@ -147,19 +145,13 @@ public class ButtonEx extends JFXButton {
 				}
 			};
 			task.setOnSucceeded(e1->{
-				//setText(text1);
-				//setGraphic(icon1);
 				if(finish!=null){
 					finish.handle(eventRef);
 				}
 			});
 			task.setOnCancelled(e2->{
-				///setText(text1);
-				//setGraphic(icon1);
 			});
 			task.setOnFailed(e3->{
-				//setText(text1);
-				//setGraphic(icon1);
 			});			
 			new Thread(task,"ButtonExtra-task").start();
 		});
@@ -198,18 +190,4 @@ public class ButtonEx extends JFXButton {
 			}			
 		},null);		
 	}
-	
-	/*private EventHandler<ActionEvent> eventStart = null;
-	
-	private EventHandler<ActionEvent> eventFinish= null;
-	
-	public ButtonExtra setOnActionStart(EventHandler<ActionEvent> val){
-		eventStart = val;
-		return this;
-	}
-	
-	public ButtonExtra setOnActionFinish(EventHandler<ActionEvent> val){
-		eventFinish = val;
-		return this;
-	}*/
 }

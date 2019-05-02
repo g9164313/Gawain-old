@@ -5,9 +5,10 @@ import narl.itrc.PanBase;
 
 public class PanTester extends PanBase {
 
-	public PanTester(){
-		
+	public PanTester(){		
 	}
+	
+	
 	
 	@Override
 	public Node eventLayout(PanBase self) {
@@ -16,11 +17,10 @@ public class PanTester extends PanBase {
 		img.setMinSize(640+23, 480+23);
 		
 		final DevCamera cam = new DevCamera();
+		final CapVidcap vid = new CapVidcap();
 		
 		stage().setOnShown(e->{
-			cam.setCapture(new CapVidcap());
-			cam.setFace(img);
-			cam.link();
+			cam.link(vid,img);
 			cam.play();
 		});
 		stage().setOnHidden(e->{

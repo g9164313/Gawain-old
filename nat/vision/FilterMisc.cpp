@@ -8,7 +8,7 @@
 #include "opencv2/text.hpp"
 #include <iomanip>
 
-#include "vision.hpp"
+#include "../deprecated/vision.hpp"
 using namespace cv::text;
 
 static char fileNM1[200],fileNM2[200],fileGRP[200];//full-path file name

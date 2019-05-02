@@ -8,6 +8,8 @@
 #ifndef GLOBAL_H
 #define GLOBAL_H
 
+#include <jni.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -31,7 +33,9 @@ inline void usleep(int usec){
 inline void msleep(int msec){
 	Sleep(msec);//this is milisecond
 }
+
 #else
+
 #include <dirent.h>
 #include <unistd.h>
 #define NAT_EXPORT extern "C"
@@ -43,7 +47,7 @@ inline void msleep(int msec){
 #include <list>
 #include <string>
 #include <vector>
-#include <jni.h>
+
 
 using namespace std;
 

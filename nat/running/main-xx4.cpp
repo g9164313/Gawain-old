@@ -1,11 +1,101 @@
 #include <fstream>
-#include <algorithm>
 #include <iostream>
+#include <algorithm>
 #include <opencv/cv.h>
 #include <opencv2/opencv.hpp>
+#include <vision/pipeImage.hpp>
 
 using namespace std;
 using namespace cv;
+
+#include <opencv2/features2d.hpp>
+#include <opencv2/xfeatures2d.hpp>
+#include <opencv2/line_descriptor.hpp>
+
+using namespace xfeatures2d;
+using namespace line_descriptor;
+
+int main(int argc, char* argv[]) {
+
+
+	key_t kid = ftok("/home/qq/.gawain/conf.properties",1);
+	int pid = msgget(kid, IPC_CREAT|0666);
+
+	MSG_PACK pack;
+	pack.type = MSG_COMMIT;
+	msgsnd(pid, &pack, 0, 0);
+	msgrcv(pid, &pack, MSG_LENGTH, MSG_SHAKE1, 0);
+	int width  = ((uint32_t*)pack.data)[0];
+	int height = ((uint32_t*)pack.data)[1];
+	int cvtype = ((uint32_t*)pack.data)[2];
+	int snap   = ((uint32_t*)pack.data)[3];
+	int lenPool= ((uint32_t*)pack.data)[4];
+	int lenOver= ((uint32_t*)pack.data)[5];
+	int mid = shmget(kid, lenPool+lenOver, IPC_CREAT|0666);
+	void* smem = shmat(mid, NULL, 0);
+	uint8_t* pool = (uint8_t*)smem + 0;
+	uint8_t* over = (uint8_t*)smem + lenPool;
+
+	//Mat img(height,width,cvtype, smem);
+	//imwrite("./cc1.png",img);
+
+	Mat img(height, width, CV_8UC4, over);
+	img = img * 0;
+	circle(img,Point(400,300),100,Scalar(100,100,0,200),10);
+
+	//line(img,Point(800,0),Point(0,600),Scalar(100,100,0,200),10);
+	//pixel is 'BGRA'
+
+	shmdt(smem);
+	pack.type = MSG_SHAKE2;
+	msgsnd(pid, &pack, MSG_LENGTH, 0);
+	//----------------------//
+
+
+
+	/*Mat src = imread("./ggyy2.jpg");
+	Mat dst;
+
+	Mat m_src, m_dst;
+	cvtColor(src, m_src, COLOR_RGB2GRAY);
+	cornerHarris(m_src, m_dst, 16, 5, 0.005);
+
+	double min, max;
+	minMaxLoc(m_dst,&min,&max);
+	m_dst = m_dst * ((255.) / (max-min));
+
+	Mat msk,_dst;
+	m_dst.convertTo(_dst,CV_8UC1);
+	applyColorMap(_dst, msk, COLORMAP_JET);
+
+	Mat chann[] = {
+		Mat::zeros(src.size(),CV_8UC1),
+		Mat(),
+		Mat::zeros(src.size(),CV_8UC1)
+	};
+	m_dst.convertTo(chann[1],CV_8UC1);
+	Mat msk;
+	merge(chann, 3, msk);
+
+	addWeighted(src,0.3, msk,0.7, 0., dst);*/
+
+	//vector<KeyLine> res;
+	//Ptr<BinaryDescriptor> ptr = BinaryDescriptor::createBinaryDescriptor();
+	//ptr->detect(src,res);
+	//drawKeylines(src,res,dst);
+	//ptr->clear();
+
+	//vector<KeyPoint> pts;
+	//Ptr<Feature2D> feat = SIFT::create();
+	//feat->detect(src, pts);
+	//Mat dst;
+	//drawKeypoints(src,pts,dst);
+
+	//imwrite("./cc1.png",dst);
+	return 0;
+}
+//-----------------------------------//
+
 
 void meld(const Mat& src1, const Mat& src2, const char* name){
     Mat result;
@@ -366,7 +456,7 @@ vector<Rect> process_1(const Mat& src, const Mat& msk){
 
 extern Mat variance(const Mat& src, const int radius);
 
-int main(int argc, char* argv[]) {
+int main1(int argc, char* argv[]) {
 
 	//const char* name1 = "./cv-sample2/13.png";
 	//const char* name2 = "./cv-sample2/14.png";

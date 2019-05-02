@@ -32,6 +32,8 @@ using namespace std;
 	jfieldID f_cntx = env->GetFieldID(clzz,"context","J");\
 	while(false)
 
+#define CHECK_OUT_CONTEXT \
+	env->SetLongField(thiz, f_cntx, (jlong)(0))
 #define CHECK_OUT_FALSE \
 	env->SetLongField(thiz, f_cntx, (jlong)(0));\
 	return JNI_FALSE
@@ -45,28 +47,46 @@ using namespace std;
 	void* cntx = (void*)env->GetLongField(thiz,f_cntx);\
 	if(cntx==NULL){	return; }
 
-#define PREPARE_CAMERA \
-	jclass cam_clzz = env->GetObjectClass(objCamera);\
-	jfieldID f_buffer= env->GetFieldID(cam_clzz,"cvBuffer","[B");\
-	jfieldID f_width = env->GetFieldID(cam_clzz,"cvWidth","I");\
-	jfieldID f_height= env->GetFieldID(cam_clzz,"cvHeight","I");\
-	jfieldID f_cvtype= env->GetFieldID(cam_clzz,"cvType","I");\
-	jobject o_buffer = env->GetObjectField(objCamera, f_buffer);\
-	jbyteArray* j_buffer = reinterpret_cast<jbyteArray*>(&o_buffer);\
-	jbyte* buffer = env->GetByteArrayElements(*j_buffer,0);\
+#define PREPARE_IMG_DAT(obj) \
+	jclass dat_clzz  = env->GetObjectClass(obj); \
+	jmethodID mid = env->GetMethodID(dat_clzz,"requestPool","(III)V"); \
+	jfieldID f_width = env->GetFieldID(dat_clzz,"cvWidth","I"); \
+	jfieldID f_height= env->GetFieldID(dat_clzz,"cvHeight","I"); \
+	jfieldID f_type = env->GetFieldID(dat_clzz,"cvType","I"); \
+	jfieldID f_snap = env->GetFieldID(dat_clzz,"snap" ,"I"); \
+	jint snap = env->GetIntField(obj, f_snap); \
+	jobject o_pool= env->GetObjectField( obj, env->GetFieldID(dat_clzz,"pool","[B") ); \
 	while(false)
 
-#define FINISH_CAMERA(img) \
-	Mat node(img.rows, img.cols,img.type(),buffer);\
-	if(img.type()==CV_8UC3){\
-		cvtColor(img, node, COLOR_BGR2RGB);\
-	}else{\
-		img.copyTo(node);\
-	}\
-	env->SetIntField(objCamera, f_width , img.cols);\
-	env->SetIntField(objCamera, f_height, img.rows);\
-	env->SetIntField(objCamera, f_cvtype, img.type());\
-	env->ReleaseByteArrayElements(*j_buffer, buffer, 0);\
+#define FINISH_IMG_DAT(obj, img) \
+	size_t total_size = img[0].total() * img[0].elemSize(); \
+	int width = img[0].cols, height = img[0].rows, cvtype = img[0].type();\
+	env->SetIntField(obj, f_width , width); \
+	env->SetIntField(obj, f_height, height); \
+	env->SetIntField(obj, f_type  , cvtype); \
+	env->SetIntField(obj, f_snap  , snap); \
+	if(o_pool==NULL){ \
+		env->CallVoidMethod( \
+			objImgData, mid, \
+			(jint)total_size, (jint)width, (jint)height \
+		); \
+		return; \
+	} \
+	jbyteArray* j_pool = reinterpret_cast<jbyteArray*>(&o_pool); \
+	size_t pool_size = env->GetArrayLength(*j_pool); \
+	if(pool_size<total_size){ \
+		env->CallVoidMethod( \
+			objImgData, mid, \
+			(jint)total_size, (jint)width, (jint)height \
+		); \
+		return; \
+	} \
+	jbyte* pool = env->GetByteArrayElements(*j_pool,0); \
+	for(int i=0; i<snap; i++){ \
+		Mat node(height, width, cvtype, pool + i * total_size); \
+		img[i].copyTo(node); \
+	} \
+	env->ReleaseByteArrayElements(*j_pool, pool, 0); \
 	while(false)
 
 #endif /* VISION_BUNDLE_HPP_ */

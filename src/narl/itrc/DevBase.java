@@ -1,5 +1,6 @@
 package narl.itrc;
 
+import java.util.NoSuchElementException;
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.Delayed;
 import java.util.concurrent.TimeUnit;
@@ -26,9 +27,16 @@ abstract public class DevBase {
 	
 	protected abstract boolean afterLink();
 	
+	protected int core_looper(Work obj, int pass){ return 0; }
+	protected int core_event (Work obj, int pass){ return 0; }
+	
 	protected abstract void beforeUnlink();
 	
-	protected abstract void eventUnlink(); 
+	protected abstract void eventUnlink(); 	
+	
+	protected static interface WorkLooper {
+		abstract void looper(Work obj);
+	};
 	
 	protected static abstract class Work implements Delayed {
 		
@@ -80,8 +88,15 @@ abstract public class DevBase {
 	}
 	
 	private Task<?> looper = null;
-	
+
 	private DelayQueue<Work> queuer = new DelayQueue<Work>();
+	
+	protected boolean isCanceled(){
+		if(looper==null){
+			return true;
+		}
+		return looper.isCancelled();
+	}
 	
 	public void link(){
 		
@@ -108,14 +123,14 @@ abstract public class DevBase {
 				}								
 				//this is main looper and device core.
 				while(looper.isCancelled()==false){
-					
+					//start!!, try to get work~~~~
 					Work obj = queuer.take();					
 					if(obj.cntBegin<0){
 						//special case!!!
 						//user want to escape looper~~~
 						break;
 					}
-					
+					//main looper
 					pass = 0;
 					do{
 						pass = obj.looper(obj, pass);
@@ -125,7 +140,7 @@ abstract public class DevBase {
 							});
 						}	
 					}while(pass!=0 && looper.isCancelled()==false);
-
+					//check if we need this work again~~~
 					if(obj.isPermanent==true){
 						//push-back and count again~~~
 						obj.cntBegin = System.currentTimeMillis();
@@ -154,16 +169,36 @@ abstract public class DevBase {
 		}
 	};
 	
-	public void unlink(){
-		queuer.add(work_done);
+	public void unlink(){		
 		if(looper!=null){
-			if(looper.isDone()==false){				
-				looper.cancel();				
-			}
+			queuer.add(work_done);
+			do{				
+				looper.cancel();
+				try {
+					Thread.sleep(50);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}while(looper.isDone()==false);
 			looper = null;
 		}		
 		eventUnlink();
 		queuer.clear();//clear token for next turn~~~
+	}
+	
+	public DevBase offer(WorkLooper task){
+		queuer.offer(new Work(){
+			@Override
+			public int looper(Work obj, int pass) {
+				task.looper(obj);
+				return 0;
+			}
+			@Override
+			public int event(Work obj, int pass) {
+				return 0;
+			}
+		});
+		return this;
 	}
 	
 	public DevBase offer(Work token){
@@ -200,11 +235,27 @@ abstract public class DevBase {
 		boolean permanent,
 		Work tkn
 	){
-		tkn.cntBegin= System.currentTimeMillis();
-		tkn.cntDelay= TimeUnit.MILLISECONDS.convert(delay, unit);
+		if(queuer.contains(tkn)==true){
+			return this;
+		}
+		tkn.cntBegin = System.currentTimeMillis();
+		tkn.cntDelay = TimeUnit.MILLISECONDS.convert(delay, unit);
 		tkn.isPermanent = permanent;
 		queuer.offer(tkn);
 		return this;
+	}
+	
+	protected DevBase createLooper(int delay_ms){
+		return offer(delay_ms, true, new Work(){
+			@Override
+			public int looper(Work obj, int pass) {
+				return DevBase.this.core_looper(obj, pass);
+			}
+			@Override
+			public int event(Work obj, int pass) {
+				return DevBase.this.core_event(obj, pass);
+			}
+		});
 	}
 	
 	public DevBase remove(Work tkn){
@@ -212,4 +263,15 @@ abstract public class DevBase {
 		queuer.remove(tkn);
 		return this;
 	}
+	
+	protected void waitForEmpty(){
+		do{
+			try{
+				queuer.remove();
+				Thread.sleep(50);
+			}catch(NoSuchElementException | InterruptedException e){
+				return;
+			}
+		}while(queuer.isEmpty()==false);
+	}	
 }

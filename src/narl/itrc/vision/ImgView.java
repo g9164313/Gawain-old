@@ -6,9 +6,6 @@ import java.io.File;
 import javax.imageio.ImageIO;
 
 import javafx.embed.swing.SwingFXUtils;
-import javafx.geometry.Rectangle2D;
-import javafx.scene.control.Button;
-import javafx.scene.control.CheckMenuItem;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuItem;
@@ -17,16 +14,11 @@ import javafx.scene.control.ScrollPane;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.image.PixelFormat;
-import javafx.scene.image.WritableImage;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.StackPane;
-import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.stage.FileChooser;
-import narl.itrc.ControlWheel;
 import narl.itrc.Gawain;
-import narl.itrc.Misc;
 
 public class ImgView extends ScrollPane {
 
@@ -48,7 +40,7 @@ public class ImgView extends ScrollPane {
 		setVbarPolicy(ScrollBarPolicy.ALWAYS);		
 		setFitToHeight(false);
 		setFitToWidth(false);
-		setMinSize(240, 240);
+		setMinSize(240+23,240+23);
 		
 		//setStyle("-fx-border-color: chocolate; -fx-border-width: 4px;");//DEBUG!!!
 		
@@ -173,29 +165,11 @@ public class ImgView extends ScrollPane {
 		));
 	}
 	
-	private WritableImage buf = new WritableImage(8,8);
-	
-	public void refresh(
-		final byte[] RGBData,
-		final int width,
-		final int height
-	){
-		if(
-			width !=((int)buf.getWidth() ) ||
-			height!=((int)buf.getHeight())
-		){
-			buf = new WritableImage(width, height);
-		}
-		buf.getPixelWriter().setPixels(
-			0, 0, 
-			width, height, 
-			PixelFormat.getByteRgbInstance(),
-			RGBData, 
-			0, width*3
-		);
-		view.setImage(buf);
+	public void refresh(final ImgData dat){
+		Image[] v = dat.getImage();
+		view.setImage(v[0]);
+		over.setImage(v[1]);
 	}
-		
 	
 	/*private void init_mark(){
 		for(Rectangle m:mark){

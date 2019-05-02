@@ -83,7 +83,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implOpen(
 		cout << "TTY: Fail to set mask" << endl;
 	}
 #else
-	int fd = open(name, O_RDWR|O_NOCTTY);
+	int fd = open(name, O_RDWR);
 	if(fd<0){
 		setJLong(env,thiz,NAME_HANDLE,0);
 		return;
@@ -95,6 +95,9 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implOpen(
 	struct termios options;
 	tcgetattr(fd,&options);
 	cfmakeraw(&options);
+
+	//options.c_cc[VMIN] = 1;//block until n bytes are received
+	//options.c_cc[VTIME]=20;//block until a timer expires (n * 100 mSec.)
 
 	speed_t spd = B9600;//default
 	switch(baud_rate){
@@ -171,10 +174,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implOpen(
 		break;
 	}
 
-	options.c_cflag |= (CLOCAL | CREAD);
-	options.c_cc[VMIN] =  0;//block until n bytes are received
-	options.c_cc[VTIME]= 30;//block until a timer expires (n * 100 mSec.)
-
+	//options.c_cflag |= (CLOCAL | CREAD);
 	//TODO:how to set flow-control
 	//block or not~~~
 	//fcntl(fd,F_SETFL,0);//Synchronized mode - This will block thread!!!
@@ -184,10 +184,11 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implOpen(
 #endif//_MSC_VER
 }
 
-extern "C" JNIEXPORT jlong JNICALL Java_narl_itrc_DevTTY_implRead(
+extern "C" JNIEXPORT jint JNICALL Java_narl_itrc_DevTTY_implRead(
 	JNIEnv * env,
 	jobject thiz,
-	jbyteArray jbuf
+	jbyteArray jbuf,
+	jint offset
 ) {
 	jbyte* buf = env->GetByteArrayElements(jbuf,NULL);
 	size_t len = env->GetArrayLength(jbuf);
@@ -207,7 +208,7 @@ extern "C" JNIEXPORT jlong JNICALL Java_narl_itrc_DevTTY_implRead(
 	);
 	//cout << "read " << cnt <<" byte."<< endl;
 	env->ReleaseByteArrayElements(jbuf,buf,0);
-	return (jlong)cnt;
+	return (jint)cnt;
 #else
 	//Do we need block mode?,This is tri_state variable
 	//fcntl(fd,F_SETFL,0);
@@ -216,7 +217,7 @@ extern "C" JNIEXPORT jlong JNICALL Java_narl_itrc_DevTTY_implRead(
 	if(fd<=0){
 		return 0;
 	}
-	jlong cnt = (jlong)read(fd, buf, len);
+	jint cnt = (jint)read(fd, buf+offset, len);
 	env->ReleaseByteArrayElements(jbuf,buf,0);
 	return cnt;
 #endif

@@ -76,12 +76,15 @@ public class Gawain extends Application {
 	//--------------------------------------------//
 	
 	private static final Properties propCache = new Properties();
-	private static final String propName = "conf.properties";
+	private static final String propName = "conf.properties";	
+	public static String getConfigName(){
+		return pathSock+propName;
+	}
 	
 	private static void propInit(){
 		try {
 			InputStream stm=null;
-			File fs = new File(pathSock+propName);			
+			File fs = new File(getConfigName());			
 			if(fs.exists()==false){
 				stm = Gawain.class.getResourceAsStream("/narl/itrc/res/"+propName);
 			}else{

@@ -59,7 +59,7 @@ public abstract class PanBase {
 	 * use JFXDecorator, Attention call this before standby() or appear().<p> 
 	 * @return
 	 */
-	public PanBase useDecorator(boolean flag){
+	public PanBase use_decorator(boolean flag){
 		use_decor = flag;
 		return this;
 	}
@@ -98,26 +98,27 @@ public abstract class PanBase {
 		
 		spin.visibleProperty().set(false);
 		
-		Node r_face = eventLayout(this);
-		if(r_face==null){
+		Node face1 = eventLayout(this);
+		if(face1==null){
 			//default panel node
 			Label txt = new Label("===\n X \n===");
 			txt.setFont(Font.font("Arial", 60));
 			txt.setPrefSize(200, 200);
 			txt.setAlignment(Pos.CENTER);
-			r_face = txt;
+			face1 = txt;
 		}
-		r_face.disableProperty().bind(spin.visibleProperty());
+		face1.disableProperty().bind(spin.visibleProperty());
 		
-		final Node pan1 = new StackPane(r_face,spin);
+		final StackPane face2 = new StackPane(face1,spin);
+		face2.setMinSize(320,240);
 		
 		Parent root;		
 		if(use_decor==true){
-			JFXDecorator dec = new JFXDecorator(stage, pan1);
-			dec.setCustomMaximize(true);
+			JFXDecorator dec = new JFXDecorator(stage, face2);
+			//dec.setCustomMaximize(true);
 			root = dec;
 		}else{
-			root = (Parent)pan1;
+			root = (Parent)face2;
 		}
 		
 		final Scene se = new Scene(root);		

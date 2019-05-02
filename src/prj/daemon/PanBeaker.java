@@ -15,6 +15,8 @@ import org.apache.commons.math3.ml.clustering.Cluster;
 import org.apache.commons.math3.ml.clustering.Clusterable;
 import org.apache.commons.math3.ml.clustering.DBSCANClusterer;
 import org.apache.commons.math3.ml.clustering.DoublePoint;
+import org.apache.commons.math3.ml.distance.DistanceMeasure;
+import org.apache.commons.math3.ml.distance.EarthMoversDistance;
 import org.apache.commons.math3.ml.neuralnet.twod.NeuronSquareMesh2D;
 import org.apache.commons.math3.random.EmpiricalDistribution;
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
@@ -112,67 +114,7 @@ public class PanBeaker extends PanBase {
 	};
 		
 	public PanBeaker(){
-	}
-
-	void trival_event(){
-		double[][] val = {
-			{1.1},
-			{1.3},
-			{1.2},
-			{1.4},
-			{3.5},
-		};
-		ArrayList<DoublePoint> data = new ArrayList<DoublePoint>();
-		data.add(new DoublePoint(val[0]));
-		data.add(new DoublePoint(val[1]));
-		data.add(new DoublePoint(val[2]));
-		data.add(new DoublePoint(val[3]));
-		data.add(new DoublePoint(val[4]));
-		DBSCANClusterer<DoublePoint> cc = new DBSCANClusterer<DoublePoint>(2,1);
-		List<Cluster<DoublePoint>> res = cc.cluster(data);
-		for(Cluster<DoublePoint> itm:res){
-			System.out.println("----cluster----");
-			List<DoublePoint> lst = itm.getPoints();
-			for(DoublePoint v:lst){
-				System.out.format("%.1f\n", v.getPoint()[0]);
-			}
-		}		
-	}
-	
-	private void drill(){
 		
-		int[] hist = new int[49];
-		for(int i=lstComb.size()-2; i>=0; --i){
-			Ballot aa = lstComb.get(i);
-			int d = aa.getDistance();
-			hist[d]+=1;
-		}
-		
-		for(int i=0; i<hist.length; i++){
-			System.out.format("%02d]", i);
-			for(int j=0; j<hist[i]; j++){
-				System.out.print("*");
-			}
-			System.out.println();
-		}
-		
-		/*int tail = 200;
-		double[] lst = new double[tail];
-		for(int i=0; i<lst.length; i++){
-			lst[i] = lstComb.get(i).val[0];
-		}
-		EmpiricalDistribution dist = new EmpiricalDistribution(100);		
-		dist.load(lst);
-		int aa = lstComb.get(tail+1).val[0];
-		int bb = 0;
-		int cnt = 0;
-		do{
-			bb = (int)dist.getNextValue();
-			Misc.logv("%02d) --> %02d", aa, bb); 
-			cnt++;
-		}while(aa!=bb);
-		Misc.logv("guess=%d", cnt);*/ 
-		return;
 	}
 	
 	@Override
@@ -193,31 +135,9 @@ public class PanBeaker extends PanBase {
 		).setOnClick(event->{
 		});
 		
-		final ButtonEx btnPrv = new ButtonEx(
-			"上一頁","chevron-left.png"
-		).setOnClick(e->{
-			int p = pageIdx - 1;
-			if(p<0){
-				return;
-			}
-			pageIdx = p;
-			list2table();
-		});		
-		final ButtonEx btnNxt = new ButtonEx(
-			"下一頁","chevron-right.png"
-		).setOnClick(e->{
-			int p = pageIdx + 1;
-			if(p>=pageMax){
-				return;
-			}
-			pageIdx = p;
-			list2table();
-		});
-
 		final ButtonEx btn1 = new ButtonEx(
 			"蒸餾-1","coffee-to-go.png"
-		).setOnClick(e->{
-			doDuty(()->drill());
+		).setOnClick(e->{			
 		});
 		final ButtonEx btn2 = new ButtonEx(
 			"remove-2","coffee-to-go.png"
@@ -230,8 +150,6 @@ public class PanBeaker extends PanBase {
 			final Alert dia = new Alert(AlertType.CONFIRMATION);
 			dia.getDialogPane().setContent(lay);
 			if(dia.showAndWait().get()==ButtonType.OK){
-				//int rank = Integer.valueOf(box1.getText().trim());
-				//int[] target = text2int(box2.getText().trim());
 			}
 		});
 		final ButtonEx btn3 = new ButtonEx(
@@ -242,8 +160,6 @@ public class PanBeaker extends PanBase {
 		final ToolBar bar = new ToolBar(
 			btnMake,
 			new Separator(Orientation.VERTICAL),
-			btnPrv,
-			btnNxt,
 			new Separator(Orientation.VERTICAL),
 			btn1,
 			btn2,
@@ -259,7 +175,6 @@ public class PanBeaker extends PanBase {
 		stage().setOnShown(e->{
 			//read_from_csv(new File("/home/qq/桌面/lotter.txt"));
 			//refresh();
-			trival_event();
 		});
 		return lay0;
 	}
@@ -292,7 +207,7 @@ public class PanBeaker extends PanBase {
 	//----------------------------------//
 	
 	private class ColValue implements 
-		Callback<CellDataFeatures<Ballot,String>,ObservableValue<String>>
+		Callback< CellDataFeatures<Ballot,String>, ObservableValue<String> >
 	{
 		int idx = 0;
 		final SimpleStringProperty txt = new SimpleStringProperty();

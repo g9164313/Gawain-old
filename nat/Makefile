@@ -66,7 +66,7 @@ LIB_PYLON :=  -L$(ROOT_PYLON)/lib64 \
 CC = g++ -DENABLE_LOG -O0
 
 CC_FLAG = -g -I. -I$(DIR_JNI) -I$(DIR_JNI)/linux
-CC_FLAG += -DVISION $(shell pkg-config --cflags opencv) 
+CC_FLAG += -DVISION $(shell pkg-config --cflags opencv) -lopencv_xfeatures2d
 CC_FLAG += $(shell pkg-config --cflags libusb-1.0) 
 CC_FLAG += $(shell pkg-config --cflags libmodbus)
 
@@ -77,7 +77,7 @@ LD_LIBS += $(shell pkg-config --libs libmodbus)
 ########################
 
 #OBJECTS = $(SOURCES:.cpp=.o)
-#CHECK_EXEC := $(word 2,$(shell pgrep -f "narl.itrc.Gawain"))
+CHECK_EXEC := $(shell pgrep -f Gawain)
 
 LIB_SFRISO = ./SFR/FltrSlangEdge.cpp ./SFR/sfr_iso.c 
 
@@ -88,30 +88,28 @@ CORE_FILE = util_miscellany.cpp wrap_PanPuppetter.cpp
 
 $(CORE_SO): $(CORE_FILE)
 	$(CC) -fPIC -shared -o $@ $^ $(LD_LIBS) $(CC_FLAG)
-	cp -rf $@ ../bin/narl/itrc/nat
 	cp -rf $@ ../src/narl/itrc/nat
 ifeq ($(CHECK_EXEC),)
 	@echo "no process is running, so we move it~~"
 	cp -rf $@ ~/.gawain/$@
 else
-	@echo "process is running!!!"
+	@echo "!!!process is running!!!"
 endif
 
 #####[capture device]######
 
 VISION_SO = libvision.so
-VISION_FILE = ./vision/CapVidcap.cpp    
-
+VISION_FILE = ./vision/bundle.cpp    
+VISION_FILE += ./vision/CapVidcap.cpp  
 
 $(VISION_SO): $(VISION_FILE) 
 	$(CC) -fPIC -shared -o $@ $^ $(LD_LIBS) $(CC_FLAG)
-	cp -rf $@ ../bin/narl/itrc/nat
 	cp -rf $@ ../src/narl/itrc/nat
 ifeq ($(CHECK_EXEC),)
 	@echo "no process is running, so we move it~~"
 	cp -rf $@ ~/.gawain/$@
 else
-	@echo "process is running!!!"
+	@echo "!!!process is running!!!"
 endif
 
 #####[peripheral device]######
@@ -119,29 +117,28 @@ endif
 PERIPHERAL_SO = libdevice.so
 PERIPHERAL_FILE = ./deprecated/util_jni.cpp
 PERIPHERAL_FILE+= ./device/DevTTY.cpp
-PERIPHERAL_FILE+= ./device/DevModbus.cpp
 PERIPHERAL_FILE+= ./device/DevUSB.cpp
+PERIPHERAL_FILE+= ./device/DevModbus.cpp
 
 $(PERIPHERAL_SO): $(PERIPHERAL_FILE)
 	$(CC) -fPIC -shared -o $@ $^ $(LD_LIBS) $(CC_FLAG)
-	cp -rf $@ ../bin/narl/itrc/nat
 	cp -rf $@ ../src/narl/itrc/nat
 ifeq ($(CHECK_EXEC),)
 	@echo "no process is running, so we rewrite it~~"
 	cp -rf $@ ~/.gawain/$@
 else
-	@echo "process is running!!!"
+	@echo "!!!process is running!!!"
 endif
 
 ####################################################
 
-$(TARGET_EXE):  ./test/misc.cpp ./vision/util_cv.cpp ./test/main-xx4.cpp 
+$(TARGET_EXE):  ./running/main-xx4.cpp 
 	$(CC) -o $@ $^ $(CC_FLAG) $(LD_LIBS)
 	
 ####################################################
 
 
-#all: $(TARGET_EXE)
+all: $(TARGET_EXE)
 #all: $(CORE_SO)
 all: $(VISION_SO)
 #all: $(PERIPHERAL_SO)
