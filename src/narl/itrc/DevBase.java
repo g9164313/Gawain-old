@@ -134,7 +134,7 @@ abstract public class DevBase {
 					pass = 0;
 					do{
 						pass = obj.looper(obj, pass);
-						if(pass>0){
+						if(pass!=0){
 							Application.invokeAndWait(()->{
 								pass = obj.event(obj, pass);						
 							});

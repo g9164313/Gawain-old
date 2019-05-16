@@ -19,9 +19,8 @@ public class PanTester extends PanBase {
 		final DevCamera cam = new DevCamera();
 		final CapVidcap vid = new CapVidcap();
 		
-		stage().setOnShown(e->{
-			cam.link(vid,img);
-			cam.play();
+		stage().setOnShown(e->{			
+			cam.livePlay(1);
 		});
 		stage().setOnHidden(e->{
 			cam.unlink();

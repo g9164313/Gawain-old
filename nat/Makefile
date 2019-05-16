@@ -99,7 +99,7 @@ endif
 #####[capture device]######
 
 VISION_SO = libvision.so
-VISION_FILE = ./vision/bundle.cpp    
+VISION_FILE = ./vision/pipeImage.cpp    
 VISION_FILE += ./vision/CapVidcap.cpp  
 
 $(VISION_SO): $(VISION_FILE) 

@@ -5,33 +5,34 @@
  *      Author: qq
  */
 #include <errno.h>
-#include <sys/types.h>
-#include <sys/ipc.h>
-#include <sys/msg.h>
-#include <sys/stat.h>
-#include <sys/mman.h>
-#include <sys/shm.h>
 #include <global.hpp>
-#include <vision/bundle.hpp>
 #include "pipeImage.hpp"
+#include <opencv/cv.h>
+#include <opencv2/opencv.hpp>
+using namespace cv;
+using namespace std;
 
 extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_DevCamera_pipeFetch(
 	JNIEnv* env,
 	jobject thiz,
 	jbyteArray objKey,
-	jobject objImgData
+	jobject objImgData,
+	jboolean sync
 ){
 	jclass img_clazz  = env->GetObjectClass(objImgData);
 
 	jobject arrPool = env->GetObjectField(objImgData, env->GetFieldID(img_clazz,"pool","[B"));
 	jobject arrOver = env->GetObjectField(objImgData, env->GetFieldID(img_clazz,"over","[B"));
 	jobject arrMesg = env->GetObjectField(objImgData, env->GetFieldID(img_clazz,"mesg","[B"));
+	jobject arrMark = env->GetObjectField(objImgData, env->GetFieldID(img_clazz,"mark","[I"));
 	jbyteArray* objPool = reinterpret_cast<jbyteArray*>(&arrPool);
 	jbyteArray* objOver = reinterpret_cast<jbyteArray*>(&arrOver);
 	jbyteArray* objMesg = reinterpret_cast<jbyteArray*>(&arrMesg);
+	jintArray*  objMark = reinterpret_cast<jintArray* >(&arrMark);
 	jbyte* pool = env->GetByteArrayElements(*objPool, NULL);
 	jbyte* over = env->GetByteArrayElements(*objOver, NULL);
 	jbyte* mesg = env->GetByteArrayElements(*objMesg, NULL);
+	jint*  mark = env->GetIntArrayElements (*objMark, NULL);
 
 	jint width = env->GetIntField(objImgData,env->GetFieldID(img_clazz,"cvWidth" ,"I"));
 	jint height= env->GetIntField(objImgData,env->GetFieldID(img_clazz,"cvHeight","I"));
@@ -42,6 +43,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_DevCamera_pipeFetch(
 
 	jclass cam_clazz  = env->GetObjectClass(thiz);
 	jbyte* keys = env->GetByteArrayElements(objKey, JNI_FALSE);
+
 	PIPE_KEY& key = *((PIPE_KEY*)keys);
 	if(key.pid==0 || key.mid==0){
 		jobject objName = env->GetStaticObjectField(
@@ -63,26 +65,23 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_DevCamera_pipeFetch(
 	}
 
 	MSG_PACK pack;
-	if(0<=msgrcv(key.pid, &pack, 0, MSG_COMMIT, IPC_NOWAIT)){
+	if(0<=msgrcv(
+		key.pid,
+		&pack, 0,
+		MSG_COMMIT,
+		(sync==JNI_TRUE)?(0):(IPC_NOWAIT)
+	)){
 		//cout<<"shake-0"<<endl;
 		pack.type = MSG_SHAKE1;
-		((uint32_t*)(pack.data))[0] = width;
-		((uint32_t*)(pack.data))[1] = height;
-		((uint32_t*)(pack.data))[2] = cvtype;
-		((uint32_t*)(pack.data))[3] = snap;
-		((uint32_t*)(pack.data))[4] = lenPool;
-		((uint32_t*)(pack.data))[5] = lenOver;
-		void* smem = shmat(key.mid,NULL,0);//attach share memory
+		PACK_MSG_DATA;
+		uint8_t* smem = (uint8_t*)shmat(key.mid,NULL,0);//attach share memory
 		memcpy(smem, pool, lenPool);
 		msgsnd(key.pid, &pack, MSG_LENGTH, 0);
 		//cout<<"shake-1"<<endl;
+		//wait for user process
 		if(0<msgrcv(key.pid, &pack, MSG_LENGTH, MSG_SHAKE2, 0)){
-			memcpy(
-				pack.data,
-				mesg,
-				MSG_LENGTH
-			);
-			memcpy(over, ((uint8_t*)smem)+lenPool, lenOver);
+			memcpy(mesg, pack.data, MSG_LENGTH);//restore user, data
+			memcpy(over, smem+lenPool, lenOver);//make a shadow of image
 		}
 		shmdt(smem);
 		//cout<<"shake-2"<<endl;
@@ -93,6 +92,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_DevCamera_pipeFetch(
 	env->ReleaseByteArrayElements(*objPool, pool, JNI_FALSE);
 	env->ReleaseByteArrayElements(*objOver, over, JNI_FALSE);
 	env->ReleaseByteArrayElements(*objMesg, mesg, JNI_FALSE);
+	env->ReleaseIntArrayElements (*objMark, mark, JNI_FALSE);
 }
 
 extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_DevCamera_pipeClose(
@@ -114,7 +114,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_DevCamera_pipeClose(
 }
 
 
-extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_ImgData_reflector(
+extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_ImgFlim_reflector(
 	JNIEnv* env,
 	jobject thiz,
 	jbyteArray objSrc,

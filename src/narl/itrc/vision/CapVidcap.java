@@ -3,7 +3,7 @@ package narl.itrc.vision;
 public class CapVidcap extends Capture {
 
 	private native boolean implSetup();
-	private native void implFetch(ImgData img);
+	private native void implFetch(ImgFlim img);
 	private native void implDone();
 	
 	private native void setFrameSize(int ww, int hh);
@@ -20,9 +20,7 @@ public class CapVidcap extends Capture {
 	
 	@Override
 	public boolean setup() {
-		boolean flag = implSetup();
-
-		return flag;
+		return implSetup();
 	}
 	@Override
 	protected void afterSetup(){
@@ -32,7 +30,7 @@ public class CapVidcap extends Capture {
 	}
 	
 	@Override
-	public void fetch(ImgData data) {
+	public void fetch(ImgFlim data) {
 		implFetch(data);
 		return;
 	}

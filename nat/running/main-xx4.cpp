@@ -17,67 +17,48 @@ using namespace line_descriptor;
 
 int main(int argc, char* argv[]) {
 
+	//PIPE_PREP("/home/qq/.gawain/conf.properties");
 
-	key_t kid = ftok("/home/qq/.gawain/conf.properties",1);
-	int pid = msgget(kid, IPC_CREAT|0666);
+	//do{
+		//PIPE_OPEN;
+		//Mat img(height, width, cvtype, smem);
+		//Mat gray;
+		//cvtColor(img, gray, COLOR_BGR2GRAY);
+		//Mat ova(height, width, CV_8UC4, over);
+		//ova = ova * 0;
 
-	MSG_PACK pack;
-	pack.type = MSG_COMMIT;
-	msgsnd(pid, &pack, 0, 0);
-	msgrcv(pid, &pack, MSG_LENGTH, MSG_SHAKE1, 0);
-	int width  = ((uint32_t*)pack.data)[0];
-	int height = ((uint32_t*)pack.data)[1];
-	int cvtype = ((uint32_t*)pack.data)[2];
-	int snap   = ((uint32_t*)pack.data)[3];
-	int lenPool= ((uint32_t*)pack.data)[4];
-	int lenOver= ((uint32_t*)pack.data)[5];
-	int mid = shmget(kid, lenPool+lenOver, IPC_CREAT|0666);
-	void* smem = shmat(mid, NULL, 0);
-	uint8_t* pool = (uint8_t*)smem + 0;
-	uint8_t* over = (uint8_t*)smem + lenPool;
+		//Mat gray = imread("./chessboard.png");
+		Mat gray = imread("./ggyy.png");
 
-	//Mat img(height,width,cvtype, smem);
-	//imwrite("./cc1.png",img);
+		cout<<"try to find~~~"<<endl;
 
-	Mat img(height, width, CV_8UC4, over);
-	img = img * 0;
-	circle(img,Point(400,300),100,Scalar(100,100,0,200),10);
+		Size grid(4,4);
+		vector<Point2f> pts;
+		bool res = findChessboardCorners(gray, grid, pts);
+		if(res==true){
+			cout<<"find checkboard!!"<<endl;
 
-	//line(img,Point(800,0),Point(0,600),Scalar(100,100,0,200),10);
-	//pixel is 'BGRA'
+			drawChessboardCorners( gray, grid, Mat(pts), res);
+			imwrite("cc1.png",gray);
 
-	shmdt(smem);
-	pack.type = MSG_SHAKE2;
-	msgsnd(pid, &pack, MSG_LENGTH, 0);
-	//----------------------//
+			/*for(int i=0; i<pts.size(); i++){
+				circle(
+					ova,
+					pts[i], 5,
+					Scalar(100,100,0,200),
+					2
+				);
+			}*/
+		}else{
+			cout<<"fail to find board"<<endl;
+		}
 
+		//line(img,Point(800,0),Point(0,600),Scalar(100,100,0,200),10);
+		//pixel is 'BGRA'
 
+		//PIPE_CLOSE;
 
-	/*Mat src = imread("./ggyy2.jpg");
-	Mat dst;
-
-	Mat m_src, m_dst;
-	cvtColor(src, m_src, COLOR_RGB2GRAY);
-	cornerHarris(m_src, m_dst, 16, 5, 0.005);
-
-	double min, max;
-	minMaxLoc(m_dst,&min,&max);
-	m_dst = m_dst * ((255.) / (max-min));
-
-	Mat msk,_dst;
-	m_dst.convertTo(_dst,CV_8UC1);
-	applyColorMap(_dst, msk, COLORMAP_JET);
-
-	Mat chann[] = {
-		Mat::zeros(src.size(),CV_8UC1),
-		Mat(),
-		Mat::zeros(src.size(),CV_8UC1)
-	};
-	m_dst.convertTo(chann[1],CV_8UC1);
-	Mat msk;
-	merge(chann, 3, msk);
-
-	addWeighted(src,0.3, msk,0.7, 0., dst);*/
+	//}while(true);
 
 	//vector<KeyLine> res;
 	//Ptr<BinaryDescriptor> ptr = BinaryDescriptor::createBinaryDescriptor();

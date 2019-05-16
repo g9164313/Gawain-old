@@ -9,10 +9,9 @@ import javafx.scene.image.WritableImage;
  * @author qq
  *
  */
-public class ImgData {
+public class ImgFlim {
 	
-	public int snap = 1;
-	
+	private int snap = 1;
 	private int cvWidth = 0;	
 	private int cvHeight= 0;		
 	private int cvType  = 0;
@@ -23,6 +22,8 @@ public class ImgData {
 	private WritableImage[] view = { null, null };
 	
 	public final byte[] mesg = new byte[1024];//pipe response message
+	
+	public final int[] mark = new int[4*8];//it is just ROI!!!
 	
 	public boolean isValid(){
 		if(
@@ -37,8 +38,19 @@ public class ImgData {
 	}
 	
 	
-	public void clear(int count){
-		snap = count;
+	public ImgFlim setSnap(final int cnt){
+		if(snap!=cnt){
+			snap = cnt;
+			//let native code have chance to relocate data
+			pool = null;
+			mior = null;
+			over = null;
+		}
+		return this;
+	}
+	
+	public void reset(int cnt){
+		snap = cnt;
 		pool = null;
 		mior = null;
 		over = null;

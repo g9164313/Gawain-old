@@ -12,10 +12,10 @@ import javafx.scene.control.Label;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
+import narl.itrc.Gawain;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
 import narl.itrc.vision.CapVidcap;
@@ -24,24 +24,24 @@ import narl.itrc.vision.ImgView;
 
 public class PanDropper extends PanBase {
 
-	private final DevShapeoko oko = new DevShapeoko();	
-	private final DevCamera cam = new DevCamera();
+	private final DevShapeoko oko = new DevShapeoko();
 	private final CapVidcap vid = new CapVidcap(800,600);
+	private final DevCamera cam = new DevCamera(vid);
 	
 	@Override
 	public Node eventLayout(PanBase self) {
-
-		final ImgView img = new ImgView();
-		img.setMinSize(800+23, 600+23);
-		//stage().setOnShown(e->{});
-		//stage().setOnHidden(e->{});
+		cam.getView(0).setMinSize(800+23, 600+23);
+		stage().setOnHidden(e->{
+			String txt = cam.getView(0).getMarkByFlat();
+			Gawain.getSetting().setProperty("VIEW_MARK", txt);
+		});
 		return new BorderPane(
-			img,
-			null, null, null, pan_setting(img)
+			cam.getView(0),
+			null, null, null, pan_setting()
 		);
 	}
 	
-	private VBox pan_setting(final ImgView img){
+	private VBox pan_setting(){
 		
 		final JFXCheckBox chkOko = new JFXCheckBox("CNC");
 		chkOko.setOnAction(e->{
@@ -55,8 +55,8 @@ public class PanDropper extends PanBase {
 		final JFXCheckBox chkCam = new JFXCheckBox("相機");
 		chkCam.setOnAction(e->{
 			if(chkCam.isSelected()==true){
-				cam.link(vid,img);
-				cam.play();
+				cam.link();
+				cam.livePlay(1);
 			}else{
 				cam.unlink();
 			}
@@ -72,6 +72,13 @@ public class PanDropper extends PanBase {
 			lay_cnc_jogging(flag1)			
 		);
 		lay0.getStyleClass().add("vbox-medium");
+		
+		stage().setOnShown(e->{
+			//chkOko.fire(true);
+			chkCam.fire();
+			String txt = Gawain.getSetting().getProperty("VIEW_MARK","");
+			cam.getView(0).setMarkByFlat(txt);
+		});
 		return lay0;
 	}
 	
@@ -87,30 +94,24 @@ public class PanDropper extends PanBase {
 			oko.exec("$H\n");
 		});
 		
-		final JFXButton btnTest = new JFXButton("Test");		
+		final JFXButton btnTest = new JFXButton("Test1");		
 		btnTest.getStyleClass().add("btn-raised-1");
 		btnTest.setMaxWidth(Double.MAX_VALUE);
 		btnTest.disableProperty().bind(flag2);
-		btnTest.setOnAction(e->{
-			
-		});
+		cam.bindPipe(btnTest);
 		
-		final JFXCheckBox chkMonitor = new JFXCheckBox("監視畫面");
-		chkMonitor.disableProperty().bind(flag2);
-		chkMonitor.setOnAction(e->{
-			if(chkMonitor.isSelected()==true){
-				cam.monitor(1);
-			}else{
-				cam.monitor(0);
-			}
-		});
+		final JFXButton btnMont = new JFXButton("Test2");		
+		btnMont.getStyleClass().add("btn-raised-1");
+		btnMont.setMaxWidth(Double.MAX_VALUE);
+		btnMont.disableProperty().bind(flag2);
+		cam.bindMonitor(btnMont);
 		
 		VBox lay = new VBox();
 		lay.getStyleClass().add("vbox-one-dir");
 		lay.getChildren().addAll(
 			btnHome,
 			btnTest,
-			chkMonitor
+			btnMont
 		);
 		return lay;
 	}
