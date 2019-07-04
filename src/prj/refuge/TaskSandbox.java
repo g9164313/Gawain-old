@@ -19,14 +19,14 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 
-import org.virtualbox_4_3.Holder;
-import org.virtualbox_4_3.IConsole;
-import org.virtualbox_4_3.IDisplay;
-import org.virtualbox_4_3.IKeyboard;
-import org.virtualbox_4_3.IMachine;
-import org.virtualbox_4_3.IProgress;
-import org.virtualbox_4_3.ISession;
-import org.virtualbox_4_3.VirtualBoxManager;
+import org.virtualbox_5_1.Holder;
+import org.virtualbox_5_1.IConsole;
+import org.virtualbox_5_1.IDisplay;
+import org.virtualbox_5_1.IKeyboard;
+import org.virtualbox_5_1.IMachine;
+import org.virtualbox_5_1.IProgress;
+import org.virtualbox_5_1.ISession;
+import org.virtualbox_5_1.VirtualBoxManager;
 
 import com.sun.glass.ui.Application;
 
@@ -405,9 +405,9 @@ public class TaskSandbox extends Task<Integer> {
 		Holder<Long> bsp= new Holder<Long>();
 		Holder<Integer> ox = new Holder<Integer>();
 		Holder<Integer> oy = new Holder<Integer>();
-		dp.getScreenResolution(0L, sw, sh, bsp, ox, oy);
-		
-		return dp.takeScreenShotPNGToArray(0L, sw.value, sh.value);
+		//dp.getScreenResolution(0L, sw, sh, bsp, ox, oy);		
+		//return dp.takeScreenShotPNGToArray(0L, sw.value, sh.value);
+		return null;
 	}
 
 	private void put_screen_png(final byte[] buf, String name){

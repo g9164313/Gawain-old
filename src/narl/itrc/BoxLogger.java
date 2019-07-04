@@ -89,7 +89,6 @@ public class BoxLogger extends TextArea {
 				box.setScrollTop(Double.MAX_VALUE);
 			}
 		}
-	};
-	
+	};	
 	private static Timeline watcher;
 }

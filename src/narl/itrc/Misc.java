@@ -249,16 +249,17 @@ public class Misc {
 	 * @return integer value
 	 */
 	public static int txt2int(String txt){
-		char[] cc = txt.toCharArray();
-		int val = 0;
-		for(int i=0; i<cc.length; i++){
-			if(cc[i]<'0' || '9'<cc[i]){
-				Misc.logw("fail to parse (%s)", txt);
-				return 0;//drop this text, it is invalid number~~~~
-			}
-			val = val + (int)(cc[i] - '0') * ((int)Math.pow(10, cc.length-i-1));
+		txt = txt.replace("\\s","").trim();
+		if(txt.matches("^[+-]?[\\d]+")==false){
+			return 0;
 		}
-		return val;
+		if(txt.charAt(0)=='+'){
+			txt = txt.substring(1);
+		}
+		while(txt.charAt(0)=='0' && txt.length()>1){
+			txt = txt.substring(1);
+		}
+		return Integer.valueOf(txt);
 	}
 	//----------------------------------------//
 		

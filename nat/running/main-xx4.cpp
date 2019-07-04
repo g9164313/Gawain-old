@@ -4,75 +4,126 @@
 #include <opencv/cv.h>
 #include <opencv2/opencv.hpp>
 #include <vision/pipeImage.hpp>
-
 using namespace std;
 using namespace cv;
 
 #include <opencv2/features2d.hpp>
 #include <opencv2/xfeatures2d.hpp>
+#include <opencv2/xobjdetect.hpp>
 #include <opencv2/line_descriptor.hpp>
-
 using namespace xfeatures2d;
+using namespace xobjdetect;
 using namespace line_descriptor;
+
+extern string type2str(int type);
 
 int main(int argc, char* argv[]) {
 
-	//PIPE_PREP("/home/qq/.gawain/conf.properties");
+	Mat img1 = imread("./check-OO.png");
+	Mat img2 = imread("./check-NE.png");
 
-	//do{
-		//PIPE_OPEN;
-		//Mat img(height, width, cvtype, smem);
-		//Mat gray;
-		//cvtColor(img, gray, COLOR_BGR2GRAY);
-		//Mat ova(height, width, CV_8UC4, over);
-		//ova = ova * 0;
+	Mat img3, img4;
+	GaussianBlur(img1, img3, Size(11,11), 2.3);
+	GaussianBlur(img2, img4, Size(11,11), 2.3);
 
-		//Mat gray = imread("./chessboard.png");
-		Mat gray = imread("./ggyy.png");
+	Mat mask = Mat::zeros(img3.size(),CV_8UC1);
+	rectangle(mask,Rect(0,0,700,600),Scalar(255),-1);
 
-		cout<<"try to find~~~"<<endl;
+	Mat desc1, desc2;
+	vector<KeyPoint> kps1, kps2;
+	Ptr<SIFT> ptr = SIFT::create();
+	//ptr->detect(img1, kps1, desc1);
+	//ptr->detect(img2, kps2, desc2);
+	ptr->detectAndCompute(img3, mask, kps1, desc1);
+	ptr->detectAndCompute(img4, mask, kps2, desc2);
+	cout<<"keypoints="<<kps1.size()<<","<<kps2.size()<<endl;
 
-		Size grid(4,4);
-		vector<Point2f> pts;
-		bool res = findChessboardCorners(gray, grid, pts);
-		if(res==true){
-			cout<<"find checkboard!!"<<endl;
+	vector<DMatch> pair;
+	BFMatcher::create(NORM_L2, true)->match(desc1,desc2,pair);
+	cout<<"pairs="<<pair.size()<<endl;
 
-			drawChessboardCorners( gray, grid, Mat(pts), res);
-			imwrite("cc1.png",gray);
+	for(int i=0; i<pair.size(); i++){
+		DMatch& mm = pair[i];
+		printf("%2d) [%2d][%2d] d=%.3f\n",
+			i,
+			mm.queryIdx,
+			mm.trainIdx,
+			mm.distance
+		);
+	}
+	cout<<endl;
 
-			/*for(int i=0; i<pts.size(); i++){
-				circle(
-					ova,
-					pts[i], 5,
-					Scalar(100,100,0,200),
-					2
-				);
-			}*/
-		}else{
-			cout<<"fail to find board"<<endl;
-		}
+	Mat node;
+	drawMatches(
+		img1, kps1,
+		img2, kps2,
+		pair,
+		node
+	);
+	//drawKeypoints(img2,kps2,img2);
+	imwrite("cc1.png",node);
 
-		//line(img,Point(800,0),Point(0,600),Scalar(100,100,0,200),10);
-		//pixel is 'BGRA'
+	return 0;
+}
 
-		//PIPE_CLOSE;
+int main2(int argc, char* argv[]) {
 
-	//}while(true);
+	Ptr<WBDetector> det = WBDetector::create();
+#define TRAIN
+#ifdef TRAIN
+	RNG rng(13579);
 
-	//vector<KeyLine> res;
-	//Ptr<BinaryDescriptor> ptr = BinaryDescriptor::createBinaryDescriptor();
-	//ptr->detect(src,res);
-	//drawKeylines(src,res,dst);
-	//ptr->clear();
+	/*Mat img1 = imread("./check-OO.png");
+	Rect roi = Rect(296,266,24*5,24*5);
+	for(int i=0; i<10; i++){
+		Mat tmp;
+		int ss = rng.uniform(1,4)*2+1;
+		float sigma = rng.uniform(0.1,2.);
+		GaussianBlur(img1(roi),tmp,Size(ss,ss),sigma);
+		char name[80];
+		sprintf(name,"./object-pos/%03d.png",i);
+		imwrite(name, tmp);
+	}
+	Mat img2 = imread("./check-bng.png");
+	for(int i=0; i<10; i++){
+		Mat tmp;
+		int ss = rng.uniform(1,4)*2+1;
+		float sigma = rng.uniform(0.1,2.);
+		GaussianBlur(img2,tmp,Size(ss,ss),sigma);
+		char name[80];
+		sprintf(name,"./object-neg/%03d.png",i);
+		imwrite(name, tmp);
+	}*/
 
-	//vector<KeyPoint> pts;
-	//Ptr<Feature2D> feat = SIFT::create();
-	//feat->detect(src, pts);
-	//Mat dst;
-	//drawKeypoints(src,pts,dst);
+	det->train("./object-pos","./object-neg");
+	FileStorage fs("ggyy.xml", FileStorage::WRITE);
+	fs << "target";
+	det->write(fs);
 
-	//imwrite("./cc1.png",dst);
+#else
+	FileStorage fs("ggyy.xml", FileStorage::READ);
+	det->read(fs.getFirstTopLevelNode());
+
+	Mat img2 = imread("./check-EE.png");
+	vector<Rect> bboxes;
+	vector<double> confidences;
+	det->detect(img2,bboxes,confidences);
+
+    for (size_t i = 0; i < bboxes.size(); ++i) {
+    	Rect& rr = bboxes[i];
+    	char txt[80];
+    	sprintf(txt,"conf=%.2f",confidences[i]);
+    	putText(img2,txt,
+    		Point(rr.x, rr.y+30),
+			FONT_HERSHEY_COMPLEX, 6,
+			Scalar(128,128,0)
+		);
+        rectangle(img2, rr, Scalar(255, 0, 0));
+        cout<<"box-confidences="<<confidences[i]<<endl;
+    }
+    imwrite("cc1.png",img2);
+#endif
+
 	return 0;
 }
 //-----------------------------------//

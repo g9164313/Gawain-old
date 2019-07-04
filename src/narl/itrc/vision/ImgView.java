@@ -6,10 +6,8 @@ import java.io.File;
 import javax.imageio.ImageIO;
 
 import javafx.embed.swing.SwingFXUtils;
-import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
-import javafx.scene.control.Button;
-import javafx.scene.control.ButtonType;
+import javafx.scene.Group;
 import javafx.scene.control.CheckMenuItem;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.ContextMenu;
@@ -23,32 +21,30 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.input.MouseButton;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.ArcTo;
-import javafx.scene.shape.HLineTo;
-import javafx.scene.shape.MoveTo;
-import javafx.scene.shape.Path;
-import javafx.scene.shape.VLineTo;
+import javafx.scene.shape.Arc;
+import javafx.scene.shape.ArcType;
+import javafx.scene.shape.Rectangle;
 import javafx.stage.FileChooser;
 import narl.itrc.Gawain;
 
 public class ImgView extends ScrollPane {
 	
 	//show original image~~
-	private ImageView view = new ImageView();
+	private final ImageView view = new ImageView();
 	
 	//show information, result or overlay-image
-	private ImageView over = new ImageView();
+	private final ImageView over = new ImageView();
 	
 	//put something like label or mark, else
-	private AnchorPane bord = new AnchorPane();
+	private final AnchorPane pane = new AnchorPane();
 	
 	public ImgView(){
-		setContent(new StackPane(view, over, bord));
+		setContent(new StackPane(view, over, pane));
 		setHbarPolicy(ScrollBarPolicy.ALWAYS);
 		setVbarPolicy(ScrollBarPolicy.ALWAYS);		
 		setFitToHeight(false);
@@ -62,6 +58,10 @@ public class ImgView extends ScrollPane {
 		//itm1.setOnAction(e->pan_navi.setVisible(true));		
 	}
 
+	public Pane getPane() {
+		return pane;
+	}
+	
 	/**
 	 * scale image parameter.<p>
 	 * <=2 : smaller
@@ -87,10 +87,9 @@ public class ImgView extends ScrollPane {
 		view.setPreserveRatio(true);
 	}
 	
-	private static final char SHAPE_RECT  = 'R';
+	/*private static final char SHAPE_RECT  = 'R';
 	private static final char SHAPE_CROSS = 'T';
 	private static final char SHAPE_CIRCLE= 'C';
-	
 	private class Mark extends Path {
 		final CheckMenuItem chkItem;
 		boolean used = false;
@@ -156,6 +155,84 @@ public class ImgView extends ScrollPane {
 				break;
 			}
 		}
+	};*/
+
+	private class Mark extends Group {
+		final CheckMenuItem chk = new CheckMenuItem();
+		final Arc pin_1 = new Arc();
+		final Arc pin_2 = new Arc();
+		final Rectangle fence = new Rectangle();
+		final double PIN_SIZE = 13.;
+		boolean used = false;
+		Mark(String name, Color cc){
+			chk.setText(name);
+			chk.setOnAction(e->{
+				used = chk.isSelected();
+				if(used==true){
+					pane.getChildren().add(this);
+				}else{
+					pane.getChildren().remove(this);
+				}
+			});
+			update(0,0,100,100);
+			fence.setStrokeWidth(2);
+			fence.setStroke(cc);
+			fence.setFill(Color.TRANSPARENT);
+			pin_1.setRadiusX(PIN_SIZE);
+			pin_1.setRadiusY(PIN_SIZE);
+			pin_1.setStartAngle(0.);
+			pin_1.setLength(-90.);
+			pin_1.setFill(cc);
+			pin_1.setType(ArcType.ROUND);
+			pin_1.setOnMouseDragged(e->{
+				update(e.getX(), e.getY(), -1, -1);
+			});
+			pin_2.setRadiusX(PIN_SIZE);
+			pin_2.setRadiusY(PIN_SIZE);
+			pin_2.setStartAngle(90.);
+			pin_2.setLength(90.);
+			pin_2.setFill(cc);
+			pin_2.setType(ArcType.ROUND);
+			pin_2.setOnMouseDragged(e->{
+				double ww = e.getX() - fence.getX();
+				double hh = e.getY() - fence.getY();
+				update(-1, -1, ww, hh);
+			});
+			getChildren().addAll(fence,pin_1,pin_2);
+		}
+		
+		void update(double xx, double yy, double ww, double hh) {
+			if(xx>=0) {
+				fence.setX(xx);	
+			}
+			if(yy>=0) {
+				fence.setY(yy);			
+			}
+			if(ww>0) {
+				fence.setWidth(ww);
+			}
+			if(hh>0) {
+				fence.setHeight(hh);
+			}
+			pin_1.setCenterX(fence.getX());
+			pin_1.setCenterY(fence.getY());
+			pin_2.setCenterX(fence.getX()+fence.getWidth());
+			pin_2.setCenterY(fence.getY()+fence.getHeight());
+		}
+		void setInfo(int xx, int yy, int ww, int hh) {
+			update(xx,yy,ww,hh);
+			chk.setSelected(true);
+			chk.fire();
+		}
+		int[] getInfo() {
+			int[] info = {
+				(int)fence.getX(), 
+				(int)fence.getY(),
+				(int)fence.getWidth(),
+				(int)fence.getHeight()				
+			};
+			return info;
+		}
 	};
 	private Mark[] lstMark = {
 		new Mark("mark-1", Color.YELLOW),
@@ -163,7 +240,7 @@ public class ImgView extends ScrollPane {
 		new Mark("mark-3", Color.BLUEVIOLET),
 		new Mark("mark-4", Color.CRIMSON),
 	};
-
+	
 	private Dialog<Void> diaMark = new Dialog<>();
 	private void init_dia_mark(){
 		final ComboBox<String> cmbShape = new ComboBox<>();
@@ -189,7 +266,7 @@ public class ImgView extends ScrollPane {
 		lay.addRow(2, new Label("Y"), boxValue[1]);
 		lay.addRow(3, new Label("W"), boxValue[2]);
 		lay.addRow(4, new Label("H"), boxValue[3]);
-		diaMark.setOnShown(e->{
+		/*diaMark.setOnShown(e->{
 			Mark mark = (Mark)diaMark.getDialogPane().getUserData();
 			int sid = 0;
 			switch(mark.shape){
@@ -224,12 +301,12 @@ public class ImgView extends ScrollPane {
 				mark.update();
 				event.consume();
 			});
-		diaMark.getDialogPane().setContent(lay);
+		diaMark.getDialogPane().setContent(lay);*/
 	}
 	
 	/**
 	 * this function must be invoked by main thread.<p>
-	 * @param txt
+	 * @param txt - flat text for recording mark information
 	 */
 	public void setMarkByFlat(final String txt){
 		if(txt.length()==0){
@@ -244,28 +321,26 @@ public class ImgView extends ScrollPane {
 				return;
 			}
 			String[] val = col[i].split(",");
-			Mark mark = lstMark[i];
-			mark.shape = val[0].charAt(0);
-			mark.loca[0] = Integer.valueOf(val[1]);
-			mark.loca[1] = Integer.valueOf(val[2]);
-			mark.volu[0] = Integer.valueOf(val[3]);
-			mark.volu[1] = Integer.valueOf(val[4]);
-			mark.chkItem.setSelected(true);
-			mark.chkItem.fire();
+			lstMark[i].setInfo(
+				Integer.valueOf(val[1]), 
+				Integer.valueOf(val[2]),
+				Integer.valueOf(val[3]),
+				Integer.valueOf(val[4])
+			);
 		}
 	}
 	
 	public String getMarkByFlat(){
 		String txt ="";
-		for(Mark mark:lstMark){
-			if(mark.used==false){
+		for(Mark mm:lstMark){
+			if(mm.used==false){
 				txt = txt + "_#";
 			}else{
+				int[] info = mm.getInfo();
 				txt = txt + String.format(
-					"%c,%d,%d,%d,%d#",
-					mark.shape,
-					mark.loca[0], mark.loca[1],					
-					mark.volu[0], mark.volu[1]
+					"R,%d,%d,%d,%d#",
+					info[0], info[1],					
+					info[2], info[3]
 				);
 			}
 		}
@@ -279,10 +354,11 @@ public class ImgView extends ScrollPane {
 				return;
 			}
 			if(mm.used==true){
-				array[i*4+0] = mm.loca[0];
-				array[i*4+1] = mm.loca[1];
-				array[i*4+2] = mm.volu[0];
-				array[i*4+3] = mm.volu[1];
+				int[] info = mm.getInfo();
+				array[i*4+0] = info[0];//location - x
+				array[i*4+1] = info[1];//location - y
+				array[i*4+2] = info[2];//geometry - width
+				array[i*4+3] = info[3];//geometry - height
 			}
 			i+=1;
 		}
@@ -338,23 +414,15 @@ public class ImgView extends ScrollPane {
 				return;
 			}
 			diaFile.setInitialDirectory(fs.getParentFile());
-			try {
-				RenderedImage rend = SwingFXUtils.fromFXImage(
-					view.getImage(),
-					null
-				);
-				ImageIO.write(rend,	"png",	fs);
-			} catch (Exception e1) {
-				e1.printStackTrace();
-			}
+			save(fs);
 		});
 		
 		final Menu itm_mark = new Menu("標記");
 		itm_mark.getItems().addAll(
-			lstMark[0].chkItem,
-			lstMark[1].chkItem,
-			lstMark[2].chkItem,
-			lstMark[3].chkItem
+			lstMark[0].chk,
+			lstMark[1].chk,
+			lstMark[2].chk,
+			lstMark[3].chk
 		);
 		
 		setContextMenu(new ContextMenu(
@@ -368,6 +436,31 @@ public class ImgView extends ScrollPane {
 		Image[] v = dat.getImage();
 		view.setImage(v[0]);
 		over.setImage(v[1]);
+	}
+	
+	public void save(final String name){
+		save(new File(name));
+	}	
+	public void save(final File fs){
+		if(fs.isDirectory()==true){
+			return;
+		}
+		String appx = fs.getName();
+		int idx = appx.lastIndexOf(".");
+		if(idx>=1){
+			appx = appx.substring(idx+1);
+		}else{
+			appx = "png";
+		}
+		try {
+			RenderedImage rend = SwingFXUtils.fromFXImage(
+				view.getImage(),
+				null
+			);
+			ImageIO.write(rend,	appx, fs);
+		} catch (Exception e1) {
+			e1.printStackTrace();
+		}
 	}
 }
 

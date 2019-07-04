@@ -50,10 +50,10 @@
 }
 
 .layout-medius {
-   -fx-padding: 13;
-   -fx-spacing: 13;
-   -fx-hgap: 13;
-   -fx-vgap: 13;
+   -fx-padding: 7;
+   -fx-spacing: 7;
+   -fx-hgap: 7;
+   -fx-vgap: 7
 }
 
 .vbox-one-dir, .vbox-one-direction{
@@ -100,6 +100,11 @@
 	-fx-alignment: center;
   -fx-spacing: 13.0;
 }
+
+.jfx-size-medium {
+  
+}
+
 /**********************/
 .bg-white{
 	-fx-background-color: #FFFFFF;

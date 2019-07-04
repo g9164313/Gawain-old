@@ -1,5 +1,5 @@
 
-DIR_JNI=/home/qq/.local/jdk8/include
+DIR_JNI=/usr/lib/jvm/default-java/include
 
 TARGET_EXE = gawain
 
@@ -132,7 +132,7 @@ endif
 
 ####################################################
 
-$(TARGET_EXE):  ./running/main-xx4.cpp 
+$(TARGET_EXE):  ./running/misc.cpp  ./running/process_1.cpp 
 	$(CC) -o $@ $^ $(CC_FLAG) $(LD_LIBS)
 	
 ####################################################
@@ -146,6 +146,6 @@ all: $(VISION_SO)
 clean:
 	rm -rf $(TARGET_EXE) $(TARGET_SO) $(DIR_SRC)/*.o ./*.o
 	
-.PHONY: all clean prepare libdevice.so $(TARGET_EXE) $(CORE_SO) $(VISION_SO)
+.PHONY: all clean prepare $(TARGET_EXE) $(CORE_SO) $(VISION_SO) $(PERIPHERAL_SO) 
 
 

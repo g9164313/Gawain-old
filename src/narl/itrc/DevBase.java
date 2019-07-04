@@ -26,10 +26,7 @@ abstract public class DevBase {
 	protected abstract boolean eventLink();
 	
 	protected abstract boolean afterLink();
-	
-	protected int core_looper(Work obj, int pass){ return 0; }
-	protected int core_event (Work obj, int pass){ return 0; }
-	
+
 	protected abstract void beforeUnlink();
 	
 	protected abstract void eventUnlink(); 	
@@ -42,29 +39,34 @@ abstract public class DevBase {
 		
 		/**
 		 * initial time tick for counting delay.<p>
-		 * unit is MILLISECONDS 
+		 * unit is MILLISECONDS.<p>
 		 */
 		private long cntBegin = 0L;
 		
 		/**
 		 * indicate how long time passes.<p>
-		 * unit is MILLISECONDS
+		 * unit is MILLISECONDS.<p>
 		 */
 		private long cntDelay = 0L;
 		
 		/**
 		 * Whether Looper queues token again.<p> 
 		 */
-		public boolean isPermanent = false;
+		public boolean durable = false;
 		
 		public Work(){
 		}
 		public Work(int delay_ms){
-			cntDelay = delay_ms;
+			cntDelay= delay_ms;
 		}
-		public Work(int delay_ms, boolean permanent){
-			cntDelay = delay_ms;
-			isPermanent = permanent;
+		public Work(int delay_ms, boolean isPermanent){
+			cntDelay= delay_ms;
+			durable = isPermanent;
+		}
+		
+		public void setDelay(long millisecond){
+			cntBegin = System.currentTimeMillis();
+			cntDelay = millisecond;
 		}
 		
 		public abstract int looper(Work obj, final int pass);
@@ -141,7 +143,7 @@ abstract public class DevBase {
 						}	
 					}while(pass!=0 && looper.isCancelled()==false);
 					//check if we need this work again~~~
-					if(obj.isPermanent==true){
+					if(obj.durable==true){
 						//push-back and count again~~~
 						obj.cntBegin = System.currentTimeMillis();
 						queuer.offer(obj);
@@ -238,31 +240,58 @@ abstract public class DevBase {
 		if(queuer.contains(tkn)==true){
 			return this;
 		}
-		tkn.cntBegin = System.currentTimeMillis();
-		tkn.cntDelay = TimeUnit.MILLISECONDS.convert(delay, unit);
-		tkn.isPermanent = permanent;
+		tkn.setDelay(TimeUnit.MILLISECONDS.convert(delay, unit));
+		tkn.durable = permanent;
 		queuer.offer(tkn);
 		return this;
 	}
 	
-	protected DevBase createLooper(int delay_ms){
-		return offer(delay_ms, true, new Work(){
-			@Override
-			public int looper(Work obj, int pass) {
-				return DevBase.this.core_looper(obj, pass);
-			}
-			@Override
-			public int event(Work obj, int pass) {
-				return DevBase.this.core_event(obj, pass);
-			}
-		});
+	private Work core_inner;
+	protected int core_looper(Work obj, int pass){ return 0; }
+	protected int core_event (Work obj, int pass){ return 0; }	
+	/**
+	 * provide a convenience method for infinite looper.<p>
+	 * User can override 'core_looper' and 'core_event' method.<p>
+	 * @param ms - time to repeat action
+	 * @return self
+	 */
+	protected DevBase createLooper(int ms){
+		if(core_inner==null){
+			core_inner = new Work(){
+				@Override
+				public int looper(Work obj, int pass) {
+					return DevBase.this.core_looper(obj, pass);
+				}
+				@Override
+				public int event(Work obj, int pass) {
+					return DevBase.this.core_event(obj, pass);
+				}
+			};
+			core_inner.setDelay(ms);
+		}else{
+			core_inner.setDelay(ms);
+			return this;
+		}
+		core_inner.durable = true;
+		return offer(core_inner);
+	}
+	
+	public int countWork(){
+		return queuer.size();
 	}
 	
 	public DevBase remove(Work tkn){
-		tkn.isPermanent = false;
+		tkn.durable = false;
 		queuer.remove(tkn);
 		return this;
 	}
+	
+	//TODO:how to purge???
+	//public DevBase purge(){
+		//queuer.iterator()
+		//queuer.removeAll();
+		//return this;
+	//}
 	
 	protected void waitForEmpty(){
 		do{

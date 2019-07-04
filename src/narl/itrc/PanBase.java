@@ -179,9 +179,9 @@ public abstract class PanBase {
 	private DutyFace spin = new DutyFace();
 	
 	protected class Duty extends Task<Integer> {
-		int p_idx = 0;
-		int p_stp = 1;
-		int p_end = 100;
+		long p_idx = 0;
+		long p_stp = 1;
+		long p_end = 100;
 		Runnable task;
 		Duty(final Runnable hook){
 			task = hook;
@@ -189,21 +189,21 @@ public abstract class PanBase {
 		public void setMessage(String msg){
 			updateMessage(msg);
 		}
-		public void setProgressIndex(int idx){
+		public void setProgress(long idx){
 			p_idx = idx;
-			int val = (p_idx * 100) / p_end;
-			updateMessage(String.format("%d.%%", val));
+			long val = (p_idx * 100L) / p_end;
+			updateMessage(String.format("%2d%%", val));
 		}
 		public void incProgress(){
 			p_idx = p_idx + p_stp;
-			int val = (p_idx * 100) / p_end;
-			updateMessage(String.format("%d.%%", val));
+			long val = (p_idx * 100L) / p_end;
+			updateMessage(String.format("%2d%%", val));
 		}
-		public void setProgressTotal(int beg, int stp, int end){
+		public void initProgress(long beg, long stp, long end){
 			p_idx = beg;
 			p_stp = stp;
 			p_end = end;
-			updateMessage("0.%%");
+			updateMessage(" 0%%");
 		}
 		@Override
 		protected Integer call() throws Exception {
@@ -211,7 +211,7 @@ public abstract class PanBase {
 			return 0;
 		}		
 	}
-	private Duty duty;
+	protected Duty duty;
 	
 	protected void doDuty(
 		final Runnable hookWorking
@@ -234,8 +234,14 @@ public abstract class PanBase {
 		}
 		duty = new Duty(hookWorking);
 		duty.setOnScheduled(e->spin.event_take_on(hookOnDuty));
-		duty.setOnSucceeded(e->spin.event_complete(hookOffDuty));
-		duty.setOnCancelled(e->spin.event_complete(hookOffDuty));
+		duty.setOnSucceeded(e->{
+			spin.event_complete(hookOffDuty);
+			duty = null;
+		});
+		duty.setOnCancelled(e->{
+			spin.event_complete(hookOffDuty);
+			duty = null;
+		});
 		new Thread(duty,"Panel-Task").start();
 	}
 	//------------------------//
@@ -265,7 +271,7 @@ public abstract class PanBase {
 				}
 				stage.close();
 			}else if(hotkey_console.match(event)==true){
-				Gawain.showLogger();
+				//Gawain.showLogger();
 			}else if(hotkey_debug.match(event)==true){
 				
 			}			

@@ -33,7 +33,6 @@ import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
-import javafx.stage.Window;
 import javafx.util.Duration;
 
 import javax.crypto.BadPaddingException;
@@ -418,11 +417,7 @@ public class Gawain extends Application {
 	
 	private static PanBase panRoot = null;
 	
-	private static PanLogger panLogger = new PanLogger();
-	
-	public static void showLogger(){
-		panLogger.appear();
-	}
+	//private static PanLogger panLogger = new PanLogger();
 	
 	public static Scene getMainScene(){
 		if(panRoot==null){
@@ -437,9 +432,7 @@ public class Gawain extends Application {
 	
 	@Override
 	public void start(Stage primaryStage) throws Exception {
-		
 		new Loader().standby();
-		
 		try {			
 			String name = propCache.getProperty("LAUNCH","");
 			//panRoot = (PanBase)Class.forName(name)
@@ -447,8 +440,7 @@ public class Gawain extends Application {
 			//	.newInstance(primaryStage);
 			panRoot = (PanBase)Class.forName(name)
 				.getConstructor()
-				.newInstance();			
-			//new Loader().standby();
+				.newInstance();
 			panRoot.appear(primaryStage);
 			Misc.logv("啟動 launch [%s]",name);
 		} catch (
@@ -457,7 +449,7 @@ public class Gawain extends Application {
 			ClassNotFoundException e
 		) {
 			Misc.loge("fail to load "+e.getMessage());
-			panLogger.appear();
+			//TODO:???? panLogger.appear();
 		}
 	}
 	

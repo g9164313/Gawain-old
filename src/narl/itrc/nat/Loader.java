@@ -41,7 +41,7 @@ public class Loader extends Task<Integer> {
 	/**
 	 * Indicate whether we need to print message....
 	 */
-	private static boolean debug = false;
+	private static boolean debug = true;
 	
 	private void loadLibrary(final LinkedList<LibFile> lst){
 		

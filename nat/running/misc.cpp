@@ -18,6 +18,40 @@
 using namespace std;
 using namespace cv;
 
+Rect txt2rect(const char* txt){
+	uint32_t v[4];
+	int cnt = sscanf(txt,"%d,%d,%dx%d",v,v+1,v+2,v+3);
+	if(cnt<4){
+		return Rect(0,0,800,600);
+	}
+	return Rect(v[0],v[1],v[2],v[3]);
+}
+
+
+string type2str(int type) {
+  string r;
+
+  uchar depth = type & CV_MAT_DEPTH_MASK;
+  uchar chans = 1 + (type >> CV_CN_SHIFT);
+
+  switch ( depth ) {
+    case CV_8U:  r = "CV_8U"; break;
+    case CV_8S:  r = "CV_8S"; break;
+    case CV_16U: r = "CV_16U"; break;
+    case CV_16S: r = "CV_16S"; break;
+    case CV_32S: r = "CV_32S"; break;
+    case CV_32F: r = "CV_32F"; break;
+    case CV_64F: r = "CV_64F"; break;
+    default:     r = "CV_User"; break;
+  }
+
+  r += "C";
+  r += (chans+'0');
+
+  return r;
+}
+
+
 /*void list_dir(string path,vector<string>& lst,string prex);
 
 extern Mat cutOutBounding(Mat& img,Mat& msk,int width,int height);

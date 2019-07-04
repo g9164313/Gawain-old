@@ -7,6 +7,7 @@ import javafx.scene.control.Control;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.Pane;
 import narl.itrc.DevBase;
 import narl.itrc.Gawain;
 import narl.itrc.Misc;
@@ -42,6 +43,14 @@ public class DevCamera extends DevBase {
 			return null;
 		}
 		return lstView[id];
+	}
+	
+	public Pane getPane(final int id){
+		ImgView v = getView(id);
+		if(v!=null){
+			return v.getPane();
+		}
+		return null;		
 	}
 	
 	@Override
@@ -86,7 +95,7 @@ public class DevCamera extends DevBase {
 					if(p_key==null){
 						return;
 					}
-					pipeFetch(p_key,cap.getFilm(),false);
+					pipeFetch(p_key, cap.getFilm(), false);
 				});
 			}
 			return 0;
