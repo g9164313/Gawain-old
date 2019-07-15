@@ -9,7 +9,6 @@
 #define GLOBAL_H
 
 #include <jni.h>
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -47,7 +46,6 @@ inline void msleep(int msec){
 #include <list>
 #include <string>
 #include <vector>
-
 
 using namespace std;
 

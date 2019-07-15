@@ -110,7 +110,7 @@ public class Loader extends Task<Integer> {
 	
 	public void standby(){
 		
-		String val = Gawain.getSetting().getProperty("LIB_DEBUG","false");
+		String val = Gawain.prop().getProperty("LIB_DEBUG","false");
 		if(val.toLowerCase().endsWith("true")==true){
 			debug = true;
 		}

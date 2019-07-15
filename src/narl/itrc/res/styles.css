@@ -155,13 +155,15 @@
 /**********************/
 
 .grid-small {
-    -fx-hgap: 7px;
-    -fx-vgap: 7px;
+	-fx-padding: 7px;
+  -fx-hgap: 7px;
+  -fx-vgap: 7px;
 }
 
 .grid-medium {
-    -fx-hgap: 13px;
-    -fx-vgap: 13px;
+	-fx-padding: 13px;
+  -fx-hgap: 13px;
+  -fx-vgap: 7px;
 }
 .grid-medium-horizontal {
     -fx-padding: 14px 7px 14px 7px;
@@ -224,31 +226,24 @@
 
 /**********************/
 
-.flow-small {
-    -fx-alignment: center-left;
-    -fx-hgap: 13.0px;
-    -fx-vgap: 13.0px;
+.view-mark {
+	-fx-border-width: 4px;
+	-fx-background-color: palegreen;
+	-fx-background-radius: 10;
+	-fx-effect: dropshadow(three-pass-box, black, 10, 0, 0, 0);
+	-fx-padding: 7px;
+	-fx-spacing: 7px;
 }
 
 .board-center {
-    -fx-hgap: 7.0;
-    -fx-vgap: 7.0;
-    -fx-alignment: baseline-center;
+  -fx-hgap: 7.0;
+  -fx-vgap: 7.0;
+  -fx-alignment: baseline-center;
 }
 
 .anchor-small {
 	-fx-padding: 7 7 7 7;
 }
-
-.toggle-small {
-    -fx-padding: 0.3em;
-    -fx-spacing: 0.3em;
-}
-
-/*.tabs-body {
-	-fx-background-color: -fx-body-color, -fx-inner-border; 
-    -fx-background-insets: 0, 2;
-}*/
 
 .decorate0-title {
 	-fx-translate-y: -20;

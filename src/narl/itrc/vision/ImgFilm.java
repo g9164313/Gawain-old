@@ -9,13 +9,13 @@ import javafx.scene.image.WritableImage;
  * @author qq
  *
  */
-public class ImgFlim {
+public class ImgFilm {
 	
 	private int snap = 1;
 	private int cvWidth = 0;	
 	private int cvHeight= 0;		
 	private int cvType  = 0;
-	private byte[] pool=null;//pure image data
+	private byte[] pool=null;//pure image data	
 	private byte[] mior=null;//mirror data
 	private byte[] over=null;//overlay view
 	
@@ -38,7 +38,7 @@ public class ImgFlim {
 	}
 	
 	
-	public ImgFlim setSnap(final int cnt){
+	public ImgFilm setSnap(final int cnt){
 		if(snap!=cnt){
 			snap = cnt;
 			//let native code have chance to relocate data
@@ -57,7 +57,8 @@ public class ImgFlim {
 	}
 	
 	/**
-	 * this function is invoked by native code
+	 * this function is invoked by native code.<p>
+	 * For native code, overlay will be BGRA.<p>
 	 * @param total - image data size
 	 * @param width - image width
 	 * @param height- image height
@@ -70,6 +71,10 @@ public class ImgFlim {
 		view[1] = new WritableImage(width,height);
 	}
 	
+	/**
+	 * get javafx image object from capture device.<p>
+	 * @return - image object
+	 */
 	public Image[] getImage(){
 		reflector(pool, mior);
 		view[0].getPixelWriter().setPixels(

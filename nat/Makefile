@@ -65,52 +65,57 @@ LIB_PYLON :=  -L$(ROOT_PYLON)/lib64 \
 
 CC = g++ -DENABLE_LOG -O0
 
-CC_FLAG = -g -I. -I$(DIR_JNI) -I$(DIR_JNI)/linux
+CC_FLAG  = -g -I. -I$(DIR_JNI) -I$(DIR_JNI)/linux
 CC_FLAG += -DVISION $(shell pkg-config --cflags opencv) -lopencv_xfeatures2d
 CC_FLAG += $(shell pkg-config --cflags libusb-1.0) 
 CC_FLAG += $(shell pkg-config --cflags libmodbus)
 
-LD_LIBS = $(shell pkg-config --libs opencv)
+LD_LIBS  = $(shell pkg-config --libs opencv)
 LD_LIBS += $(shell pkg-config --libs libusb-1.0) 
 LD_LIBS += $(shell pkg-config --libs libmodbus)
 
-########################
+####################################################
 
 #OBJECTS = $(SOURCES:.cpp=.o)
-CHECK_EXEC := $(shell pgrep -f Gawain)
 
 LIB_SFRISO = ./SFR/FltrSlangEdge.cpp ./SFR/sfr_iso.c 
 
-#####[springboard]######
+####################################################
 
-CORE_SO = libspringboard.so
-CORE_FILE = util_miscellany.cpp wrap_PanPuppetter.cpp
+TEST_PID := $(shell pgrep -f Gawain)
+
+define BUILD_WORK =
+	$(CC) -fPIC -shared -o $@ $^ $(LD_LIBS) $(CC_FLAG)
+	@echo TEST_PID=$(TEST_PID)
+	cp -rf $@ ../src/narl/itrc/nat	
+	cp -rf $@ ~/.gawain/$@
+	@echo 'Target --> '$@', done!!'
+	@echo
+endef
+
+#ifdef ($(TEST_PID),) 
+#	@echo "~~rewrite it~~"
+#	cp -rf $@ ~/.gawain/$@
+#else
+#	@echo "!!!process is running!!!"
+#endif
+
+#####[core file]######
+
+CORE_SO = libcore.so
+CORE_FILE = ./running/stubber.cpp 
 
 $(CORE_SO): $(CORE_FILE)
-	$(CC) -fPIC -shared -o $@ $^ $(LD_LIBS) $(CC_FLAG)
-	cp -rf $@ ../src/narl/itrc/nat
-ifeq ($(CHECK_EXEC),)
-	@echo "no process is running, so we move it~~"
-	cp -rf $@ ~/.gawain/$@
-else
-	@echo "!!!process is running!!!"
-endif
+	$(BUILD_WORK)
 
 #####[capture device]######
 
 VISION_SO = libvision.so
-VISION_FILE = ./vision/pipeImage.cpp    
+VISION_FILE  = ./vision/pipeImage.cpp    
 VISION_FILE += ./vision/CapVidcap.cpp  
 
-$(VISION_SO): $(VISION_FILE) 
-	$(CC) -fPIC -shared -o $@ $^ $(LD_LIBS) $(CC_FLAG)
-	cp -rf $@ ../src/narl/itrc/nat
-ifeq ($(CHECK_EXEC),)
-	@echo "no process is running, so we move it~~"
-	cp -rf $@ ~/.gawain/$@
-else
-	@echo "!!!process is running!!!"
-endif
+$(VISION_SO): $(VISION_FILE)
+	$(BUILD_WORK) 
 
 #####[peripheral device]######
 
@@ -121,14 +126,7 @@ PERIPHERAL_FILE+= ./device/DevUSB.cpp
 PERIPHERAL_FILE+= ./device/DevModbus.cpp
 
 $(PERIPHERAL_SO): $(PERIPHERAL_FILE)
-	$(CC) -fPIC -shared -o $@ $^ $(LD_LIBS) $(CC_FLAG)
-	cp -rf $@ ../src/narl/itrc/nat
-ifeq ($(CHECK_EXEC),)
-	@echo "no process is running, so we rewrite it~~"
-	cp -rf $@ ~/.gawain/$@
-else
-	@echo "!!!process is running!!!"
-endif
+	$(BUILD_WORK)
 
 ####################################################
 
@@ -138,14 +136,15 @@ $(TARGET_EXE):  ./running/misc.cpp  ./running/process_1.cpp
 ####################################################
 
 
-all: $(TARGET_EXE)
+#all: $(TARGET_EXE)
 #all: $(CORE_SO)
-all: $(VISION_SO)
+#all: $(VISION_SO) 
 #all: $(PERIPHERAL_SO)
+all: $(CORE_SO) $(VISION_SO) 
 
 clean:
 	rm -rf $(TARGET_EXE) $(TARGET_SO) $(DIR_SRC)/*.o ./*.o
 	
-.PHONY: all clean prepare $(TARGET_EXE) $(CORE_SO) $(VISION_SO) $(PERIPHERAL_SO) 
+.PHONY: all clean
 
 

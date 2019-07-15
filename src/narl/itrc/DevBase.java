@@ -47,7 +47,7 @@ abstract public class DevBase {
 		 * indicate how long time passes.<p>
 		 * unit is MILLISECONDS.<p>
 		 */
-		private long cntDelay = 0L;
+		protected long cntDelay = 0L;
 		
 		/**
 		 * Whether Looper queues token again.<p> 
@@ -204,6 +204,9 @@ abstract public class DevBase {
 	}
 	
 	public DevBase offer(Work token){
+		if(queuer.contains(token)==true) {
+			return this;
+		}
 		queuer.offer(token);
 		return this;
 	}

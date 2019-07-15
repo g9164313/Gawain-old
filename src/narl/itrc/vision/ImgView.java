@@ -5,62 +5,114 @@ import java.io.File;
 
 import javax.imageio.ImageIO;
 
+import javafx.collections.ObservableList;
 import javafx.embed.swing.SwingFXUtils;
-import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Group;
-import javafx.scene.control.CheckMenuItem;
-import javafx.scene.control.ComboBox;
+import javafx.scene.Node;
+import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.control.Button;
 import javafx.scene.control.ContextMenu;
-import javafx.scene.control.Dialog;
+import javafx.scene.control.Control;
 import javafx.scene.control.Label;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.RadioMenuItem;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.ScrollPane.ScrollBarPolicy;
 import javafx.scene.control.TextField;
+import javafx.scene.control.Toggle;
+import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.Arc;
-import javafx.scene.shape.ArcType;
+import javafx.scene.shape.LineTo;
+import javafx.scene.shape.MoveTo;
+import javafx.scene.shape.Path;
 import javafx.scene.shape.Rectangle;
 import javafx.stage.FileChooser;
 import narl.itrc.Gawain;
 
-public class ImgView extends ScrollPane {
+public class ImgView extends StackPane {
 	
 	//show original image~~
 	private final ImageView view = new ImageView();
-	
 	//show information, result or overlay-image
-	private final ImageView over = new ImageView();
-	
-	//put something like label or mark, else
+	private final ImageView over = new ImageView();	
+	//let user do mask, one-brush means one-category 
+	private final Canvas tarp = new Canvas();
+	//put something like label or mark, whatever~~~
 	private final AnchorPane pane = new AnchorPane();
+	//layout-base
+	private final ScrollPane base = new ScrollPane(
+		new StackPane(view, over, tarp, pane)
+	);
 	
 	public ImgView(){
-		setContent(new StackPane(view, over, pane));
-		setHbarPolicy(ScrollBarPolicy.ALWAYS);
-		setVbarPolicy(ScrollBarPolicy.ALWAYS);		
-		setFitToHeight(false);
-		setFitToWidth(false);
-		setMinSize(240+23,240+23);	
+		StackPane.setAlignment(view, Pos.TOP_LEFT);
+		StackPane.setAlignment(over, Pos.TOP_LEFT);
+		StackPane.setAlignment(pane, Pos.TOP_LEFT);
+		StackPane.setAlignment(tarp, Pos.TOP_LEFT);
+		view.setCache(true);
+		view.setMouseTransparent(true);
+		over.setCache(true);
+		over.setMouseTransparent(true);
+		tarp.setMouseTransparent(true);
+		//lay1.setMouseTransparent(true);
+		base.setHbarPolicy(ScrollBarPolicy.ALWAYS);
+		base.setVbarPolicy(ScrollBarPolicy.ALWAYS);		
+		base.setFitToHeight(false);
+		base.setFitToWidth(false);
+		getChildren().addAll(base);
+		setStyle("-fx-padding: 7px;");
 		init_menu();
-		init_dia_mark();
-		//setStyle("-fx-border-color: chocolate; -fx-border-width: 4px;");//DEBUG!!!
-		//final MenuItem itm1 = new MenuItem("導航");
-		//itm1.disableProperty().bind(pan_navi.visibleProperty());
-		//itm1.setOnAction(e->pan_navi.setVisible(true));		
+		//getChildren().add(new Button("ggyy"));
+		//setStyle("-fx-border-color: chocolate; -fx-border-width: 4px;");//DEBUG!!!		
 	}
 
-	public Pane getPane() {
+	public ImageView getOverlay() {
+		return over;
+	}
+	public AnchorPane getImgBoard() {
 		return pane;
 	}
+	public void attachPane(final Node node,final String id_name) {
+		StackPane.setAlignment(node, Pos.TOP_LEFT);
+		getChildren().add(node);
+		node.setId(id_name);
+	}
+	public void unattachPane(final String id_name) {
+		pane.setOnMouseClicked(null);
+		pane.setOnMouseDragged(null);
+		for(Node obj:getChildren()) {
+			String id = obj.getId();
+			if(id==null) {
+				continue;
+			}
+			if(obj.getId().equals(id_name)==false) {
+				continue;
+			}
+			getChildren().remove(obj);
+			return;
+		}
+	}
+	
+	private static final String pane_name = "view_ctrl_pane";
+	public void attachPane(final Node node) {
+		attachPane(node, pane_name);
+	}
+	public void unattachPane() {
+		unattachPane(pane_name);
+	}
+	
 	
 	/**
 	 * scale image parameter.<p>
@@ -87,286 +139,9 @@ public class ImgView extends ScrollPane {
 		view.setPreserveRatio(true);
 	}
 	
-	/*private static final char SHAPE_RECT  = 'R';
-	private static final char SHAPE_CROSS = 'T';
-	private static final char SHAPE_CIRCLE= 'C';
-	private class Mark extends Path {
-		final CheckMenuItem chkItem;
-		boolean used = false;
-		char shape = SHAPE_RECT;
-		int[] loca = { 0,  0};
-		int[] volu = {50, 50};
-		public Mark(String name, Color cc){
-			chkItem = new CheckMenuItem(name);
-			chkItem.setOnAction(event->{
-				if(chkItem.isSelected()==true){
-					used = true;
-					bord.getChildren().add(this);
-				}else{
-					used = false;
-					bord.getChildren().remove(this);
-				}
-				update();
-			});
-			setStrokeWidth(3);
-			setStroke(cc);
-			setPickOnBounds(false);
-			setOnMouseClicked(e->{
-				if(e.getButton().equals(MouseButton.PRIMARY)==false){
-					return;
-				}
-				if(e.getClickCount()<2){
-					return;
-				}
-				diaMark.getDialogPane().setUserData(this);
-				diaMark.show();
-			});
-			getElements().add(new MoveTo(0.,0.));//prevent crash~~~
-		}
-		void update(){
-			AnchorPane.setLeftAnchor(this, (double)loca[0]);
-			AnchorPane.setTopAnchor (this, (double)loca[1]);
-			getElements().remove(
-				1, 
-				getElements().size()
-			);
-			switch(shape){
-			case SHAPE_RECT:
-				getElements().addAll(
-					new HLineTo(volu[0]), new VLineTo(volu[1]),
-					new HLineTo(0), new VLineTo(0)
-				);
-				break;
-			case SHAPE_CROSS:
-				getElements().addAll(
-					new MoveTo(volu[0]/2,0.), new VLineTo(volu[1]),
-					new MoveTo(0,volu[1]/2 ), new HLineTo(volu[0])
-				);
-				break;
-			case SHAPE_CIRCLE:
-				getElements().addAll(
-					new ArcTo(
-						volu[0]/2, volu[1]/2,
-						0.,
-						1, 0,
-						true, false
-					)
-				);
-				break;
-			}
-		}
-	};*/
-
-	private class Mark extends Group {
-		final CheckMenuItem chk = new CheckMenuItem();
-		final Arc pin_1 = new Arc();
-		final Arc pin_2 = new Arc();
-		final Rectangle fence = new Rectangle();
-		final double PIN_SIZE = 13.;
-		boolean used = false;
-		Mark(String name, Color cc){
-			chk.setText(name);
-			chk.setOnAction(e->{
-				used = chk.isSelected();
-				if(used==true){
-					pane.getChildren().add(this);
-				}else{
-					pane.getChildren().remove(this);
-				}
-			});
-			update(0,0,100,100);
-			fence.setStrokeWidth(2);
-			fence.setStroke(cc);
-			fence.setFill(Color.TRANSPARENT);
-			pin_1.setRadiusX(PIN_SIZE);
-			pin_1.setRadiusY(PIN_SIZE);
-			pin_1.setStartAngle(0.);
-			pin_1.setLength(-90.);
-			pin_1.setFill(cc);
-			pin_1.setType(ArcType.ROUND);
-			pin_1.setOnMouseDragged(e->{
-				update(e.getX(), e.getY(), -1, -1);
-			});
-			pin_2.setRadiusX(PIN_SIZE);
-			pin_2.setRadiusY(PIN_SIZE);
-			pin_2.setStartAngle(90.);
-			pin_2.setLength(90.);
-			pin_2.setFill(cc);
-			pin_2.setType(ArcType.ROUND);
-			pin_2.setOnMouseDragged(e->{
-				double ww = e.getX() - fence.getX();
-				double hh = e.getY() - fence.getY();
-				update(-1, -1, ww, hh);
-			});
-			getChildren().addAll(fence,pin_1,pin_2);
-		}
-		
-		void update(double xx, double yy, double ww, double hh) {
-			if(xx>=0) {
-				fence.setX(xx);	
-			}
-			if(yy>=0) {
-				fence.setY(yy);			
-			}
-			if(ww>0) {
-				fence.setWidth(ww);
-			}
-			if(hh>0) {
-				fence.setHeight(hh);
-			}
-			pin_1.setCenterX(fence.getX());
-			pin_1.setCenterY(fence.getY());
-			pin_2.setCenterX(fence.getX()+fence.getWidth());
-			pin_2.setCenterY(fence.getY()+fence.getHeight());
-		}
-		void setInfo(int xx, int yy, int ww, int hh) {
-			update(xx,yy,ww,hh);
-			chk.setSelected(true);
-			chk.fire();
-		}
-		int[] getInfo() {
-			int[] info = {
-				(int)fence.getX(), 
-				(int)fence.getY(),
-				(int)fence.getWidth(),
-				(int)fence.getHeight()				
-			};
-			return info;
-		}
-	};
-	private Mark[] lstMark = {
-		new Mark("mark-1", Color.YELLOW),
-		new Mark("mark-2", Color.DEEPSKYBLUE),
-		new Mark("mark-3", Color.BLUEVIOLET),
-		new Mark("mark-4", Color.CRIMSON),
-	};
-	
-	private Dialog<Void> diaMark = new Dialog<>();
-	private void init_dia_mark(){
-		final ComboBox<String> cmbShape = new ComboBox<>();
-		cmbShape.getItems().addAll("方框","十字","圓框");
-		final TextField[] boxValue = {
-			new TextField(),
-			new TextField(),	
-			new TextField(),
-			new TextField(),
-		};
-		for(TextField b:boxValue){
-			b.setMaxWidth(73);
-			//GridPane.setHgrow(b,Priority.ALWAYS);
-		}
-		diaMark.setTitle("標記設定");
-		diaMark.setHeaderText(null);
-		final GridPane lay = new GridPane();
-		lay.setHgap(10);
-		lay.setVgap(10);
-		lay.setPadding(new Insets(20, 150, 10, 10));
-		lay.addRow(0, new Label("形狀"), cmbShape);
-		lay.addRow(1, new Label("X"), boxValue[0]);
-		lay.addRow(2, new Label("Y"), boxValue[1]);
-		lay.addRow(3, new Label("W"), boxValue[2]);
-		lay.addRow(4, new Label("H"), boxValue[3]);
-		/*diaMark.setOnShown(e->{
-			Mark mark = (Mark)diaMark.getDialogPane().getUserData();
-			int sid = 0;
-			switch(mark.shape){
-			case SHAPE_RECT  : sid=0; break;
-			case SHAPE_CROSS : sid=1; break;
-			case SHAPE_CIRCLE: sid=2; break;
-			}
-			cmbShape.getSelectionModel().select(sid);
-			boxValue[0].setText(""+mark.loca[0]);
-			boxValue[1].setText(""+mark.loca[1]);
-			boxValue[2].setText(""+mark.volu[0]);
-			boxValue[3].setText(""+mark.volu[1]);
-		});		
-		diaMark.getDialogPane().getButtonTypes().addAll(
-			ButtonType.APPLY,
-			ButtonType.CANCEL
-		);
-		((Button)diaMark.getDialogPane()
-			.lookupButton(ButtonType.APPLY))
-			.addEventFilter(ActionEvent.ACTION, event->{
-				Mark mark = (Mark)diaMark.getDialogPane().getUserData();
-				int sid = cmbShape.getSelectionModel().getSelectedIndex();
-				switch(sid){
-				case 0: mark.shape = SHAPE_RECT; break;
-				case 1: mark.shape = SHAPE_CROSS; break;
-				case 2: mark.shape = SHAPE_CIRCLE; break;
-				}
-				mark.loca[0] = Integer.valueOf(boxValue[0].getText());
-				mark.loca[1] = Integer.valueOf(boxValue[1].getText());
-				mark.volu[0] = Integer.valueOf(boxValue[2].getText());
-				mark.volu[1] = Integer.valueOf(boxValue[3].getText());
-				mark.update();
-				event.consume();
-			});
-		diaMark.getDialogPane().setContent(lay);*/
-	}
-	
-	/**
-	 * this function must be invoked by main thread.<p>
-	 * @param txt - flat text for recording mark information
-	 */
-	public void setMarkByFlat(final String txt){
-		if(txt.length()==0){
-			return;
-		}
-		String[] col = txt.split("#");
-		for(int i=0; i<col.length; i++){
-			if(col[i].length()<=1){
-				continue;
-			}
-			if(i>=lstMark.length){
-				return;
-			}
-			String[] val = col[i].split(",");
-			lstMark[i].setInfo(
-				Integer.valueOf(val[1]), 
-				Integer.valueOf(val[2]),
-				Integer.valueOf(val[3]),
-				Integer.valueOf(val[4])
-			);
-		}
-	}
-	
-	public String getMarkByFlat(){
-		String txt ="";
-		for(Mark mm:lstMark){
-			if(mm.used==false){
-				txt = txt + "_#";
-			}else{
-				int[] info = mm.getInfo();
-				txt = txt + String.format(
-					"R,%d,%d,%d,%d#",
-					info[0], info[1],					
-					info[2], info[3]
-				);
-			}
-		}
-		return txt;
-	}
-	
-	public void getMarkByArray(final int[] array){
-		int i=0;
-		for(Mark mm:lstMark){
-			if((i*4+3)>=array.length){
-				return;
-			}
-			if(mm.used==true){
-				int[] info = mm.getInfo();
-				array[i*4+0] = info[0];//location - x
-				array[i*4+1] = info[1];//location - y
-				array[i*4+2] = info[2];//geometry - width
-				array[i*4+3] = info[3];//geometry - height
-			}
-			i+=1;
-		}
-	}
-	
 	private final static FileChooser diaFile = new FileChooser();
 	
-	private void init_menu(){
+	private void init_menu(){		
 		final ToggleGroup tgl_zoom = new ToggleGroup();
 		final RadioMenuItem[] itm_zoom = {
 			new RadioMenuItem("4:1"),
@@ -416,26 +191,51 @@ public class ImgView extends ScrollPane {
 			diaFile.setInitialDirectory(fs.getParentFile());
 			save(fs);
 		});
-		
-		final Menu itm_mark = new Menu("標記");
-		itm_mark.getItems().addAll(
-			lstMark[0].chk,
-			lstMark[1].chk,
-			lstMark[2].chk,
-			lstMark[3].chk
-		);
-		
-		setContextMenu(new ContextMenu(
-			itm_load,itm_save,
-			itm_mark,
-			men_zoom
+		final ToggleGroup tgl_mark = new ToggleGroup();
+		final RadioMenuItem[] itm_mark = {
+			new RadioMenuItem("位置"),
+			new RadioMenuItem("ROI"),
+			new RadioMenuItem("圖刷")
+		};
+		itm_mark[0].setUserData(0);
+		itm_mark[1].setUserData(1);
+		itm_mark[2].setUserData(2);
+		for(RadioMenuItem itm:itm_mark) {
+			itm.setToggleGroup(tgl_mark);
+			itm.setOnAction(e->{
+				unattachPane();
+				RadioMenuItem obj = (RadioMenuItem)tgl_mark.getUserData();
+				if(obj==itm) {
+					tgl_mark.setUserData(null);
+					tgl_mark.selectToggle(null);
+				}else{
+					tgl_mark.setUserData(itm);
+					switch((int)itm.getUserData()) {
+					case 0: applyMarkPin(); break;
+					case 1: applyMarkROI(); break;
+					case 2: applyMarkBrush(); break;
+					}
+				}				
+			});
+		}
+
+		final Menu men_mark = new Menu("標記");
+		men_mark.getItems().addAll(itm_mark);
+		base.setContextMenu(new ContextMenu(
+			men_mark,
+			men_zoom,
+			itm_load,
+			itm_save			
 		));
 	}
 	
-	public void refresh(final ImgFlim dat){
+	public void refresh(final ImgFilm dat){
 		Image[] v = dat.getImage();
 		view.setImage(v[0]);
 		over.setImage(v[1]);
+		tarp.setWidth(v[0].getWidth());
+		tarp.setHeight(v[0].getHeight());		
+		//over.getGraphicsContext2D().drawImage(v[1], 0., 0.);
 	}
 	
 	public void save(final String name){
@@ -461,6 +261,298 @@ public class ImgView extends ScrollPane {
 		} catch (Exception e1) {
 			e1.printStackTrace();
 		}
+	}
+	
+	//---------------------------------//
+
+	private abstract class Mark extends Group {
+		char shape = 0;
+		int locaX=0, locaY=0;
+		int sizeW=1, sizeH=1;
+		abstract void setLoca(double x, double y);
+		abstract void setSize(double w, double h);
+	};
+	private class MarkPin extends Mark {
+		int rr = 10;
+		MarkPin(Color cc){			
+			shape = 'x';
+			final Path p = new Path(
+				new MoveTo(-rr, -rr), new LineTo(-1,-1),
+				new MoveTo(-rr,  rr), new LineTo(-1, 1),
+				new MoveTo( rr, -rr), new LineTo( 1,-1),
+				new MoveTo( rr,  rr), new LineTo( 1, 1)
+			);
+			p.setStroke(cc);
+			p.setStrokeWidth(2);
+			getChildren().add(p);
+		}
+		@Override
+		void setLoca(double x, double y) {
+			locaX = (int)x;
+			locaY = (int)y;
+			AnchorPane.setLeftAnchor(this, x-rr);
+			AnchorPane.setTopAnchor (this, y-rr);
+		}
+		@Override
+		void setSize(double w, double h) {
+			//For this mask, this is no function~~~~
+		}
+	};
+	private class MarkRect extends Mark {
+		Rectangle rect;
+		MarkRect(Color cc){
+			shape = 'r';
+			sizeW = 100;
+			sizeH = 100;
+			rect = new Rectangle(0, 0, sizeW, sizeH);
+			rect.setStrokeWidth(2);
+			rect.setStroke(cc);
+			rect.setFill(Color.TRANSPARENT);
+			getChildren().addAll(rect);			
+		}
+		@Override
+		void setLoca(double x, double y) {
+			if(x>=0.) {
+				locaX = (int)x - sizeW/2;
+				AnchorPane.setLeftAnchor(this, (double)locaX);
+			}
+			if(y>=0.) {
+				locaY = (int)y - sizeW/2;
+				AnchorPane.setTopAnchor (this, (double)locaY);
+			}
+		}
+		@Override
+		void setSize(double w, double h) {
+			if(w>=0) {
+				sizeW = (int)w;
+				rect.setWidth(w);
+			}
+			if(h>=0) {
+				sizeH = (int)h;
+				rect.setHeight(h);
+			}
+		}
+	};
+	
+	private Mark[] markObj = {
+		new MarkPin(Color.YELLOW),
+		new MarkPin(Color.DEEPSKYBLUE),
+		new MarkPin(Color.BLUEVIOLET),
+		new MarkPin(Color.CRIMSON),
+		new MarkRect(Color.YELLOW),
+		new MarkRect(Color.DEEPSKYBLUE),
+		new MarkRect(Color.BLUEVIOLET),
+		new MarkRect(Color.CRIMSON),
+	};
+
+	private Mark apply_mark(
+		final ToggleGroup grp,
+		final MouseEvent event		
+	) {
+		if (event.getButton()!=MouseButton.PRIMARY) {
+			return null;
+		}
+		Toggle tgl = grp.getSelectedToggle();
+		if(tgl==null) {
+			return null;
+		}
+		Mark mm = (Mark)tgl.getUserData();
+		mm.setLoca(event.getX(), event.getY());
+		ObservableList<Node> lst = pane.getChildren();
+		if(lst.contains(mm)==false) {
+			lst.add(mm);
+		}
+		return mm;
+	}
+	
+	private void apply_rect(
+		final ToggleGroup grp,		
+		final TextField box,
+		final char name
+	) {
+		Toggle tgl = grp.getSelectedToggle();
+		if(tgl==null) {
+			return;
+		}
+		Mark mm = (Mark)tgl.getUserData();
+		try {
+			int vv = Integer.valueOf(box.getText());
+			switch(name) {
+			case 'x': mm.setLoca(vv, -1); break;
+			case 'y': mm.setLoca(-1, vv); break;
+			case 'w': mm.setSize(vv, -1); break;
+			case 'h': mm.setSize(-1, vv); break;
+			}			
+		}catch(NumberFormatException e) {
+			switch(name) {
+			case 'x': box.setText(String.valueOf(mm.locaX)); break;
+			case 'y': box.setText(String.valueOf(mm.locaY)); break;
+			case 'w': box.setText(String.valueOf(mm.sizeW)); break;
+			case 'h': box.setText(String.valueOf(mm.sizeH)); break;
+			}
+		}
+	}
+	
+	private void clear_mark(final ToggleGroup grp) {
+		Toggle tgl = grp.getSelectedToggle();
+		if(tgl==null) {
+			return;
+		}
+		Mark mm = (Mark)tgl.getUserData();
+		ObservableList<Node> lst = pane.getChildren();
+		if(lst.contains(mm)==true) {
+			lst.remove(mm);
+		}
+		grp.selectToggle(null);
+	}
+	
+	private void applyMarkPin() {
+		final ToggleGroup grp = new ToggleGroup();
+		final ToggleButton btn[] = {
+			new ToggleButton("pin-1"),
+			new ToggleButton("pin-2"),
+			new ToggleButton("pin-3"),
+			new ToggleButton("pin-4"),
+		};
+		btn[0].setToggleGroup(grp);
+		btn[1].setToggleGroup(grp);
+		btn[2].setToggleGroup(grp);
+		btn[3].setToggleGroup(grp);
+		btn[0].setUserData(markObj[0]);
+		btn[1].setUserData(markObj[1]);
+		btn[2].setUserData(markObj[2]);
+		btn[3].setUserData(markObj[3]);
+		
+		final Button btnClear = new Button("清除");
+		btnClear.setMaxWidth(Double.MAX_VALUE);
+		btnClear.setOnAction(e->clear_mark(grp));
+		
+		pane.setOnMouseClicked(e->apply_mark(grp,e));
+		
+		final VBox lay0 = new VBox();
+		lay0.getChildren().addAll(btn);
+		lay0.getChildren().addAll(btnClear);
+		lay0.setMaxSize(Control.USE_PREF_SIZE, Control.USE_PREF_SIZE);
+		//lay0.setStyle(vbox_css);
+		lay0.getStyleClass().add("view-mark-vbox");
+		attachPane(lay0);
+	}
+	
+	private void applyMarkROI() {
+		final ToggleGroup grp = new ToggleGroup();
+		final ToggleButton btn[] = {
+			new ToggleButton("ROI-1"),
+			new ToggleButton("ROI-2"),
+			new ToggleButton("ROI-3"),
+			new ToggleButton("ROI-4"),
+		};
+		for(ToggleButton b:btn) {
+			b.setToggleGroup(grp);
+			b.setMaxWidth(Double.MAX_VALUE);
+		}
+		btn[0].setUserData(markObj[4]);
+		btn[1].setUserData(markObj[5]);
+		btn[2].setUserData(markObj[6]);
+		btn[3].setUserData(markObj[7]);
+		
+		final TextField[] box = {
+			new TextField(),new TextField(),
+			new TextField(),new TextField(),
+		};
+		for(TextField b:box) {
+			b.setPrefWidth(43);			
+		}
+		box[0].setOnAction(e->apply_rect(grp,box[0],'x'));
+		box[1].setOnAction(e->apply_rect(grp,box[1],'y'));
+		box[2].setOnAction(e->apply_rect(grp,box[2],'w'));
+		box[3].setOnAction(e->apply_rect(grp,box[3],'h'));
+		
+		final Button btnClear = new Button("清除");
+		btnClear.setMaxWidth(Double.MAX_VALUE);
+		btnClear.setOnAction(e->clear_mark(grp));
+		
+		pane.setOnMouseClicked(e->{
+			Mark mm = apply_mark(grp,e);
+			if(mm==null) {
+				return;
+			}
+			box[0].setText(String.format("%d",mm.locaX));
+			box[1].setText(String.format("%d",mm.locaY));
+			box[2].setText(String.format("%d",mm.sizeW));
+			box[3].setText(String.format("%d",mm.sizeH));
+		});
+		
+		final GridPane lay = new GridPane();
+		lay.add(btn[0], 0, 0, 4, 1);
+		lay.add(btn[1], 0, 1, 4, 1);
+		lay.add(btn[2], 0, 2, 4, 1);
+		lay.add(btn[3], 0, 3, 4, 1);
+		lay.addRow(4, new Label("X"), box[0], new Label("W"), box[2]);
+		lay.addRow(5, new Label("Y"), box[1], new Label("H"), box[3]);
+		lay.add(btnClear, 0, 6, 4, 1);
+		lay.setMaxSize(Control.USE_PREF_SIZE, Control.USE_PREF_SIZE);
+		lay.getStyleClass().addAll("view-mark","grid-medium");
+		attachPane(lay);
+	}
+	
+	private GraphicsContext b_gc;
+	private Color b_cc;
+	private int b_rad = 20;
+	
+	private void applyMarkBrush() {
+		final ToggleGroup grp = new ToggleGroup();
+		final ToggleButton btn[] = {
+			new ToggleButton("brush-1"),
+			new ToggleButton("brush-2"),
+			new ToggleButton("brush-3"),
+			new ToggleButton("brush-4"),
+			new ToggleButton("Clear"),
+		};
+		btn[0].setUserData(Color.YELLOW);
+		btn[1].setUserData(Color.DEEPSKYBLUE);
+		btn[2].setUserData(Color.BLUEVIOLET);
+		btn[3].setUserData(Color.CRIMSON);
+		btn[4].setUserData(Color.TRANSPARENT);
+		for(ToggleButton b:btn) {
+			b.setToggleGroup(grp);
+			b.setOnAction(e->{
+				b_cc = (Color)b.getUserData();
+			});
+		}
+		
+		final TextField boxSize = new TextField();
+		boxSize.setPrefWidth(43);
+		boxSize.setText(String.valueOf(b_rad));
+		boxSize.setOnAction(e->{
+			b_rad = Integer.valueOf(boxSize.getText());
+		});
+		
+		b_gc = tarp.getGraphicsContext2D();
+		pane.setOnMouseDragged(e->{
+			if(grp.getSelectedToggle()==null) {
+				return;
+			}
+			b_gc.setStroke(b_cc);
+			b_gc.setFill(b_cc);
+			double xx = e.getX()-b_rad/2;
+			double yy = e.getY()-b_rad/2;
+			if(b_cc==Color.TRANSPARENT) {				
+				b_gc.clearRect(xx , yy,	b_rad, b_rad);
+			}else {
+				b_gc.fillOval(xx, yy, b_rad, b_rad);
+			}
+		});
+		
+		final GridPane lay = new GridPane();
+		lay.add(btn[0], 0, 0, 4, 1);
+		lay.add(btn[1], 0, 1, 4, 1);
+		lay.add(btn[2], 0, 2, 4, 1);
+		lay.add(btn[3], 0, 3, 4, 1);
+		lay.add(btn[4], 0, 4, 4, 1);
+		lay.addRow(5, new Label("Size"), boxSize);
+		lay.setMaxSize(Control.USE_PREF_SIZE, Control.USE_PREF_SIZE);
+		lay.getStyleClass().addAll("view-mark","grid-medium");
+		attachPane(lay);
 	}
 }
 

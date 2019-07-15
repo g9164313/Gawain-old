@@ -6,7 +6,7 @@
  */
 
 #include <global.hpp>
-#include "vision.hpp"
+#include "../running/deprecated/vision.hpp"
 
 static void img2dat(const Mat& img, Mat& dat){
 	int size = std::min(img.cols,img.rows);

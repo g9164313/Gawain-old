@@ -4,12 +4,11 @@ public abstract class Capture {
 	
 	protected long context;
 	
-	private ImgFlim film = new ImgFlim();
+	private ImgFilm film = new ImgFilm();
 	
-	public ImgFlim getFilm(){
+	public ImgFilm getFilm(){
 		return film;
 	}
-	
 	
 	public Capture refresh(
 		final ImgView view
@@ -29,10 +28,8 @@ public abstract class Capture {
 	){
 		film.setSnap(count);		
 		fetch(film);
-		view.getMarkByArray(film.mark);
-		if(hook!=null){
-			hook.run();
-		}
+		//TODO:????view.getMarkByArray(film.mark);
+		if(hook!=null){ hook.run();	}
 		view.refresh(film);
 		return this;
 	}
@@ -42,7 +39,7 @@ public abstract class Capture {
 	protected void afterSetup(){		
 	}
 	
-	abstract void fetch(ImgFlim data);
+	abstract void fetch(ImgFilm data);
 	
 	abstract void done();
 }

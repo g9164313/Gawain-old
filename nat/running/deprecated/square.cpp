@@ -1,4 +1,4 @@
-#include "deprecated/square.hpp"
+#include "../running/deprecated/square.hpp"
 
 #include <global.hpp>
 

@@ -96,7 +96,7 @@ public class Gawain extends Application {
 		}
 	}
 	
-	public static Properties getSetting(){
+	public static Properties prop(){
 		return propCache;
 	}
 	
@@ -454,7 +454,7 @@ public class Gawain extends Application {
 	}
 	
 	private static final CountDownLatch e_latch = new CountDownLatch(1);
-
+	
 	@Override
 	public void stop() throws Exception {
 		e_latch.countDown();

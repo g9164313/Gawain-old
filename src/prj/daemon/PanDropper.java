@@ -22,7 +22,7 @@ import narl.itrc.Misc;
 import narl.itrc.PanBase;
 import narl.itrc.vision.CapVidcap;
 import narl.itrc.vision.DevCamera;
-import narl.itrc.vision.ImgView;
+import narl.itrc.vision.ImgFilm;
 
 public class PanDropper extends PanBase {
 
@@ -30,54 +30,15 @@ public class PanDropper extends PanBase {
 	private final CapVidcap vid = new CapVidcap(800,600);
 	private final DevCamera cam = new DevCamera(vid);
 	
-	private void process_1(){
-		final int sp = 20;
-		check_point(  0,  0, "../bang/pos0.png");		
-		check_point( sp,  0, "../bang/pos1.png");
-		check_point(-sp,  0, "../bang/pos2.png");
-		check_point(  0, sp, "../bang/pos3.png");
-		check_point(  0,-sp, "../bang/pos4.png");
-		check_point( sp, sp, "../bang/pos5.png");
-		check_point( sp,-sp, "../bang/pos6.png");
-		check_point(-sp, sp, "../bang/pos7.png");
-		check_point(-sp,-sp, "../bang/pos8.png");
-		oko.moveAbs(0, 0);
-	}
-	
-	private void check_point(
-		final int xx, 
-		final int yy, 
-		final String name
-	){
-		oko.moveAbs(xx, yy);
-		Misc.delay(1000);
-		cam.getView(0).save(name);
-		Misc.delay(1000);
-	}
+	private native void stub1(DevCamera cam, ImgFilm film);
 	
 	@Override
 	public Node eventLayout(PanBase self) {
-		cam.getView(0).setMinSize(800+23, 600+23);
-		//cam.getPane(0).setOnMouseClicked(e->{	
-		//});
-		stage().setOnHidden(e->{
-			String txt = cam.getView(0).getMarkByFlat();
-			Gawain.getSetting().setProperty("VIEW_MARK", txt);
-		});
-		
-		final BorderPane lay0 = new BorderPane();
-		lay0.setCenter(cam.getView(0));
-		final BorderPane lay2 = new BorderPane();
-		lay2.setCenter(lay0);
-		lay2.setLeft(pan_setting());
-		return lay2;
-	}
-	
-	private VBox pan_setting(){
+		cam.setMinSize(800+33,600+33);
 		
 		final JFXToggleButton chkOko = new JFXToggleButton();
-		chkOko.setText("移動平台");
-		chkOko.setStyle("-fx-font-size: 1.8em;");
+		chkOko.setText("平台");
+		chkOko.setStyle("-fx-font-size: 23px;");
 		chkOko.setOnAction(e->{
 			if(chkOko.isSelected()==true){
 				oko.link("/dev/ttyACM0,115200,8n1");
@@ -88,35 +49,74 @@ public class PanDropper extends PanBase {
 		
 		final JFXToggleButton chkCam = new JFXToggleButton();
 		chkCam.setText("相機");
-		chkCam.setStyle("-fx-font-size: 1.8em;");
+		chkCam.setStyle("-fx-font-size: 23px;");
 		chkCam.setOnAction(e->{
 			if(chkCam.isSelected()==true){
-				cam.link();
-				cam.livePlay(1);
+				cam.play(1);
 			}else{
-				cam.unlink();
+				cam.pause();
 			}
 		});
-
+		
 		final BooleanBinding flag1 = chkOko.selectedProperty().not();
 		final BooleanBinding flag2 = chkCam.selectedProperty().not();
-
-		final VBox lay0 = new VBox(
-			chkOko, chkCam,
-			lay_procesure(flag1, flag2),
-			lay_cnc_inform(flag1),
-			lay_cnc_jogging(flag1),
-			lay_cnc_anchor(flag1)
-		);
-		lay0.getStyleClass().add("vbox-medium");
+		final BooleanBinding flag3 = flag1.or(flag2);
+		
+		final JFXButton btnCNC = new JFXButton("平台控制");		
+		btnCNC.getStyleClass().add("btn-raised-1");
+		btnCNC.disableProperty().bind(flag1);
+		
+		final JFXButton btnCAM = new JFXButton("相機控制");		
+		btnCAM.getStyleClass().add("btn-raised-1");
+		btnCAM.disableProperty().bind(flag2);
+		
+		final JFXButton btn1 = new JFXButton("軌跡追蹤");		
+		btn1.getStyleClass().add("btn-raised-2");
+		btn1.disableProperty().bind(flag3);
+		
+		final JFXButton btn2 = new JFXButton("軌跡辨識");		
+		btn2.getStyleClass().add("btn-raised-2");
+		btn2.disableProperty().bind(flag3);
+		
+		final JFXButton btn3 = new JFXButton("test1");
+		btn3.getStyleClass().add("btn-raised-2");
+		btn3.setMaxWidth(Double.MAX_VALUE);
+		btn3.setOnAction(e->{
+			cam.startProcess(()->stub1(cam,cam.getFilm()));
+		});
+		
+		final JFXButton btn4 = new JFXButton("test2");
+		btn4.getStyleClass().add("btn-raised-2");
+		btn4.setMaxWidth(Double.MAX_VALUE);
+		btn4.setOnAction(e->{
+			cam.stopProcess();
+		});
 		
 		stage().setOnShown(e->{
 			//chkOko.fire();
-			//chkCam.fire();
-			String txt = Gawain.getSetting().getProperty("VIEW_MARK","");
-			cam.getView(0).setMarkByFlat(txt);
+			chkCam.fire();
+			//String txt = Gawain.prop().getProperty("VIEW_MARK","");
+			//cam.getView().setMarkByFlat(txt);
 		});
-		return lay0;
+		stage().setOnHidden(e->{
+			//String txt = cam.getView().getMarkByFlat();
+			//Gawain.getSetting().setProperty("VIEW_MARK", txt);
+		});
+
+		final VBox lay0 = new VBox(
+			chkOko, chkCam, 
+			btnCNC, btnCAM, 
+			btn1, btn2, btn3, btn4
+		);
+		lay0.getStyleClass().add("vbox-medium");
+		
+		final BorderPane lay1 = new BorderPane();
+		lay1.setCenter(cam);
+		
+		final BorderPane lay2 = new BorderPane();
+		lay2.setLeft(lay0);
+		lay2.setCenter(lay1);		
+		return lay2;
 	}
 	
 	private Pane lay_procesure(
@@ -141,7 +141,6 @@ public class PanDropper extends PanBase {
 		btnProc1.getStyleClass().add("btn-raised-1");
 		btnProc1.setMaxWidth(Double.MAX_VALUE);
 		btnProc1.disableProperty().bind(flag1.or(flag2));
-		btnProc1.setOnAction(e->doDuty(()->process_1()));
 
 		final JFXButton btnProc2 = new JFXButton("Test2");		
 		btnProc2.getStyleClass().add("btn-raised-1");
@@ -211,7 +210,7 @@ public class PanDropper extends PanBase {
 		btn1.setOnAction(e->{
 			int xx = Misc.txt2int(box[0].getText());
 			int yy = Misc.txt2int(box[1].getText());
-			oko.move_atom(xx, yy, chk.isSelected());
+			oko.syncMove(xx, yy, chk.isSelected());
 		});
 		
 		final JFXButton btn2 = new JFXButton("零點");
@@ -234,7 +233,7 @@ public class PanDropper extends PanBase {
 		final Button btnBk = gen_bounce_button("chevron-down.png",DIR_Y_DEC);//backward		
 		final Button btnRh = gen_bounce_button("chevron-right.png",DIR_X_INC);		
 		final Button btnLf = gen_bounce_button("chevron-left.png",DIR_X_DEC);
-		final Button btnUp = gen_bounce_button("arrow-up.png",DIR_Z_INC);//Z-axis up		
+		final Button btnUp = gen_bounce_button("arrow-up.png"  ,DIR_Z_INC);//Z-axis up		
 		final Button btnDw = gen_bounce_button("arrow-down.png",DIR_Z_DEC);//Z-axis down
 		
 		final GridPane lay = new GridPane();
@@ -254,18 +253,17 @@ public class PanDropper extends PanBase {
 	
 	private Timeline jog_watch = new Timeline(new KeyFrame(
 		Duration.millis(10), event->{
-			final String param = "2F600\n";
+			final String param = "1F50\n";
 			switch(jog_dir_c){
 			case DIR_Y_INC: oko.exec_atom("$J=G91Y+"+param); break;
 			case DIR_Y_DEC: oko.exec_atom("$J=G91Y-"+param); break;
 			case DIR_X_INC: oko.exec_atom("$J=G91X+"+param); break;
 			case DIR_X_DEC: oko.exec_atom("$J=G91X-"+param); break;
-			case DIR_Z_INC: oko.exec_atom("$J=G91Z+"+param); break;
-			case DIR_Z_DEC: oko.exec_atom("$J=G91Z-"+param); break;
+			case DIR_Z_INC: oko.exec_atom("$J=G91Z-"+param); break;
+			case DIR_Z_DEC: oko.exec_atom("$J=G91Z+"+param); break;
 			}
 		}
 	));
-	
 	private Button gen_bounce_button(
 		final String icon_name,
 		final char dir
@@ -280,9 +278,7 @@ public class PanDropper extends PanBase {
 		});		
 		btn.setOnMouseReleased(e->{
 			if(e.getButton()==MouseButton.PRIMARY){
-				jog_dir_c = 0;
 				jog_watch.stop();
-				oko.exec("G4P0\n");				
 			}
 		});
 		return btn;

@@ -5,8 +5,8 @@
  *      Author: qq
  */
 
-#ifndef VISION_BUNDLE_HPP_
-#define VISION_BUNDLE_HPP_
+#ifndef VISION_HPP_
+#define VISION_HPP_
 
 #include <jni.h>
 #include <vector>
@@ -14,8 +14,10 @@
 #include <fstream>
 #include <opencv/cv.h>
 #include <opencv2/opencv.hpp>
-using namespace cv;
+#include <opencv2/ml.hpp>
 using namespace std;
+using namespace cv;
+using namespace ml;
 
 #define TICK_BEG \
 	{int64 __tick=getTickCount();
@@ -55,7 +57,7 @@ using namespace std;
 	jfieldID f_type = env->GetFieldID(dat_clzz,"cvType","I"); \
 	jfieldID f_snap = env->GetFieldID(dat_clzz,"snap" ,"I"); \
 	jint snap = env->GetIntField(obj, f_snap); \
-	jobject o_pool= env->GetObjectField( obj, env->GetFieldID(dat_clzz,"pool","[B") ); \
+	jobject o_pool= env->GetObjectField(obj, env->GetFieldID(dat_clzz,"pool","[B") ); \
 	while(false)
 
 #define FINISH_IMG_DAT(obj, img) \
@@ -89,4 +91,4 @@ using namespace std;
 	env->ReleaseByteArrayElements(*j_pool, pool, 0); \
 	while(false)
 
-#endif /* VISION_BUNDLE_HPP_ */
+#endif /* VISION_HPP_ */

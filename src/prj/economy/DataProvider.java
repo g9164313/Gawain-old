@@ -157,7 +157,7 @@ public class DataProvider {
 		base = null;
 		if(key_file==null){
 			//load from default setting
-			key_file = Gawain.getSetting().getProperty(KEY_NAME, null);
+			key_file = Gawain.prop().getProperty(KEY_NAME, null);
 			if(key_file==null){				
 				return;
 			}
@@ -169,7 +169,7 @@ public class DataProvider {
 				.setDatabaseUrl("https://clockin-base.firebaseio.com")
 				.build();
 			FirebaseApp.initializeApp(opt);
-			Gawain.getSetting().setProperty(KEY_NAME, key_file);			
+			Gawain.prop().setProperty(KEY_NAME, key_file);			
 			base = FirebaseDatabase.getInstance();
 		} catch (IOException e) {
 			e.printStackTrace();

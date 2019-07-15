@@ -5,7 +5,7 @@
  *      Author: qq
  */
 #include <global.hpp>
-#include <vision/bundle.hpp>
+#include <vision.hpp>
 
 extern "C" JNIEXPORT jboolean JNICALL Java_narl_itrc_vision_CapVidcap_implSetup(
 	JNIEnv* env,

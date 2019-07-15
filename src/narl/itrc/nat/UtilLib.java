@@ -18,9 +18,9 @@ class UtilLib {
 			
 			String val = null;
 			if(i==0){
-				val = Gawain.getSetting().getProperty(attr,"");
+				val = Gawain.prop().getProperty(attr,"");
 			}else{
-				val = Gawain.getSetting().getProperty(attr+i,"");
+				val = Gawain.prop().getProperty(attr+i,"");
 			}			
 			if(val.length()==0){
 				if(i==0){

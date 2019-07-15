@@ -13,19 +13,16 @@ public class PanTester extends PanBase {
 	@Override
 	public Node eventLayout(PanBase self) {
 		
-		final ImgView img = new ImgView();
-		img.setMinSize(640+23, 480+23);
-		
-		final DevCamera cam = new DevCamera();
 		final CapVidcap vid = new CapVidcap();
+		final DevCamera cam = new DevCamera(vid);		
+		cam.setMinSize(600+33, 600+33);
 		
 		stage().setOnShown(e->{			
-			cam.livePlay(1);
 		});
+		
 		stage().setOnHidden(e->{
-			cam.unlink();
 		});
-		return img;
+		return cam;
 	}
 
 }

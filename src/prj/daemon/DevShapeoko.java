@@ -1,5 +1,7 @@
 package prj.daemon;
 
+import java.util.concurrent.atomic.AtomicReference;
+
 import javafx.beans.property.FloatProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleFloatProperty;
@@ -35,10 +37,10 @@ public class DevShapeoko extends DevBase {
 		tty.createStream();
 		String txt = tty.getStreamTail("\r\n",2);
 		Misc.logv(txt);
-		if(txt.contains("Grbl")==false){
-			Misc.loge("Not Valid Grbl firmware!!");
-			return false;
-		}
+		//if(txt.contains("Grbl")==false){
+		//	Misc.loge("Not Valid Grbl firmware!!");
+		//	return false;
+		//}
 		_exec("$X");//~~unlock~~
 		_exec("M05");//Spindle off
 		_exec("G21");//Set Units to Millimeters
@@ -47,7 +49,7 @@ public class DevShapeoko extends DevBase {
 		return true;
 	}
 
-	private String state = "none";
+	private AtomicReference<String> state = new AtomicReference<String>("none");
 	private float[] mpos= {0.f, 0.f, 0.f};
 	private int  [] bf  = {0, 0};
 	private int  [] fs  = {0, 0};	
@@ -67,7 +69,7 @@ public class DevShapeoko extends DevBase {
 			.substring(1, txt.length()-1)
 			.split("[|]");
 		
-		state = col[0];		
+		state.set(col[0]);		
 		for(String atm:col){
 			try{
 				String[] val;
@@ -102,7 +104,7 @@ public class DevShapeoko extends DevBase {
 	}
 
 	
-	public final StringProperty State= new SimpleStringProperty(state); 
+	public final StringProperty State= new SimpleStringProperty(state.get()); 
 	
 	public final FloatProperty MPosX = new SimpleFloatProperty(mpos[0]);
 	public final FloatProperty MPosY = new SimpleFloatProperty(mpos[1]);
@@ -120,7 +122,7 @@ public class DevShapeoko extends DevBase {
 	
 	@Override
 	protected int core_event(Work obj, int pass){
-		State.set(state);			
+		State.set(state.get());			
 		MPosX.set(mpos[0]);
 		MPosY.set(mpos[1]);
 		MPosZ.set(mpos[2]);
@@ -133,14 +135,14 @@ public class DevShapeoko extends DevBase {
 		WCO3.set(wco[2]);
 		Ov1.set(ov[0]);
 		Ov2.set(ov[1]);
-		if(state.contains("Idle")==true){
+		if(state.get().contains("Idle")==true){
 			return 0;//for executing next work
 		}
 		return 2;
 	}
 	
 	private void _exec(String cmd){		
-		Misc.logv("CMD-->%s", cmd);//debug!!!
+		//Misc.logv("CMD-->%s", cmd);//debug!!!
 		if(cmd.endsWith("\n")==false){
 			cmd = cmd + "\n";
 		}
@@ -148,7 +150,7 @@ public class DevShapeoko extends DevBase {
 		String res;
 		do{
 			res = tty.getStreamTail("\r\n",1);
-			Misc.logv("RES-->%s", res);//debug!!!
+			//Misc.logv("RES-->%s", res);//debug!!!
 			if(
 				res.contains("ok")==true || 
 				res.contains("error")==true
@@ -162,11 +164,22 @@ public class DevShapeoko extends DevBase {
 		offer(work->_exec(cmd));
 	}
 	
-	public void exec_atom(final String cmd){
-		if(countWork()>1){
-			return;
+	private String atomCmd = null;
+	private DevBase.Work atomWork = new DevBase.Work() {
+		@Override
+		public int looper(Work obj, int pass) {
+			_exec(atomCmd);
+			return 0;
 		}
-		offer(work->_exec(cmd));
+		@Override
+		public int event(Work obj, int pass) {
+			return 0;
+		}		
+	};
+	
+	public void exec_atom(final String cmd){
+		atomCmd = cmd;
+		offer(atomWork);
 	}
 	
 	public void move(
@@ -183,23 +196,19 @@ public class DevShapeoko extends DevBase {
 			_exec(String.format("G00X%.1fY%.1f\n", xx,yy));
 		});
 	}
-	
 	public void moveAbs(float xx, float yy){
 		move(xx,yy,true);
 	}
 	public void moveRel(float xx, float yy){
 		move(xx,yy,false);
-	}
-	
-	public void move_atom(float xx, float yy, boolean abs){
-		if(countWork()>1){
-			return;
-		}
-		move(xx,yy,abs);
+	}	
+	public void syncMove(float xx, float yy, boolean abs){
+		while(isIdle()==false);
+		move(xx,yy,abs);		
 	}
 	
 	public boolean isIdle(){
-		if(state.contains("Idle")==true){
+		if(state.get().contains("Idle")==true){
 			return true;
 		}
 		return false;

@@ -59,7 +59,7 @@ public class DevHustIO extends DevTTY {
 	
 	public void connect(String attr){
 		if(attr.length()==0){
-			attr = Gawain.getSetting().getProperty("DevHustIO","/dev/ttyS0,4800,7e2,x");
+			attr = Gawain.prop().getProperty("DevHustIO","/dev/ttyS0,4800,7e2,x");
 		}
 		open(attr);
 		exec_cmd("O9000","N01");//reset mechine

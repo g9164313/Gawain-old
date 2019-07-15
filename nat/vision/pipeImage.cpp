@@ -114,7 +114,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_DevCamera_pipeClose(
 }
 
 
-extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_ImgFlim_reflector(
+extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_ImgFilm_reflector(
 	JNIEnv* env,
 	jobject thiz,
 	jbyteArray objSrc,
