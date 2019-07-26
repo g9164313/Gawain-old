@@ -1,23 +1,28 @@
 package narl.itrc.vision;
 
-
 import java.util.concurrent.Exchanger;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import com.sun.glass.ui.Application;
 
 import javafx.concurrent.Task;
+import javafx.scene.control.MenuItem;
 import narl.itrc.Gawain;
 import narl.itrc.Misc;
 
-public class DevCamera extends ImgView {
+public class DevCamera extends ImgPane {
 	
 	private Capture cap;
 	
 	public DevCamera(final Capture dev) {
 		cap = dev;
+		init_menu();
+	}
+	
+	private void init_menu() {
+		final MenuItem itm_clear = new MenuItem("清除");
+		itm_clear.setOnAction(e->cap.getFilm().clearOverlay());
+		menu.getItems().add(itm_clear);
 	}
 	
 	public ImgFilm getFilm() {
@@ -59,86 +64,99 @@ public class DevCamera extends ImgView {
 		}
 		looper.cancel();
 	}
-	
-	private final Exchanger<ImgFilm> sp = new Exchanger<ImgFilm>();
-	
-	private void loop_inner(final int count) {
-		
-		ImgFilm ff = cap.getFilm();
-		
-		ff.setSnap(count);
 
+	private void loop_inner(final int count) {
+		ImgFilm ff = cap.getFilm();
+		cap.getFilm().setSnapCount(count);
 		do {
 			if(Gawain.isExit()==true) {
 				return;
 			}
-			
-			cap.fetch(ff);
-			
-			ff = syncProcess(ff);
-
+			ff.refMask = maskBrush;
+			ff.setMark(this);
+			cap.fetch(ff);		
+			ff.mirrorPool();
+			syncPoint();
 			refresh(ff);
-
 		}while(looper.isCancelled()==false);
 	}
 	
-	private Task<?> stubber;
+	private Task<Integer> procTask;
 	
 	/**
 	 * Every task 'must' call syncProcess().<p> 
 	 * @param task
 	 */
-	public void startProcess(final Runnable task) {
-		if(stubber!=null) {
-			if(stubber.isRunning()==true) {
+	public void startProcess(
+		final Runnable task,
+		final Runnable eventBegin,
+		final Runnable eventDone
+	) {
+		if(procTask!=null) {
+			if(procTask.isRunning()==true) {
 				return;
 			}
-		}		
-		stubber = new Task<Integer>() {
+		}
+		procTask = new Task<Integer>() {
 			@Override
 			protected Integer call() throws Exception {
+				doSync.set(true);
 				task.run();
 				core[0].interrupt();
+				doSync.set(false);
 				return 0;
 			}
 		};
-		//stubber.setOnCancelled(e->reset_stubber());
-		//stubber.setOnSucceeded(e->reset_stubber());
-		core[1] = new Thread(stubber,"CamStubber");
+		if(eventBegin!=null) {
+			procTask.setOnScheduled(e->eventBegin.run());
+		}
+		if(eventDone!=null) {
+			procTask.setOnCancelled(e->eventDone.run());
+			procTask.setOnSucceeded(e->eventDone.run());
+		}
+		core[1] = new Thread(procTask,"CamProcess");
 		core[1].start();
 	}
 	
+	public void startProcess(final Runnable task){
+		startProcess(task,null,null);
+	} 
+	
 	public void stopProcess() {
-		if(stubber==null) {
+		if(doSync.get()==false) {
 			return;
 		}
-		if(stubber.isDone()==true) {
+		if(procTask.isDone()==true) {
 			return;
 		}
-		stubber.cancel();
+		procTask.cancel();
+		core[1].interrupt();
 	}
 	
 	@SuppressWarnings("unused")
 	private boolean isProcessDone() {
 		//this function is called by native code!!!
-		return stubber.isDone() || Gawain.isExit(); 
+		return procTask.isDone() || Gawain.isExit(); 
 	}
 	
-	private ImgFilm syncProcess(ImgFilm ff) {		
-		if(stubber==null) {
-			return ff;
-		}
-		if(stubber.isDone()==true) {
-			return ff;
+	private final Exchanger<Void> sp = new Exchanger<Void>();
+	private AtomicBoolean doSync = new AtomicBoolean(false);
+	private void syncPoint() {
+		//this function is also invoked by native code!!!
+		if(doSync.get()==false) {
+			return;
 		}
 		try {
-			ff = sp.exchange(ff);
+			if(procTask.isDone()==true) {
+				return;
+			}
+			sp.exchange(null);			
 		} catch (InterruptedException e) {
 		}
-		return ff;
+		return ;
 	}
-	
 	//-------------------------------------//
+	
 	/*
 	private static final ImageView icon_film_on = Misc.getIconView("filmstrip-on.png");
 	private static final ImageView icon_film_off= Misc.getIconView("filmstrip-off.png");

@@ -26,9 +26,8 @@ public abstract class Capture {
 		final ImgView view,
 		final Runnable hook
 	){
-		film.setSnap(count);		
+		film.setSnapCount(count);		
 		fetch(film);
-		//TODO:????view.getMarkByArray(film.mark);
 		if(hook!=null){ hook.run();	}
 		view.refresh(film);
 		return this;

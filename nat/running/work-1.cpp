@@ -6,24 +6,130 @@
  */
 #include <iostream>
 #include <algorithm>
-#include <opencv/cv.h>
-#include <opencv2/opencv.hpp>
-#include <opencv2/ml.hpp>
-using namespace std;
-using namespace cv;
-using namespace ml;
+#include <vision.hpp>
 
-#include <opencv2/features2d.hpp>
-#include <opencv2/xfeatures2d.hpp>
-#include <opencv2/xobjdetect.hpp>
-#include <opencv2/line_descriptor.hpp>
-#include <opencv2/ccalib/randpattern.hpp>
-using namespace xfeatures2d;
-using namespace xobjdetect;
-using namespace randpattern;
-using namespace line_descriptor;
+Scalar cc[] = {
+	Scalar(0, 3, 250, 178),
+	Scalar(0, 250, 3, 178),
+	Scalar(3,250,250, 178),
+	Scalar(250,250,3, 178)
+};
 
-extern Rect txt2rect(const char* txt);
+void train_mask(Mat& pool, Mat& mask){
+	Mat node;
+	pool.convertTo(node, CV_32F, 1./255., -128./255.);
+	vector<Vec3f> data;
+	for(int y=0; y<node.rows; y++){
+		for(int x=0; x<node.cols; x++){
+			if(mask.at<uint8_t>(y,x)!=0){
+				continue;
+			}
+			data.push_back(node.at<Vec3f>(y,x));
+		}
+	}
+	cout<<"prepare data..."<<endl<<endl;
+	Ptr<SVM> ptr = SVM::create();
+	TICK_BEG;
+	ptr->setType(SVM::ONE_CLASS);
+	ptr->setKernel(SVM::RBF);
+	//ptr->setKernel(SVM::LINEAR);
+	ptr->setNu(0.00003);
+	ptr->train(Mat(data).reshape(1), ml::ROW_SAMPLE, Mat());
+	ptr->save("mask.xml");
+	TICK_END;
+}
+
+Mat extract_mask(Mat& pool, Ptr<SVM>& ptr, bool showMask){
+	size_t cnt = pool.cols * pool.rows;
+	Mat dat, msk;
+	Mat txt(cnt, 1, CV_32F);
+	pool.reshape(1, cnt)
+		.convertTo(dat, CV_32FC3, 1./255., -128./255.);
+	ptr->predict(dat, txt);
+	txt.reshape(1, pool.rows)
+		.convertTo(msk, CV_8UC1, 200, 0.);
+	//we mark frontground, and train, so inverse it
+	threshold(msk, msk, 100., 255., THRESH_BINARY_INV);
+	Mat krn = getStructuringElement(MORPH_ELLIPSE,Size(3,3));
+	erode(msk,msk,krn);
+	dilate(msk,msk,krn);
+	/*Ptr<BinaryDescriptor> det = BinaryDescriptor::createBinaryDescriptor();
+	vector<KeyLine> lines;
+	det->detect(msk, lines);
+	Mat tmp = Mat::zeros(msk.size(), CV_8UC1);
+	for(KeyLine kl:lines){
+		Point aa(kl.startPointX, kl.startPointY);
+		Point bb(kl.endPointX, kl.endPointY);
+		line(tmp, aa, bb, Scalar(255),6);
+	}
+	bitwise_and(msk,tmp,msk);
+	imwrite("cc1.png",msk);
+	Mat temp;
+	cvtColor(msk,temp,COLOR_GRAY2BGR);
+	drawKeylines(temp,lines,temp);
+	imwrite("cc1.png",temp);*/
+	//skeletonize track road~~~
+	if(showMask==false){
+		thinning(msk,msk);
+	}
+	return msk;
+}
+
+Point extract_path(Mat& msk, Point& mrk, vector<Point>& path){
+	path.clear();
+	//find all contours~~~
+	vector<vector<Point> > cts;
+	findContours(msk,cts,RETR_EXTERNAL,CHAIN_APPROX_NONE);
+	if(cts.size()==0){
+		return mrk;
+	}
+	//find a longest track road...
+	vector<Point> road = *std::max_element(
+		cts.begin(), cts.end(),
+		[](const vector<Point>& aa, const vector<Point>& bb){
+			double _a = arcLength(aa,false);
+			double _b = arcLength(bb,false);
+			return (_a<_b);
+		}
+	);
+	if(road.size()<=50){
+		return mrk;
+	}
+	approxPolyDP(road, path, 2, false);
+	return *std::min_element(
+		road.begin(), road.end(),
+		[&mrk](const Point& aa, const Point& bb){
+			double a = norm(aa-mrk);
+			double b = norm(bb-mrk);
+			return (a<b);
+		}
+	);
+}
+
+int main(int argc, char* argv[]) {
+	Mat img = imread("img.png");
+
+	Point mrk(370,409); circle(img, mrk, 3, cc[1]);
+
+	Ptr<SVM> svm = SVM::load("mark.xml");
+
+	Mat msk = extract_mask(img,svm,false);
+	imwrite("cc1.png",msk);
+
+	vector<Point> pts;
+	Point wp1 = extract_path(msk, mrk, pts);
+	circle(img, wp1, 3, cc[0]);
+	for(int i=0; i<pts.size()/2; i++){
+		circle(img, pts[i], 3, cc[0]);
+		arrowedLine(img, pts[i], pts[i+1], cc[1], 1);
+	}
+	imwrite("cc2.png",img);
+
+	cout<<"done!!"<<endl;
+	return 0;
+}
+
+
 
 double norm_number(double val, double hypt){
 	bool _p = (val>0)?(true):(false);
@@ -36,79 +142,11 @@ double norm_number(double val, double hypt){
 	return (_p)?(val):(-1.*val);
 }
 
-int main(int argc, char* argv[]) {
-
-	RNG rng(33582);
-
-	Mat img = imread("ggyy2.jpg");
-
-	Point aa[] = {
-		Point(269,222),
-		Point(307,291),
-		Point(366,371),
-		Point(365,395),
-		Point(362,417),
-	};
-	Point bb[] = {
-		Point(),
-		Point(),
-		Point(),
-		Point(),
-		Point(),
-	};
-	for(int i=0; i<5; i++){
-		bb[i].x = 374 + rng.uniform(1, 30);
-		bb[i].y = 216 + rng.uniform(1, 30);
-	}
-
-	Mat dat(10,3,CV_32F);
-	Mat txt;
-	for(int i=0; i<5; i++){
-		Vec3b pix = img.at<Vec3b>(aa[i]);
-		Vec3f val(pix);
-		val = val / 255.;
-		dat.at<Vec3f>(i) = val;
-		txt.push_back(255);
-	}
-	for(int i=0; i<5; i++){
-		Vec3b pix = img.at<Vec3b>(bb[i]);
-		Vec3f val(pix);
-		val = val / 255.;
-		dat.at<Vec3f>(i+5) = val;
-		txt.push_back(0);
-	}
-	cout<<dat<<endl;
-
-	Ptr<SVM> ptr = SVM::create();
-	ptr->setType(SVM::C_SVC);
-	ptr->setKernel(SVM::RBF);
-	ptr->setTermCriteria(cvTermCriteria(CV_TERMCRIT_ITER, 500, FLT_EPSILON));
-	ptr->train(dat, ml::ROW_SAMPLE, txt);
-
-	for(int y=137; y<495; y++){
-		for(int x=188; x<495; x++){
-			Vec3b pix = img.at<Vec3b>(Point(x,y));
-			Vec3f val(pix);
-			val = val / 255.;
-			Mat sample(1,3,CV_32F);
-			Mat result(1,1,CV_32F);
-			sample.at<Vec3f>(0) = val;
-			ptr->predict(sample, result);
-			int rest = result.at<float>(0);
-			if(rest!=0){
-				img.at<Vec3b>(Point(x,y)) = Vec3b(0,255,0);
-			}
-		}
-	}
-	imwrite("cc1.png", img);
-	return 0;
-}
-
 int main2(int argc, char* argv[]) {
 	if(argc!=11){
 		return -1;
 	}
-	Rect roi = txt2rect(argv[1]);
+	Rect roi;
 	Mat view[] = {
 		imread(argv[2]),
 		imread(argv[3]),
@@ -219,7 +257,6 @@ int main2(int argc, char* argv[]) {
 #endif
 	return 0;
 }
-
 
 /*
 	Point2f p0(355,317);

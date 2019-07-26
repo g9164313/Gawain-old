@@ -6,8 +6,7 @@
  */
 #include <iostream>
 #include <vector>
-#include <opencv/cv.h>
-#include <opencv2/opencv.hpp>
+#include <vision.hpp>
 
 using namespace cv;
 using namespace std;
@@ -21,6 +20,49 @@ void setBlock(Size dimesion);
 void setBlock(Point position);
 size_t getCount(Mat& src, size_t* cntX=NULL, size_t* cntY=NULL);
 Mat getBlock(Mat& src, int idx, Rect* roi=NULL);
+
+void exampleSVM(){
+    Mat sam(10,1,CV_32F);
+    Mat grp(10,1,CV_32F);
+    RNG r;
+    //r.fill(samples,RNG::UNIFORM,10,13);
+    for(int i=0; i<10; i++){
+    	sam.at<float>(i,0) = 10 + 0.3*i;
+    	grp.at<float>(i,0) = (i<5)?(1):(2);
+    }
+
+    cout<<"[vale]    [class]"<<endl;
+    for (int i=0; i<9; ++i) {
+    	float val = sam.at<float>(i,0);
+    	float res = grp.at<float>(i,0);
+        cout << val <<"  "<< res << endl;
+    }
+
+	Ptr<SVM> ptr = SVM::create();
+	ptr->setType(SVM::NU_SVR);
+	ptr->setKernel(SVM::LINEAR);
+	ptr->setTermCriteria(cvTermCriteria(CV_TERMCRIT_ITER, 5000, FLT_EPSILON));
+	ptr->setNu(0.9);
+	ptr->setC(0.3);
+	//ptr->setP(0.3);
+	ptr->train(sam, ml::ROW_SAMPLE, grp);
+	cout<<endl<<"train done"<<endl<<endl;
+
+	TICK_BEG;
+	Mat test(9,1,CV_32F);
+	Mat aaaa(9,1,CV_32F);
+	r.fill(test,RNG::UNIFORM,9,10);
+	ptr->predict(test, aaaa);
+	cout<<"[vale]    [class]"<<endl;
+    for (int i=0; i<9; ++i) {
+    	float val = test.at<float>(i,0);
+    	float res = aaaa.at<float>(i,0);
+        cout << val <<"  "<< res << endl;
+    }
+	TICK_END;
+
+	cout<<"predict done"<<endl;
+}
 
 int main(int args, char** argv){
 

@@ -120,25 +120,25 @@ public abstract class PanBase {
 		}else{
 			root = (Parent)face2;
 		}
-		
 		final Scene se = new Scene(root);		
 		//load a default style...
-		se.getStylesheets().add(Gawain.class.getResource("res/styles.css").toExternalForm());				
+		se.getStylesheets().add(
+			Gawain.class.getResource("res/styles.css").toExternalForm()
+		);				
 		//if user give us a URL, try to load a custom style file....		
-		//scene.getStylesheets().add(customCSS.toExternalForm());
+		//se.getStylesheets().add(customCSS.toExternalForm());
 		//capture some short-key
-		se.setOnKeyPressed(eventHookPress);
-		
+		se.setOnKeyPressed(eventHookPress);		
+		//root.getStyleClass().add("layout-white");
 		stage.setScene(se);
 		stage.sizeToScene();
 		stage.centerOnScreen();
-		//stage.setUserData(this);
 	}	
 	//------------------------//
 	
 	public abstract Node eventLayout(PanBase self);
 
-	private class DutyFace extends VBox {
+	protected class DutyFace extends VBox {
 		JFXSpinner icon = new JFXSpinner();//show that we are waiting
 		Label      mesg = new Label();//show progress value
 		DutyFace(){
@@ -176,7 +176,7 @@ public abstract class PanBase {
 			hook.run();
 		}
 	};
-	private DutyFace spin = new DutyFace();
+	protected DutyFace spin = new DutyFace();
 	
 	protected class Duty extends Task<Integer> {
 		long p_idx = 0;

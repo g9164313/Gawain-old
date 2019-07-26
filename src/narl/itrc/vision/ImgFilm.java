@@ -1,5 +1,7 @@
 package narl.itrc.vision;
 
+import java.util.Arrays;
+
 import javafx.scene.image.Image;
 import javafx.scene.image.PixelFormat;
 import javafx.scene.image.WritableImage;
@@ -15,15 +17,67 @@ public class ImgFilm {
 	private int cvWidth = 0;	
 	private int cvHeight= 0;		
 	private int cvType  = 0;
-	private byte[] pool=null;//pure image data	
+	public byte[] pool=null;//pure image data	
 	private byte[] mior=null;//mirror data
 	private byte[] over=null;//overlay view
 	
 	private WritableImage[] view = { null, null };
 	
-	public final byte[] mesg = new byte[1024];//pipe response message
+	public Image refMask = null; 
 	
-	public final int[] mark = new int[4*8];//it is just ROI!!!
+	private byte[] bufMask = new byte[0];
+	
+	public void mirrorMask() {
+		if(refMask==null) {
+			return;
+		}
+		int len = cvWidth * cvHeight * 4;
+		if(bufMask.length!=len) {
+			bufMask = new byte[len];
+		}
+		refMask.getPixelReader().getPixels(
+			0, 0,
+			cvWidth, cvHeight,
+			PixelFormat.getByteBgraInstance(),
+			bufMask, 
+			0, cvWidth*4
+		);
+	}
+	
+	/**
+	 * This variables are accessed by native code.<p>
+	 */
+	private final int[] refMark = new int[16*4];
+	
+	public void setMark(final ImgPane vew) {
+	
+		ImgPane.Mark[] lst = vew.getAllMark();
+	
+		for(int i=0; i<lst.length; i++) {
+		
+			ImgPane.Mark mm = lst[i];
+		
+			if(mm.isUsed==true) {
+				refMark[i*4+0] = mm.locaX;
+				refMark[i*4+1] = mm.locaY;
+				refMark[i*4+2] = mm.sizeW;
+				refMark[i*4+3] = mm.sizeH;
+			} else {
+				refMark[i*4+0] = -1;
+				refMark[i*4+1] = -1;
+				refMark[i*4+2] = 0;
+				refMark[i*4+3] = 0;
+			}
+		}
+	}
+	
+	public int getWidth() {
+		return cvWidth;
+	}
+	
+	public int getHeight() {
+		return cvHeight;
+	}
 	
 	public boolean isValid(){
 		if(
@@ -38,13 +92,9 @@ public class ImgFilm {
 	}
 	
 	
-	public ImgFilm setSnap(final int cnt){
+	public ImgFilm setSnapCount(final int cnt){
 		if(snap!=cnt){
-			snap = cnt;
-			//let native code have chance to relocate data
-			pool = null;
-			mior = null;
-			over = null;
+			reset(cnt);
 		}
 		return this;
 	}
@@ -92,6 +142,39 @@ public class ImgFilm {
 			0, cvWidth*4
 		);//mirror for data in overlay
 		return view;
+	}
+	
+	public void mirrorPool() {
+		reflector(pool, mior);
+	}
+	
+	public Image[] mirrorImg() {
+		view[0].getPixelWriter().setPixels(
+			0, 0, 
+			cvWidth, cvHeight, 
+			PixelFormat.getByteRgbInstance(),
+			mior, 
+			0, cvWidth*3
+		);//mirror for data in pool
+		view[1].getPixelWriter().setPixels(
+			0, 0, 
+			cvWidth, cvHeight, 
+			PixelFormat.getByteBgraInstance(),
+			over, 
+			0, cvWidth*4
+		);//mirror for data in overlay
+		return view;
+	}
+	
+	public void clearOverlay() {		
+		Arrays.fill(over, (byte)0);		
+		view[1].getPixelWriter().setPixels(
+			0, 0, 
+			cvWidth, cvHeight, 
+			PixelFormat.getByteBgraInstance(),
+			over, 
+			0, cvWidth*4
+		);
 	}
 	
 	private native void reflector(byte[] src, byte[] dst);

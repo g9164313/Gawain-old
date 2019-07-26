@@ -11,23 +11,34 @@
 #include <jni.h>
 #include <vector>
 #include <iostream>
-#include <fstream>
 #include <opencv/cv.h>
 #include <opencv2/opencv.hpp>
 #include <opencv2/ml.hpp>
+#include <opencv2/ximgproc.hpp>
+#include <opencv2/features2d.hpp>
+#include <opencv2/xfeatures2d.hpp>
+#include <opencv2/xobjdetect.hpp>
+#include <opencv2/line_descriptor.hpp>
+#include <opencv2/ccalib/randpattern.hpp>
+
 using namespace std;
 using namespace cv;
 using namespace ml;
+using namespace cv::ximgproc;
+using namespace cv::xfeatures2d;
+using namespace cv::xobjdetect;
+using namespace cv::randpattern;
+using namespace cv::line_descriptor;
 
 #define TICK_BEG \
-	{int64 __tick=getTickCount();
-#define TICK_END(tag) \
+	{int64 __tick=getTickCount()
+#define TICK_END \
 	double __tick_sec = (double)((getTickCount() - __tick))/getTickFrequency();\
-	std::cout<<"["tag"] " << __tick_sec <<"sec"<< endl; }
-#define TICK_END2(tag,accum) \
+	std::cout<<"[TICK] "<< __tick_sec <<"sec"<< endl; } while(false)
+#define TICK_END2(accum) \
 	double __tick_sec = (double)((getTickCount() - __tick))/getTickFrequency();\
 	accum = accum + __tick_sec;\
-	std::cout<<"["tag"] " << __tick_sec <<"sec"<< endl; }
+	std::cout<<"[TICK] "<< __tick_sec <<"sec"<< endl; } while(false)
 
 #define CHECK_IN_CONTEXT \
 	jclass clzz = env->GetObjectClass(thiz); \
@@ -49,38 +60,33 @@ using namespace ml;
 	void* cntx = (void*)env->GetLongField(thiz,f_cntx);\
 	if(cntx==NULL){	return; }
 
-#define PREPARE_IMG_DAT(obj) \
-	jclass dat_clzz  = env->GetObjectClass(obj); \
-	jmethodID mid = env->GetMethodID(dat_clzz,"requestPool","(III)V"); \
-	jfieldID f_width = env->GetFieldID(dat_clzz,"cvWidth","I"); \
-	jfieldID f_height= env->GetFieldID(dat_clzz,"cvHeight","I"); \
-	jfieldID f_type = env->GetFieldID(dat_clzz,"cvType","I"); \
-	jfieldID f_snap = env->GetFieldID(dat_clzz,"snap" ,"I"); \
+
+#define PREPARE_FILM(obj) \
+	jclass film_clzz  = env->GetObjectClass(obj); \
+	jmethodID mid_req_pool = env->GetMethodID(film_clzz,"requestPool","(III)V"); \
+	jfieldID f_width = env->GetFieldID(film_clzz,"cvWidth","I"); \
+	jfieldID f_height= env->GetFieldID(film_clzz,"cvHeight","I"); \
+	jfieldID f_type = env->GetFieldID(film_clzz,"cvType","I"); \
+	jfieldID f_snap = env->GetFieldID(film_clzz,"snap" ,"I"); \
 	jint snap = env->GetIntField(obj, f_snap); \
-	jobject o_pool= env->GetObjectField(obj, env->GetFieldID(dat_clzz,"pool","[B") ); \
+	jobject o_pool= env->GetObjectField(obj, env->GetFieldID(film_clzz,"pool","[B") ); \
 	while(false)
 
-#define FINISH_IMG_DAT(obj, img) \
-	size_t total_size = img[0].total() * img[0].elemSize(); \
+#define FINISH_FILM(obj, img) \
+	size_t total_size = img[0].total() * img[0].elemSize();\
 	int width = img[0].cols, height = img[0].rows, cvtype = img[0].type();\
-	env->SetIntField(obj, f_width , width); \
-	env->SetIntField(obj, f_height, height); \
-	env->SetIntField(obj, f_type  , cvtype); \
-	env->SetIntField(obj, f_snap  , snap); \
-	if(o_pool==NULL){ \
-		env->CallVoidMethod( \
-			objImgData, mid, \
-			(jint)total_size, (jint)width, (jint)height \
-		); \
+	env->SetIntField(obj, f_width , width);\
+	env->SetIntField(obj, f_height, height);\
+	env->SetIntField(obj, f_type  , cvtype);\
+	env->SetIntField(obj, f_snap  , snap);\
+	if(o_pool==NULL){\
+		env->CallVoidMethod(obj, mid_req_pool, (jint)total_size, (jint)width, (jint)height );\
 		return; \
 	} \
 	jbyteArray* j_pool = reinterpret_cast<jbyteArray*>(&o_pool); \
 	size_t pool_size = env->GetArrayLength(*j_pool); \
 	if(pool_size<total_size){ \
-		env->CallVoidMethod( \
-			objImgData, mid, \
-			(jint)total_size, (jint)width, (jint)height \
-		); \
+		env->CallVoidMethod(obj, mid_req_pool, (jint)total_size, (jint)width, (jint)height );\
 		return; \
 	} \
 	jbyte* pool = env->GetByteArrayElements(*j_pool,0); \
@@ -90,5 +96,54 @@ using namespace ml;
 	} \
 	env->ReleaseByteArrayElements(*j_pool, pool, 0); \
 	while(false)
+
+#define STUBBER_PREPARE(objCamera) \
+	jclass cam_clzz = env->GetObjectClass(objCamera); \
+	jobject objFilm = env->CallObjectMethod(objCamera, env->GetMethodID(cam_clzz,"getFilm","()Lnarl/itrc/vision/ImgFilm;")); \
+	jclass film_clzz  = env->GetObjectClass(objFilm); \
+	int width = env->GetIntField(objFilm, env->GetFieldID(film_clzz,"cvWidth" ,"I"));\
+	int height= env->GetIntField(objFilm, env->GetFieldID(film_clzz,"cvHeight","I"));\
+	int cvType= env->GetIntField(objFilm, env->GetFieldID(film_clzz,"cvType"  ,"I"));\
+	int c_snap= env->GetIntField(objFilm, env->GetFieldID(film_clzz,"snap"    ,"I"));\
+	jmethodID done_mid = env->GetMethodID(cam_clzz, "isProcessDone", "()Z");\
+	jmethodID sync_mid = env->GetMethodID(cam_clzz, "syncPoint", "()V")
+
+#define STUBBER_DO \
+	do{ \
+		if(env->CallBooleanMethod(objCamera, done_mid)==JNI_TRUE){ break; } \
+		jobject o_pool = env->GetObjectField(objFilm,env->GetFieldID(film_clzz,"pool","[B"));\
+		jobject o_over = env->GetObjectField(objFilm,env->GetFieldID(film_clzz,"over","[B"));\
+		jbyteArray* j_pool = reinterpret_cast<jbyteArray*>(&o_pool);\
+		jbyteArray* j_over = reinterpret_cast<jbyteArray*>(&o_over);\
+		jboolean isCopy = JNI_FALSE; \
+		jbyte* ptrPool = env->GetByteArrayElements(*j_pool,NULL); \
+		jbyte* ptrOver = env->GetByteArrayElements(*j_over,NULL); \
+		Mat pool(height, width, cvType, ptrPool); \
+		Mat over(height, width, CV_8UC4, ptrOver)
+
+#define STUBBER_RELEASE \
+	env->ReleaseByteArrayElements(*j_pool, ptrPool, JNI_ABORT);\
+	env->ReleaseByteArrayElements(*j_over, ptrOver, 0);\
+	env->CallVoidMethod(objCamera, sync_mid)
+
+#define STUBBER_WHILE(loopFlag) STUBBER_RELEASE; }while(loopFlag)
+
+extern Point getPoint(
+	JNIEnv * env,
+	jobject objFilm,
+	const int oneBaseIndex
+);
+extern Rect getROI(
+	JNIEnv * env,
+	jobject objFilm,
+	const int oneBaseIndex
+);
+extern void getMask(
+	JNIEnv * env,
+	jobject objFilm,
+	Mat* mask1,
+	Mat* mask2,
+	Mat* mask3
+);
 
 #endif /* VISION_HPP_ */

@@ -63,7 +63,7 @@ LIB_PYLON :=  -L$(ROOT_PYLON)/lib64 \
 ####  configuration  ####
 #########################
 
-CC = g++ -DENABLE_LOG -O0
+CC = g++ -DENABLE_LOG -O0 -std=c++11
 
 CC_FLAG  = -g -I. -I$(DIR_JNI) -I$(DIR_JNI)/linux
 CC_FLAG += -DVISION $(shell pkg-config --cflags opencv) -lopencv_xfeatures2d
@@ -103,7 +103,9 @@ endef
 #####[core file]######
 
 CORE_SO = libcore.so
-CORE_FILE = ./running/stubber.cpp 
+CORE_FILE = ./vision/miscellany.cpp
+CORE_FILE += ./running/stubber.cpp
+CORE_FILE += ./running/work-1.cpp
 
 $(CORE_SO): $(CORE_FILE)
 	$(BUILD_WORK)
@@ -111,7 +113,7 @@ $(CORE_SO): $(CORE_FILE)
 #####[capture device]######
 
 VISION_SO = libvision.so
-VISION_FILE  = ./vision/pipeImage.cpp    
+VISION_FILE  = ./vision/miscellany.cpp    
 VISION_FILE += ./vision/CapVidcap.cpp  
 
 $(VISION_SO): $(VISION_FILE)
@@ -120,7 +122,7 @@ $(VISION_SO): $(VISION_FILE)
 #####[peripheral device]######
 
 PERIPHERAL_SO = libdevice.so
-PERIPHERAL_FILE = ./deprecated/util_jni.cpp
+PERIPHERAL_FILE = ./running/deprecated/util_jni.cpp
 PERIPHERAL_FILE+= ./device/DevTTY.cpp
 PERIPHERAL_FILE+= ./device/DevUSB.cpp
 PERIPHERAL_FILE+= ./device/DevModbus.cpp
@@ -130,17 +132,19 @@ $(PERIPHERAL_SO): $(PERIPHERAL_FILE)
 
 ####################################################
 
-$(TARGET_EXE):  ./running/misc.cpp  ./running/process_1.cpp 
+TARGET_EXE = gawain
+TARGET_FILE = ./running/work-1.cpp
+TARGET_FILE += ./running/misc.cpp
+TARGET_FILE += ./vision/miscellany.cpp
+
+$(TARGET_EXE): $(TARGET_FILE)
 	$(CC) -o $@ $^ $(CC_FLAG) $(LD_LIBS)
+	@echo 'Build EXE --> '$@', done!!'
+	@echo
 	
 ####################################################
 
-
-#all: $(TARGET_EXE)
-#all: $(CORE_SO)
-#all: $(VISION_SO) 
-#all: $(PERIPHERAL_SO)
-all: $(CORE_SO) $(VISION_SO) 
+all: $(TARGET_EXE) $(CORE_SO) $(VISION_SO) $(PERIPHERAL_SO) 
 
 clean:
 	rm -rf $(TARGET_EXE) $(TARGET_SO) $(DIR_SRC)/*.o ./*.o
