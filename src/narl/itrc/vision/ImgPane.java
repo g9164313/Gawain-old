@@ -45,8 +45,8 @@ public class ImgPane extends ImgView {
 	}
 	
 	@Override
-	public void refresh(final ImgFilm dat){
-		super.refresh(dat);
+	public void updateView(final ImgFilm dat){
+		super.updateView(dat);
 		tarp.setWidth(width());
 		tarp.setHeight(height());
 		//over.getGraphicsContext2D().drawImage(v[1], 0., 0.);

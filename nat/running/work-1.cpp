@@ -15,7 +15,7 @@ Scalar cc[] = {
 	Scalar(250,250,3, 178)
 };
 
-void train_mask(Mat& pool, Mat& mask){
+void train_mask(Mat& pool, Mat& mask, double nuVal){
 	Mat node;
 	pool.convertTo(node, CV_32F, 1./255., -128./255.);
 	vector<Vec3f> data;
@@ -33,103 +33,184 @@ void train_mask(Mat& pool, Mat& mask){
 	ptr->setType(SVM::ONE_CLASS);
 	ptr->setKernel(SVM::RBF);
 	//ptr->setKernel(SVM::LINEAR);
-	ptr->setNu(0.00003);
+	ptr->setNu(nuVal);
 	ptr->train(Mat(data).reshape(1), ml::ROW_SAMPLE, Mat());
 	ptr->save("mask.xml");
 	TICK_END;
 }
 
-Mat extract_mask(Mat& pool, Ptr<SVM>& ptr, bool showMask){
+void erase_blob(Mat& img, const vector<Point>& cts){
+	vector<vector<Point> > ccc;
+	ccc.push_back(cts);
+	drawContours(img,ccc,0,Scalar::all(0),CV_FILLED);
+	imwrite("cc1.png",img);
+}
+
+Mat extract_mask(Mat& pool, Ptr<SVM>& ptr){
 	size_t cnt = pool.cols * pool.rows;
-	Mat dat, msk;
+	Mat dat, mask;
 	Mat txt(cnt, 1, CV_32F);
 	pool.reshape(1, cnt)
 		.convertTo(dat, CV_32FC3, 1./255., -128./255.);
 	ptr->predict(dat, txt);
 	txt.reshape(1, pool.rows)
-		.convertTo(msk, CV_8UC1, 200, 0.);
+		.convertTo(mask, CV_8UC1, 200, 0.);
 	//we mark frontground, and train, so inverse it
-	threshold(msk, msk, 100., 255., THRESH_BINARY_INV);
+	threshold(mask, mask, 100., 255., THRESH_BINARY_INV);
+	//remove some noise~~~
 	Mat krn = getStructuringElement(MORPH_ELLIPSE,Size(3,3));
-	erode(msk,msk,krn);
-	dilate(msk,msk,krn);
-	/*Ptr<BinaryDescriptor> det = BinaryDescriptor::createBinaryDescriptor();
-	vector<KeyLine> lines;
-	det->detect(msk, lines);
-	Mat tmp = Mat::zeros(msk.size(), CV_8UC1);
-	for(KeyLine kl:lines){
-		Point aa(kl.startPointX, kl.startPointY);
-		Point bb(kl.endPointX, kl.endPointY);
-		line(tmp, aa, bb, Scalar(255),6);
-	}
-	bitwise_and(msk,tmp,msk);
-	imwrite("cc1.png",msk);
-	Mat temp;
-	cvtColor(msk,temp,COLOR_GRAY2BGR);
-	drawKeylines(temp,lines,temp);
-	imwrite("cc1.png",temp);*/
-	//skeletonize track road~~~
-	if(showMask==false){
-		thinning(msk,msk);
-	}
-	return msk;
+	erode(mask,mask,krn);
+	dilate(mask,mask,krn);
+	//remove some blob
+	vector<vector<Point> > cts;
+	findContours(
+		mask, cts,
+		RETR_EXTERNAL, CHAIN_APPROX_NONE
+	);
+	//drawContours(pool, cts, 0, cc[0]);
+	//imwrite("cc1.png",mask);
+	//imwrite("cc2.png",pool);
+	cts.erase(remove_if(
+		cts.begin(), cts.end(),
+		[&mask,&pool](const vector<Point>& cts){
+			double area = contourArea(cts,false);
+			if(area<1000.){
+				erase_blob(mask,cts);
+				return true;//ignore little blob~~~
+			}
+			double peri = arcLength(cts,false);
+			if(peri<50.){
+				erase_blob(mask,cts);
+				return true;//too short!!!
+			}
+			//cout<<"area/peri="<<area<<"/"<<peri<<"="<<(peri/area)<<endl;
+			if((peri/area)<=0.2){
+				erase_blob(mask,cts);
+				return true;//it may be a blob~~~
+			}
+			return false;
+		}
+	), cts.end());
+	return mask;
 }
 
-Point extract_path(Mat& msk, Point& mrk, vector<Point>& path){
-	path.clear();
-	//find all contours~~~
-	vector<vector<Point> > cts;
-	findContours(msk,cts,RETR_EXTERNAL,CHAIN_APPROX_NONE);
-	if(cts.size()==0){
-		return mrk;
-	}
-	//find a longest track road...
-	vector<Point> road = *std::max_element(
-		cts.begin(), cts.end(),
-		[](const vector<Point>& aa, const vector<Point>& bb){
-			double _a = arcLength(aa,false);
-			double _b = arcLength(bb,false);
-			return (_a<_b);
-		}
-	);
-	if(road.size()<=50){
-		return mrk;
-	}
-	approxPolyDP(road, path, 2, false);
+Point get_nearst(
+	const vector<Point>& path,
+	const Point& orig
+){
 	return *std::min_element(
-		road.begin(), road.end(),
-		[&mrk](const Point& aa, const Point& bb){
-			double a = norm(aa-mrk);
-			double b = norm(bb-mrk);
+		path.begin(), path.end(),
+		[&orig](const Point& aa, const Point& bb){
+			double a = norm(aa-orig);
+			double b = norm(bb-orig);
 			return (a<b);
 		}
 	);
 }
 
+vector<Point> dots2path(const Mat& data){
+	vector<Point> dots, path, enpt;
+	findNonZero(data, dots);
+	for(auto i=dots.begin();
+		i<dots.end() && enpt.size()<2;
+		++i
+	){
+		Point pt = *i;
+		Mat blk = data(Rect(
+			pt.x-1, pt.y-1,
+			3, 3
+		));
+		if(countNonZero(blk)==2){
+			dots.erase(i);
+			enpt.push_back(pt);
+		}
+	}
+	Point cent, head, tail;
+	cent = (enpt[0] + enpt[1])/2;
+	if(enpt[0].x<=cent.x){
+		head = enpt[0];
+		tail = enpt[1];
+	}else{
+		head = enpt[1];
+		tail = enpt[0];
+	}
+	path.push_back(head);
+	auto p1 = path.begin();
+	do{
+		auto p2 = std::min_element(
+			dots.begin(), dots.end(),
+			[p1](const Point& aa, const Point& bb){
+				double a = norm(aa-*p1);
+				double b = norm(bb-*p1);
+				return (a<b);
+			}
+		);
+		path.push_back(*p2);
+		dots.erase(p2);
+		p1 = path.end() - 1;
+	}while(dots.size()>0);
+	path.push_back(tail);
+	/*Mat img = Mat::zeros(data.size(),CV_8UC3);
+	vector<Point> ggyy;
+	approxPolyDP(path,ggyy,2,false);
+	for(int i=0; i<ggyy.size()-1; i++){
+		arrowedLine(img, ggyy[i], ggyy[i+1], cc[0], 1);
+	}
+	imwrite("cc1.png",img);*/
+	return path;
+}
+
+vector<Point> findPath(
+	const Mat& mask,
+	const Point& mark
+){
+	//skeletonize track road~~~
+	Mat node;
+	thinning(mask,node);
+	Mat txt;
+	int cnt = connectedComponents(
+		node, txt,
+		8, CV_16U
+	);
+	//find a path, nearst mark~~~
+	Mat tmp = Mat::zeros(txt.size(), CV_16U);
+	double max_dist = DBL_MAX;
+	vector<Point> path;
+	Rect brd(2, 2, txt.cols-2, txt.rows-2);
+	for(int i=1; i<cnt; i++){
+		Mat dst;
+		tmp = i;
+		//just compare with label, let label show
+		compare(txt, tmp, dst, CMP_EQ);
+		//trick, do a border...
+		rectangle(dst, brd, Scalar::all(0), 2);
+		//gather all points to path~~~
+		path = dots2path(dst);
+	}
+	//resort path from end-point~~
+
+	return path;
+}
+
 int main(int argc, char* argv[]) {
 	Mat img = imread("img.png");
+	Ptr<SVM> svm = SVM::load("mask.xml");
+	Mat msk = extract_mask(img,svm);
 
-	Point mrk(370,409); circle(img, mrk, 3, cc[1]);
+	//Point mrk(61, 446);
+	Point mrk(109, 447);
+	Point wapt;
+	vector<Point> path = findPath(msk,mrk);
 
-	Ptr<SVM> svm = SVM::load("mark.xml");
-
-	Mat msk = extract_mask(img,svm,false);
-	imwrite("cc1.png",msk);
-
-	vector<Point> pts;
-	Point wp1 = extract_path(msk, mrk, pts);
-	circle(img, wp1, 3, cc[0]);
-	for(int i=0; i<pts.size()/2; i++){
-		circle(img, pts[i], 3, cc[0]);
-		arrowedLine(img, pts[i], pts[i+1], cc[1], 1);
-	}
-	imwrite("cc2.png",img);
+	circle(img, mrk, 5, cc[0], 2);
+	circle(img, path[0], 5, cc[1], 2);
+	circle(img, path[path.size()-1], 5, cc[1], 2);
+	//arrowedLine(img, mrk, wap, cc[2], 1);
+	imwrite("cc1.png",img);
 
 	cout<<"done!!"<<endl;
 	return 0;
 }
-
-
 
 double norm_number(double val, double hypt){
 	bool _p = (val>0)?(true):(false);
@@ -352,3 +433,7 @@ int main2(int argc, char* argv[]) {
 
 	//imwrite("./cc1.png",dst);
  */
+
+
+
+

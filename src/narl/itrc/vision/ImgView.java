@@ -143,7 +143,7 @@ public class ImgView extends StackPane {
 		lay1.setContextMenu(menu);
 	}
 	
-	public void refresh(final ImgFilm dat){
+	public void updateView(final ImgFilm dat){
 		Image[] v = dat.mirrorImg();
 		view.setImage(v[0]);
 		over.setImage(v[1]);

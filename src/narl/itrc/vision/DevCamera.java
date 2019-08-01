@@ -1,9 +1,6 @@
 package narl.itrc.vision;
 
-import java.util.concurrent.Exchanger;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import com.sun.glass.ui.Application;
+import java.util.concurrent.Phaser;
 
 import javafx.concurrent.Task;
 import javafx.scene.control.MenuItem;
@@ -29,60 +26,69 @@ public class DevCamera extends ImgPane {
 		return cap.getFilm();
 	}
 	
-	private Thread[] core = {null, null};
-	
-	private Task<?> looper;
-
+	private Task<?> tskLoop;
+	private Thread looper;
 	public void play(final int count) {
-		if(looper!=null) {
+		if(tskLoop!=null) {
 			Misc.logw("camera is busy!!");
 			return;
 		}
-		looper = new Task<Integer>() {
+		tskLoop = new Task<Integer>() {
 			@Override
 			protected Integer call() throws Exception {				
-				if(cap.setup()==false) {
+				if(cap.setupAll()==false) {
 					Misc.logw("fail to steup capture!!");
 					return -1;
 				}
-				Application.invokeAndWait(()->cap.afterSetup());
 				loop_inner(count);
 				cap.done();
 				return 0;
 			}
-		};
-		core[0] = new Thread(looper,"DevCamera");
-		core[0].start();
+		};		
+		looper = new Thread(tskLoop,"DevCamera");
+		looper.start();
 	}
 		
 	public void pause() {
-		if(looper==null) {
+		if(tskLoop==null) {
 			return;
 		}
-		if(looper.isDone()==true) {
+		if(tskLoop.isDone()==true) {
 			return;
 		}
-		looper.cancel();
+		tskLoop.cancel();
 	}
 
 	private void loop_inner(final int count) {
-		ImgFilm ff = cap.getFilm();
-		cap.getFilm().setSnapCount(count);
+		ImgFilm film = cap.getFilm();
+		film.setSnapCount(count);
 		do {
 			if(Gawain.isExit()==true) {
 				return;
+			}				
+			film.refMask = maskBrush;
+			film.setMark(this);
+			cap.fetch(film);
+			if(syncPoint.getArrivedParties()>0) {
+				syncPoint.arrive();
+				syncPoint.arriveAndAwaitAdvance();
 			}
-			ff.refMask = maskBrush;
-			ff.setMark(this);
-			cap.fetch(ff);		
-			ff.mirrorPool();
-			syncPoint();
-			refresh(ff);
-		}while(looper.isCancelled()==false);
+			film.mirrorPool();
+			updateView(film);
+		}while(tskLoop.isCancelled()==false);
+	}	
+	private Phaser syncPoint = new Phaser(2);
+	
+	@SuppressWarnings("unused")
+	private void doSync(final boolean lock) {
+		if(lock==true) {
+			syncPoint.arriveAndAwaitAdvance();
+		}else {
+			syncPoint.arrive();
+		}
 	}
 	
-	private Task<Integer> procTask;
-	
+	private Task<Integer> tskProc;
 	/**
 	 * Every task 'must' call syncProcess().<p> 
 	 * @param task
@@ -92,30 +98,27 @@ public class DevCamera extends ImgPane {
 		final Runnable eventBegin,
 		final Runnable eventDone
 	) {
-		if(procTask!=null) {
-			if(procTask.isRunning()==true) {
+		if(tskProc!=null) {
+			if(tskProc.isRunning()==true) {
 				return;
 			}
 		}
-		procTask = new Task<Integer>() {
+		tskProc = new Task<Integer>() {
 			@Override
 			protected Integer call() throws Exception {
-				doSync.set(true);
 				task.run();
-				core[0].interrupt();
-				doSync.set(false);
+				looper.interrupt();
 				return 0;
 			}
 		};
 		if(eventBegin!=null) {
-			procTask.setOnScheduled(e->eventBegin.run());
+			tskProc.setOnScheduled(e->eventBegin.run());
 		}
 		if(eventDone!=null) {
-			procTask.setOnCancelled(e->eventDone.run());
-			procTask.setOnSucceeded(e->eventDone.run());
+			tskProc.setOnCancelled(e->eventDone.run());
+			tskProc.setOnSucceeded(e->eventDone.run());
 		}
-		core[1] = new Thread(procTask,"CamProcess");
-		core[1].start();
+		new Thread(tskProc,"Process-Image").start();
 	}
 	
 	public void startProcess(final Runnable task){
@@ -123,37 +126,16 @@ public class DevCamera extends ImgPane {
 	} 
 	
 	public void stopProcess() {
-		if(doSync.get()==false) {
+		if(tskProc.isDone()==true) {
 			return;
 		}
-		if(procTask.isDone()==true) {
-			return;
-		}
-		procTask.cancel();
-		core[1].interrupt();
+		tskProc.cancel();
 	}
 	
 	@SuppressWarnings("unused")
-	private boolean isProcessDone() {
+	private boolean isTaskDone() {
 		//this function is called by native code!!!
-		return procTask.isDone() || Gawain.isExit(); 
-	}
-	
-	private final Exchanger<Void> sp = new Exchanger<Void>();
-	private AtomicBoolean doSync = new AtomicBoolean(false);
-	private void syncPoint() {
-		//this function is also invoked by native code!!!
-		if(doSync.get()==false) {
-			return;
-		}
-		try {
-			if(procTask.isDone()==true) {
-				return;
-			}
-			sp.exchange(null);			
-		} catch (InterruptedException e) {
-		}
-		return ;
+		return tskProc.isDone() || tskLoop.isDone() || Gawain.isExit(); 
 	}
 	//-------------------------------------//
 	

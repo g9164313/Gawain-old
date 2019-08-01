@@ -30,12 +30,28 @@ import narl.itrc.vision.ImgFilm;
 public class PanDropper extends PanBase {
 
 	private final DevShapeoko oko = new DevShapeoko();
-	private final CapVidcap vid = new CapVidcap(800,600);
+	private final CapVidcap vid = new CapVidcap();
 	private final DevCamera cam = new DevCamera(vid);
-
+	
+	public PanDropper(){
+		//some initialization~~~
+		cam.setMinSize(600+23,800+23);
+		vid.setupAfter(()->{
+			vid.setProperty(3, 800);//CAP_PROP_FRAME_WIDTH
+			vid.setProperty(4, 600);//CAP_PROP_FRAME_HEIGHT
+			vid.setProperty(10, 0.7);//CAP_PROP_BRIGHTNESS=0.502
+			//vid.setProperty(11, 0.1255);//CAP_PROP_CONTRAST=0.1255
+			//vid.setProperty(12, 0.1255);//CAP_PROP_SATURATION=0.1255
+			//setProperty(13, 0.8);//CAP_PROP_HUE=-1
+			//vid.setProperty(14, 0.5);//CAP_PROP_GAIN=0.2510
+			//vid.setProperty(15, 0.09);//CAP_PROP_EXPOSURE=0.0797
+			vid.setProperty(44, 0.);//CAP_PROP_AUTO_WB=1
+			//setProperty(45, 0.8);//CAP_PROP_WB_TEMPERATURE=6148
+		});
+	}
+	
 	@Override
 	public Node eventLayout(PanBase self) {
-		cam.setMinSize(600+23,800+23);
 		
 		stage().setOnShown(e->{
 			chkOko.fire();
@@ -52,7 +68,7 @@ public class PanDropper extends PanBase {
 			panel_cnc()
 		};
 		final Accordion layA = new Accordion(layT);
-		layA.setExpandedPane(layT[0]);
+		layA.setExpandedPane(layT[1]);
 		
 		final BorderPane layB = new BorderPane();
 		layB.setCenter(cam);		
@@ -67,11 +83,27 @@ public class PanDropper extends PanBase {
 	private native void stub2(DevCamera cam,boolean showMask);
 	private native void stub3(DevCamera cam);
 	
-	private void moveProber(int dx, int dy) {
-		Misc.logv("vec=%3d,%3d", dx, dy);
+	private void moveProber(int dx, int dy) {		
+		float xx = dx * 0.22f;
+		float yy =-dy * 0.22f;
+		Misc.logv(
+			"move (%3d,%3d)-->(%.1f,%.1f)", 
+			dx, dy, xx, yy
+		);
+		/*oko.syncMove(xx, yy, false);
+		while(oko.isIdle()==false) {
+			try {
+				Thread.sleep(100);
+			} catch (InterruptedException e) {
+			}
+		}*/
+		Misc.logv("--------");
 	}
 	
+	private double valNu = 0.0007;
+	
 	private TitledPane panel_process() {
+		
 		final JFXButton[] btn = {
 			new JFXButton("色彩分析"),
 			new JFXButton("色彩辨識"),
@@ -80,6 +112,7 @@ public class PanDropper extends PanBase {
 		};
 		for(JFXButton b:btn) {
 			b.setMaxWidth(Double.MAX_VALUE);
+			GridPane.setFillWidth(b, true);
 		}
 		btn[0].getStyleClass().add("btn-raised-2");
 		btn[0].setOnAction(e->{cam.startProcess(
@@ -102,14 +135,26 @@ public class PanDropper extends PanBase {
 			cam.stopProcess();
 		});
 		
-		final VBox lay = new VBox(btn);
-		lay.disableProperty().bind(flagCam);
-		lay.getStyleClass().add("vbox-medium");
-		final TitledPane gg =  new TitledPane("校正程序",lay);
-		gg.setPrefHeight(70.);
-		return gg;		
+		final TextField boxNu = new TextField();
+		boxNu.setMaxWidth(Double.MAX_VALUE);
+		boxNu.setText(String.valueOf(valNu));
+		boxNu.setOnAction(e->{
+			valNu = Double.valueOf(boxNu.getText());			
+		});
+		GridPane.setFillWidth(boxNu, true);
+		
+		final GridPane lay1 = new GridPane();
+		lay1.addRow(0, new Label("NU"), boxNu);
+		lay1.getStyleClass().add("ground-pad");
+		
+		final VBox lay0 = new VBox();
+		lay0.getChildren().addAll(btn);
+		lay0.getChildren().addAll(lay1);
+		lay0.disableProperty().bind(flagCam);
+		lay0.getStyleClass().add("vbox-medium");
+		return new TitledPane("校正程序",lay0);		
 	}
-	
+
 	private JFXToggleButton chkOko, chkCam;
 	private BooleanBinding flagCNC, flagCam, flagALL;
 	
@@ -145,7 +190,7 @@ public class PanDropper extends PanBase {
 			chkOko, chkCam
 		);
 		lay.getStyleClass().add("vbox-medium");		
-		return new TitledPane("總設定",lay); 
+		return new TitledPane("快速設定",lay); 
 	}
 	
 	private TitledPane panel_cnc() {

@@ -23,7 +23,7 @@
 
 using namespace std;
 using namespace cv;
-using namespace ml;
+using namespace cv::ml;
 using namespace cv::ximgproc;
 using namespace cv::xfeatures2d;
 using namespace cv::xobjdetect;
@@ -98,35 +98,38 @@ using namespace cv::line_descriptor;
 	while(false)
 
 #define STUBBER_PREPARE(objCamera) \
-	jclass cam_clzz = env->GetObjectClass(objCamera); \
-	jobject objFilm = env->CallObjectMethod(objCamera, env->GetMethodID(cam_clzz,"getFilm","()Lnarl/itrc/vision/ImgFilm;")); \
-	jclass film_clzz  = env->GetObjectClass(objFilm); \
-	int width = env->GetIntField(objFilm, env->GetFieldID(film_clzz,"cvWidth" ,"I"));\
-	int height= env->GetIntField(objFilm, env->GetFieldID(film_clzz,"cvHeight","I"));\
-	int cvType= env->GetIntField(objFilm, env->GetFieldID(film_clzz,"cvType"  ,"I"));\
-	int c_snap= env->GetIntField(objFilm, env->GetFieldID(film_clzz,"snap"    ,"I"));\
-	jmethodID done_mid = env->GetMethodID(cam_clzz, "isProcessDone", "()Z");\
-	jmethodID sync_mid = env->GetMethodID(cam_clzz, "syncPoint", "()V")
+	jclass clzz_cam= env->GetObjectClass(objCamera); \
+	jclass clzz_flm= env->FindClass("narl/itrc/vision/ImgFilm"); \
+	jobject objFilm= env->CallObjectMethod(objCamera, env->GetMethodID(clzz_cam,"getFilm","()Lnarl/itrc/vision/ImgFilm;")); \
+	int width = env->GetIntField(objFilm, env->GetFieldID(clzz_flm,"cvWidth" ,"I"));\
+	int height= env->GetIntField(objFilm, env->GetFieldID(clzz_flm,"cvHeight","I"));\
+	int cvType= env->GetIntField(objFilm, env->GetFieldID(clzz_flm,"cvType"  ,"I"));\
+	int c_snap= env->GetIntField(objFilm, env->GetFieldID(clzz_flm,"snap"    ,"I"));\
+	jmethodID mid_done = env->GetMethodID(clzz_cam, "isTaskDone", "()Z");\
+	jmethodID mid_sync = env->GetMethodID(clzz_cam, "doSync", "(Z)V")
 
-#define STUBBER_DO \
-	do{ \
-		if(env->CallBooleanMethod(objCamera, done_mid)==JNI_TRUE){ break; } \
-		jobject o_pool = env->GetObjectField(objFilm,env->GetFieldID(film_clzz,"pool","[B"));\
-		jobject o_over = env->GetObjectField(objFilm,env->GetFieldID(film_clzz,"over","[B"));\
-		jbyteArray* j_pool = reinterpret_cast<jbyteArray*>(&o_pool);\
-		jbyteArray* j_over = reinterpret_cast<jbyteArray*>(&o_over);\
-		jboolean isCopy = JNI_FALSE; \
-		jbyte* ptrPool = env->GetByteArrayElements(*j_pool,NULL); \
-		jbyte* ptrOver = env->GetByteArrayElements(*j_over,NULL); \
+#define STUBBER_LOOP_HEAD \
+		do { if(env->CallBooleanMethod(objCamera, mid_done)==JNI_TRUE){ break; }
+
+#define STUBBER_EMBED_HEAD \
+		do{ env->CallVoidMethod(objCamera, mid_sync, JNI_TRUE); \
+		jobject obj_pool = env->GetObjectField(objFilm, env->GetFieldID(clzz_flm,"pool","[B"));\
+		jobject obj_over = env->GetObjectField(objFilm, env->GetFieldID(clzz_flm,"over","[B"));\
+		jbyteArray* arr_pool = reinterpret_cast<jbyteArray*>(&obj_pool);\
+		jbyteArray* arr_over = reinterpret_cast<jbyteArray*>(&obj_over);\
+		jbyte* ptrPool = env->GetByteArrayElements(*arr_pool,NULL); \
+		jbyte* ptrOver = env->GetByteArrayElements(*arr_over,NULL); \
 		Mat pool(height, width, cvType, ptrPool); \
 		Mat over(height, width, CV_8UC4, ptrOver)
+#define STUBBER_EMBED_DONE \
+		env->ReleaseByteArrayElements(*arr_pool, ptrPool, 0);\
+		env->ReleaseByteArrayElements(*arr_over, ptrOver, 0);\
+		env->CallVoidMethod(objCamera, mid_sync, JNI_FALSE)
+#define STUBBER_EMBED_TAIL \
+		STUBBER_EMBED_DONE; } while(false)
 
-#define STUBBER_RELEASE \
-	env->ReleaseByteArrayElements(*j_pool, ptrPool, JNI_ABORT);\
-	env->ReleaseByteArrayElements(*j_over, ptrOver, 0);\
-	env->CallVoidMethod(objCamera, sync_mid)
-
-#define STUBBER_WHILE(loopFlag) STUBBER_RELEASE; }while(loopFlag)
+#define STUBBER_LOOP_TAIL(flag) \
+		}while(flag)
 
 extern Point getPoint(
 	JNIEnv * env,

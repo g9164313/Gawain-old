@@ -156,6 +156,20 @@ void getMark(
 	env->ReleaseIntArrayElements(*j_mark, ptr, 0);
 }
 
+//below codes no work.......
+/*
+jclass clzz_syn = env->FindClass("java/util/concurrent/Phaser");
+jobject objSync = env->GetObjectField(
+	clzz_syn,
+	env->GetFieldID(clzz_cam, "syncPoint", "Ljava/util/concurrent/Phaser;")
+);
+jmethodID mid_aaa = env->GetMethodID(clzz_syn, "arriveAndAwaitAdvance", "()I");
+jmethodID mid_arv = env->GetMethodID(clzz_syn, "arrive", "()I");
+	env->CallIntMethod(objSync, mid_aaa);
+	sleep(3);
+	env->CallIntMethod(objSync, mid_arv);
+*/
+
 extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_ImgFilm_reflector(
 	JNIEnv* env,
 	jobject thiz,
