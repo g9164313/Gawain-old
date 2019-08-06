@@ -12,7 +12,9 @@ Scalar cc[] = {
 	Scalar(0, 3, 250, 178),
 	Scalar(0, 250, 3, 178),
 	Scalar(3,250,250, 178),
-	Scalar(250,250,3, 178)
+	Scalar(250,250,3, 178),
+	Scalar(250,3,250, 178),
+	Scalar(0,120,255, 178)
 };
 
 void train_mask(Mat& pool, Mat& mask, double nuVal){
@@ -43,7 +45,6 @@ void erase_blob(Mat& img, const vector<Point>& cts){
 	vector<vector<Point> > ccc;
 	ccc.push_back(cts);
 	drawContours(img,ccc,0,Scalar::all(0),CV_FILLED);
-	imwrite("cc1.png",img);
 }
 
 Mat extract_mask(Mat& pool, Ptr<SVM>& ptr){
@@ -108,34 +109,55 @@ Point get_nearst(
 	);
 }
 
-vector<Point> dots2path(const Mat& data){
-	vector<Point> dots, path, enpt;
-	findNonZero(data, dots);
-	for(auto i=dots.begin();
-		i<dots.end() && enpt.size()<2;
-		++i
-	){
-		Point pt = *i;
-		Mat blk = data(Rect(
-			pt.x-1, pt.y-1,
-			3, 3
-		));
-		if(countNonZero(blk)==2){
-			dots.erase(i);
-			enpt.push_back(pt);
+bool check_endpoint(
+	const Mat& data,
+	const Point& point
+){
+	Mat blk = data(Rect(
+		point.x-1, point.y-1,
+		3, 3
+	));
+	int cnt = countNonZero(blk);
+	if(cnt>3){
+		return false;
+	}
+	if(cnt==3){
+		uint8_t flg = 0;
+		flg = flg | (blk.at<uint8_t>(0,0) & blk.at<uint8_t>(0,1));
+		flg = flg | (blk.at<uint8_t>(0,1) & blk.at<uint8_t>(0,2));
+		flg = flg | (blk.at<uint8_t>(0,2) & blk.at<uint8_t>(1,2));
+		flg = flg | (blk.at<uint8_t>(1,2) & blk.at<uint8_t>(2,2));
+		flg = flg | (blk.at<uint8_t>(2,1) & blk.at<uint8_t>(2,2));
+		flg = flg | (blk.at<uint8_t>(2,0) & blk.at<uint8_t>(2,1));
+		flg = flg | (blk.at<uint8_t>(1,0) & blk.at<uint8_t>(2,0));
+		flg = flg | (blk.at<uint8_t>(0,0) & blk.at<uint8_t>(1,0));
+		if(flg==0){
+			return false;
 		}
 	}
-	Point cent, head, tail;
-	cent = (enpt[0] + enpt[1])/2;
-	if(enpt[0].x<=cent.x){
-		head = enpt[0];
-		tail = enpt[1];
-	}else{
-		head = enpt[1];
-		tail = enpt[0];
+	//cout<<point<<"-->"<<endl<<blk<<endl<<endl;
+	return true;
+}
+
+vector<Point> dots2path(const Mat& data){
+	vector<Point> dots, path;
+	findNonZero(data, dots);//bug!!, it may lost end-point
+	//step.1 find one end-point, at least...
+	auto p1 = dots.begin();
+	do{
+		if(check_endpoint(data, *p1)==false){
+			p1+=1;
+		}else{
+			path.push_back(*p1);
+			dots.erase(p1);
+		}
+	}while(p1<dots.end() && path.size()==0);
+	if(path.size()==0){
+		//something wrong, give a empty path
+		return path;
 	}
-	path.push_back(head);
-	auto p1 = path.begin();
+	//step.2 gather dots one by one
+	p1 = path.begin();
 	do{
 		auto p2 = std::min_element(
 			dots.begin(), dots.end(),
@@ -149,20 +171,20 @@ vector<Point> dots2path(const Mat& data){
 		dots.erase(p2);
 		p1 = path.end() - 1;
 	}while(dots.size()>0);
-	path.push_back(tail);
-	/*Mat img = Mat::zeros(data.size(),CV_8UC3);
-	vector<Point> ggyy;
-	approxPolyDP(path,ggyy,2,false);
-	for(int i=0; i<ggyy.size()-1; i++){
-		arrowedLine(img, ggyy[i], ggyy[i+1], cc[0], 1);
+	//step.3 judge which one is tail or head
+	Point head, tail;
+	head = *path.begin();
+	tail = *(path.end()-1);
+	if(head.x>tail.x){
+		std::reverse(path.begin(), path.end());
 	}
-	imwrite("cc1.png",img);*/
 	return path;
 }
 
 vector<Point> findPath(
 	const Mat& mask,
-	const Point& mark
+	const Point& mark,
+	double* dist = NULL
 ){
 	//skeletonize track road~~~
 	Mat node;
@@ -174,39 +196,91 @@ vector<Point> findPath(
 	);
 	//find a path, nearst mark~~~
 	Mat tmp = Mat::zeros(txt.size(), CV_16U);
+	Mat near_dot;
 	double max_dist = DBL_MAX;
-	vector<Point> path;
-	Rect brd(2, 2, txt.cols-2, txt.rows-2);
+	Rect brd(1, 1, txt.cols-1, txt.rows-1);
 	for(int i=1; i<cnt; i++){
-		Mat dst;
+		Mat dots, dmap, dist;
 		tmp = i;
 		//just compare with label, let label show
-		compare(txt, tmp, dst, CMP_EQ);
+		compare(txt, tmp, dots, CMP_EQ);
 		//trick, do a border...
-		rectangle(dst, brd, Scalar::all(0), 2);
-		//gather all points to path~~~
-		path = dots2path(dst);
+		rectangle(dots, brd, Scalar::all(0), 3);
+		//check whether point is in the path~~
+		if(dots.at<uint8_t>(mark)!=0){
+			max_dist = 0.;
+			near_dot = dots;
+			break;
+		}
+		//get nearest point from dot-clouds
+		threshold(dots,dmap,1.,255.,THRESH_BINARY_INV);
+		distanceTransform(dmap,dist,DIST_L2,3);
+		double dval = dist.at<float>(mark);
+		if(dval<max_dist){
+			max_dist = dval;
+			near_dot = dots;
+		}
 	}
-	//resort path from end-point~~
-
-	return path;
+	if(dist!=NULL){
+		*dist = max_dist;
+	}
+	return dots2path(near_dot);//gather all points to path~~~
 }
 
+Point findWayPoint(
+	const Point& mark,
+	const double nearDist,
+	vector<Point>& path
+){
+	if(path.size()==0){
+		return mark;
+	}
+	approxPolyDP(path, path, 1.3, false);
+	int near_idx = -1;
+	double min_dist = DBL_MAX;
+	for(int i=0; i<path.size(); i++){
+		double dist = cv::norm(mark-path[i]);
+		if(dist<min_dist){
+			min_dist = dist;
+			near_idx = i;
+		}
+	}
+	Point wapt = mark;
+	if(nearDist>=6.){
+		wapt = path[near_idx];
+		path.clear();
+		path.push_back(wapt);
+	}else{
+		if((near_idx+1)<path.size()){
+			wapt = path[near_idx+1];
+		}else{
+			wapt = mark;//don't move~~~
+		}
+	}
+	return wapt;
+}
+
+///~~~~test unit~~~~
+
 int main(int argc, char* argv[]) {
-	Mat img = imread("img.png");
+	Mat img = imread("gg5.png");
 	Ptr<SVM> svm = SVM::load("mask.xml");
 	Mat msk = extract_mask(img,svm);
 
-	//Point mrk(61, 446);
-	Point mrk(109, 447);
-	Point wapt;
-	vector<Point> path = findPath(msk,mrk);
+	//Point mrk(51, 417);
+	Point mrk(61, 446);
+
+	double dist;
+	vector<Point> path = findPath(msk,mrk,&dist);
+	Point wapt = findWayPoint(mrk, dist, path);
 
 	circle(img, mrk, 5, cc[0], 2);
-	circle(img, path[0], 5, cc[1], 2);
-	circle(img, path[path.size()-1], 5, cc[1], 2);
-	//arrowedLine(img, mrk, wap, cc[2], 1);
-	imwrite("cc1.png",img);
+	circle(img, path[0], 3, cc[1]);
+	for(int i=1; i<path.size(); i++){
+		circle(img, path[i], 3, cc[2]);
+	}
+	arrowedLine(img, mrk, wapt, cc[3], 1);
+	imwrite("cc9.png",img);
 
 	cout<<"done!!"<<endl;
 	return 0;

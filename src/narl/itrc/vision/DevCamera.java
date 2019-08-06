@@ -1,6 +1,6 @@
 package narl.itrc.vision;
 
-import java.util.concurrent.Phaser;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javafx.concurrent.Task;
 import javafx.scene.control.MenuItem;
@@ -69,25 +69,50 @@ public class DevCamera extends ImgPane {
 			film.refMask = maskBrush;
 			film.setMark(this);
 			cap.fetch(film);
-			if(syncPoint.getArrivedParties()>0) {
+			/*if(syncPoint.getArrivedParties()>0) {
 				syncPoint.arrive();
 				syncPoint.arriveAndAwaitAdvance();
-			}
+			}*/
+			do_inner_sync();
 			film.mirrorPool();
 			updateView(film);
 		}while(tskLoop.isCancelled()==false);
-	}	
-	private Phaser syncPoint = new Phaser(2);
+	}
+	
+	//private Phaser syncPoint = new Phaser(2);
+	private AtomicBoolean lockA = new AtomicBoolean(false);
+	private AtomicBoolean lockB = new AtomicBoolean(false);
+	
+	private void do_inner_sync() {
+		if(lockA.get()==false) {
+			return;
+		}		
+		try {
+			do {
+				lockB.set(true);			
+				Thread.sleep(10);				
+			}while(lockA.get()==true);
+		} catch (InterruptedException e) {
+		}
+		lockB.set(false);
+	}
 	
 	@SuppressWarnings("unused")
 	private void doSync(final boolean lock) {
-		if(lock==true) {
+		/*if(lock==true) {
 			syncPoint.arriveAndAwaitAdvance();
 		}else {
 			syncPoint.arrive();
+		}*/
+		lockA.set(lock);
+		try {
+			while(lockB.get()!=lock) {
+				Thread.sleep(10);
+			}
+		} catch (InterruptedException e) {
 		}
 	}
-	
+
 	private Task<Integer> tskProc;
 	/**
 	 * Every task 'must' call syncProcess().<p> 

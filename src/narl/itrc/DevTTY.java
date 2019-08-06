@@ -82,9 +82,7 @@ public class DevTTY {
 		}		
 		try{
 			String name = attr[0];			
-			
-			int baud = Integer.valueOf(attr[1]);			
-			
+			int baud = Integer.valueOf(attr[1]);
 			char[] vals = attr[2].toCharArray();
 			if(vals.length<3){
 				return false;
