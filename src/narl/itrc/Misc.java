@@ -261,6 +261,81 @@ public class Misc {
 		}
 		return Integer.valueOf(txt);
 	}
+	
+	/**
+	 * Unescapes a string that contains standard Java escape sequences.
+	 * <ul>
+	 * <li><strong>\b \f \n \r \t \" \'</strong> :
+	 * BS, FF, NL, CR, TAB, double and single quote.</li>
+	 * <li><strong>\\xXX</strong> : Hexadecimal specification (0x00 - 0xFF).</li>
+	 * <li><strong>\\uXXXX</strong> : Hexadecimal based Unicode character.</li>
+	 * </ul>
+	 * @return The translated string.
+	 */
+	public static String unescapeJavaString(String st) {
+	 
+	    StringBuilder sb = new StringBuilder(st.length());
+	 
+	    for (int i = 0; i < st.length(); i++) {
+	        char ch = st.charAt(i);
+	        if (ch == '\\') {
+	            char nextChar = (i == st.length() - 1) ? '\\' : st.charAt(i + 1);
+	            int code = 0;
+	            switch (nextChar) {
+	            case '\\':
+	                ch = '\\';
+	                break;
+	            case 'b':
+	                ch = '\b';
+	                break;
+	            case 'f':
+	                ch = '\f';
+	                break;
+	            case 'n':
+	                ch = '\n';
+	                break;
+	            case 'r':
+	                ch = '\r';
+	                break;
+	            case 't':
+	                ch = '\t';
+	                break;
+	            case '\"':
+	                ch = '\"';
+	                break;
+	            case '\'':
+	                ch = '\'';
+	                break;
+	            case 'x':
+	                if (i >= st.length() - 3) {
+	                    ch = 'x';
+	                    break;
+	                }
+	                code = Integer.parseInt("" + 
+	                	st.charAt(i + 2) + st.charAt(i + 3), 16
+	                );
+	                sb.append(Character.toChars(code));
+	                i += 3;
+	                continue;
+	            case 'u':
+	                if (i >= st.length() - 5) {
+	                    ch = 'u';
+	                    break;
+	                }
+	                code = Integer.parseInt("" + 
+	                	st.charAt(i + 2) + st.charAt(i + 3) + 
+	                	st.charAt(i + 4) + st.charAt(i + 5), 16
+	                );
+	                sb.append(Character.toChars(code));
+	                i += 5;
+	                continue;
+	            }
+	            i++;
+	        }
+	        sb.append(ch);
+	    }
+	    return sb.toString();
+	}
 	//----------------------------------------//
 		
 	private static SimpleDateFormat fmtTime = new SimpleDateFormat ("hh:mm:ss");	

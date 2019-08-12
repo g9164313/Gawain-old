@@ -122,7 +122,7 @@ $(VISION_SO): $(VISION_FILE)
 #####[peripheral device]######
 
 PERIPHERAL_SO = libdevice.so
-PERIPHERAL_FILE = ./running/deprecated/util_jni.cpp
+PERIPHERAL_FILE = ./utility/jni_aux.cpp
 PERIPHERAL_FILE+= ./device/DevTTY.cpp
 PERIPHERAL_FILE+= ./device/DevUSB.cpp
 PERIPHERAL_FILE+= ./device/DevModbus.cpp

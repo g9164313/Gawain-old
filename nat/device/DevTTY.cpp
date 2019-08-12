@@ -8,6 +8,7 @@
 #include <fcntl.h>   /* File control definitions */
 #include <errno.h>   /* Error number definitions */
 #include <termios.h> /* POSIX terminal control definitions */
+#include <signal.h>
 #endif//_MSC_VER
 
 #define NAME_HANDLE  "handle"
@@ -92,12 +93,9 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implOpen(
 
 	//cout<<"open file:"<<name<<" fid="<<fd<<endl;
 
-	struct termios options;
-	tcgetattr(fd,&options);
-	cfmakeraw(&options);
-
-	//options.c_cc[VMIN] = 1;//block until n bytes are received
-	//options.c_cc[VTIME]=20;//block until a timer expires (n * 100 mSec.)
+	struct termios attr;
+	tcgetattr(fd, &attr);
+	cfmakeraw(&attr);
 
 	speed_t spd = B9600;//default
 	switch(baud_rate){
@@ -119,15 +117,15 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implOpen(
 		cout<<"[WARN] no support baud-rate:"<<baud_rate<<endl;
 		break;
 	}
-	cfsetispeed(&options,spd);
-	cfsetospeed(&options,spd);
+	cfsetispeed(&attr,spd);
+	cfsetospeed(&attr,spd);
 
-	options.c_cflag &= ~CSIZE;
+	attr.c_cflag &= ~CSIZE;
 	switch(data_bit){
-	case '5': options.c_cflag |= CS5; break;
-	case '6': options.c_cflag |= CS6; break;
-	case '7': options.c_cflag |= CS7; break;
-	case '8': options.c_cflag |= CS8; break;
+	case '5': attr.c_cflag |= CS5; break;
+	case '6': attr.c_cflag |= CS6; break;
+	case '7': attr.c_cflag |= CS7; break;
+	case '8': attr.c_cflag |= CS8; break;
 	default:
 		cout<<"[WARN] no support data-bit:"<<data_bit<<endl;
 		break;
@@ -136,30 +134,30 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implOpen(
 	switch(parity){
 	case 'n'://none
 	case 'N':
-		options.c_cflag &= ~PARENB;
-		options.c_iflag |=  IGNPAR;
+		attr.c_cflag &= ~PARENB;
+		attr.c_iflag |=  IGNPAR;
 		break;
 	case 'e'://even
 	case 'E':
-		options.c_cflag |=  PARENB;
-		options.c_cflag &= ~PARODD;
-		options.c_iflag |=  INPCK;
+		attr.c_cflag |=  PARENB;
+		attr.c_cflag &= ~PARODD;
+		attr.c_iflag |=  INPCK;
 		break;
 	case 'o'://odd
 	case 'O':
-		options.c_cflag |=  PARENB;
-		options.c_cflag |=  PARODD;
-		options.c_iflag |=  INPCK;
+		attr.c_cflag |=  PARENB;
+		attr.c_cflag |=  PARODD;
+		attr.c_iflag |=  INPCK;
 		break;
 	case 'm'://mark
 	case 'M':
-		options.c_cflag |=  PARENB|CMSPAR;
-		options.c_cflag |=  PARODD;
+		attr.c_cflag |=  PARENB|CMSPAR;
+		attr.c_cflag |=  PARODD;
 		break;
 	case 's'://space
 	case 'S':
-		options.c_cflag |=  PARENB|CMSPAR;
-		options.c_cflag &= ~PARODD;
+		attr.c_cflag |=  PARENB|CMSPAR;
+		attr.c_cflag &= ~PARODD;
 		break;
 	default:
 		cout<<"[WARN] no support parity:"<<parity<<endl;
@@ -167,20 +165,20 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implOpen(
 	}
 
 	switch(stop_bit){
-	case '1': options.c_cflag &= ~CSTOPB; break;
-	case '2': options.c_cflag |=  CSTOPB; break;
+	case '1': attr.c_cflag &= ~CSTOPB; break;
+	case '2': attr.c_cflag |=  CSTOPB; break;
 	default:
 		cout<<"[WARN] no support stop-bit:"<<stop_bit<<endl;
 		break;
 	}
 
-	//options.c_cflag |= (CLOCAL | CREAD);
-	//TODO:how to set flow-control
+	attr.c_cc[VMIN] = 0;//block until n bytes are received
+	attr.c_cc[VTIME]= 2;//block until a timer expires (n * 100 mSec.)
+	tcsetattr(fd, TCSANOW, &attr);
 	//block or not~~~
 	//fcntl(fd,F_SETFL,0);//Synchronized mode - This will block thread!!!
 	//fcntl(fd,F_SETFL,FNDELAY);//Asynchronized mode
-
-	tcsetattr(fd,TCSANOW,&options);
+	//fcntl(fd,F_SETFL,O_NONBLOCK);
 #endif//_MSC_VER
 }
 
@@ -190,15 +188,13 @@ extern "C" JNIEXPORT jint JNICALL Java_narl_itrc_DevTTY_implRead(
 	jbyteArray jbuf,
 	jint offset
 ) {
-	jbyte* buf = env->GetByteArrayElements(jbuf,NULL);
-	size_t len = env->GetArrayLength(jbuf);
-
-#if defined _MSC_VER
-	//cout << "check.1 " << endl;
-	jlong hand = getJLong(env,thiz,NAME_HANDLE);
-	if(hand==0L){
+	int fd = getJLong(env,thiz,NAME_HANDLE);
+	if(fd<=0){
 		return 0;
 	}
+	jbyte* buf = env->GetByteArrayElements(jbuf,NULL);
+	size_t len = env->GetArrayLength(jbuf);
+#if defined _MSC_VER
 	jlong cnt = 0;
 	ReadFile(
 		(HANDLE)hand,
@@ -206,21 +202,12 @@ extern "C" JNIEXPORT jint JNICALL Java_narl_itrc_DevTTY_implRead(
 		(LPDWORD)((void *)&cnt),
 		NULL
 	);
+#else
+	jint cnt = (jint)read(fd, buf+offset, len);
+#endif
 	//cout << "read " << cnt <<" byte."<< endl;
 	env->ReleaseByteArrayElements(jbuf,buf,0);
-	return (jint)cnt;
-#else
-	//Do we need block mode?,This is tri_state variable
-	//fcntl(fd,F_SETFL,0);
-	//fcntl(fd,F_SETFL,FNDELAY);
-	int fd = getJLong(env,thiz,NAME_HANDLE);
-	if(fd<=0){
-		return 0;
-	}
-	jint cnt = (jint)read(fd, buf+offset, len);
-	env->ReleaseByteArrayElements(jbuf,buf,0);
 	return cnt;
-#endif
 }
 
 
@@ -229,37 +216,35 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implWrite(
 	jobject thiz,
 	jbyteArray jbuf
 ) {
+	int fd = getJLong(env,thiz,NAME_HANDLE);
+	if(fd<=0){
+		return;
+	}
 	jbyte* buf = env->GetByteArrayElements(jbuf,NULL);
 	size_t len = env->GetArrayLength(jbuf);
 #if defined _MSC_VER
-	jlong hand = getJLong(env,thiz,NAME_HANDLE);
-	if(hand!=0L){
-		int n;
-		WriteFile(
-			(HANDLE)hand,
-			buf, len,
-			(LPDWORD)((void *)&n),
-			NULL
-		);
-		if(n<0){ cout<<"fail to write"<<endl; }
+	int count=0;
+	WriteFile(
+		(HANDLE)hand,
+		buf, len,
+		(LPDWORD)((void *)&count),
+		NULL
+	);
+	if(count<0){
+		cout<<"fail to write"<<endl;
 	}
 #else
-	int fd = getJLong(env,thiz,NAME_HANDLE);
-	if(fd!=0){
-		ssize_t res;
-		jbyte* ptr = buf;
-		do{
-			res = write(fd,buf,len);
-			if(res<0){
-				cout<<"tty-write-error:"<<errno<<endl;
-				break;
-			}else if(res==0){
-				cout<<"tty-no-writing:"<<endl;//??What is going on??
-				break;
-			}
-			len = len - res;
-		}while(len>0);
-	}
+	ssize_t count;
+	jbyte* ptr = buf;
+	do{
+		count = write(fd,(void*)ptr,len);
+		if(count<0){
+			cout<<"tty-write-error:"<<errno<<endl;
+			break;
+		}
+		len = len - count;
+		ptr = ptr + count;
+	}while(len>0);
 #endif
 	env->ReleaseByteArrayElements(jbuf,buf,0);
 }
@@ -268,14 +253,16 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implClose(
 	JNIEnv * env,
 	jobject thiz
 ) {
-	long val = getJLong(env,thiz,NAME_HANDLE);
+	jlong fd = getJLong(env,thiz,NAME_HANDLE);
 #if defined _MSC_VER
 	HANDLE hand = (HANDLE)val;
 	CloseHandle(hand);
 #else
-	close((int)val);
+	//fcntl(fd, F_SETSIG, SIGQUIT);
+	//tcsendbreak(fd,0);
+	close(fd);
 #endif//_MSC_VER
-	setJLong(env,thiz,NAME_HANDLE,0);//reset handle!!!!
+	setJLong(env,thiz,NAME_HANDLE,0);
 }
 
 

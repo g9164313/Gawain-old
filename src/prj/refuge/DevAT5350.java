@@ -96,14 +96,14 @@ public class DevAT5350 extends DevTTY {
 			if(cmd.charAt(cmd.length()-1)!='\n'){
 				cmd = cmd + '\n';
 			}
-			writeTxt(cmd,DELAY);
+			writeTxt(cmd);
 			//try to get response
 			if(buf[i].lastIndexOf('?')>=0){
 				//device have response~~~
-				buf[i] = readTxt('\n','\n',DELAY);
+				buf[i] = readTxt("\n");
 			}else{
 				//device just echo the message~~~~
-				buf[i] = readTxt('\n', DELAY);
+				buf[i] = readTxt("\n");
 			}					
 			Misc.logv("AT5350) >> %s",buf[i]);
 		}

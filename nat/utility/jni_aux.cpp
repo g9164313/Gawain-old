@@ -96,7 +96,6 @@ jsize getJString(JNIEnv *env, jobject thiz, const char* name, const char* dst){
 }
 //--------------------------------//
 
-
 jobjectArray create2DArray(JNIEnv * env, size_t cols, size_t rows, jint* value[]){
 	jobjectArray _col = env->NewObjectArray(
 		cols,

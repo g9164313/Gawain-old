@@ -32,13 +32,18 @@
 	-fx-text-fill: BLACK;
 }
 
-.hbox-small, .vbox-small {
-	-fx-background-color: #F0F0F0;
+.ground-pad-small {
+	-fx-alignment: center;
+	-fx-background-color: white;
+	-fx-font-size: 19px;
     -fx-spacing: 7;
     -fx-padding: 7;
+    -fx-hgap: 7;
+	-fx-vgap: 7;	
 }
 
 .hbox-medium, .vbox-medium, .ground-pad {
+	-fx-alignment: center ;
 	-fx-background-color: white;
 	-fx-font-size: 19px;
     -fx-spacing: 13;

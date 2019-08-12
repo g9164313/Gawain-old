@@ -34,8 +34,7 @@ public class DevShapeoko extends DevBase {
 
 	@Override
 	protected boolean afterLink() {
-		tty.createStream();
-		String txt = tty.getStreamTail("\r\n",2);
+		String txt = tty.readTxt(50);
 		Misc.logv(txt);
 		//if(txt.contains("Grbl")==false){
 		//	Misc.loge("Not Valid Grbl firmware!!");
@@ -61,7 +60,7 @@ public class DevShapeoko extends DevBase {
 		tty.writeTxt('?');		
 		//parse state information, for example:
 		//<Alarm|MPos:0.000,0.000,0.000|Bf:14,128|FS:0,0>		
-		String txt = tty.getStreamTail("\n",1).trim();		
+		String txt = tty.readTxt("\n").trim();		
 		if(txt.matches("[<].+[>]")==false){
 			return 0;
 		}
@@ -149,7 +148,7 @@ public class DevShapeoko extends DevBase {
 		tty.writeTxt(cmd);
 		String res;
 		do{
-			res = tty.getStreamTail("\r\n",1);
+			res = tty.readTxt("\r\n");
 			//Misc.logv("RES-->%s", res);//debug!!!
 			if(
 				res.contains("ok")==true || 

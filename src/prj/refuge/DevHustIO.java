@@ -339,7 +339,7 @@ public class DevHustIO extends DevTTY {
 			if(isOpen()==false){
 				return;
 			}			
-			lastReport = lastReport + readTxt();
+			lastReport = lastReport + readTxt("\n");
 			int beg = lastReport.indexOf(DC2);
 			if(beg>=0){
 				int end = lastReport.indexOf(DC4, beg+1);
