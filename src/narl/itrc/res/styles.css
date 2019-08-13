@@ -42,8 +42,8 @@
 	-fx-vgap: 7;	
 }
 
-.hbox-medium, .vbox-medium, .ground-pad {
-	-fx-alignment: center ;
+.ground-pad {
+	-fx-alignment: center;
 	-fx-background-color: white;
 	-fx-font-size: 19px;
     -fx-spacing: 13;

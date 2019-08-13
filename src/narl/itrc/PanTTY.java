@@ -1,4 +1,4 @@
-package prj.daemon;
+package narl.itrc;
 
 import java.io.File;
 import java.io.FilenameFilter;
@@ -19,10 +19,6 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.paint.Color;
-import narl.itrc.DevTTY;
-import narl.itrc.Gawain;
-import narl.itrc.Misc;
-import narl.itrc.PanBase;
 
 public class PanTTY extends PanBase {
 

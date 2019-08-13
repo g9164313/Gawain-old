@@ -1,9 +1,7 @@
 
-DIR_JNI=/usr/lib/jvm/default-java/include
+DIR_JNI=/home/qq/.local/jdk/include
 
 TARGET_EXE = gawain
-
-TARGET_PART= libdevice.so
 
 #### Pleora eBus ####
 
@@ -63,14 +61,11 @@ LIB_PYLON :=  -L$(ROOT_PYLON)/lib64 \
 ####  configuration  ####
 #########################
 
-CC = g++ -DENABLE_LOG -O0 -std=c++11
+CC = g++ -DENABLE_LOG -O0 -std=c++11 -g -I. -I$(DIR_JNI) -I$(DIR_JNI)/linux
 
-CC_FLAG  = -g -I. -I$(DIR_JNI) -I$(DIR_JNI)/linux
-CC_FLAG += -DVISION $(shell pkg-config --cflags opencv) -lopencv_xfeatures2d
 CC_FLAG += $(shell pkg-config --cflags libusb-1.0) 
 CC_FLAG += $(shell pkg-config --cflags libmodbus)
 
-LD_LIBS  = $(shell pkg-config --libs opencv)
 LD_LIBS += $(shell pkg-config --libs libusb-1.0) 
 LD_LIBS += $(shell pkg-config --libs libmodbus)
 
@@ -117,6 +112,8 @@ VISION_FILE  = ./vision/miscellany.cpp
 VISION_FILE += ./vision/CapVidcap.cpp  
 
 $(VISION_SO): $(VISION_FILE)
+	CC_FLAG += -DVISION $(shell pkg-config --cflags opencv)
+	LD_LIBS  = $(shell pkg-config --libs opencv)
 	$(BUILD_WORK) 
 
 #####[peripheral device]######
@@ -144,7 +141,8 @@ $(TARGET_EXE): $(TARGET_FILE)
 	
 ####################################################
 
-all: $(TARGET_EXE) $(CORE_SO) $(VISION_SO) $(PERIPHERAL_SO) 
+#all: $(TARGET_EXE) $(CORE_SO) $(VISION_SO) $(PERIPHERAL_SO) 
+all: $(PERIPHERAL_SO)
 
 clean:
 	rm -rf $(TARGET_EXE) $(TARGET_SO) $(DIR_SRC)/*.o ./*.o

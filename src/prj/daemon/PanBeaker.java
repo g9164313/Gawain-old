@@ -23,7 +23,6 @@ import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 import org.apache.commons.math3.util.Combinations;
 import org.apache.commons.math3.util.CombinatoricsUtils;
 
-import com.google.common.primitives.Doubles;
 import com.sun.glass.ui.Application;
 
 import javafx.beans.property.SimpleStringProperty;

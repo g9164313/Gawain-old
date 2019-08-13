@@ -2,6 +2,7 @@ Makefiel
 /build.fxbuild
 *.class
 *.glade
+*.xml
 
 gawain/
 nat/wrap-vc10/

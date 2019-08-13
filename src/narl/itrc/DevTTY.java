@@ -123,19 +123,16 @@ public class DevTTY {
 	}
 	//-----------------------//
 	
+	private final ArrayBlockingQueue<Byte> stream = new ArrayBlockingQueue<Byte>(1024);
+		
 	public interface Hook {
 		void looper(byte[] buf, int len);
 	};
 	
-	private final ArrayBlockingQueue<Byte> stream = new ArrayBlockingQueue<Byte>(1024);
-	
 	private Thread thrRead;
 	
-	private Hook hook=null, peek=null;
+	private Hook peek=null;
 	
-	public void setHook(final Hook callback) {
-		hook = callback;
-	}
 	public void setPeek(final Hook callback) {
 		peek = callback;
 	}
@@ -157,9 +154,6 @@ public class DevTTY {
 					}
 					for(int i=0; i<cnt; i++) {
 						stream.offer(buf[i]);
-					}
-					if(cnt>0 && hook!=null) {
-						hook.looper(buf, cnt);
 					}
 					if(cnt>0 && peek!=null) {
 						peek.looper(buf, cnt);
