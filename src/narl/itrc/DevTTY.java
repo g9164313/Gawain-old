@@ -1,20 +1,15 @@
 package narl.itrc;
 
-import java.nio.charset.Charset;
-
-import java.util.concurrent.ArrayBlockingQueue;
-
-
-public class DevTTY {
+public class DevTTY extends DevBase {
 
 	public DevTTY(){
+		TAG = "tty-stream";
 	}
 
 	public DevTTY(String path){	
+		this();
 		setPathName(path);
 	}
-	
-	protected String TAG = "tty-stream";
 
 	/**
 	 * For Unix, it is a number(File descriptor).<p>
@@ -51,6 +46,8 @@ public class DevTTY {
 		pathName = path;//reset path name~~~
 		return open();
 	}
+	
+	private Thread thrRead;
 	
 	/**
 	 * Open tty device and parser path name.<p>
@@ -90,7 +87,7 @@ public class DevTTY {
 		//prepare reading task~~~
 		boolean flag = isOpen();
 		if(flag==true) {
-			thrRead = new Thread(runRead,TAG);
+			thrRead = new Thread(runLooper,TAG);
 			thrRead.setDaemon(true);
 			thrRead.start();
 		}else {
@@ -123,13 +120,51 @@ public class DevTTY {
 	}
 	//-----------------------//
 	
-	private final ArrayBlockingQueue<Byte> stream = new ArrayBlockingQueue<Byte>(1024);
+	//Charset.forName("UTF-8");//Do we need this object??
+	
+	private final StringBuffer stream = new StringBuffer(512);
+	
+	public class Action extends DevBase.Act {
 		
-	public interface Hook {
-		void looper(byte[] buf, int len);
+		private String w_data = null;
+		private String r_head = null;
+		private String r_tail = null;
+		private ReadBack hook = null;
+		
+		public Action writeData(final String txt) {
+			w_data = txt;
+			return this;
+		}
+		public Action readHead(final String txt) {
+			r_head = txt;
+			return this;
+		}
+		public Action readTail(final String txt) {
+			r_tail = txt;
+			return this;
+		}
+		public Action setHook(final ReadBack callback) {
+			hook = callback;
+			return this;
+		}
+		
+		private void callback() {
+			if(hook==null) {
+				return;
+			}
+			final String txt = stream.toString();
+			hook.callback(this,txt);
+			stream_clear();
+		}
 	};
 	
-	private Thread thrRead;
+	public interface ReadBack {
+		void callback(final Act action, final String txt);
+	};
+
+	public interface Hook {
+		void looper(byte[] buf, int cnt);
+	};
 	
 	private Hook peek=null;
 	
@@ -137,111 +172,135 @@ public class DevTTY {
 		peek = callback;
 	}
 	
-	private final Runnable runRead = new Runnable() {
+	private void stream_clear() {
+		stream.delete(0, stream.length());
+	}
+	
+	private void stream_buf(
+		final byte[] buf, 
+		final int cnt
+	) {
+		if(cnt<=0) {
+			return;
+		}
+		int len = stream.length();
+		int cap = stream.capacity();
+		if((len+cnt)>=cap) {
+			stream.delete(0, cnt);
+		}
+		for(int i=0; i<cnt; i++) {
+			stream.append(((char)buf[i]));
+		}
+		if(peek!=null) {
+			peek.looper(buf, cnt);
+		}
+		//debug_buf(buf,cnt);
+	}
+	
+	private void debug_buf(
+		final byte[] buf, 
+		final int cnt
+	) {
+		String txt="";
+		for(int i=0; i<cnt; i++) {
+			txt = txt + ((char)buf[i]);
+		}
+		Misc.logv("R-->%s", txt);
+	}
+	
+	private final Runnable runLooper = new Runnable() {
 		@Override
 		public void run() {
+			int cnt = 0;
 			byte[] buf = new byte[16];
-			try {
-				do {
-					int cnt = implRead(buf,0);
-					int rem = stream.remainingCapacity();
-					if(rem<cnt) {
-						//clear something for new data~~
-						rem = cnt - rem;
-						for(int i=0; i<rem; i++) {
-							stream.take();
-						}						
-					}
-					for(int i=0; i<cnt; i++) {
-						stream.offer(buf[i]);
-					}
-					if(cnt>0 && peek!=null) {
-						peek.looper(buf, cnt);
-					}
-				}while(Gawain.isExit()==false && handle!=0L);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
+			do {
+				Action act = (Action) action.poll();
+				if(act!=null) {
+					stream_clear();
+					writeTxt(act.w_data);
+					//Misc.logv("W-->%s", act.w_data);
+					int idx = 0;
+					boolean hasHead=(act.r_head==null)?(true):(false);
+					boolean hasTail=(act.r_tail==null)?(true):(false);
+					do {
+						if(hasHead==true && hasTail==true) {
+							act.callback();
+							break;
+						}
+						cnt = implRead(buf,0);
+						stream_buf(buf,cnt);
+						if(act.r_head!=null) {
+							idx = stream.indexOf(act.r_head);
+							if(idx>=0) {
+								stream.delete(idx, idx+act.r_head.length());
+								hasHead = true;
+							}
+						}
+						if(act.r_tail!=null) {
+							idx = stream.indexOf(act.r_tail);
+							if(idx>=0) {
+								idx += act.r_tail.length();
+								stream.delete(idx,stream.length());
+								hasTail = true;
+							}
+						}
+					}while(Gawain.isExit()==false && handle!=0L);
+					check_loop(act);
+				}else {
+					cnt = implRead(buf,0);
+					stream_buf(buf,cnt);
+				}
+			}while(Gawain.isExit()==false && handle!=0L);
 			Misc.logv("%s done",TAG);
 		}
 	};
-	
-	/**
-	 * Draw all data in stream.<p>
-	 * It means that queue will be empty.<p> 
-	 * @return  text
-	 */
-	public String readTxt(final int waitMillSecond){
-		String txt = "";
-		try {
-			do {
-				if(waitMillSecond>0) {
-					Thread.sleep(waitMillSecond);
-				}
-				if(stream.peek()==null) {
-					break;
-				}
-				txt = txt + (char)stream.take().byteValue();
-			}while(thrRead.isAlive()==true);
-		} catch (InterruptedException e) {
-			//e.printStackTrace();
-			//Misc.logw("stop %s",TAG);
-		}
-		return txt;
-	}
-	
-	public String readTxt(String tail) {
-		return readTxt(null,tail);
-	}
-	
-	public String readTxt(String head, String tail) {
-		String txt = "";
-		try {
-			do {
-				if(head==null && tail==null) {
-					break;
-				}
-				txt = txt + (char)stream.take().byteValue();
-				if(head!=null) {
-					int idx = txt.indexOf(head);
-					if(idx>=0) {						
-						txt = txt.substring(idx);
-						head= null;
-					}
-				}
-				if(tail!=null) {
-					if(txt.endsWith(tail)==true) {
-						tail = null;
-					}
-				}
-			}while(thrRead.isAlive()==true);
-		} catch (InterruptedException e) {
-			//e.printStackTrace();
-			Misc.logw("stop tty-reading");
-		}		
-		return txt;
-	}
-	
-	public static String buff2text(
-		final byte[] buf, 
-		final int len
-	) {
-		String txt = "";
-		for(int i=0; i<len; i++) {
-			txt = txt + ((char)buf[i]);
-		}
-		return txt;
-	}
-	
 	//------------------------------------//
 	
 	/**
-	 * Write byte data via terminal-port.<p>
-	 * @param buf - context data
+	 * It is same as readTxt(), but no head pattern.<p>
+	 * Just for convenience.<p>
+	 * @param tail - text start with, it can be null
+	 * @param hook - callback
 	 */
-	public void writeByte(byte cc){
-		final byte[] buf = { cc };
-		implWrite(buf);
+	public void readTxt(
+		final String tail,
+		final ReadBack hook
+	) {
+		readTxt(null,tail,hook);
+	}
+	
+	/**
+	 * Wait stream which had some pattern.<p>
+	 * @param head - text start with, it can be null
+	 * @param tail - text end with, it can be null
+	 * @param hook - callback
+	 */
+	public void readTxt(
+		final String head, 
+		final String tail,
+		final ReadBack hook
+	) {
+		final Action act = new Action();
+		act.r_head = head;
+		act.r_tail = tail;
+		act.hook = hook;
+		take(act);
+	}
+	
+	//private final static Charset cc_set = Charset.forName("UTF-8");
+	
+	/**
+	 * Write text via terminal-port.<p>
+	 * @param txt - context data
+	 */
+	public void writeTxt(String txt){
+		if(txt==null) {
+			return;
+		}
+		if(txt.length()==0){
+			return;
+		}
+		implWrite(txt.getBytes());
 	}
 	
 	/**
@@ -250,41 +309,7 @@ public class DevTTY {
 	 */
 	public void writeByte(byte... buf){
 		implWrite(buf);
-	}
-	
-	/**
-	 * Write character data via terminal-port.<p>
-	 * @param buf
-	 */
-	public void writeTxt(char ch){
-		final byte[] tmp = { (byte)ch };
-		implWrite(tmp);
-	}
-
-	/**
-	 * Write text via terminal-port.<p>
-	 * @param txt - context data
-	 */
-	public void writeTxt(String txt){
-		if(txt.length()==0){
-			return;
-		}
-		implWrite(txt.getBytes(Charset.forName("UTF-8")));
-	}
-	
-	/**
-	 * Write text and read data from tty-device.<p>
-	 * It is lazy function to get data.<p>
-	 * Disadvantage is that thread is frequently created.<p>
-	 */
-	public void fetchTxt(
-		final String writeTxt,
-		final String readHead,
-		final String readTail
-	) {
-		
-	}
-	
+	}	
 	//-----------------------//
 	
 	private native void implOpen(

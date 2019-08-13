@@ -263,7 +263,7 @@ public class Misc {
 	}
 	
 	/**
-	 * Unescapes a string that contains standard Java escape sequences.
+	 * Un-escape a string that contains standard Java escape sequences.
 	 * <ul>
 	 * <li><strong>\b \f \n \r \t \" \'</strong> :
 	 * BS, FF, NL, CR, TAB, double and single quote.</li>
@@ -272,7 +272,7 @@ public class Misc {
 	 * </ul>
 	 * @return The translated string.
 	 */
-	public static String unescapeJavaString(String st) {
+	public static String unescape(String st) {
 	 
 	    StringBuilder sb = new StringBuilder(st.length());
 	 

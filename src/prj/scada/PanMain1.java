@@ -27,7 +27,7 @@ public class PanMain1 extends PanBase {
 		final BorderPane lay0 = new BorderPane();
 		lay0.getStyleClass().add("ground-pad");
 		//lay0.setRight();
-		//lay0.setCenter(layB);
+		lay0.setCenter(lay1);
 		lay0.setLeft(DevDCG100.genPanel(dcg));
 		
 		return lay0;

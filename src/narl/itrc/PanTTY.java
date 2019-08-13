@@ -121,7 +121,7 @@ public class PanTTY extends PanBase {
 		boxInput.setOnAction(e->{
 			String txt = boxInput.getText();
 			if(chkExpr.isSelected()==true) {
-				txt = Misc.unescapeJavaString(txt);
+				txt = Misc.unescape(txt);
 			}
 			int feed = cmbFeed.getSelectionModel().getSelectedIndex();
 			switch(feed) {

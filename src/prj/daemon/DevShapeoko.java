@@ -8,11 +8,11 @@ import javafx.beans.property.SimpleFloatProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
-import narl.itrc.DevBase;
+import narl.itrc.DevBase1;
 import narl.itrc.DevTTY;
 import narl.itrc.Misc;
 
-public class DevShapeoko extends DevBase {
+public class DevShapeoko extends DevBase1 {
 
 	private DevTTY tty = new DevTTY();
 	
@@ -34,12 +34,8 @@ public class DevShapeoko extends DevBase {
 
 	@Override
 	protected boolean afterLink() {
-		String txt = tty.readTxt(50);
+		String txt = "";//TODO: tty.readTxt(50);
 		Misc.logv(txt);
-		//if(txt.contains("Grbl")==false){
-		//	Misc.loge("Not Valid Grbl firmware!!");
-		//	return false;
-		//}
 		_exec("$X");//~~unlock~~
 		_exec("M05");//Spindle off
 		_exec("G21");//Set Units to Millimeters
@@ -57,10 +53,10 @@ public class DevShapeoko extends DevBase {
 
 	@Override
 	protected int core_looper(Work obj, int pass){		
-		tty.writeTxt('?');		
+		tty.writeTxt("?");		
 		//parse state information, for example:
 		//<Alarm|MPos:0.000,0.000,0.000|Bf:14,128|FS:0,0>		
-		String txt = tty.readTxt("\n").trim();		
+		String txt = "";//TODO: tty.readTxt("\n").trim();		
 		if(txt.matches("[<].+[>]")==false){
 			return 0;
 		}
@@ -148,7 +144,7 @@ public class DevShapeoko extends DevBase {
 		tty.writeTxt(cmd);
 		String res;
 		do{
-			res = tty.readTxt("\r\n");
+			res = "";//TODO:tty.readTxt("\r\n");
 			//Misc.logv("RES-->%s", res);//debug!!!
 			if(
 				res.contains("ok")==true || 
@@ -164,7 +160,7 @@ public class DevShapeoko extends DevBase {
 	}
 	
 	private String atomCmd = null;
-	private DevBase.Work atomWork = new DevBase.Work() {
+	private DevBase1.Work atomWork = new DevBase1.Work() {
 		@Override
 		public int looper(Work obj, int pass) {
 			_exec(atomCmd);

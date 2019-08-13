@@ -1,309 +1,79 @@
 package narl.itrc;
 
-import java.util.NoSuchElementException;
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.Delayed;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-import com.sun.glass.ui.Application;
-
-import javafx.concurrent.Task;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Alert.AlertType;
-
-
-abstract public class DevBase {
+public class DevBase {
 	
-	protected String TAG = "Abstract Device Layer";
-	
-	protected final Alert alert = new Alert(AlertType.INFORMATION);
-	
-	public DevBase(String tag){
-		TAG = tag;
-		alert.setHeaderText("");
-	}
-	
-	protected abstract boolean eventLink();
-	
-	protected abstract boolean afterLink();
-
-	protected abstract void beforeUnlink();
-	
-	protected abstract void eventUnlink(); 	
-	
-	protected static interface WorkLooper {
-		abstract void looper(Work obj);
-	};
-	
-	protected static abstract class Work implements Delayed {
+	public class Act implements Delayed {
 		
-		/**
-		 * initial time tick for counting delay.<p>
-		 * unit is MILLISECONDS.<p>
-		 */
-		private long cntBegin = 0L;
+		public final AtomicBoolean loop = new AtomicBoolean(false);
 		
-		/**
-		 * indicate how long time passes.<p>
-		 * unit is MILLISECONDS.<p>
-		 */
-		protected long cntDelay = 0L;
+		public long stamp, delay;
 		
-		/**
-		 * Whether Looper queues token again.<p> 
-		 */
-		public boolean durable = false;
-		
-		public Work(){
+		public Act() {
+			this(-1);
 		}
-		public Work(int delay_ms){
-			cntDelay= delay_ms;
-		}
-		public Work(int delay_ms, boolean isPermanent){
-			cntDelay= delay_ms;
-			durable = isPermanent;
+		public Act(long millis) {
+			stamp = System.currentTimeMillis();
+			delay = millis;
 		}
 		
-		public void setDelay(long millisecond){
-			cntBegin = System.currentTimeMillis();
-			cntDelay = millisecond;
+		public Act setDelay(final long value) {
+			delay = value;
+			return this;
 		}
 		
-		public abstract int looper(Work obj, final int pass);
-		
-		public abstract int event(Work obj, final int pass);
+		public Act setLoop(final boolean flag) {
+			loop.set(flag);
+			return this;
+		}
 		
 		@Override
-		public int compareTo(Delayed o) {
-			long t1 = getDelay(null);
-			long t2 = o.getDelay(null);
-			return (int)(t1-t2);
+		public int compareTo(Delayed obj) {
+			return (int)(delay-obj.getDelay(TimeUnit.MILLISECONDS));
 		}
 		@Override
 		public long getDelay(TimeUnit unit) {
-			long past = System.currentTimeMillis()-cntBegin;
-			if(past>=cntDelay){
-				return 0;
+			if(delay<=0) {
+				return 0L;
 			}
-			return cntDelay;
-		}
-	}
-	
-	private Task<?> looper = null;
-
-	private DelayQueue<Work> queuer = new DelayQueue<Work>();
-	
-	protected boolean isCanceled(){
-		if(looper==null){
-			return true;
-		}
-		return looper.isCancelled();
-	}
-	
-	public void link(){
-		
-		//check whether looper is running
-		if(looper!=null){
-			if(looper.isDone()==false){
-				return;				
+			long past = delay-(System.currentTimeMillis()-stamp);
+			if(past<=0L) {
+				return 0L;
 			}
-		}
-
-		//let user prepare something
-		if(eventLink()==false){
-			return;
-		}
-		
-		//go, working and working~~~~
-		looper = new Task<Void>(){
-			int pass = 0;
-			@Override
-			protected Void call() throws Exception {
-				//initialize everything or setup
-				if(afterLink()==false){
-					return null;
-				}								
-				//this is main looper and device core.
-				while(looper.isCancelled()==false){
-					//start!!, try to get work~~~~
-					Work obj = queuer.take();					
-					if(obj.cntBegin<0){
-						//special case!!!
-						//user want to escape looper~~~
-						break;
-					}
-					//main looper
-					pass = 0;
-					do{
-						pass = obj.looper(obj, pass);
-						if(pass!=0){
-							Application.invokeAndWait(()->{
-								pass = obj.event(obj, pass);						
-							});
-						}	
-					}while(pass!=0 && looper.isCancelled()==false);
-					//check if we need this work again~~~
-					if(obj.durable==true){
-						//push-back and count again~~~
-						obj.cntBegin = System.currentTimeMillis();
-						queuer.offer(obj);
-					}
-				}				
-				//Before ending, release resource.
-				beforeUnlink();				
-				return null;
-			}
-		};
-		
-		Thread th = new Thread(looper,TAG);
-		th.setDaemon(true);
-		th.start();
-	}
-	
-	private static final Work work_done = new Work(-1){
-		@Override
-		public int looper(Work obj, int pass) {
-			return 0;
-		}
-		@Override
-		public int event(Work obj,int pass) {
-			return 0;
+			return unit.convert(
+				past, 
+				TimeUnit.MILLISECONDS
+			);
 		}
 	};
 	
-	public void unlink(){		
-		if(looper!=null){
-			queuer.add(work_done);
-			do{				
-				looper.cancel();
-				try {
-					Thread.sleep(50);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-			}while(looper.isDone()==false);
-			looper = null;
-		}		
-		eventUnlink();
-		queuer.clear();//clear token for next turn~~~
+	protected String TAG = "dev-base";
+	
+	public DevBase(){		
 	}
 	
-	public DevBase offer(WorkLooper task){
-		queuer.offer(new Work(){
-			@Override
-			public int looper(Work obj, int pass) {
-				task.looper(obj);
-				return 0;
-			}
-			@Override
-			public int event(Work obj, int pass) {
-				return 0;
-			}
-		});
-		return this;
-	}
-	
-	public DevBase offer(Work token){
-		if(queuer.contains(token)==true) {
-			return this;
+	protected final DelayQueue<Act> action = new DelayQueue<Act>();
+
+	protected void check_loop(final Act act) {
+		if(act.loop.get()==false) {
+			return;
 		}
-		queuer.offer(token);
-		return this;
-	}
-	public DevBase offer(
-		int delay_ms,
-		Work token		
-	){	
-		return offer(			
-			delay_ms,
-			TimeUnit.MILLISECONDS,
-			false,
-			token
-		);
-	}
-	public DevBase offer(		
-		int delay_ms,
-		boolean permanent,
-		Work token
-	){	
-		return offer(			
-			delay_ms,
-			TimeUnit.MILLISECONDS,
-			permanent,
-			token
-		);
+		//reset stamp again
+		act.stamp = System.currentTimeMillis();
+		//put this action again
+		action.put(act);
 	}
 	
-	public DevBase offer(		
-		int delay,
-		TimeUnit unit,
-		boolean permanent,
-		Work tkn
-	){
-		if(queuer.contains(tkn)==true){
-			return this;
-		}
-		tkn.setDelay(TimeUnit.MILLISECONDS.convert(delay, unit));
-		tkn.durable = permanent;
-		queuer.offer(tkn);
-		return this;
+	protected void abort(final Act act) {
+		act.loop.set(false);
+		action.remove(act);
 	}
 	
-	private Work core_inner;
-	protected int core_looper(Work obj, int pass){ return 0; }
-	protected int core_event (Work obj, int pass){ return 0; }	
-	/**
-	 * provide a convenience method for infinite looper.<p>
-	 * User can override 'core_looper' and 'core_event' method.<p>
-	 * @param ms - time to repeat action
-	 * @return self
-	 */
-	protected DevBase createLooper(int ms){
-		if(core_inner==null){
-			core_inner = new Work(){
-				@Override
-				public int looper(Work obj, int pass) {
-					return DevBase.this.core_looper(obj, pass);
-				}
-				@Override
-				public int event(Work obj, int pass) {
-					return DevBase.this.core_event(obj, pass);
-				}
-			};
-			core_inner.setDelay(ms);
-		}else{
-			core_inner.setDelay(ms);
-			return this;
-		}
-		core_inner.durable = true;
-		return offer(core_inner);
+	protected void take(final Act act) {
+		action.put(act);
 	}
-	
-	public int countWork(){
-		return queuer.size();
-	}
-	
-	public DevBase remove(Work tkn){
-		tkn.durable = false;
-		queuer.remove(tkn);
-		return this;
-	}
-	
-	//TODO:how to purge???
-	//public DevBase purge(){
-		//queuer.iterator()
-		//queuer.removeAll();
-		//return this;
-	//}
-	
-	protected void waitForEmpty(){
-		do{
-			try{
-				queuer.remove();
-				Thread.sleep(50);
-			}catch(NoSuchElementException | InterruptedException e){
-				return;
-			}
-		}while(queuer.isEmpty()==false);
-	}	
 }
