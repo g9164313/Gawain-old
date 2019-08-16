@@ -1,5 +1,7 @@
 package narl.itrc;
 
+import com.sun.glass.ui.Application;
+
 public class DevTTY extends DevBase {
 
 	public DevTTY(){
@@ -32,8 +34,14 @@ public class DevTTY extends DevBase {
 		return pathName;
 	}
 	
-	public boolean isOpen(){
-		return (handle==0L)?(false):(true);
+	public boolean isLive(){
+		if(Gawain.isExit()==true) {
+			return false;
+		}
+		if(handle==0L) {
+			return false;
+		}
+		return true;
 	}
 	//-----------------------//
 	
@@ -46,6 +54,8 @@ public class DevTTY extends DevBase {
 		pathName = path;//reset path name~~~
 		return open();
 	}
+	
+	protected boolean asynMode = true;
 	
 	private Thread thrRead;
 	
@@ -79,23 +89,29 @@ public class DevTTY extends DevBase {
 			if(vals.length<3){
 				return false;
 			}
-			
-			implOpen(name, baud, vals[0], vals[1], vals[2], '?');			
+			implOpen(
+				name, baud, 
+				vals[0], vals[1], vals[2], 
+				'?'
+			);			
 		}catch(NumberFormatException e){
 			return false;
 		}
 		//prepare reading task~~~
-		boolean flag = isOpen();
+		boolean flag = isLive();
 		if(flag==true) {
-			thrRead = new Thread(runLooper,TAG);
-			thrRead.setDaemon(true);
-			thrRead.start();
+			afterOpen();
+			if(asynMode==true) {
+				thrRead = new Thread(runLooper,TAG);
+				thrRead.setDaemon(true);
+				thrRead.start();
+			}
 		}else {
 			thrRead = null;
 		}
 		return flag;
 	}
-
+	
 	/**
 	 * close tty device.<p>
 	 */
@@ -103,6 +119,7 @@ public class DevTTY extends DevBase {
 		if(handle==0L){
 			return;
 		}
+		afterClose();
 		implClose();
 		if(thrRead!=null) {
 			int max_iter = 5;
@@ -118,33 +135,42 @@ public class DevTTY extends DevBase {
 		}		
 		thrRead = null;
 	}
+
+	protected void afterOpen() { }
+	protected void afterClose() { }
 	//-----------------------//
-	
-	//Charset.forName("UTF-8");//Do we need this object??
-	
-	private final StringBuffer stream = new StringBuffer(512);
-	
+
 	public class Action extends DevBase.Act {
 		
-		private String w_data = null;
-		private String r_head = null;
-		private String r_tail = null;
+		private String w_data = "";
+		private String[] r_data = {"", ""};
+		//private String r_match = null;
 		private ReadBack hook = null;
+		private boolean backByUI = true;
 		
-		public Action writeData(final String txt) {
-			w_data = txt;
+		public Action writeData(final String data) {
+			w_data = data;
 			return this;
 		}
-		public Action readHead(final String txt) {
-			r_head = txt;
-			return this;
+		public Action indexOfData(
+			final String tail,
+			final ReadBack callback
+		) {
+			return indexOfData("", tail, callback);
 		}
-		public Action readTail(final String txt) {
-			r_tail = txt;
-			return this;
-		}
-		public Action setHook(final ReadBack callback) {
+		public Action indexOfData(
+			final String head, 
+			final String tail,
+			final ReadBack callback
+		) {
+			r_data[0] = head;
+			r_data[1] = tail;
 			hook = callback;
+			return this;
+		}
+		
+		public Action backbyUI(boolean flag){
+			backByUI = flag;
 			return this;
 		}
 		
@@ -152,31 +178,46 @@ public class DevTTY extends DevBase {
 			if(hook==null) {
 				return;
 			}
-			final String txt = stream.toString();
-			hook.callback(this,txt);
-			stream_clear();
+			if(backByUI==false) {
+				hook.callback(
+					this,
+					stream.toString()
+				);
+			}else {
+				Application.invokeAndWait(()->{
+					hook.callback(
+						this,
+						stream.toString()
+					);
+				});
+			}
+			flush_stream();
 		}
 	};
 	
 	public interface ReadBack {
-		void callback(final Act action, final String txt);
+		void callback(final Action action, final String txt);
 	};
 
-	public interface Hook {
+	public interface Peek {
 		void looper(byte[] buf, int cnt);
 	};
 	
-	private Hook peek=null;
+	private Peek peek=null;
 	
-	public void setPeek(final Hook callback) {
+	public void setPeek(final Peek callback) {
 		peek = callback;
 	}
 	
-	private void stream_clear() {
+	protected final StringBuffer stream = new StringBuffer(512);
+	
+	protected String flush_stream() {
+		String txt = stream.toString();
 		stream.delete(0, stream.length());
+		return txt;
 	}
 	
-	private void stream_buf(
+	private void buff_stream(
 		final byte[] buf, 
 		final int cnt
 	) {
@@ -211,50 +252,74 @@ public class DevTTY extends DevBase {
 	private final Runnable runLooper = new Runnable() {
 		@Override
 		public void run() {
-			int cnt = 0;
-			byte[] buf = new byte[16];
+			byte[] buf = new byte[32];
 			do {
 				Action act = (Action) action.poll();
 				if(act!=null) {
-					stream_clear();
+					flush_stream();
 					writeTxt(act.w_data);
-					//Misc.logv("W-->%s", act.w_data);
-					int idx = 0;
-					boolean hasHead=(act.r_head==null)?(true):(false);
-					boolean hasTail=(act.r_tail==null)?(true):(false);
-					do {
-						if(hasHead==true && hasTail==true) {
-							act.callback();
-							break;
-						}
-						cnt = implRead(buf,0);
-						stream_buf(buf,cnt);
-						if(act.r_head!=null) {
-							idx = stream.indexOf(act.r_head);
-							if(idx>=0) {
-								stream.delete(idx, idx+act.r_head.length());
-								hasHead = true;
-							}
-						}
-						if(act.r_tail!=null) {
-							idx = stream.indexOf(act.r_tail);
-							if(idx>=0) {
-								idx += act.r_tail.length();
-								stream.delete(idx,stream.length());
-								hasTail = true;
-							}
-						}
-					}while(Gawain.isExit()==false && handle!=0L);
+					index_of_data(act,buf);
 					check_loop(act);
 				}else {
-					cnt = implRead(buf,0);
-					stream_buf(buf,cnt);
+					int cnt = implRead(buf,0,-1);
+					buff_stream(buf,cnt);
 				}
-			}while(Gawain.isExit()==false && handle!=0L);
+			}while(isLive()==true);
 			Misc.logv("%s done",TAG);
 		}
 	};
 	//------------------------------------//
+	
+	private void index_of_data(
+		final Action act,
+		final byte[] buf
+	) {
+		int idx=0, off=0, try_count = 10;
+		boolean hasHead=(act.r_data[0].length()==0)?(true):(false);
+		boolean hasTail=(act.r_data[1].length()==0)?(true):(false);
+		
+		while(isLive()==true){
+			
+			if(try_count<0) {
+				Misc.logw(
+					"[%s] fail to indexof(%s,%s)", 
+					TAG, act.r_data[0], act.r_data[1]
+				);
+				break;
+			}
+			
+			int cnt = implRead(buf,0,-1);
+			
+			buff_stream(buf,cnt);
+			
+			if(cnt<=0) {
+				try_count-=1;
+			}
+			
+			if(act.r_data[0].length()!=0) {				
+				idx = stream.lastIndexOf(act.r_data[0]);
+				if(idx>=0) {
+					off = idx + act.r_data[0].length();
+					stream.delete(idx, off);
+					hasHead = true;
+				}
+			}
+			if(act.r_data[1].length()!=0) {
+				idx = stream.lastIndexOf(act.r_data[1]);
+				if(idx>=0) {
+					idx += act.r_data[1].length();
+					off = stream.length();
+					stream.delete(idx,off);
+					hasTail = true;
+				}
+			}			
+			
+			if(hasHead==true && hasTail==true) {
+				act.callback();
+				break;
+			}
+		}
+	}
 	
 	/**
 	 * It is same as readTxt(), but no head pattern.<p>
@@ -266,7 +331,7 @@ public class DevTTY extends DevBase {
 		final String tail,
 		final ReadBack hook
 	) {
-		readTxt(null,tail,hook);
+		readTxt("",tail,hook);
 	}
 	
 	/**
@@ -280,11 +345,37 @@ public class DevTTY extends DevBase {
 		final String tail,
 		final ReadBack hook
 	) {
-		final Action act = new Action();
-		act.r_head = head;
-		act.r_tail = tail;
-		act.hook = hook;
-		take(act);
+		take(new Action().indexOfData(head, tail, hook));
+	}
+	
+	public byte readByte() {
+		byte[] buf = {0};
+		do {
+			int cnt = implRead(buf,0,1);
+			if(cnt>0) {
+				break;
+			}
+			Misc.delay(3);
+		}while(isLive()==true);
+		return buf[0];
+	}	
+	
+	public void readBuff(byte[] buf, int len) {
+		int off = 0;
+		if(len<0) {
+			len = buf.length;
+		}
+		do {
+			int cnt = implRead(buf,off,len);
+			if(cnt>0) {
+				off = off + cnt;
+				len = len - cnt;
+				continue;
+			}else if(cnt==0) {
+				break;
+			}
+			Misc.delay(3);
+		}while(isLive()==true);
 	}
 	
 	//private final static Charset cc_set = Charset.forName("UTF-8");
@@ -300,7 +391,15 @@ public class DevTTY extends DevBase {
 		if(txt.length()==0){
 			return;
 		}
-		implWrite(txt.getBytes());
+		implWrite(txt.getBytes(),0,-1);
+	}
+
+	public void writeByte(byte[] buf, int off, int len){
+		implWrite(buf,off,len);
+	}
+	
+	public void writeByte(byte[] buf, int len){
+		implWrite(buf,0,len);
 	}
 	
 	/**
@@ -308,7 +407,7 @@ public class DevTTY extends DevBase {
 	 * @param buf - context data
 	 */
 	public void writeByte(byte... buf){
-		implWrite(buf);
+		implWrite(buf,0,-1);
 	}	
 	//-----------------------//
 	
@@ -321,9 +420,9 @@ public class DevTTY extends DevBase {
 		char flow_mode
 	);
 
-	private native int implRead(byte[] buf, int offset);
+	private native int implRead(byte[] buf, int off, int cnt);
 	
-	private native void implWrite(byte[] buf);
+	private native int implWrite(byte[] buf, int off, int cnt);
 	
 	private native void implClose();
 }

@@ -34,7 +34,6 @@ inline void msleep(int msec){
 }
 
 #else
-
 #include <dirent.h>
 #include <unistd.h>
 #define NAT_EXPORT extern "C"

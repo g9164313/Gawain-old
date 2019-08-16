@@ -88,7 +88,7 @@ public class PanTTY extends PanBase {
 		btnLink.setMaxWidth(Double.MAX_VALUE);
 		GridPane.setFillWidth(btnLink, true);
 		btnLink.setOnAction(e->{		
-			if(dev.isOpen()==true) {
+			if(dev.isLive()==true) {
 				dev.close();
 			} else {
 				String name = gen_path_name(lstCmb);
@@ -205,7 +205,7 @@ public class PanTTY extends PanBase {
 	}
 	
 	private void update_face(final Button btn) {
-		boolean flag = dev.isOpen();
+		boolean flag = dev.isLive();
 		isOpen.set(flag);
 		if(flag==true) {
 			btn.setText(TEXT_DISCONNECT);
@@ -218,7 +218,7 @@ public class PanTTY extends PanBase {
 	
 	@SuppressWarnings("unchecked")
 	private void update_item(ComboBox<?>... cmb) {
-		if(dev.isOpen()==false) {
+		if(dev.isLive()==false) {
 			return;
 		}
 		String txt = dev.getPathName();

@@ -45,7 +45,7 @@
 .ground-pad {
 	-fx-alignment: center;
 	-fx-background-color: white;
-	-fx-font-size: 19px;
+	-fx-font-size: 1.8em;
     -fx-spacing: 13;
     -fx-padding: 13;
     -fx-hgap: 13;

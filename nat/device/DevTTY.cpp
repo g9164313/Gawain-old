@@ -186,14 +186,20 @@ extern "C" JNIEXPORT jint JNICALL Java_narl_itrc_DevTTY_implRead(
 	JNIEnv * env,
 	jobject thiz,
 	jbyteArray jbuf,
-	jint offset
+	jint offset,
+	jint length
 ) {
 	int fd = getJLong(env,thiz,NAME_HANDLE);
 	if(fd<=0){
-		return 0;
+		return -1;
 	}
 	jbyte* buf = env->GetByteArrayElements(jbuf,NULL);
 	size_t len = env->GetArrayLength(jbuf);
+	if(0<=length && length<=len){
+		len = length;
+	}else{
+		length = len;
+	}
 #if defined _MSC_VER
 	jlong cnt = 0;
 	ReadFile(
@@ -203,25 +209,41 @@ extern "C" JNIEXPORT jint JNICALL Java_narl_itrc_DevTTY_implRead(
 		NULL
 	);
 #else
-	jint cnt = (jint)read(fd, buf+offset, len);
+	ssize_t count;
+	jbyte* ptr = buf + offset;
+	do{
+		count = read(fd, ptr, len);
+		if(count<=0){
+			break;
+		}
+		len = len - count;
+		ptr = ptr + count;
+	}while(len>0);
 #endif
-	//cout << "read " << cnt <<" byte."<< endl;
 	env->ReleaseByteArrayElements(jbuf,buf,0);
-	return cnt;
+	//cout<<"read-len="<<len<<","<<length<<endl;
+	return length-len;
 }
 
 
-extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implWrite(
+extern "C" JNIEXPORT jint JNICALL Java_narl_itrc_DevTTY_implWrite(
 	JNIEnv * env,
 	jobject thiz,
-	jbyteArray jbuf
+	jbyteArray jbuf,
+	jint offset,
+	jint length
 ) {
 	int fd = getJLong(env,thiz,NAME_HANDLE);
 	if(fd<=0){
-		return;
+		return -1;
 	}
 	jbyte* buf = env->GetByteArrayElements(jbuf,NULL);
 	size_t len = env->GetArrayLength(jbuf);
+	if(0<=length && length<=len){
+		len = length;
+	}else{
+		length = len;
+	}
 #if defined _MSC_VER
 	int count=0;
 	WriteFile(
@@ -235,11 +257,10 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implWrite(
 	}
 #else
 	ssize_t count;
-	jbyte* ptr = buf;
+	jbyte* ptr = buf + offset;
 	do{
 		count = write(fd,(void*)ptr,len);
-		if(count<0){
-			cout<<"tty-write-error:"<<errno<<endl;
+		if(count<=0){
 			break;
 		}
 		len = len - count;
@@ -247,6 +268,7 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implWrite(
 	}while(len>0);
 #endif
 	env->ReleaseByteArrayElements(jbuf,buf,0);
+	return len;
 }
 
 extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implClose(
