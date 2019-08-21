@@ -1,26 +1,28 @@
 package prj.scada;
 
-import java.util.Arrays;
+
 import java.util.Optional;
 
-import com.jfoenix.controls.JFXButton;
+import com.jfoenix.controls.JFXComboBox;
 import com.jfoenix.controls.JFXToggleButton;
 import com.sun.glass.ui.Application;
 
-import javafx.beans.property.FloatProperty;
+import javafx.beans.property.BooleanProperty;
+
 import javafx.beans.property.IntegerProperty;
-import javafx.beans.property.SimpleFloatProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextInputDialog;
+import javafx.scene.control.ToggleButton;
+import javafx.scene.image.ImageView;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
 import narl.itrc.DevTTY;
 import narl.itrc.Misc;
-import narl.itrc.PanTTY;
 
 /**
  * SPIK2000 is a high voltage pulse generator.<p>
@@ -45,13 +47,29 @@ public class DevSPIK2000 extends DevTTY {
 	
 	@Override
 	protected void afterOpen() {
-		getRegister(4,4,(val)->{
-			TonPos.set(val[0]);
-			ToffPos.set(val[1]);
-			TonNeg.set(val[2]);
-			ToffNeg.set(val[3]);
+		looper_start();
+		take(0,0,(act)->{
+			int[] val = get_register(4,4);
+			Application.invokeAndWait(()->{
+				Ton_Pos.set(val[0]);
+				ToffPos.set(val[1]);
+				Ton_Neg.set(val[2]);
+				ToffNeg.set(val[3]);
+			});
 		});
-	}
+		take(-1,1000,(act)->{
+			int[] sta = get_register(0,4);
+			Application.invokeAndWait(()->{
+				flgMod.set(sta[0]&0x07);
+				flgMLX.set(((sta[0]&0x10)==0)?(false):(true));
+				flgRun.set(((sta[1]&0x01)==0)?(false):(true));
+				flgDC1.set(((sta[1]&0x40)==0)?(false):(true));
+				flgDC2.set(((sta[1]&0x80)==0)?(false):(true));
+				flgErr.set(sta[3]);
+			});
+		});
+	}	
+	//----------------------------------//
 	
 	private static final byte STX = 0x02;
 	private static final byte DLE = 0x10;
@@ -85,6 +103,8 @@ public class DevSPIK2000 extends DevTTY {
 		final byte[] buf,
 		final char tkn2, 
 		final char tkn3,
+		int addr,
+		int size,
 		int off
 	) {
 		//RK512 header
@@ -92,10 +112,10 @@ public class DevSPIK2000 extends DevTTY {
 		buf[1] = 0x00;
 		buf[2] = (byte)tkn2;//0x45;//'E' 
 		buf[3] = (byte)tkn3;//0x44;//'D'
-		buf[4] = (byte)((tskAddr&0xFF00)>>8);
-		buf[5] = (byte)((tskAddr&0x00FF));
-		buf[6] = (byte)((tskSize&0xFF00)>>8);
-		buf[7] = (byte)((tskSize&0x00FF));
+		buf[4] = (byte)((addr&0xFF00)>>8);
+		buf[5] = (byte)((addr&0x00FF));
+		buf[6] = (byte)((size&0xFF00)>>8);
+		buf[7] = (byte)((size&0x00FF));
 		buf[8] = (byte)(0xFF);
 		buf[9] = (byte)(0xFF);
 		//3964R tail
@@ -106,162 +126,142 @@ public class DevSPIK2000 extends DevTTY {
 		return buf;
 	}
 	
-	private Runnable runRead = new Runnable() {
-		@Override
-		public void run() {
-			//trick!! read byte one by one!!
-			byte[] ans = new byte[4+tskSize*2+3];
-			//step.1 - give start code.
-			writeByte(STX);
-			//step.2 - wait acknowledge
-			if(wait_code(DLE)==false) {
-				Misc.logw("[%s] no start code", TAG);
-				return;
-			}
-			//step.3 - give device RK512 header.
-			writeByte(pack(ans,'E','D',0));
-			//step.4 - wait for receiver
-			ans[0] = readByte();//DLE or %%
-			ans[1] = readByte();//STX
-			//if(ans[0]!=DLE || ans[1]!=STX) {
-			//	readBuff(ans,-1);//clear stream, trick!!				
-			//	Misc.logw("[%s] invalid answer", TAG);
-			//	return;
-			//}
-			//step.5 - give echo
-			writeByte(DLE);
-			//step.6 - get response, token(3byte), error-code
-			ans[0] = readByte();
-			ans[1] = readByte();
-			ans[2] = readByte();
-			ans[3] = readByte();
-			if(ans[3]==0x00) {
-				//try to get data!!!
-				for(int i=0; i<tskSize*2; i++) {
-					ans[4+i]  = readByte();
-				}				
-			}else {
-				Misc.logw("[%s] token has error code(%d)", TAG, ans[3]);
-			}
-			int off = ans.length-3;
-			ans[off+0] = readByte();//DLE
-			ans[off+1] = readByte();//ETX
-			ans[off+2] = readByte();//CRC
-			//step.7 - end of communication
-			writeByte(DLE);
-			//check CRC and give response to UI
-			int crc = checksum(ans,0,ans.length-1);
-			if(crc!=ans[off+2]) {
-				Misc.logv("invalid CRC");
-				return;
-			}
-			//invoke callback
-			if(hook==null) {
-				return;
-			}
-			args = new int[tskSize];
-			for(int i=0; i<tskSize; i++){
-				int aa = (int)(ans[4+i*2+0]);
-				int bb = (int)(ans[4+i*2+1]);
-				aa = (aa<<8) & 0xFF00;
-				bb = (bb   ) & 0x00FF;
-				args[i] = aa | bb;
-			}
-			Application.invokeAndWait(()->hook.readBack(args));
-			hook = null;//reset it again
-		}
-	};
-	
-	private Runnable runWrite = new Runnable() {
-		@Override
-		public void run() {
-			//trick!! read byte one by one!!
-			//it contain RK512, Data, 3964R
-			byte[] ans = new byte[10+tskSize*2+3];
-			//step.1 - write start code
-			writeByte(STX);
-			//step.2 - wait response
-			if(wait_code(DLE)==false) {
-				Misc.logw("[%s] no start code", TAG);
-				return;
-			}
-			//step.3 - write data
-			for(int i=0; i<tskSize; i++) {
-				ans[10+i*2+0] = (byte)((args[i] & 0xFF00)>>8);
-				ans[10+i*2+1] = (byte)((args[i] & 0x00FF)   );
-			}
-			pack(ans,'A','D',tskSize*2);
-			writeByte(ans);
-			//step.4 - wait for receiver
-			ans[0] = readByte();//DLE or %%
-			ans[1] = readByte();//STX
-			//if(ans[0]!=DLE || ans[1]!=STX) {				
-				//Misc.logw("[%s] invalid answer[%x,%x]", TAG, ans[0], ans[1]);
-				//return;
-			//}
-			//step.5 - give echo
-			writeByte(DLE);
-			//step.6 - get response
-			ans[0] = readByte();//token
-			ans[1] = readByte();
-			ans[2] = readByte();
-			ans[3] = readByte();//error-code
-			ans[4] = readByte();//DLE
-			ans[5] = readByte();//ETX
-			ans[6] = readByte();//CRC
-			//step.7 - end of communication
-			writeByte(DLE);
-		}
-	};
-		
-	private Thread tsk = null;
-	
-	private int tskAddr, tskSize;
-	
-	private int[] args;//keep writing and reading data~~~
-	
-	private interface ReadBack {
-		void readBack(int[] args);
-	};
-	private ReadBack hook = null;
-	
-	private void do_task(
+	private int[] get_register(
 		final int addr, 
-		final int size,
-		final Runnable runTask
+		final int size
 	) {
-		if(tsk!=null) {
-			if(tsk.isAlive()==true) {
-				return;
-			}
+		//trick!! read byte one by one!!
+		byte[] ans = new byte[4+6+3+size*2];
+		//step.1 - give start code.
+		writeByte(STX);
+		//step.2 - wait acknowledge
+		if(wait_code(DLE)==false) {
+			Misc.logw("[%s] no start code", TAG);
+			return new int[size];
 		}
-		tskAddr = addr;
-		tskSize = size;
-		tsk = new Thread(runTask,TAG);
-		tsk.setDaemon(true);
-		tsk.start();
-	} 
+		//step.3 - give device RK512 header.
+		writeByte(pack(ans,'E','D',addr,size,0));
+		//step.4 - wait for receiver
+		ans[0] = readByte();//DLE or %%
+		ans[1] = readByte();//STX
+		//step.5 - give echo
+		writeByte(DLE);
+		//step.6 - get response, token(3byte), error-code
+		ans[0] = readByte();
+		ans[1] = readByte();
+		ans[2] = readByte();
+		ans[3] = readByte();
+		int off = 0;
+		if(ans[3]==0x00) {
+			//try to get data!!!
+			for(; off<size*2; off++) {
+				ans[off]  = readByte();
+			}				
+		}else {
+			Misc.logw("[%s] token has error(%d)", TAG, ans[3]);
+		}
+		ans[off+0] = readByte();//DLE
+		ans[off+1] = readByte();//ETX
+		ans[off+2] = readByte();//CRC
+		//step.7 - end of communication
+		writeByte(DLE);
+		//check CRC and give response to UI
+		int crc = checksum(ans,0,off+2);
+		if(crc!=ans[off+2]) {
+			Misc.logv("invalid CRC");
+			//return null;
+		}
+		int[] val = new int[size];
+		for(int i=0; i<size; i++){
+			int aa = (int)(ans[i*2+0]);
+			int bb = (int)(ans[i*2+1]);
+			aa = (aa<<8) & 0xFF00;
+			bb = (bb   ) & 0x00FF;
+			val[i] = aa | bb;
+		}
+		return val;
+	}
+	
+	private void set_register(
+		final int addr, 
+		final int... vals
+	) {
+		int size = vals.length;
+		//trick!! read byte one by one!!
+		//it contain RK512, Data, 3964R
+		byte[] ans = new byte[10+size*2+3];
+		//step.1 - write start code
+		writeByte(STX);
+		//step.2 - wait response
+		if(wait_code(DLE)==false) {
+			Misc.logw("[%s] no start code", TAG);
+			return;
+		}
+		//step.3 - write data
+		for(int i=0; i<size; i++) {
+			ans[10+i*2+0] = (byte)((vals[i] & 0xFF00)>>8);
+			ans[10+i*2+1] = (byte)((vals[i] & 0x00FF)   );
+		}
+		writeByte(pack(ans,'A','D', addr, size, size*2));
+		//step.4 - wait for receiver
+		ans[0] = readByte();//DLE or %%
+		ans[1] = readByte();//STX
+		//step.5 - give echo
+		writeByte(DLE);
+		//step.6 - get response
+		ans[0] = readByte();//token
+		ans[1] = readByte();
+		ans[2] = readByte();
+		ans[3] = readByte();//error-code
+		ans[4] = readByte();//DLE
+		ans[5] = readByte();//ETX
+		ans[6] = readByte();//CRC
+		//step.7 - end of communication
+		writeByte(DLE);
+		return;
+	}
+
+	private interface GetValues {
+		void getValues(int[] val);
+	}
 	
 	public void getRegister(
 		final int addr, 
 		final int size,
-		final ReadBack callback
+		final GetValues callback
 	) {
-		hook = callback;
-		do_task(addr,size,runRead);
+		if(action.size()>=1) {
+			return;
+		}
+		take(0,0,(act)->{
+			int[] val = get_register(addr,size);
+			if(callback!=null) {
+				callback.getValues(val);
+			}
+		});
 	}
 	
 	public void setRegister(
 		final int addr, 
-		final int... values
+		final int... vals
 	) {
-		args = values;
-		do_task(addr,values.length,runWrite);
+		if(action.size()>=1) {
+			return;
+		}
+		take(0,0,(act)->set_register(addr,vals));
 	}
 	//---------------------------------//
 	
-	public final IntegerProperty TonPos = new SimpleIntegerProperty();
-	public final IntegerProperty TonNeg = new SimpleIntegerProperty();
+	public final IntegerProperty flgMod = new SimpleIntegerProperty();
+	public final BooleanProperty flgMLX = new SimpleBooleanProperty(false);
+
+	public final IntegerProperty flgErr = new SimpleIntegerProperty();	
+	public final BooleanProperty flgRun = new SimpleBooleanProperty(false);
+	public final BooleanProperty flgDC1 = new SimpleBooleanProperty(false);
+	public final BooleanProperty flgDC2 = new SimpleBooleanProperty(false);
+	
+	public final IntegerProperty Ton_Pos = new SimpleIntegerProperty();
+	public final IntegerProperty Ton_Neg = new SimpleIntegerProperty();
 	public final IntegerProperty ToffPos = new SimpleIntegerProperty();
 	public final IntegerProperty ToffNeg = new SimpleIntegerProperty();
 	
@@ -272,6 +272,23 @@ public class DevSPIK2000 extends DevTTY {
 		altFormat.setHeaderText("錯誤的資料格式");
 		
 		final TextInputDialog diaTime = new TextInputDialog();
+		
+		final JFXComboBox<String> cmbMode = new JFXComboBox<String>();
+		cmbMode.getItems().addAll(
+			"Bipolar",
+			"Unipolar－","Unipolar＋",
+			"DC－", "DC＋"
+		);
+		cmbMode.getSelectionModel().select(0);
+		cmbMode.setOnAction(e->{
+			switch(cmbMode.getSelectionModel().getSelectedIndex()) {
+			case 0: dev.setRegister(0,1); break;
+			case 1: dev.setRegister(0,2); break;
+			case 2: dev.setRegister(0,3); break;
+			case 3: dev.setRegister(0,4); break;
+			case 4: dev.setRegister(0,5); break;
+			}
+		});
 		
 		final Label[] txt = new Label[8];
 		for(int i=0; i<txt.length; i++) {
@@ -286,13 +303,15 @@ public class DevSPIK2000 extends DevTTY {
 			Optional<String> res = diaTime.showAndWait();
 			if(res.isPresent()) {
 				try {
-					dev.setRegister(4, Integer.valueOf(res.get()));
+					int val = Integer.valueOf(res.get());
+					dev.setRegister(4, val);
+					dev.Ton_Pos.setValue(val);
 				}catch(NumberFormatException exp) {
 					altFormat.showAndWait();
 				}
 			}
 		});
-		txt[1].textProperty().bind(dev.TonPos.asString("%d us"));
+		txt[1].textProperty().bind(dev.Ton_Pos.asString("%d us"));
 		
 		txt[2].setText("\u22c4Toff＋：");
 		txt[2].setOnMouseClicked(e->{
@@ -301,7 +320,9 @@ public class DevSPIK2000 extends DevTTY {
 			Optional<String> res = diaTime.showAndWait();
 			if(res.isPresent()) {
 				try {
-					dev.setRegister(5, Integer.valueOf(res.get()));
+					int val = Integer.valueOf(res.get());
+					dev.setRegister(5,val);
+					dev.ToffPos.set(val);
 				}catch(NumberFormatException exp) {
 					altFormat.showAndWait();
 				}
@@ -316,13 +337,15 @@ public class DevSPIK2000 extends DevTTY {
 			Optional<String> res = diaTime.showAndWait();
 			if(res.isPresent()) {
 				try {
-					dev.setRegister(6, Integer.valueOf(res.get()));
+					int val = Integer.valueOf(res.get());
+					dev.setRegister(6, val);
+					dev.Ton_Neg.set(val);
 				}catch(NumberFormatException exp) {
 					altFormat.showAndWait();
 				}
 			}
 		});
-		txt[5].textProperty().bind(dev.TonNeg.asString("%d us"));
+		txt[5].textProperty().bind(dev.Ton_Neg.asString("%d us"));
 		
 		txt[6].setText("\u22c4Toff－：");
 		txt[6].setOnMouseClicked(e->{
@@ -331,7 +354,9 @@ public class DevSPIK2000 extends DevTTY {
 			Optional<String> res = diaTime.showAndWait();
 			if(res.isPresent()) {
 				try {
-					dev.setRegister(7, Integer.valueOf(res.get()));
+					int val = Integer.valueOf(res.get());
+					dev.setRegister(7, val);
+					dev.ToffNeg.set(val);
 				}catch(NumberFormatException exp) {
 					altFormat.showAndWait();
 				}
@@ -339,34 +364,42 @@ public class DevSPIK2000 extends DevTTY {
 		});
 		txt[7].textProperty().bind(dev.ToffNeg.asString("%d us"));
 		
-		final JFXToggleButton[] tgl = new JFXToggleButton[3];
-		for(int i=0; i<tgl.length; i++) {
-			tgl[i] = new JFXToggleButton();
-			tgl[i].setMaxWidth(Double.MAX_VALUE);
-			GridPane.setFillWidth(tgl[i], true);
-		}
-		tgl[0].setText("Run");
-		tgl[0].setOnAction(e->{
+		final ImageView[] img = {
+			Misc.getIconView("check.png"),
+			Misc.getIconView("check.png"),
+			Misc.getIconView("check.png")
+		};
+		img[0].visibleProperty().bind(dev.flgRun);
+		img[1].visibleProperty().bind(dev.flgDC1);
+		img[2].visibleProperty().bind(dev.flgDC2);
+		
+		final ToggleButton[] tgl = {
+			new JFXToggleButton(),
+			new JFXToggleButton(),
+			new JFXToggleButton()
+		};
+		tgl[0].setText("DC-1");
+		tgl[0].setOnAction(e->{			
 			if(tgl[0].isSelected()==true) {
-				dev.setRegister(1, 0x02);//running-on
-			}else {
-				dev.setRegister(1, 0x01);//running-off
-			}
-		});
-		tgl[1].setText("DC-1");
-		tgl[1].setOnAction(e->{
-			if(tgl[1].isSelected()==true) {
 				dev.setRegister(1, 0x21);//DC-1 on
 			}else {
 				dev.setRegister(1, 0x20);//DC-1 off
 			}
 		});
-		tgl[2].setText("DC-2");
+		tgl[1].setText("DC-2");
+		tgl[1].setOnAction(e->{
+			if(tgl[1].isSelected()==true) {
+				dev.setRegister(1, 0x23);//DC-2 on
+			}else {
+				dev.setRegister(1, 0x22);//DC-2 on
+			}
+		});
+		tgl[2].setText("Run");
 		tgl[2].setOnAction(e->{
 			if(tgl[2].isSelected()==true) {
-				dev.setRegister(1, 0x23);//DC-1 on
+				dev.setRegister(1, 0x02);//running-on
 			}else {
-				dev.setRegister(1, 0x22);//DC-1 on
+				dev.setRegister(1, 0x01);//running-off
 			}
 		});
 		
@@ -384,13 +417,14 @@ public class DevSPIK2000 extends DevTTY {
 		
 		final GridPane lay = new GridPane();
 		lay.getStyleClass().addAll("ground-pad");
-		lay.addRow(0, txt[0], txt[1]);
-		lay.addRow(1, txt[4], txt[5]);
-		lay.addRow(2, txt[2], txt[3]);
-		lay.addRow(3, txt[6], txt[7]);
-		lay.add(tgl[0], 0, 4, 4, 1);
-		lay.add(tgl[1], 0, 5, 4, 1);
-		lay.add(tgl[2], 0, 6, 4, 1);
+		lay.add(cmbMode, 0, 0, 2, 1);
+		lay.addRow(1, txt[0], txt[1]);
+		lay.addRow(2, txt[4], txt[5]);
+		lay.addRow(3, txt[2], txt[3]);
+		lay.addRow(4, txt[6], txt[7]);
+		lay.addRow(5, tgl[0], img[0]);
+		lay.addRow(6, tgl[1], img[1]);
+		lay.addRow(7, tgl[2], img[2]);
 		//lay.add(btn, 0, 7, 4,1);
 		return lay;
 	}

@@ -1,26 +1,26 @@
 
 .btn-raised-1{
 	-fx-button-type: RAISED;
-	-fx-font-size: 19px;
+	-fx-font-size: 1.4em;
 	-fx-background-color: #4FC3F7;
 	-fx-text-fill: BLACK;
 }
 
 .btn-raised-2 {
 	-fx-button-type: RAISED;
-	-fx-font-size: 19px;
+	-fx-font-size: 1.4em;
 	-fx-background-color: #4DB6AC;
 	-fx-text-fill: BLACK;
 }
 .btn-raised-3 {
 	-fx-button-type: RAISED;
-	-fx-font-size: 19px;
+	-fx-font-size: 1.4em;
 	-fx-background-color: #FFD54F;
 	-fx-text-fill: BLACK;
 }
 .btn-raised-4 {
 	-fx-button-type: RAISED;
-	-fx-font-size: 19px;	
+	-fx-font-size: 1.4em;	
 	-fx-background-color: #FF8A65;
 	-fx-text-fill: BLACK;
 }
@@ -52,6 +52,15 @@
 	-fx-vgap: 13;
 }
 
+.box-pad {
+	-fx-background-color: white;
+	-fx-font-size: 1.8em;
+    -fx-spacing: 13;
+    -fx-padding: 13;
+    -fx-hgap: 13;
+	-fx-vgap: 13;
+}
+
 .border {
 	-fx-border-width: 1px; 
 	-fx-border-color: black;
@@ -63,11 +72,6 @@
 }
 
 /**********************/
-
-.checkbox-no-dimness {
-	-jfx-checked-color: red;
-	-fx-opacity: 1;
-}
 
 .icons-badge .badge-pane {
     -fx-background-color: #ff4081;

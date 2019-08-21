@@ -108,7 +108,6 @@ public class Misc {
 		try {
 			TimeUnit.MILLISECONDS.sleep(millisec);
 		} catch (Exception e) {
-			e.printStackTrace();
 		}
 	}
 	public static void delay_sec(long second){

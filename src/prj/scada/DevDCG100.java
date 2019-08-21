@@ -13,7 +13,6 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
-import javafx.scene.layout.VBox;
 import narl.itrc.DevTTY;
 
 /**
@@ -31,10 +30,10 @@ public class DevDCG100 extends DevTTY {
 	
 	public DevDCG100(){
 		TAG = "DevDCG-stream";		
-		act_mvv.setLoop(true).setDelay(100L);
-		act_mva.setLoop(true).setDelay(100L);
-		act_mvw.setLoop(true).setDelay(100L);
-		act_mvj.setLoop(true).setDelay(100L);
+		act_mvv.setRepeat(-1).setDelay(100L);
+		act_mva.setRepeat(-1).setDelay(100L);
+		act_mvw.setRepeat(-1).setDelay(100L);
+		act_mvj.setRepeat(-1).setDelay(100L);
 	}
 
 	public DevDCG100(String path_name){
@@ -321,9 +320,7 @@ public class DevDCG100 extends DevTTY {
 			}
 		});
 		
-		final JFXToggleButton tgl = new JFXToggleButton();		
-		tgl.setMaxWidth(Double.MAX_VALUE);
-		GridPane.setFillWidth(tgl, true);
+		final JFXToggleButton tgl = new JFXToggleButton();
 		tgl.setText("DC 開關");
 		tgl.setOnAction(e->{			
 			dev.trigger(tgl.isSelected());
@@ -338,9 +335,7 @@ public class DevDCG100 extends DevTTY {
 		lay1.addRow(5, txt[6] ,txt[7]);
 		lay1.addRow(6, txt[8] ,txt[9]);
 		lay1.addRow(7, txt[10],txt[11]);
-
-		final VBox lay0 = new VBox(lay1,tgl);
-		lay0.getStyleClass().addAll("ground-pad");
-		return lay0;
+		lay1.addRow(8, tgl);
+		return lay1;
 	}
 }

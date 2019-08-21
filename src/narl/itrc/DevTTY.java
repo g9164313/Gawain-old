@@ -259,7 +259,7 @@ public class DevTTY extends DevBase {
 					flush_stream();
 					writeTxt(act.w_data);
 					index_of_data(act,buf);
-					check_loop(act);
+					check_repeat(act);
 				}else {
 					int cnt = implRead(buf,0,-1);
 					buff_stream(buf,cnt);
