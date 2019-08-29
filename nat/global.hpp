@@ -9,10 +9,12 @@
 #define GLOBAL_H
 
 #include <jni.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+
 
 #ifdef _MSC_VER
 //this direction for M$ VC2010
@@ -65,11 +67,11 @@ extern char   getJChar(JNIEnv *env,jobject thiz,const char* name);
 extern void   setJBool(JNIEnv *env,jobject thiz,const char* name,bool val);
 extern bool   getJBool(JNIEnv *env,jobject thiz,const char* name);
 
-extern jobjectArray create2DArray(JNIEnv * env, size_t cols, size_t rows, jint* value[]);
-extern jobjectArray create2DArray(JNIEnv * env, size_t cols, size_t rows, jlong** value);
-
 extern jsize getJString(JNIEnv *env,jobject thiz,const char* name,const char* dst);
 extern jsize jstrcpy(JNIEnv* env,jstring src,const char* dst);
+
+extern jobjectArray create2DArray(JNIEnv * env, size_t cols, size_t rows, jint* value[]);
+extern jobjectArray create2DArray(JNIEnv * env, size_t cols, size_t rows, jlong** value);
 
 extern jbyte*   byteArray2Ptr  (JNIEnv* env,jclass _clazz,jobject thiz,const char* name,jbyteArray  & arr);
 extern jchar*   charArray2Ptr  (JNIEnv* env,jclass _clazz,jobject thiz,const char* name,jcharArray  & arr);

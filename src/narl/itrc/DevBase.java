@@ -27,12 +27,17 @@ public class DevBase {
 		public Work hook;
 		
 		public Act() {
-			this(-1);
+			this(0);
 		}
 		public Act(long millis) {
-			stamp = System.currentTimeMillis();
-			delay = millis;
-		}		
+			setStamp(System.currentTimeMillis());
+			setDelay(millis);
+			Misc.delay(1);//trick, let all stamp different~~
+		}
+		public Act setStamp(final long value) {
+			stamp = value;
+			return this;
+		}
 		public Act setDelay(final long value) {
 			delay = value;
 			return this;
@@ -45,21 +50,22 @@ public class DevBase {
 			hook = value;
 			return this;
 		}
+		public void do_work() {
+			if(hook==null) {
+			}
+			hook.doWork(this);
+		}
+		
 		@Override
 		public int compareTo(Delayed obj) {
-			return (int)(delay-obj.getDelay(TimeUnit.MILLISECONDS));
+			long t1 = this.getDelay(TimeUnit.MILLISECONDS);
+			long t2 = obj.getDelay(TimeUnit.MILLISECONDS);			
+			return (int)(t1-t2);
 		}
 		@Override
 		public long getDelay(TimeUnit unit) {
-			if(delay<=0) {
-				return 0L;
-			}
-			long past = delay-(System.currentTimeMillis()-stamp);
-			if(past<=0L) {
-				return 0L;
-			}
 			return unit.convert(
-				past, 
+				delay - (System.currentTimeMillis() - stamp), 
 				TimeUnit.MILLISECONDS
 			);
 		}
@@ -95,7 +101,20 @@ public class DevBase {
 			l_core.interrupt();
 		}
 	}
-	
+	protected void take(
+		final int repeat,
+		final int delay_ms,
+		final Act obj_act
+	) {
+		obj_act.setStamp(System.currentTimeMillis());//reset stamp~~~
+		obj_act.setRepeat(repeat);
+		obj_act.setDelay(delay_ms);
+		action.put(obj_act);
+		if(l_core!=null) {
+			l_core.interrupt();
+		}
+	}
+			
 	private Task<?> looper = null;
 	private Thread  l_core = null;
 		
@@ -106,8 +125,18 @@ public class DevBase {
 		if(act.repeat==0) {
 			return;
 		}
-		act.stamp = System.currentTimeMillis();
+		act.setStamp(System.currentTimeMillis());
+		action.remove(act);//why do we remove object in queue???
 		action.put(act);
+	}
+	
+	//user can override this event
+	protected void wait_act(Task<?> looper) {
+		try {
+			//wait for action
+			Thread.sleep(10);
+		} catch (InterruptedException e) {
+		}
 	}
 	
 	protected void looper_start() {
@@ -116,32 +145,25 @@ public class DevBase {
 				return;
 			}
 		}
+		
 		looper = new Task<Integer>() {
-			
 			private boolean check_exit() {
 				return looper.isCancelled() | Gawain.isExit();
-			}
-			
+			}			
 			@Override
 			protected Integer call() throws Exception {
 				do {
 					Act act = action.poll();
 					if(act==null) {
-						try {
-							//wait for action
-							updateMessage("Idle");
-							Thread.sleep(100);
-						} catch (InterruptedException e) {
-						}
+						wait_act(looper);
 						continue;
-					}else {
-						if(act.hook!=null) {
-							//updateMessage("");
-							act.hook.doWork(act);
-						}
+					}else {						
+						act.do_work();
 						check_repeat(act);
-					}					
-				}while(check_exit()==false);				
+					}
+					//Misc.logv("act=%d", action.size());
+				}while(check_exit()==false);
+				Misc.logv("[%s-looper] is done...", TAG);
 				return 0;
 			}
 		};

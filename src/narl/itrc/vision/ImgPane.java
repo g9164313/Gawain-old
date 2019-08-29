@@ -126,9 +126,9 @@ public class ImgPane extends ImgView {
 	//---------------------------//
 	
 	public abstract class Mark extends Group {
-		boolean isUsed = false;
-		int locaX=0, locaY=0;
-		int sizeW=1, sizeH=1;
+		public boolean isUsed = false;
+		public int locaX=0, locaY=0;
+		public int sizeW=1, sizeH=1;
 		abstract void setLoca(double x, double y);
 		abstract void setSize(double w, double h);
 		void remove() {

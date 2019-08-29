@@ -125,6 +125,8 @@ jobjectArray create2DArray(JNIEnv * env, size_t cols, size_t rows, jlong* value[
 	}
 	return _col;
 }
+
+
 //--------------------------------//
 
 jsize jstrcpy(JNIEnv* env, jstring src, string& dst){

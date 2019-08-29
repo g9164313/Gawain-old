@@ -336,10 +336,10 @@ public class DevHustIO extends DevTTY {
 					radiBeg = radiIdx = -1;//for next turn~~~~
 				}				
 			}
-			if(isOpen()==false){
+			if(isLive()==false){
 				return;
 			}			
-			lastReport = lastReport + readTxt("\n");
+			//TODO: lastReport = lastReport + readTxt("\n");
 			int beg = lastReport.indexOf(DC2);
 			if(beg>=0){
 				int end = lastReport.indexOf(DC4, beg+1);

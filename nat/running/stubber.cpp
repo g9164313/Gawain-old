@@ -8,8 +8,16 @@
 #include <vision.hpp>
 
 extern Scalar cc[];
-extern void train_mask(Mat& pool, Mat& mask, double nuVal);
+extern Mat train_valid_data(Mat& pool, Mat& mask, double nuVal);
 extern Mat extract_mask(Mat& pool, Ptr<SVM>& ptr);
+
+static void copy_to_overlay(Mat& dat, Mat& over){
+	Mat bgra[4];
+	split(over,bgra);
+	dat.copyTo(bgra[1]);
+	dat.copyTo(bgra[3]);
+	merge(bgra, 4, over);
+}
 
 extern "C" JNIEXPORT void JNICALL Java_prj_daemon_PanDropper_stub1(
 	JNIEnv * env,
@@ -19,11 +27,9 @@ extern "C" JNIEXPORT void JNICALL Java_prj_daemon_PanDropper_stub1(
 	STUBBER_PREPARE(objCamera);
 	STUBBER_LOOP_HEAD;
 	STUBBER_EMBED_HEAD;
-	Mat msk1;
-	getMask(env, objFilm, &msk1, NULL, NULL);
-	//imwrite("pool.png",pool);
-	//imwrite("msk1.png",msk1);
-	if(pool.empty()==true || msk1.empty()==true){
+	Mat bckg;//background-mask
+	getMask(env, objFilm, &bckg, NULL, NULL);
+	if(pool.empty()==true || bckg.empty()==true){
 		cout<<"Data is empty!!!"<<endl;
 		STUBBER_EMBED_DONE;
 		return;
@@ -36,18 +42,11 @@ extern "C" JNIEXPORT void JNICALL Java_prj_daemon_PanDropper_stub1(
 		)
 	);
 	cout<<"got nu="<<valNu<<endl;
-	train_mask(pool, msk1, (double)valNu);
+	Mat msk = train_valid_data(pool, bckg, (double)valNu);
+	copy_to_overlay(msk, over);
 	STUBBER_EMBED_TAIL;
 	STUBBER_LOOP_TAIL(false);
 	cout<<"train done"<<endl;
-}
-
-void copy_to_overlay(Mat& dat, Mat& over){
-	Mat bgra[4];
-	split(over,bgra);
-	dat.copyTo(bgra[1]);
-	dat.copyTo(bgra[3]);
-	merge(bgra, 4, over);
 }
 
 void draw_path(
@@ -60,20 +59,21 @@ void draw_path(
 	for(int i=0; i<path.size(); i++){
 		circle(over, path[i], 3, cc[1]);
 	}
-	circle(over, mrk, 3, cc[0]);
-	circle(over, wap, 3, cc[0]);
-	arrowedLine(over, mrk, wap, cc[2], 3);
+	if(mrk==wap){
+		circle(over, mrk, 3, cc[0]);
+	}else{
+		circle(over, mrk, 3, cc[0]);
+		circle(over, wap, 3, cc[0]);
+		arrowedLine(over, mrk, wap, cc[2], 3);
+	}
 }
 
 extern vector<Point> findPath(
 	const Mat& mask,
-	const Point& mark,
-	double* dist = NULL
+	const Point& mark
 );
-
-extern Point findWayPoint(
+extern Point findWaypoint(
 	const Point& mark,
-	const double nearDist,
 	vector<Point>& path
 );
 
@@ -95,40 +95,41 @@ extern "C" JNIEXPORT void JNICALL Java_prj_daemon_PanDropper_stub2(
 
 	int cntWalk = 0;
 
-	STUBBER_LOOP_HEAD;
 	Mat msk;
-	STUBBER_EMBED_HEAD;
-	over = over * 0;//clear overlay data
-	//get road information from origin image
-	msk = extract_mask(pool, svm);
-	if(showState==1){
-		imwrite("img.png",pool);
-		copy_to_overlay(msk,over);
-		cout<<"show mask"<<endl;
-		STUBBER_EMBED_DONE;
-		return;
-	}
-	STUBBER_EMBED_TAIL;
+	STUBBER_LOOP_HEAD;
+		STUBBER_EMBED_HEAD;
+		over = over * 0;//clear overlay data
+		//get road information from origin image
+		msk = extract_mask(pool, svm);
+		if(showState==1){
+			copy_to_overlay(msk,over);
+			//imwrite("valid-1.png",pool);
+			//imwrite("valid-2.png",msk);
+			cout<<"test data"<<endl;
+			STUBBER_EMBED_DONE;
+			return;
+		}
+		STUBBER_EMBED_TAIL;
 
 	//get contour information from mask
-	double dist;
-	vector<Point> path = findPath(msk, mrk, &dist);
-	Point wpt = findWayPoint(mrk, dist, path);
+	vector<Point> path;
+	Point wapt;
 
-	STUBBER_EMBED_HEAD;
-	draw_path(mrk, wpt, path, over);
-	if(showState==2){
-		STUBBER_EMBED_DONE;
-		return;
-	}
-	STUBBER_EMBED_TAIL;
+		STUBBER_EMBED_HEAD;
+		path = findPath(msk, mrk);
+		wapt = findWaypoint(mrk, path);
+		draw_path(mrk, wapt, path, over);
+		if(showState==2){
+			STUBBER_EMBED_DONE;
+			return;
+		}
+		STUBBER_EMBED_TAIL;
 
-	Point vec = wpt - mrk;
+	Point vec = wapt - mrk;
 	cntWalk = env->CallIntMethod(
 		thiz, mid_prober,
 		vec.x, vec.y
 	);
-
 	STUBBER_LOOP_TAIL(0<cntWalk);
 
 	cout<<"walk done"<<endl;
@@ -139,13 +140,42 @@ extern "C" JNIEXPORT void JNICALL Java_prj_daemon_PanDropper_stub3(
 	jobject thiz,
 	jobject objCamera
 ){
+	Ptr<SVM> svm = SVM::load("mask.xml");
 
 	STUBBER_PREPARE(objCamera);
+
 	Point mrk = getPoint(env, objFilm, 1);
-	STUBBER_LOOP_HEAD;
+	jmethodID mid_move = env->GetMethodID(
+		env->GetObjectClass(thiz),
+		"moveProberAlongPath","([I)V"
+	);
+
+	Mat msk;
+	vector<Point> path;
+	Point wapt;
 	STUBBER_EMBED_HEAD;
-	circle(pool, Point(100,100), 50+rand()%50, Scalar(0,50,0),3);
+	over = over * 0;//clear overlay data
+	msk = extract_mask(pool, svm);
+	double dist;
+	path = findPath(msk, mrk);
+	wapt = findWaypoint(mrk, path);
+	draw_path(mrk, wapt, path, over);
 	STUBBER_EMBED_TAIL;
-	STUBBER_LOOP_TAIL(true);
+
+	jsize cnt = path.size()*2;
+	jintArray obj_arg = env->NewIntArray(cnt);
+	jint* buf = new jint[cnt];
+	for(int i=0; i<path.size(); i++){
+		Point& pp = path[i];
+		//cout<<"P"<<i<<")"<<pp<<endl;
+		buf[i*2+0] = pp.x;
+		buf[i*2+1] = pp.y;
+	}
+	env->SetIntArrayRegion(obj_arg, 0, cnt, buf);
+	env->CallVoidMethod(thiz, mid_move, obj_arg);
+	env->DeleteLocalRef(obj_arg);
+	delete buf;
+
+	cout<<"travel done"<<endl;
 }
 

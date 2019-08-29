@@ -26,6 +26,7 @@ import narl.itrc.PanBase;
 import narl.itrc.vision.CapVidcap;
 import narl.itrc.vision.DevCamera;
 import narl.itrc.vision.ImgFilm;
+import narl.itrc.vision.ImgPane;
 
 public class PanDropper extends PanBase {
 
@@ -39,14 +40,14 @@ public class PanDropper extends PanBase {
 		vid.setupAfter(()->{
 			vid.setProperty(3, 800);//CAP_PROP_FRAME_WIDTH
 			vid.setProperty(4, 600);//CAP_PROP_FRAME_HEIGHT
-			vid.setProperty(10, 0.7);//CAP_PROP_BRIGHTNESS=0.502
+			vid.setProperty(10, 0.73);//CAP_PROP_BRIGHTNESS=0.502
 			//vid.setProperty(11, 0.1255);//CAP_PROP_CONTRAST=0.1255
 			//vid.setProperty(12, 0.1255);//CAP_PROP_SATURATION=0.1255
-			//setProperty(13, 0.8);//CAP_PROP_HUE=-1
+			//setProperty(13, -1);//CAP_PROP_HUE=-1
 			//vid.setProperty(14, 0.5);//CAP_PROP_GAIN=0.2510
 			//vid.setProperty(15, 0.09);//CAP_PROP_EXPOSURE=0.0797
 			vid.setProperty(44, 0.);//CAP_PROP_AUTO_WB=1
-			//setProperty(45, 0.8);//CAP_PROP_WB_TEMPERATURE=6148
+			//setProperty(45, 6148);//CAP_PROP_WB_TEMPERATURE=6148
 		});
 	}
 	
@@ -83,6 +84,12 @@ public class PanDropper extends PanBase {
 	private native void stub2(DevCamera cam, int showState);
 	private native void stub3(DevCamera cam);
 	
+	
+	private boolean stepACC = false;
+	private float valNu = 0.0007f;
+	private float valModX = 0.183f;
+	private float valModY = 0.183f;
+
 	private int moveProber(int dx, int dy) {
 		float xx = dx * valModX;
 		float yy =-dy * valModY;
@@ -94,23 +101,21 @@ public class PanDropper extends PanBase {
 			Misc.loge("too long!!!");
 			return -2;
 		}
-		oko.syncMove(xx, yy, false);
-		while(oko.isIdle()==true) {
-			try {
-				Thread.sleep(20);
-			} catch (InterruptedException e) {
-			}
-		}
+		oko.move(xx, yy, false);
 		if(stepACC==true) {
 			return 0;
 		}
 		return 1;
 	}
 	
-	private boolean stepACC = false;
-	private float valNu = 0.0007f;
-	private float valModX = 0.183f;
-	private float valModY = 0.183f;
+	private void moveProberAlongPath(int[] waypoint) {
+		ImgPane.Mark mm = cam.getAllMark()[0];
+		for(int i=0; i<waypoint.length; i+=2) {
+			int xx = waypoint[i+0] - mm.locaX;
+			int yy = mm.locaY - waypoint[i+1];
+			
+		}
+	}
 
 	private TitledPane panel_process() {
 		
@@ -127,7 +132,7 @@ public class PanDropper extends PanBase {
 			b.setMaxWidth(Double.MAX_VALUE);
 			GridPane.setFillWidth(b, true);
 		}
-		btn[0].getStyleClass().add("btn-raised-2");
+		btn[0].getStyleClass().add("btn-raised-1");
 		btn[0].setOnAction(e->{cam.startProcess(
 			()->stub1(cam),
 			()->spin.setVisible(true),
@@ -146,11 +151,11 @@ public class PanDropper extends PanBase {
 		btn[3].getStyleClass().add("btn-raised-3");
 		btn[3].setOnAction(e->{cam.startProcess(()->{
 			stepACC = true;
-			stub2(cam,0);
+			stub2(cam,0);//單步執行
 		});});
 		btn[4].getStyleClass().add("btn-raised-3");
 		btn[4].setOnAction(e->{cam.startProcess(()->{
-			
+			stub3(cam);//旅程執行
 		});});
 		btn[5].getStyleClass().add("btn-raised-3");
 		btn[5].setOnAction(e->{cam.startProcess(()->{
@@ -191,7 +196,7 @@ public class PanDropper extends PanBase {
 		lay0.getChildren().addAll(btn);
 		lay0.getChildren().addAll(lay1);
 		lay0.disableProperty().bind(flagCam);
-		lay0.getStyleClass().add("vbox-medium");
+		lay0.getStyleClass().add("box-pad");
 		return new TitledPane("校正程序",lay0);		
 	}
 
@@ -205,9 +210,9 @@ public class PanDropper extends PanBase {
 		chkOko.setStyle("-fx-font-size: 19px;");
 		chkOko.setOnAction(e->{
 			if(chkOko.isSelected()==true){
-				oko.link("/dev/ttyACM0,115200,8n1");
+				oko.open("/dev/ttyACM0,115200,8n1");
 			}else{
-				oko.unlink();
+				oko.close();
 			}
 		});
 		
@@ -268,29 +273,29 @@ public class PanDropper extends PanBase {
 		final JFXButton[] btn = new JFXButton[6];
 		for(int i=0; i<btn.length; i++) {
 			btn[i] = new JFXButton();
-			btn[i].getStyleClass().add("btn-raised-1");
+			//btn[i].getStyleClass().add("btn-raised-1");
 			btn[i].setMaxWidth(Double.MAX_VALUE);
 			GridPane.setFillWidth(btn[i], true);
 		}
 		btn[0].setText("⇧");
 		btn[0].setOnAction(e->{
 			int yy = Math.abs(Misc.txt2int(box[1].getText()));
-			oko.syncMove(0, yy, chkMove.isSelected());
+			oko.move(0, yy, chkMove.isSelected());
 		});
 		btn[1].setText("⇩");
 		btn[1].setOnAction(e->{
 			int yy = Math.abs(Misc.txt2int(box[1].getText()));
-			oko.syncMove(0, -yy, chkMove.isSelected());
+			oko.move(0, -yy, chkMove.isSelected());
 		});
 		btn[2].setText("⇦");
 		btn[2].setOnAction(e->{
 			int xx = Math.abs(Misc.txt2int(box[0].getText()));
-			oko.syncMove(-xx, 0, chkMove.isSelected());
+			oko.move(-xx, 0, chkMove.isSelected());
 		});
 		btn[3].setText("⇨");
 		btn[3].setOnAction(e->{
 			int xx = Math.abs(Misc.txt2int(box[0].getText()));
-			oko.syncMove(xx, 0, chkMove.isSelected());
+			oko.move(xx, 0, chkMove.isSelected());
 		});
 		
 		final GridPane lay1 = new GridPane();
@@ -304,14 +309,11 @@ public class PanDropper extends PanBase {
 		btn[4].setOnAction(e->{
 			int xx = Misc.txt2int(box[0].getText());
 			int yy = Misc.txt2int(box[1].getText());
-			oko.syncMove(xx, yy, chkMove.isSelected());
+			oko.move(xx, yy, chkMove.isSelected());
 		});
 
 		btn[5].setText("歸回原點");
 		btn[5].setOnAction(e->{
-			if(oko.isIdle()==false){
-				return;
-			}
 			oko.exec("$H");
 			oko.exec("G90");
 			oko.exec("G0X-170Y-170");

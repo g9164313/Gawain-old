@@ -90,13 +90,17 @@ public class DevCamera extends ImgPane {
 		try {
 			do {
 				lockB.set(true);			
-				Thread.sleep(10);				
+				Thread.sleep(10);
 			}while(lockA.get()==true);
 		} catch (InterruptedException e) {
 		}
 		lockB.set(false);
 	}
 	
+	/**
+	 * This is called by native code.<p>
+	 * @param lock
+	 */
 	@SuppressWarnings("unused")
 	private void doSync(final boolean lock) {
 		/*if(lock==true) {

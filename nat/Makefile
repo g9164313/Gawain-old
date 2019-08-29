@@ -63,9 +63,11 @@ LIB_PYLON :=  -L$(ROOT_PYLON)/lib64 \
 
 CC = g++ -DENABLE_LOG -O0 -std=c++11 -g -I. -I$(DIR_JNI) -I$(DIR_JNI)/linux
 
+CC_FLAG += $(shell pkg-config --cflags opencv)
 CC_FLAG += $(shell pkg-config --cflags libusb-1.0) 
 CC_FLAG += $(shell pkg-config --cflags libmodbus)
 
+LD_LIBS += $(shell pkg-config --libs opencv)
 LD_LIBS += $(shell pkg-config --libs libusb-1.0) 
 LD_LIBS += $(shell pkg-config --libs libmodbus)
 
@@ -99,7 +101,7 @@ endef
 #####[core file]######
 
 CORE_SO = libcore.so
-CORE_FILE = ./vision/miscellany.cpp
+CORE_FILE = ./vision/miscellany.cpp ./utility/jni_aux.cpp
 CORE_FILE += ./running/stubber.cpp
 CORE_FILE += ./running/work-1.cpp
 
@@ -142,8 +144,9 @@ $(TARGET_EXE): $(TARGET_FILE)
 	
 ####################################################
 
-#all: $(TARGET_EXE) $(CORE_SO) $(VISION_SO) $(PERIPHERAL_SO) 
-all: $(PERIPHERAL_SO)
+all: $(TARGET_EXE) $(CORE_SO) $(VISION_SO) $(PERIPHERAL_SO) 
+#all: $(TARGET_EXE)
+#all: $(PERIPHERAL_SO) $(VISION_SO) $(CORE_SO)
 
 clean:
 	rm -rf $(TARGET_EXE) $(TARGET_SO) $(DIR_SRC)/*.o ./*.o

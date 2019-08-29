@@ -2,6 +2,8 @@ package narl.itrc;
 
 import com.sun.glass.ui.Application;
 
+import javafx.concurrent.Task;
+
 public class DevTTY extends DevBase {
 
 	public DevTTY(){
@@ -57,8 +59,6 @@ public class DevTTY extends DevBase {
 	
 	protected boolean asynMode = true;
 	
-	private Thread thrRead;
-	
 	/**
 	 * Open tty device and parser path name.<p>
 	 * Format is "[device name],[baud rate],[data bit][mask][stop bit]".<p>
@@ -100,14 +100,10 @@ public class DevTTY extends DevBase {
 		//prepare reading task~~~
 		boolean flag = isLive();
 		if(flag==true) {
-			afterOpen();
 			if(asynMode==true) {
-				thrRead = new Thread(runLooper,TAG);
-				thrRead.setDaemon(true);
-				thrRead.start();
+				looper_start();
 			}
-		}else {
-			thrRead = null;
+			afterOpen();
 		}
 		return flag;
 	}
@@ -119,21 +115,9 @@ public class DevTTY extends DevBase {
 		if(handle==0L){
 			return;
 		}
+		looper_stop();
 		afterClose();
 		implClose();
-		if(thrRead!=null) {
-			int max_iter = 5;
-			while(thrRead.isAlive()==true && max_iter>0){
-				thrRead.interrupt();
-				try {
-					Thread.sleep(10);
-				} catch (InterruptedException e) {
-					break;
-				}
-				max_iter-=1;
-			};
-		}		
-		thrRead = null;
 	}
 
 	protected void afterOpen() { }
@@ -147,6 +131,15 @@ public class DevTTY extends DevBase {
 		//private String r_match = null;
 		private ReadBack hook = null;
 		private boolean backByUI = true;
+		
+		public Action() {
+			setWork(act->{				
+				flush_stream();
+				writeTxt(w_data);
+				index_reading(this);
+				check_repeat(act);
+			});
+		}
 		
 		public Action writeData(final String data) {
 			w_data = data;
@@ -249,34 +242,21 @@ public class DevTTY extends DevBase {
 		Misc.logv("R-->%s", txt);
 	}
 	
-	private final Runnable runLooper = new Runnable() {
-		@Override
-		public void run() {
-			byte[] buf = new byte[32];
-			do {
-				Action act = (Action) action.poll();
-				if(act!=null) {
-					flush_stream();
-					writeTxt(act.w_data);
-					index_of_data(act,buf);
-					check_repeat(act);
-				}else {
-					int cnt = implRead(buf,0,-1);
-					buff_stream(buf,cnt);
-				}
-			}while(isLive()==true);
-			Misc.logv("%s done",TAG);
-		}
-	};
+	@Override
+	protected void wait_act(Task<?> looper) {
+		byte[] buf = new byte[32];
+		int cnt = implRead(buf,0,-1);
+		buff_stream(buf,cnt);
+	}
 	//------------------------------------//
 	
-	private void index_of_data(
-		final Action act,
-		final byte[] buf
-	) {
+	private void index_reading(final Action act) {
+		
 		int idx=0, off=0, try_count = 10;
 		boolean hasHead=(act.r_data[0].length()==0)?(true):(false);
 		boolean hasTail=(act.r_data[1].length()==0)?(true):(false);
+		
+		byte[] buf = new byte[32];
 		
 		while(isLive()==true){
 			
@@ -298,18 +278,19 @@ public class DevTTY extends DevBase {
 			
 			if(act.r_data[0].length()!=0) {				
 				idx = stream.lastIndexOf(act.r_data[0]);
-				if(idx>=0) {
-					off = idx + act.r_data[0].length();
-					stream.delete(idx, off);
+				if(idx>=0) {					
+					stream.delete(0, idx);
 					hasHead = true;
 				}
 			}
 			if(act.r_data[1].length()!=0) {
 				idx = stream.lastIndexOf(act.r_data[1]);
-				if(idx>=0) {
-					idx += act.r_data[1].length();
+				if(idx>=0) {					
 					off = stream.length();
-					stream.delete(idx,off);
+					stream.delete(
+						idx+act.r_data[1].length(), 
+						off
+					);
 					hasTail = true;
 				}
 			}			
@@ -346,6 +327,43 @@ public class DevTTY extends DevBase {
 		final ReadBack hook
 	) {
 		take(new Action().indexOfData(head, tail, hook));
+	}
+	
+	/**
+	 * Fetch text by writing data.<p>
+	 * @param data - write command
+	 * @param head - reading text which match head
+	 * @param tail - reading text which match head
+	 * @param hook - callback function
+	 */
+	public void fetchTxt(
+		final String data,
+		final String head, 
+		final String tail,
+		final ReadBack hook
+	) {
+		take(new Action()
+			.writeData(data)
+			.indexOfData(head, tail, hook)
+		);
+	}
+	
+	/**
+	 * Fetch text by writing data.<p>
+	 * Just match tail data.<p>
+	 * @param data - write command
+	 * @param tail - reading text which match head
+	 * @param hook - callback function
+	 */
+	public void fetchTxt(
+		final String data,
+		final String tail,
+		final ReadBack hook
+	) {
+		take(new Action()
+			.writeData(data)
+			.indexOfData("", tail, hook)
+		);
 	}
 	
 	public byte readByte() {
