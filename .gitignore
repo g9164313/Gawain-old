@@ -3,6 +3,8 @@ Makefiel
 *.class
 *.glade
 *.xml
+/mask.xml
+/*.xml
 
 gawain/
 nat/wrap-vc10/
