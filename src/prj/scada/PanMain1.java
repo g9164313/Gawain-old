@@ -30,7 +30,7 @@ public class PanMain1 extends PanBase {
 		
 		stage().setOnShowing(e->{
 			//dcg1.open("/dev/ttyUSB0,19200,8n1");
-			//spik.open("/dev/ttyUSB1,19200,8n1");
+			spik.open("/dev/ttyUSB1,19200,8n1");
 		});
 		
 		final JFXTabPane lay4 = new JFXTabPane();
@@ -47,7 +47,7 @@ public class PanMain1 extends PanBase {
 			new TitledPane("RF 裝置", DevSPIK2000.genPanel(spik))
 		};
 		final Accordion lay2 = new Accordion(lay3);
-		lay2.setExpandedPane(lay3[1]);
+		lay2.setExpandedPane(lay3[2]);
 
 		final BorderPane lay1 = new BorderPane();
 		//lay1.getStyleClass().add("ground-pad");

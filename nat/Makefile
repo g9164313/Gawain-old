@@ -115,8 +115,6 @@ VISION_FILE  = ./vision/miscellany.cpp
 VISION_FILE += ./vision/CapVidcap.cpp  
 
 $(VISION_SO): $(VISION_FILE)
-	CC_FLAG += -DVISION $(shell pkg-config --cflags opencv)
-	LD_LIBS  = $(shell pkg-config --libs opencv)
 	$(BUILD_WORK) 
 
 #####[peripheral device]######

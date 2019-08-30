@@ -12,6 +12,7 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
+import javafx.concurrent.Task;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -37,7 +38,6 @@ public class DevSPIK2000 extends DevTTY {
 
 	public DevSPIK2000() {
 		TAG = "DevSPIK2000-stream";
-		asynMode = false;
 	}
 	
 	public DevSPIK2000(String path_name){
@@ -46,9 +46,16 @@ public class DevSPIK2000 extends DevTTY {
 	}
 	
 	@Override
+	protected void wait_act(Task<?> looper) {
+		try {
+			Thread.sleep(1000);
+		} catch (InterruptedException e) {
+		}
+	}
+	
+	@Override
 	protected void afterOpen() {
-		looper_start();
-		take(0,0,(act)->{
+		take(0,1000,(act)->{
 			int[] val = get_register(4,4);
 			Application.invokeAndWait(()->{
 				Ton_Pos.set(val[0]);
@@ -57,7 +64,7 @@ public class DevSPIK2000 extends DevTTY {
 				ToffNeg.set(val[3]);
 			});
 		});
-		take(-1,1000,(act)->{
+		take(0,1000,(act)->{
 			int[] sta = get_register(0,4);
 			Application.invokeAndWait(()->{
 				flgMod.set(sta[0]&0x07);
@@ -165,6 +172,8 @@ public class DevSPIK2000 extends DevTTY {
 		ans[off+2] = readByte();//CRC
 		//step.7 - end of communication
 		writeByte(DLE);
+		readByte();
+		readByte();
 		//check CRC and give response to UI
 		int crc = checksum(ans,0,off+2);
 		if(crc!=ans[off+2]) {
@@ -218,7 +227,8 @@ public class DevSPIK2000 extends DevTTY {
 		ans[6] = readByte();//CRC
 		//step.7 - end of communication
 		writeByte(DLE);
-		return;
+		readByte();
+		readByte();
 	}
 
 	private interface GetValues {

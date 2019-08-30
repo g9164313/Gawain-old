@@ -97,8 +97,8 @@ public class DevBase {
 		obj.setDelay(delay_ms);
 		obj.setWork(work);
 		action.put(obj);
-		if(l_core!=null) {
-			l_core.interrupt();
+		if(thr_l!=null) {
+			thr_l.interrupt();
 		}
 	}
 	protected void take(
@@ -110,13 +110,13 @@ public class DevBase {
 		obj_act.setRepeat(repeat);
 		obj_act.setDelay(delay_ms);
 		action.put(obj_act);
-		if(l_core!=null) {
-			l_core.interrupt();
+		if(thr_l!=null) {
+			thr_l.interrupt();
 		}
 	}
 			
 	private Task<?> looper = null;
-	private Thread  l_core = null;
+	private Thread  thr_l = null;
 		
 	protected void check_repeat(Act act) {
 		if(act.repeat>0) {
@@ -168,12 +168,12 @@ public class DevBase {
 			}
 		};
 		
-		l_core = new Thread(
+		thr_l = new Thread(
 			looper,
 			String.format("%s-looper", TAG)
 		);
-		l_core.setDaemon(true);
-		l_core.start();
+		thr_l.setDaemon(true);
+		thr_l.start();
 	} 
 	
 	protected void looper_stop() {
@@ -185,7 +185,7 @@ public class DevBase {
 		}
 		while(looper.cancel()==false) {
 			try {
-				l_core.interrupt();
+				thr_l.interrupt();
 				Thread.sleep(10);
 			} catch (InterruptedException e) {
 			}
