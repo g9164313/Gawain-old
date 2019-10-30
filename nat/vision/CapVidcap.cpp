@@ -28,15 +28,17 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_vision_CapVidcap_implFetch(
 ){
 	PREPARE_CONTEXT;
 	PREPARE_FILM(objFilm);
-	VideoCapture* vid = (VideoCapture*)(env->GetLongField(thiz,f_cntx));
+	VideoCapture* vid = (VideoCapture*)(cntx);
 	if(vid->grab()==false){
 		return;
 	}
+
 	Mat img[60];
 	if(snap>60){ snap = 60; } //maximum capability
 	for(int i=0; i<snap; i++){
 		vid->retrieve(img[i]);
-		flip(img[i].t(), img[i], 0);//TODO:trick!!!
+		WRAP_FLIM(img[i]);
+		//flip(img[i].t(), img[i], 0);//anti-clock
 	}
 	FINISH_FILM(objFilm, img);
 }

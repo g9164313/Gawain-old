@@ -4,29 +4,21 @@ import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXCheckBox;
 import com.jfoenix.controls.JFXToggleButton;
 
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
 import javafx.beans.binding.BooleanBinding;
 import javafx.scene.Node;
 import javafx.scene.control.Accordion;
-import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TitledPane;
-import javafx.scene.input.MouseButton;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.Pane;
-import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
-import javafx.util.Duration;
+import javafx.stage.Stage;
 import narl.itrc.Gawain;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
 import narl.itrc.vision.CapVidcap;
 import narl.itrc.vision.DevCamera;
-import narl.itrc.vision.ImgFilm;
-import narl.itrc.vision.ImgPane;
 
 public class PanDropper extends PanBase {
 
@@ -34,9 +26,11 @@ public class PanDropper extends PanBase {
 	private final CapVidcap vid = new CapVidcap();
 	private final DevCamera cam = new DevCamera(vid);
 	
-	public PanDropper(){
+	public PanDropper(Stage primer){
 		//some initialization~~~
+		super(primer);
 		cam.setMinSize(600+23,800+23);
+		vid.setFlip('{');
 		vid.setupAfter(()->{
 			vid.setProperty(3, 800);//CAP_PROP_FRAME_WIDTH
 			vid.setProperty(4, 600);//CAP_PROP_FRAME_HEIGHT
@@ -56,7 +50,7 @@ public class PanDropper extends PanBase {
 		
 		stage().setOnShown(e->{
 			chkOko.fire();
-			chkCam.fire();
+			//chkCam.fire();
 			cam.unflattenMark(Gawain.prop().getProperty("VIEW_MARK",""));
 		});
 		stage().setOnHidden(e->{
@@ -69,7 +63,7 @@ public class PanDropper extends PanBase {
 			panel_cnc()
 		};
 		final Accordion layA = new Accordion(layT);
-		layA.setExpandedPane(layT[1]);
+		layA.setExpandedPane(layT[2]);
 		
 		final BorderPane layB = new BorderPane();
 		layB.setCenter(cam);		
@@ -83,7 +77,6 @@ public class PanDropper extends PanBase {
 	private native void stub1(DevCamera cam);
 	private native void stub2(DevCamera cam, int showState);
 	private native void stub3(DevCamera cam);
-	
 	
 	private boolean stepACC = false;
 	private float valNu = 0.0007f;
@@ -101,7 +94,7 @@ public class PanDropper extends PanBase {
 			Misc.loge("too long!!!");
 			return -2;
 		}
-		oko.move(xx, yy, false);
+		oko.move(xx, yy, 0, false);
 		if(stepACC==true) {
 			return 0;
 		}
@@ -109,12 +102,11 @@ public class PanDropper extends PanBase {
 	}
 	
 	private void moveProberAlongPath(int[] waypoint) {
-		ImgPane.Mark mm = cam.getAllMark()[0];
-		for(int i=0; i<waypoint.length; i+=2) {
-			int xx = waypoint[i+0] - mm.locaX;
-			int yy = mm.locaY - waypoint[i+1];
-			
-		}
+		//ImgPane.Mark mm = cam.getAllMark()[0];
+		//for(int i=0; i<waypoint.length; i+=2) {
+			//int xx = waypoint[i+0] - mm.locaX;
+			//int yy = mm.locaY - waypoint[i+1];
+		//}
 	}
 
 	private TitledPane panel_process() {
@@ -231,9 +223,7 @@ public class PanDropper extends PanBase {
 		flagCam = chkCam.selectedProperty().not();
 		flagALL = flagCNC.or(flagCam);
 
-		final VBox lay = new VBox(
-			chkOko, chkCam
-		);
+		final VBox lay = new VBox(chkOko, chkCam);
 		lay.getStyleClass().add("vbox-medium");		
 		return new TitledPane("快速設定",lay); 
 	}
@@ -280,22 +270,22 @@ public class PanDropper extends PanBase {
 		btn[0].setText("⇧");
 		btn[0].setOnAction(e->{
 			int yy = Math.abs(Misc.txt2int(box[1].getText()));
-			oko.move(0, yy, chkMove.isSelected());
+			oko.move(0, 0, yy, chkMove.isSelected());
 		});
 		btn[1].setText("⇩");
 		btn[1].setOnAction(e->{
 			int yy = Math.abs(Misc.txt2int(box[1].getText()));
-			oko.move(0, -yy, chkMove.isSelected());
+			oko.move(0, 0, -yy, chkMove.isSelected());
 		});
 		btn[2].setText("⇦");
 		btn[2].setOnAction(e->{
 			int xx = Math.abs(Misc.txt2int(box[0].getText()));
-			oko.move(-xx, 0, chkMove.isSelected());
+			oko.move(-xx, 0, 0, chkMove.isSelected());
 		});
 		btn[3].setText("⇨");
 		btn[3].setOnAction(e->{
 			int xx = Math.abs(Misc.txt2int(box[0].getText()));
-			oko.move(xx, 0, chkMove.isSelected());
+			oko.move(xx, 0, 0, chkMove.isSelected());
 		});
 		
 		final GridPane lay1 = new GridPane();
@@ -309,16 +299,16 @@ public class PanDropper extends PanBase {
 		btn[4].setOnAction(e->{
 			int xx = Misc.txt2int(box[0].getText());
 			int yy = Misc.txt2int(box[1].getText());
-			oko.move(xx, yy, chkMove.isSelected());
+			oko.move(xx,yy,0,chkMove.isSelected());
 		});
 
 		btn[5].setText("歸回原點");
-		btn[5].setOnAction(e->{
-			oko.exec("$H");
-			oko.exec("G90");
-			oko.exec("G0X-170Y-170");
-			oko.exec("G92X0Y0Z0");
-		});
+		btn[5].setOnAction(e->oko.exec(
+			"$H", 
+			"G90", 
+			"G0X-170Y-170", 
+			"G92X0Y0Z0"
+		));
 
 		final GridPane lay = new GridPane();
 		lay.addRow(0,new Label("狀態："), txt[0]);

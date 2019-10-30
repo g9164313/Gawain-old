@@ -1,27 +1,23 @@
 package prj.scada;
 
 
-import java.util.Optional;
-
+import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXComboBox;
 import com.jfoenix.controls.JFXToggleButton;
-import com.sun.glass.ui.Application;
 
 import javafx.beans.property.BooleanProperty;
 
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
-import javafx.concurrent.Task;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
+
 import javafx.scene.control.Label;
-import javafx.scene.control.TextInputDialog;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.image.ImageView;
-import javafx.scene.control.Alert.AlertType;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
+
+import narl.itrc.DevBase;
 import narl.itrc.DevTTY;
 import narl.itrc.Misc;
 
@@ -39,60 +35,19 @@ public class DevSPIK2000 extends DevTTY {
 	public DevSPIK2000() {
 		TAG = "DevSPIK2000-stream";
 	}
-	
 	public DevSPIK2000(String path_name){
 		this();
 		setPathName(path_name);
 	}
-	
 	@Override
-	protected void wait_act(Task<?> looper) {
-		try {
-			Thread.sleep(1000);
-		} catch (InterruptedException e) {
-		}
+	protected void doLoop(DevBase dev) {
+		//do nothing
 	}
-	
-	@Override
-	protected void afterOpen() {
-		take(0,1000,(act)->{
-			int[] val = get_register(4,4);
-			Application.invokeAndWait(()->{
-				Ton_Pos.set(val[0]);
-				ToffPos.set(val[1]);
-				Ton_Neg.set(val[2]);
-				ToffNeg.set(val[3]);
-			});
-		});
-		take(0,1000,(act)->{
-			int[] sta = get_register(0,4);
-			Application.invokeAndWait(()->{
-				flgMod.set(sta[0]&0x07);
-				flgMLX.set(((sta[0]&0x10)==0)?(false):(true));
-				flgRun.set(((sta[1]&0x01)==0)?(false):(true));
-				flgDC1.set(((sta[1]&0x40)==0)?(false):(true));
-				flgDC2.set(((sta[1]&0x80)==0)?(false):(true));
-				flgErr.set(sta[3]);
-			});
-		});
-	}	
 	//----------------------------------//
 	
 	private static final byte STX = 0x02;
-	private static final byte DLE = 0x10;
 	private static final byte ETX = 0x03;
-
-	private boolean wait_code(byte code) {
-		int max_try = 100;
-		do{
-			if(readByte()==code) {
-				return true;
-			}
-			Misc.delay(5);
-			max_try-=1;
-		}while(isLive()==true && max_try>0);
-		return false;
-	}
+	private static final byte DLE = 0x10;//跳出資料通訊
 	
 	private int checksum(
 		final byte[] data, 
@@ -117,8 +72,8 @@ public class DevSPIK2000 extends DevTTY {
 		//RK512 header
 		buf[0] = 0x00; 
 		buf[1] = 0x00;
-		buf[2] = (byte)tkn2;//0x45;//'E' 
-		buf[3] = (byte)tkn3;//0x44;//'D'
+		buf[2] = (byte)tkn2; 
+		buf[3] = (byte)tkn3;
 		buf[4] = (byte)((addr&0xFF00)>>8);
 		buf[5] = (byte)((addr&0x00FF));
 		buf[6] = (byte)((size&0xFF00)>>8);
@@ -138,52 +93,38 @@ public class DevSPIK2000 extends DevTTY {
 		final int size
 	) {
 		//trick!! read byte one by one!!
-		byte[] ans = new byte[4+6+3+size*2];
-		//step.1 - give start code.
-		writeByte(STX);
-		//step.2 - wait acknowledge
-		if(wait_code(DLE)==false) {
-			Misc.logw("[%s] no start code", TAG);
-			return new int[size];
-		}
-		//step.3 - give device RK512 header.
-		writeByte(pack(ans,'E','D',addr,size,0));
-		//step.4 - wait for receiver
-		ans[0] = readByte();//DLE or %%
-		ans[1] = readByte();//STX
-		//step.5 - give echo
-		writeByte(DLE);
-		//step.6 - get response, token(3byte), error-code
-		ans[0] = readByte();
-		ans[1] = readByte();
-		ans[2] = readByte();
-		ans[3] = readByte();
-		int off = 0;
-		if(ans[3]==0x00) {
-			//try to get data!!!
-			for(; off<size*2; off++) {
-				ans[off]  = readByte();
-			}				
-		}else {
-			Misc.logw("[%s] token has error(%d)", TAG, ans[3]);
-		}
-		ans[off+0] = readByte();//DLE
-		ans[off+1] = readByte();//ETX
-		ans[off+2] = readByte();//CRC
-		//step.7 - end of communication
-		writeByte(DLE);
-		readByte();
-		readByte();
-		//check CRC and give response to UI
-		int crc = checksum(ans,0,off+2);
-		if(crc!=ans[off+2]) {
-			Misc.logv("invalid CRC");
-			//return null;
-		}
 		int[] val = new int[size];
+		int cnt = size * 2;
+		byte[] ans;
+		if(cnt>=6) {
+			ans = new byte[4+cnt+3];
+		}else {
+			ans = new byte[4+6+3];
+		}
+		//step.1 - give start code and waiting.
+		writeByte(STX);
+		while(readByte()!=DLE) {
+			Misc.delay(100);
+		}
+		//step.2 - give device RK512 header.
+		pack(ans,'E','D',addr,size,0);
+		writeByte(ans,0,13);
+		//step.3 - wait for receiver
+		readBytePurge(ans,0,2);//DLE,STX
+		if(ans[0]!=DLE) {
+			return val;
+		}
+		//step.4 - give echo
+		writeByte(DLE);
+		//step.5 - get frame:
+		//	token(3byte), error-code(), 
+		//	data package(size*2),
+		//	DLE, ETX, CRC
+		readBytePurge(ans,0,(4+cnt+3));
+		//collect data and value~~~
 		for(int i=0; i<size; i++){
-			int aa = (int)(ans[i*2+0]);
-			int bb = (int)(ans[i*2+1]);
+			int aa = (int)(ans[4+i*2+0]);
+			int bb = (int)(ans[4+i*2+1]);
 			aa = (aa<<8) & 0xFF00;
 			bb = (bb   ) & 0x00FF;
 			val[i] = aa | bb;
@@ -196,39 +137,28 @@ public class DevSPIK2000 extends DevTTY {
 		final int... vals
 	) {
 		int size = vals.length;
-		//trick!! read byte one by one!!
-		//it contain RK512, Data, 3964R
+		//prepare RK512, Data
 		byte[] ans = new byte[10+size*2+3];
-		//step.1 - write start code
-		writeByte(STX);
-		//step.2 - wait response
-		if(wait_code(DLE)==false) {
-			Misc.logw("[%s] no start code", TAG);
-			return;
-		}
-		//step.3 - write data
 		for(int i=0; i<size; i++) {
 			ans[10+i*2+0] = (byte)((vals[i] & 0xFF00)>>8);
 			ans[10+i*2+1] = (byte)((vals[i] & 0x00FF)   );
 		}
-		writeByte(pack(ans,'A','D', addr, size, size*2));
-		//step.4 - wait for receiver
-		ans[0] = readByte();//DLE or %%
-		ans[1] = readByte();//STX
-		//step.5 - give echo
+		pack(ans,'A','D',addr,size,size*2);
+		//step.1 - give start code and waiting.
+		writeByte(STX);
+		while(readByte()!=DLE) {
+			Misc.delay(10);
+		}
+		//step.2 - give device RK512 header.
+		writeByte(ans,0,ans.length);
+		//step.3 - wait for receiver
+		readBytePurge(ans,0,2);//DLE,STX
+		if(ans[0]!=DLE) {
+			return;
+		}
+		//step.4 - give echo
 		writeByte(DLE);
-		//step.6 - get response
-		ans[0] = readByte();//token
-		ans[1] = readByte();
-		ans[2] = readByte();
-		ans[3] = readByte();//error-code
-		ans[4] = readByte();//DLE
-		ans[5] = readByte();//ETX
-		ans[6] = readByte();//CRC
-		//step.7 - end of communication
-		writeByte(DLE);
-		readByte();
-		readByte();
+		readBytePurge(ans,0,7);
 	}
 
 	private interface GetValues {
@@ -240,10 +170,8 @@ public class DevSPIK2000 extends DevTTY {
 		final int size,
 		final GetValues callback
 	) {
-		if(action.size()>=1) {
-			return;
-		}
-		take(0,0,(act)->{
+		if(action.size()>=1) {return;}
+		doing(0,(act)->{
 			int[] val = get_register(addr,size);
 			if(callback!=null) {
 				callback.getValues(val);
@@ -255,10 +183,8 @@ public class DevSPIK2000 extends DevTTY {
 		final int addr, 
 		final int... vals
 	) {
-		if(action.size()>=1) {
-			return;
-		}
-		take(0,0,(act)->set_register(addr,vals));
+		if(action.size()>=1) {return;}
+		doing(0,(act)->set_register(addr,vals));
 	}
 	//---------------------------------//
 	
@@ -277,11 +203,11 @@ public class DevSPIK2000 extends DevTTY {
 	
 	public static Pane genPanel(final DevSPIK2000 dev) {
 		
-		final Alert altFormat = new Alert(AlertType.ERROR);
-		altFormat.setTitle("錯誤！！");
-		altFormat.setHeaderText("錯誤的資料格式");
+//		final Alert altFormat = new Alert(AlertType.ERROR);
+//		altFormat.setTitle("錯誤！！");
+//		altFormat.setHeaderText("錯誤的資料格式");
 		
-		final TextInputDialog diaTime = new TextInputDialog();
+//		final TextInputDialog diaTime = new TextInputDialog();
 		
 		final JFXComboBox<String> cmbMode = new JFXComboBox<String>();
 		cmbMode.getItems().addAll(
@@ -306,7 +232,7 @@ public class DevSPIK2000 extends DevTTY {
 			txt[i].setMaxWidth(Double.MAX_VALUE);	
 			GridPane.setFillWidth(txt[i], true);
 		}
-		txt[0].setText("\u22c4Ton＋：");
+		/*txt[0].setText("\u22c4Ton＋：");
 		txt[0].setOnMouseClicked(e->{
 			diaTime.setTitle("設定 Ton＋");
 			diaTime.setContentText("時間(us)");
@@ -320,69 +246,42 @@ public class DevSPIK2000 extends DevTTY {
 					altFormat.showAndWait();
 				}
 			}
-		});
-		txt[1].textProperty().bind(dev.Ton_Pos.asString("%d us"));
-		
+		});*/
+		final JFXButton btn1 = new JFXButton("ggyy");
+		btn1.setGraphic(Misc.getIconView("pen.png"));
+		btn1.setMaxWidth(Double.MAX_VALUE);
+
 		txt[2].setText("\u22c4Toff＋：");
 		txt[2].setOnMouseClicked(e->{
-			diaTime.setTitle("設定 Toff＋");
-			diaTime.setContentText("時間(us)");
-			Optional<String> res = diaTime.showAndWait();
-			if(res.isPresent()) {
-				try {
-					int val = Integer.valueOf(res.get());
-					dev.setRegister(5,val);
-					dev.ToffPos.set(val);
-				}catch(NumberFormatException exp) {
-					altFormat.showAndWait();
-				}
-			}
+			//diaTime.setTitle("設定 Toff＋");
+			//diaTime.setContentText("時間(us)");
+			//Optional<String> res = diaTime.showAndWait();
+			//if(res.isPresent()) {
+			//	try {
+			//		int val = Integer.valueOf(res.get());
+			//		dev.setRegister(5,val);
+			//		dev.ToffPos.set(val);
+			//	}catch(NumberFormatException exp) {
+					//altFormat.showAndWait();
+			//	}
+			//}
 		});
-		txt[3].textProperty().bind(dev.ToffPos.asString("%d us"));
-		
+
 		txt[4].setText("\u22c4Ton－：");
 		txt[4].setOnMouseClicked(e->{
-			diaTime.setTitle("設定 Ton－");
-			diaTime.setContentText("時間(us)");
-			Optional<String> res = diaTime.showAndWait();
-			if(res.isPresent()) {
-				try {
-					int val = Integer.valueOf(res.get());
-					dev.setRegister(6, val);
-					dev.Ton_Neg.set(val);
-				}catch(NumberFormatException exp) {
-					altFormat.showAndWait();
-				}
-			}
 		});
-		txt[5].textProperty().bind(dev.Ton_Neg.asString("%d us"));
 		
 		txt[6].setText("\u22c4Toff－：");
 		txt[6].setOnMouseClicked(e->{
-			diaTime.setTitle("設定 Toff－");
-			diaTime.setContentText("時間(us)");
-			Optional<String> res = diaTime.showAndWait();
-			if(res.isPresent()) {
-				try {
-					int val = Integer.valueOf(res.get());
-					dev.setRegister(7, val);
-					dev.ToffNeg.set(val);
-				}catch(NumberFormatException exp) {
-					altFormat.showAndWait();
-				}
-			}
 		});
-		txt[7].textProperty().bind(dev.ToffNeg.asString("%d us"));
+		
 		
 		final ImageView[] img = {
 			Misc.getIconView("check.png"),
 			Misc.getIconView("check.png"),
 			Misc.getIconView("check.png")
 		};
-		img[0].visibleProperty().bind(dev.flgRun);
-		img[1].visibleProperty().bind(dev.flgDC1);
-		img[2].visibleProperty().bind(dev.flgDC2);
-		
+
 		final ToggleButton[] tgl = {
 			new JFXToggleButton(),
 			new JFXToggleButton(),
@@ -391,51 +290,57 @@ public class DevSPIK2000 extends DevTTY {
 		tgl[0].setText("DC-1");
 		tgl[0].setOnAction(e->{			
 			if(tgl[0].isSelected()==true) {
-				dev.setRegister(1, 0x21);//DC-1 on
+				dev.setRegister(1,0x21);//DC-1 on
 			}else {
-				dev.setRegister(1, 0x20);//DC-1 off
+				dev.setRegister(1,0x20);//DC-1 off
 			}
 		});
 		tgl[1].setText("DC-2");
 		tgl[1].setOnAction(e->{
 			if(tgl[1].isSelected()==true) {
-				dev.setRegister(1, 0x23);//DC-2 on
+				dev.setRegister(1,0x22);//DC-2 on
 			}else {
-				dev.setRegister(1, 0x22);//DC-2 on
+				dev.setRegister(1,0x23);//DC-2 off
 			}
 		});
 		tgl[2].setText("Run");
 		tgl[2].setOnAction(e->{
 			if(tgl[2].isSelected()==true) {
-				dev.setRegister(1, 0x02);//running-on
+				dev.setRegister(1,2);//running-on
 			}else {
-				dev.setRegister(1, 0x01);//running-off
+				dev.setRegister(1,1);//running-off
 			}
 		});
 		
-		final Button btn = new Button("test");
-		btn.setOnAction(e->{
-			int val = (int)(Math.random()*100.);
-			Misc.logv("test=%d",val);
-			dev.setRegister(7, val);
-			/*dev.getRegister(4, 4, (val)->{
-				for(int i=0; i<val.length; i++) {
-					Misc.logv("val=%d", val[i]);
-				}
-			});*/
-		});
-		
 		final GridPane lay = new GridPane();
-		lay.getStyleClass().addAll("ground-pad");
+		lay.getStyleClass().addAll("box-pad");
 		lay.add(cmbMode, 0, 0, 2, 1);
-		lay.addRow(1, txt[0], txt[1]);
+		lay.addRow(1, btn1, txt[1]);
 		lay.addRow(2, txt[4], txt[5]);
 		lay.addRow(3, txt[2], txt[3]);
 		lay.addRow(4, txt[6], txt[7]);
 		lay.addRow(5, tgl[0], img[0]);
 		lay.addRow(6, tgl[1], img[1]);
 		lay.addRow(7, tgl[2], img[2]);
-		//lay.add(btn, 0, 7, 4,1);
+		//lay.add(btn1, 0, 8, 2, 1);
+		//lay.add(btn2, 2, 8, 2, 1);
+		
+		/*dev.doing(500,(act)->{
+			int[] val = dev.get_register(0,8);
+			//Misc.logv("^[%d, %d, %d, %d]", val[4], val[5], val[6], val[7]);
+			Application.invokeAndWait(()->{
+				dev.flgMod.set(val[0]&0x07);
+				dev.flgMLX.set(((val[0]&0x10)==0)?(false):(true));
+				dev.flgRun.set(((val[1]&0x01)==0)?(false):(true));
+				dev.flgDC1.set(((val[1]&0x40)==0)?(false):(true));
+				dev.flgDC2.set(((val[1]&0x80)==0)?(false):(true));
+				dev.flgErr.set(val[3]);
+				dev.Ton_Pos.set(val[4]);
+				dev.ToffPos.set(val[5]);
+				dev.Ton_Neg.set(val[6]);
+				dev.ToffNeg.set(val[7]);
+			});
+		});*/
 		return lay;
 	}
 }

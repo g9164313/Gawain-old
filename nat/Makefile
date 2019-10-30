@@ -23,20 +23,6 @@ LIB_EBUS := -L$(ROOT_EBUS)/lib \
 	-lPvTransmitterRaw \
 	-lPvVirtualDevice
 
-#### FlyCapture ####
-
-INC_FLYCAPTURE:=-I/usr/include/flycapture
-
-LIB_FLYCAPTURE:=-L/usr/lib -lflycapture -lflycapturegui
-
-#### XIMEA ####
-
-ROOT_XIMEA:=/opt/XIMEA
-
-INC_XIMEA:=-I$(ROOT_XIMEA)/include
-
-LIB_XIMEA:=-I$(ROOT_XIMEA)/lib -lm3api
-
 #### Basler Pylon ####
 
 ROOT_PYLON :=  /home/lib/pylon
@@ -84,9 +70,8 @@ TEST_PID := $(shell pgrep -f Gawain)
 define BUILD_WORK =
 	$(CC) -fPIC -shared -o $@ $^ $(LD_LIBS) $(CC_FLAG)
 	@echo TEST_PID=$(TEST_PID)
-	cp -rf $@ ../src/narl/itrc/nat	
-	#cp -rf $@ ~/.gawain/$@
-	mv $@ ~/.gawain/$@
+	#cp -rf $@ ../src/narl/itrc/nat	
+	cp -rf $@ ~/.gawain/$@
 	@echo 'Target --> '$@', done!!'
 	@echo
 endef
@@ -101,7 +86,7 @@ endef
 #####[core file]######
 
 CORE_SO = libcore.so
-CORE_FILE = ./vision/miscellany.cpp ./utility/jni_aux.cpp
+CORE_FILE = ./vision/miscellany.cpp
 CORE_FILE += ./running/stubber.cpp
 CORE_FILE += ./running/work-1.cpp
 
@@ -120,7 +105,6 @@ $(VISION_SO): $(VISION_FILE)
 #####[peripheral device]######
 
 PERIPHERAL_SO = libdevice.so
-PERIPHERAL_FILE = ./utility/jni_aux.cpp
 PERIPHERAL_FILE+= ./device/DevTTY.cpp
 PERIPHERAL_FILE+= ./device/DevUSB.cpp
 PERIPHERAL_FILE+= ./device/DevModbus.cpp
@@ -131,7 +115,7 @@ $(PERIPHERAL_SO): $(PERIPHERAL_FILE)
 ####################################################
 
 TARGET_EXE = gawain
-TARGET_FILE = ./running/work-1.cpp
+TARGET_FILE = ./running/work-2.cpp
 TARGET_FILE += ./running/misc.cpp
 TARGET_FILE += ./vision/miscellany.cpp
 
@@ -142,9 +126,9 @@ $(TARGET_EXE): $(TARGET_FILE)
 	
 ####################################################
 
-all: $(TARGET_EXE) $(CORE_SO) $(VISION_SO) $(PERIPHERAL_SO) 
+#all: $(TARGET_EXE) $(CORE_SO) $(VISION_SO) $(PERIPHERAL_SO) 
 #all: $(TARGET_EXE)
-#all: $(PERIPHERAL_SO) $(VISION_SO) $(CORE_SO)
+all: $(PERIPHERAL_SO) $(VISION_SO) $(CORE_SO)
 
 clean:
 	rm -rf $(TARGET_EXE) $(TARGET_SO) $(DIR_SRC)/*.o ./*.o

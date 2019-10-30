@@ -4,6 +4,13 @@ import com.sun.glass.ui.Application;
 
 public abstract class Capture {
 	
+	protected byte flipMode = 0;
+	
+	public Capture setFlip(int mode) {
+		flipMode = (byte)mode;
+		return this;
+	}
+	
 	protected long context;
 	
 	private ImgFilm film = new ImgFilm();
@@ -34,7 +41,7 @@ public abstract class Capture {
 		view.updateView(film);
 		return this;
 	}
-	
+		
 	private Runnable setup_afer = null;
 	
 	public Capture setupAfter(final Runnable run) {

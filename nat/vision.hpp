@@ -8,9 +8,6 @@
 #ifndef VISION_HPP_
 #define VISION_HPP_
 
-#include <jni.h>
-#include <vector>
-#include <iostream>
 #include <opencv/cv.h>
 #include <opencv2/opencv.hpp>
 #include <opencv2/ml.hpp>
@@ -20,8 +17,8 @@
 #include <opencv2/xobjdetect.hpp>
 #include <opencv2/line_descriptor.hpp>
 #include <opencv2/ccalib/randpattern.hpp>
+#include <opencv2/bgsegm.hpp>
 
-using namespace std;
 using namespace cv;
 using namespace cv::ml;
 using namespace cv::ximgproc;
@@ -29,6 +26,7 @@ using namespace cv::xfeatures2d;
 using namespace cv::xobjdetect;
 using namespace cv::randpattern;
 using namespace cv::line_descriptor;
+using namespace cv::bgsegm;
 
 #define TICK_BEG \
 	{int64 __tick=getTickCount()
@@ -39,6 +37,12 @@ using namespace cv::line_descriptor;
 	double __tick_sec = (double)((getTickCount() - __tick))/getTickFrequency();\
 	accum = accum + __tick_sec;\
 	std::cout<<"[TICK] "<< __tick_sec <<"sec"<< endl; } while(false)
+
+//TODO: color space for drawing???
+
+
+//java macro for accessing camera data
+#include <jni.h>
 
 #define CHECK_IN_CONTEXT \
 	jclass clzz = env->GetObjectClass(thiz); \
@@ -56,10 +60,10 @@ using namespace cv::line_descriptor;
 
 #define PREPARE_CONTEXT \
 	jclass clzz = env->GetObjectClass(thiz);\
-	jfieldID f_cntx = env->GetFieldID(clzz,"context","J");\
-	void* cntx = (void*)env->GetLongField(thiz,f_cntx);\
+	uint8_t flipMode = env->GetByteField(thiz, env->GetFieldID(clzz,"flipMode","B"));\
+	jfieldID f_cntx = env->GetFieldID(clzz,"context","J"); \
+	void* cntx = (void*)env->GetLongField(thiz, f_cntx);\
 	if(cntx==NULL){	return; }
-
 
 #define PREPARE_FILM(obj) \
 	jclass film_clzz  = env->GetObjectClass(obj); \
@@ -71,6 +75,16 @@ using namespace cv::line_descriptor;
 	jint snap = env->GetIntField(obj, f_snap); \
 	jobject o_pool= env->GetObjectField(obj, env->GetFieldID(film_clzz,"pool","[B") ); \
 	while(false)
+
+#define WRAP_FLIM(img) \
+	switch(flipMode){ \
+	case 'X': case 'x': flip(img, img, 1); break; \
+	case 'Y': case 'y': flip(img, img, 0); break; \
+	case '}': flip(img.t(), img, 1); break; \
+	case '{': flip(img.t(), img, 0); break; \
+	case 'a': flip(img, img, -1); break; \
+	case 'b': flip(img.t(), img, 1); break; \
+	}
 
 #define FINISH_FILM(obj, img) \
 	size_t total_size = img[0].total() * img[0].elemSize();\
@@ -109,27 +123,27 @@ using namespace cv::line_descriptor;
 	jmethodID mid_sync = env->GetMethodID(clzz_cam, "doSync", "(Z)V")
 
 #define STUBBER_LOOP_HEAD \
-		do { if(env->CallBooleanMethod(objCamera, mid_done)==JNI_TRUE){ break; }
+	do { if(env->CallBooleanMethod(objCamera, mid_done)==JNI_TRUE){ break; }
 
 #define STUBBER_EMBED_HEAD \
-		do{ env->CallVoidMethod(objCamera, mid_sync, JNI_TRUE); \
-		jobject obj_pool = env->GetObjectField(objFilm, env->GetFieldID(clzz_flm,"pool","[B"));\
-		jobject obj_over = env->GetObjectField(objFilm, env->GetFieldID(clzz_flm,"over","[B"));\
-		jbyteArray* arr_pool = reinterpret_cast<jbyteArray*>(&obj_pool);\
-		jbyteArray* arr_over = reinterpret_cast<jbyteArray*>(&obj_over);\
-		jbyte* ptrPool = env->GetByteArrayElements(*arr_pool,NULL); \
-		jbyte* ptrOver = env->GetByteArrayElements(*arr_over,NULL); \
-		Mat pool(height, width, cvType, ptrPool); \
-		Mat over(height, width, CV_8UC4, ptrOver)
+	do{ env->CallVoidMethod(objCamera, mid_sync, JNI_TRUE); \
+	jobject obj_pool = env->GetObjectField(objFilm, env->GetFieldID(clzz_flm,"pool","[B"));\
+	jobject obj_over = env->GetObjectField(objFilm, env->GetFieldID(clzz_flm,"over","[B"));\
+	jbyteArray* arr_pool = reinterpret_cast<jbyteArray*>(&obj_pool);\
+	jbyteArray* arr_over = reinterpret_cast<jbyteArray*>(&obj_over);\
+	jbyte* ptrPool = env->GetByteArrayElements(*arr_pool,NULL); \
+	jbyte* ptrOver = env->GetByteArrayElements(*arr_over,NULL); \
+	Mat pool(height, width, cvType, ptrPool); \
+	Mat over(height, width, CV_8UC4, ptrOver)
 #define STUBBER_EMBED_DONE \
-		env->ReleaseByteArrayElements(*arr_pool, ptrPool, 0);\
-		env->ReleaseByteArrayElements(*arr_over, ptrOver, 0);\
-		env->CallVoidMethod(objCamera, mid_sync, JNI_FALSE)
+	env->ReleaseByteArrayElements(*arr_pool, ptrPool, 0);\
+	env->ReleaseByteArrayElements(*arr_over, ptrOver, 0);\
+	env->CallVoidMethod(objCamera, mid_sync, JNI_FALSE)
 #define STUBBER_EMBED_TAIL \
-		STUBBER_EMBED_DONE; } while(false)
+	STUBBER_EMBED_DONE; } while(false)
 
 #define STUBBER_LOOP_TAIL(flag) \
-		}while(flag)
+	}while(flag)
 
 extern Point getPoint(
 	JNIEnv * env,

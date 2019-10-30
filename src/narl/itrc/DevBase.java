@@ -1,194 +1,190 @@
 package narl.itrc;
 
-import java.util.concurrent.DelayQueue;
-import java.util.concurrent.Delayed;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-import javafx.concurrent.Task;
+public abstract class DevBase implements Runnable {
+	
+	protected String TAG = "DevBase";
+	
+	public DevBase(){
+	}
 
-public class DevBase {
+	abstract public void open();	
+	abstract public void close();
+	abstract public boolean isLive();
 	
 	public interface Work {
-		public void doWork(DevBase.Act act);
+		public void doWork(Action act);
 	}
-	
-	public class Act implements Delayed {
+	protected class Action {
 		
-		/**
-		 * indicate this action should be pushed again.<p>
-		 * >=1 means counting.<p>
-		 * ==0 means skipping from looper.<p>
-		 * =-1 means infinite running.<p>
-		 */
-		public int repeat;
+		protected short stgx;
+		protected short next;		
+		protected Work hook;
 		
-		public long stamp, delay;
-		
-		public Work hook;
-		
-		public Act() {
-			this(0);
+		public Action() {
+			this(nxt_stage,DEATH_STAGE,null);
 		}
-		public Act(long millis) {
-			setStamp(System.currentTimeMillis());
-			setDelay(millis);
-			Misc.delay(1);//trick, let all stamp different~~
+		public Action(
+			final int stage,
+			final Work work
+		) {
+			this(stage,stage+1,work);
 		}
-		public Act setStamp(final long value) {
-			stamp = value;
-			return this;
+		public Action(
+			final int stage,
+			final int next_stage,
+			final Work work
+		) {
+			stgx = (short)stage;
+			next = (short)next_stage;
+			hook = work;
 		}
-		public Act setDelay(final long value) {
-			delay = value;
-			return this;
-		}
-		public Act setRepeat(final int value) {
-			repeat = value;
-			return this;
-		}
-		public Act setWork(final Work value) {
-			hook = value;
-			return this;
-		}
-		public void do_work() {
+		private void do_work() {
 			if(hook==null) {
+				return;
 			}
 			hook.doWork(this);
 		}
-		
-		@Override
-		public int compareTo(Delayed obj) {
-			long t1 = this.getDelay(TimeUnit.MILLISECONDS);
-			long t2 = obj.getDelay(TimeUnit.MILLISECONDS);			
-			return (int)(t1-t2);
-		}
-		@Override
-		public long getDelay(TimeUnit unit) {
-			return unit.convert(
-				delay - (System.currentTimeMillis() - stamp), 
-				TimeUnit.MILLISECONDS
-			);
-		}
 	};
-	
-	protected String TAG = "dev-base";
-	
-	public DevBase(){		
-	}
-	
-	protected final DelayQueue<Act> action = new DelayQueue<Act>();
-
-	protected void abort(final Act act) {
-		act.repeat = 0;
-		action.remove(act);
-	}
-	
-	protected void take(final Act act) {
-		action.put(act);
-	}
-	
-	protected void take(
-		final int repeat,
-		final int delay_ms,
+	protected final ConcurrentLinkedQueue<Action> action = new ConcurrentLinkedQueue<Action>();
+		
+	public DevBase doing(final Action act) {
+		action.offer(act);
+		if(looper!=null) {
+			looper.interrupt();
+		}
+		return this;
+	}		
+	public DevBase doing(
+		final int stgx,
 		final DevBase.Work work
 	) {
-		Act obj = new Act();
-		obj.setRepeat(repeat);
-		obj.setDelay(delay_ms);
-		obj.setWork(work);
-		action.put(obj);
-		if(thr_l!=null) {
-			thr_l.interrupt();
-		}
+		doing(new Action(stgx,work));
+		return this;
 	}
-	protected void take(
-		final int repeat,
-		final int delay_ms,
-		final Act obj_act
+	public DevBase doing(
+		final int stgx,
+		final int next,
+		final DevBase.Work work
 	) {
-		obj_act.setStamp(System.currentTimeMillis());//reset stamp~~~
-		obj_act.setRepeat(repeat);
-		obj_act.setDelay(delay_ms);
-		action.put(obj_act);
-		if(thr_l!=null) {
-			thr_l.interrupt();
-		}
+		doing(new Action(stgx,next,work));
+		return this;
 	}
-			
-	private Task<?> looper = null;
-	private Thread  thr_l = null;
+	public DevBase doingNow(final DevBase.Work work) {
+		doing(new Action(0,0,work));
+		return this;
+	}
+	
+	
+	public final AtomicBoolean exitLoop = new AtomicBoolean();
+	
+	private short nxt_stage;
+	private final short SELF_STAGE =-1;//goto self
+	private final short DEATH_STAGE= 0;//poll action
+	private final short FIRST_STAGE= 1;//first action
 		
-	protected void check_repeat(Act act) {
-		if(act.repeat>0) {
-			act.repeat-=1;
-		}
-		if(act.repeat==0) {
+	private final int MAX_STGX_FAIL = 5;
+	private int stgx_fail_cnt = MAX_STGX_FAIL;
+	
+	private void doAction() {
+		
+		if(action.isEmpty()==true) {
 			return;
 		}
-		act.setStamp(System.currentTimeMillis());
-		action.remove(act);//why do we remove object in queue???
-		action.put(act);
-	}
-	
-	//user can override this event
-	protected void wait_act(Task<?> looper) {
-		try {
-			//wait for action
-			Thread.sleep(10);
-		} catch (InterruptedException e) {
+		
+		Action act = action.poll();		
+		final short head = act.stgx;
+		do{
+			short act_stgx = (short)Math.abs(act.stgx);
+			if(act_stgx==nxt_stage || act_stgx==DEATH_STAGE) {
+				
+				act.do_work();
+				
+				if(act.next==SELF_STAGE){
+					
+					nxt_stage = act_stgx;
+					action.offer(act);
+					
+				}else if(act.next==DEATH_STAGE) {
+					
+					if(act_stgx!=DEATH_STAGE) {
+						nxt_stage = (short)(act.stgx + 1);
+					}
+					
+				}else if(act.next>=FIRST_STAGE) {
+					
+					nxt_stage = act.next;
+					if(act.stgx<SELF_STAGE) {
+						action.offer(act);
+					}
+				}
+				return;
+			}else {
+				action.offer(act);
+				act = action.poll();
+			}
+		}while(head!=act.stgx);	
+		
+		if(stgx_fail_cnt<=0) {
+			//not match stage, reset stage number!!!
+			nxt_stage = (short)Math.abs(act.stgx);
+			stgx_fail_cnt = MAX_STGX_FAIL;//reset it again~~~
+		}else {
+			stgx_fail_cnt -=1;
 		}
+		action.offer(act);
 	}
 	
-	protected void looper_start() {
+	//user must override this event
+	protected void doLoop(DevBase dev) {
+	}
+	
+	@Override
+	public void run() {
+		nxt_stage = FIRST_STAGE;
+		do {
+			doAction();
+			doLoop(this);
+		}while(exitLoop.get()==false);
+		Misc.logv("%s is deadth", TAG);
+	}
+
+	
+	private Thread looper = null;
+	
+	protected void beforeLoop() {}
+	protected void afterLoop() {}
+	
+	public void startLoop() {		
 		if(looper!=null) {
-			if(looper.isDone()==false) {
+			if(looper.isAlive()==true) {
 				return;
 			}
 		}
-		
-		looper = new Task<Integer>() {
-			private boolean check_exit() {
-				return looper.isCancelled() | Gawain.isExit();
-			}			
-			@Override
-			protected Integer call() throws Exception {
-				do {
-					Act act = action.poll();
-					if(act==null) {
-						wait_act(looper);
-						continue;
-					}else {						
-						act.do_work();
-						check_repeat(act);
-					}
-					//Misc.logv("act=%d", action.size());
-				}while(check_exit()==false);
-				Misc.logv("[%s-looper] is done...", TAG);
-				return 0;
-			}
-		};
-		
-		thr_l = new Thread(
-			looper,
-			String.format("%s-looper", TAG)
-		);
-		thr_l.setDaemon(true);
-		thr_l.start();
+		action.clear();		
+		exitLoop.set(false);
+		looper = new Thread(this,TAG);
+		looper.setDaemon(true);
+		beforeLoop();
+		looper.start();
+		afterLoop();
 	} 
-	
-	protected void looper_stop() {
+		
+	public void stopLoop() {		
 		if(looper==null) {
 			return;
 		}
-		if(looper.isDone()==true) {
+		if(looper.isAlive()==false) {
 			return;
-		}
-		while(looper.cancel()==false) {
-			try {
-				thr_l.interrupt();
-				Thread.sleep(10);
-			} catch (InterruptedException e) {
-			}
+		}		
+		try {
+			exitLoop.set(true);
+			looper.interrupt();
+			looper.join();
+			looper = null;
+		} catch (InterruptedException e) {
 		}
 	}
 }

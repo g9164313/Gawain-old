@@ -1,10 +1,5 @@
 #include <global.hpp>
-#if defined _MSC_VER
-
-#else
-#include <stdio.h>   /* Standard input/output definitions */
-#include <string.h>  /* String function definitions */
-#include <unistd.h>  /* UNIX standard function definitions */
+#ifndef _MSC_VER
 #include <fcntl.h>   /* File control definitions */
 #include <errno.h>   /* Error number definitions */
 #include <termios.h> /* POSIX terminal control definitions */
@@ -13,7 +8,7 @@
 
 #define NAME_HANDLE  "handle"
 
-extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implOpen(
+extern "C" JNIEXPORT void Java_narl_itrc_DevTTY_implOpen(
 	JNIEnv * env,
 	jobject thiz,
 	jstring jname,
@@ -25,9 +20,13 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implOpen(
 ) {
 	char name[500];
 	jstrcpy(env,jname,name);
+
 #if defined _MSC_VER
+	char desc[500];
+	sprintf_s(desc,"\\\\.\\%s",name);
+
 	HANDLE hand = CreateFileA(
-		name,
+		desc,
 		GENERIC_READ|GENERIC_WRITE,
 		0,   /* no share  */
 		NULL,/* no security */
@@ -40,49 +39,64 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implOpen(
 		return;
 	}
 	setJLong(env,thiz,NAME_HANDLE,(long)hand);
-
-	DCB port_settings;
-	memset(&port_settings, 0, sizeof(port_settings));  /* clear the new struct  */
-	port_settings.DCBlength = sizeof(port_settings);
-	port_settings.XonChar = 0x11;
-	port_settings.XonLim = 200;
-	port_settings.XoffChar = 0x13;
-	port_settings.XoffLim = 200;
-	port_settings.fRtsControl = 0x01;
-	port_settings.EofChar = 0x1A;
-
-	char modeText[500];
-	char modeData = (char)((int)data_bit);
-	char modePart = (char)((int)parity);
-	char modeStop = (char)((int)stop_bit);
-	sprintf_s(
-		modeText,
-		"baud=%d data=%c parity=%c stop=%c",
-		baud_rate, modeData, modePart, modeStop
-	);
-	BuildCommDCBA(modeText, &port_settings);
 	
-	if(!SetCommState(hand, &port_settings)){
-		cout << "Fail to set TTY"<< endl;
-		return;
-	} else {
-		cout << "TTY SETTING: " << modeText << endl;
+	DCB dcb;
+	GetCommState(hand, &dcb);
+	dcb.BaudRate = baud_rate;
+	dcb.ByteSize = ((int)data_bit)-0x30;
+	switch(parity){
+	case 'n'://none
+	case 'N':
+		dcb.Parity = NOPARITY;
+		break;
+	case 'e'://even
+	case 'E':
+		dcb.Parity = EVENPARITY;
+		break;
+	case 'o'://odd
+	case 'O':
+		dcb.Parity = ODDPARITY;
+		break;
+	case 'm'://mark
+	case 'M':
+		dcb.Parity = MARKPARITY;
+		break;
+	case 's'://space
+	case 'S':
+		dcb.Parity = SPACEPARITY;
+		break;
+	default:
+		cout<<"no support parity:"<<parity<<endl;
+		break;
 	}
-
-	COMMTIMEOUTS cpt;
+	switch(stop_bit){
+	case '1': dcb.StopBits = ONESTOPBIT  ; break;
+	case 'q': dcb.StopBits = ONE5STOPBITS; break;
+	case '2': dcb.StopBits = TWOSTOPBITS ; break;
+	default:
+		cout<<"no support stop-bit:"<<stop_bit<<endl;
+		break;
+	}
+	/* No software handshaking */
+	//dcb.fTXContinueOnXoff = TRUE;
+	//dcb.fOutX = FALSE;
+	//dcb.fInX = FALSE;
+	/* Binary mode (it's the only supported on Windows anyway) */
+	dcb.fBinary = TRUE;
+	/* Want errors to be blocking */
+	dcb.fAbortOnError = TRUE;
+	if(!SetCommState(hand, &dcb)){
+		cout<<"Fail to set DBCA"<<endl;
+	}
+	/*COMMTIMEOUTS cpt;
 	cpt.ReadIntervalTimeout         = MAXDWORD;
 	cpt.ReadTotalTimeoutMultiplier  = 0;
-	cpt.ReadTotalTimeoutConstant    = 2000;
+	cpt.ReadTotalTimeoutConstant    = 3000;
 	cpt.WriteTotalTimeoutMultiplier = 0;
-	cpt.WriteTotalTimeoutConstant   = 2000;
+	cpt.WriteTotalTimeoutConstant   = 3000;
 	if(!SetCommTimeouts(hand, &cpt)){
 		cout<<"Fail to set Timeout"<<endl;
-	}
-
-	DWORD dwStoredFlags = EV_BREAK | EV_CTS | EV_DSR | EV_ERR | EV_RING | EV_RLSD | EV_RXCHAR | EV_TXEMPTY;
-	if(!SetCommMask(hand, dwStoredFlags)){
-		cout << "TTY: Fail to set mask" << endl;
-	}
+	}*/
 #else
 	int fd = open(name, O_RDWR);
 	if(fd<0){
@@ -90,8 +104,6 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implOpen(
 		return;
 	}
 	setJLong(env,thiz,NAME_HANDLE,fd);
-
-	//cout<<"open file:"<<name<<" fid="<<fd<<endl;
 
 	struct termios attr;
 	tcgetattr(fd, &attr);
@@ -171,18 +183,17 @@ extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implOpen(
 		cout<<"[WARN] no support stop-bit:"<<stop_bit<<endl;
 		break;
 	}
-
-	attr.c_cc[VMIN] = 0;//block until n bytes are received
-	attr.c_cc[VTIME]= 2;//block until a timer expires (n * 100 mSec.)
-	tcsetattr(fd, TCSANOW, &attr);
-	//block or not~~~
+	//none blocking
+	//attr.c_cc[VMIN] = 0;//block until n bytes are received
+	//attr.c_cc[VTIME]= 1;//block until a timer expires (n * 100 mSec.)
+	//tcsetattr(fd, TCSANOW, &attr);
+	//block thread
 	//fcntl(fd,F_SETFL,0);//Synchronized mode - This will block thread!!!
 	//fcntl(fd,F_SETFL,FNDELAY);//Asynchronized mode
-	//fcntl(fd,F_SETFL,O_NONBLOCK);
 #endif//_MSC_VER
 }
 
-extern "C" JNIEXPORT jint JNICALL Java_narl_itrc_DevTTY_implRead(
+extern "C" JNIEXPORT jint Java_narl_itrc_DevTTY_implRead(
 	JNIEnv * env,
 	jobject thiz,
 	jbyteArray jbuf,
@@ -193,40 +204,37 @@ extern "C" JNIEXPORT jint JNICALL Java_narl_itrc_DevTTY_implRead(
 	if(fd<=0){
 		return -1;
 	}
-	jbyte* buf = env->GetByteArrayElements(jbuf,NULL);
 	size_t len = env->GetArrayLength(jbuf);
-	if(0<=length && length<=len){
-		len = length;
-	}else{
+	if (length <= 0) {
 		length = len;
 	}
+	if((offset+length)>len){
+		return -2;
+	}
+	jbyte* buf = env->GetByteArrayElements(jbuf,NULL);
+	size_t count;
+	jbyte* ptr = buf + offset;	
 #if defined _MSC_VER
-	jlong cnt = 0;
+	DWORD res;
+	//SetCommMask((HANDLE)fd, EV_RXCHAR);
+	//WaitCommEvent((HANDLE)fd, (LPDWORD)(&res), NULL);
 	ReadFile(
-		(HANDLE)hand,
-		buf, len,
-		(LPDWORD)((void *)&cnt),
+		(HANDLE)fd,
+		ptr, length,
+		(LPDWORD)(&res),
 		NULL
 	);
+	count = res;
 #else
-	ssize_t count;
-	jbyte* ptr = buf + offset;
-	do{
-		count = read(fd, ptr, len);
-		if(count<=0){
-			break;
-		}
-		len = len - count;
-		ptr = ptr + count;
-	}while(len>0);
+	count = read(fd,ptr,length);
 #endif
 	env->ReleaseByteArrayElements(jbuf,buf,0);
 	//cout<<"read-len="<<len<<","<<length<<endl;
-	return length-len;
+	return count;
 }
 
 
-extern "C" JNIEXPORT jint JNICALL Java_narl_itrc_DevTTY_implWrite(
+extern "C" JNIEXPORT jint Java_narl_itrc_DevTTY_implWrite(
 	JNIEnv * env,
 	jobject thiz,
 	jbyteArray jbuf,
@@ -236,49 +244,40 @@ extern "C" JNIEXPORT jint JNICALL Java_narl_itrc_DevTTY_implWrite(
 	int fd = getJLong(env,thiz,NAME_HANDLE);
 	if(fd<=0){
 		return -1;
-	}
-	jbyte* buf = env->GetByteArrayElements(jbuf,NULL);
+	}	
 	size_t len = env->GetArrayLength(jbuf);
-	if(0<=length && length<=len){
-		len = length;
-	}else{
+	if (length <= 0) {
 		length = len;
 	}
+	if((offset+length)>len){
+		return -2;
+	}
+	jbyte* buf = env->GetByteArrayElements(jbuf,NULL);
+	size_t count;
+	jbyte* ptr = buf + offset;
 #if defined _MSC_VER
-	int count=0;
+	DWORD res;
 	WriteFile(
-		(HANDLE)hand,
-		buf, len,
-		(LPDWORD)((void *)&count),
+		(HANDLE)fd,
+		ptr, length,
+		(LPDWORD)(&res),
 		NULL
 	);
-	if(count<0){
-		cout<<"fail to write"<<endl;
-	}
-#else
-	ssize_t count;
-	jbyte* ptr = buf + offset;
-	do{
-		count = write(fd,(void*)ptr,len);
-		if(count<=0){
-			break;
-		}
-		len = len - count;
-		ptr = ptr + count;
-	}while(len>0);
+	count = res;
+#else	
+	count = write(fd,(void*)ptr,length);
 #endif
 	env->ReleaseByteArrayElements(jbuf,buf,0);
-	return len;
+	return count;
 }
 
-extern "C" JNIEXPORT void JNICALL Java_narl_itrc_DevTTY_implClose(
+extern "C" JNIEXPORT void Java_narl_itrc_DevTTY_implClose(
 	JNIEnv * env,
 	jobject thiz
 ) {
 	jlong fd = getJLong(env,thiz,NAME_HANDLE);
 #if defined _MSC_VER
-	HANDLE hand = (HANDLE)val;
-	CloseHandle(hand);
+	CloseHandle((HANDLE)fd);
 #else
 	//fcntl(fd, F_SETSIG, SIGQUIT);
 	//tcsendbreak(fd,0);

@@ -8,13 +8,20 @@
 #ifndef GLOBAL_H
 #define GLOBAL_H
 
-#include <jni.h>
-
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <stdint.h>
 #include <string.h>
 
+#include <iostream>
+#include <fstream>
+#include <cmath>
+#include <list>
+#include <vector>
+#include <string>
+
+using namespace std;
 
 #ifdef _MSC_VER
 //this direction for M$ VC2010
@@ -34,42 +41,88 @@ inline void usleep(int usec){
 inline void msleep(int msec){
 	Sleep(msec);//this is milisecond
 }
-
-#else
-#include <dirent.h>
-#include <unistd.h>
-#define NAT_EXPORT extern "C"
 #endif
 
-#include <iostream>
-#include <fstream>
-#include <cmath>
-#include <list>
-#include <string>
-#include <vector>
+#include <jni.h>
 
-using namespace std;
+#define _set_jvalue(token,type) \
+	jclass _clzz = env->GetObjectClass(thiz); \
+	jfieldID id = env->GetFieldID(_clzz,name,token); \
+	env->Set##type##Field(thiz,id,val)
 
-extern void   setJDouble(JNIEnv *env,jobject thiz,const char* name,double val);
-extern double getJDouble(JNIEnv *env,jobject thiz,const char* name);
-extern void   setFloat(JNIEnv *env,jobject thiz,const char* name,float val);
-extern float  getFloat(JNIEnv *env,jobject thiz,const char* name);
-extern void   setJLong(JNIEnv *env,jobject thiz,const char* name,long val);
-extern long   getJLong(JNIEnv *env,jobject thiz,const char* name);
-extern void   setJInt(JNIEnv *env,jobject thiz,const char* name,int val);
-extern int    getJInt(JNIEnv *env,jobject thiz,const char* name);
-extern void   setJShort(JNIEnv *env, jobject thiz, const char* name, int16_t val);
-extern jshort getJShort(JNIEnv *env, jobject thiz, const char* name);
-extern void   setJByte(JNIEnv *env, jobject thiz, const char* name, uint8_t val);
-extern jbyte  getJByte(JNIEnv *env,jobject thiz,const char* name);
-extern void   setJChar(JNIEnv *env,jobject thiz,const char* name,char val);
-extern char   getJChar(JNIEnv *env,jobject thiz,const char* name);
-extern void   setJBool(JNIEnv *env,jobject thiz,const char* name,bool val);
-extern bool   getJBool(JNIEnv *env,jobject thiz,const char* name);
+#define _get_jvalue(token,type) \
+	jclass _clzz = env->GetObjectClass(thiz); \
+	jfieldID id = env->GetFieldID(_clzz,name,token); \
+	return env->Get##type##Field(thiz,id)
 
-extern jsize getJString(JNIEnv *env,jobject thiz,const char* name,const char* dst);
-extern jsize jstrcpy(JNIEnv* env,jstring src,const char* dst);
+inline void setJDouble(JNIEnv *env, jobject thiz, const char* name, double val){
+	_set_jvalue("D",Double);
+}
+inline double getJDouble(JNIEnv *env, jobject thiz, const char* name){
+	_get_jvalue("D",Double);
+}
+inline void setJFloat(JNIEnv *env, jobject thiz, const char* name, float val){
+	_set_jvalue("F",Float);
+}
+inline float getJFloat(JNIEnv *env, jobject thiz, const char* name){
+	_get_jvalue("F",Float);
+}
+inline void setJLong(JNIEnv *env, jobject thiz, const char* name, long val){
+	_set_jvalue("J",Int);
+}
+inline long getJLong(JNIEnv *env, jobject thiz, const char* name){
+	_get_jvalue("J",Long);
+}
+inline void setJInt(JNIEnv *env, jobject thiz, const char* name, int val){
+	_set_jvalue("I",Int);
+}
+inline int getJInt(JNIEnv *env, jobject thiz, const char* name){
+	_get_jvalue("I",Int);
+}
+inline void setJShort(JNIEnv *env, jobject thiz, const char* name, int16_t val){
+	_set_jvalue("S",Short);
+}
+inline jshort getJShort(JNIEnv *env, jobject thiz, const char* name){
+	_get_jvalue("S",Short);
+}
+inline void setJChar(JNIEnv *env, jobject thiz, const char* name, uint16_t val){
+	_set_jvalue("C",Char);
+}
+inline uint16_t getJChar(JNIEnv *env, jobject thiz, const char* name){
+	_get_jvalue("C",Char);
+}
+inline void setJByte(JNIEnv *env, jobject thiz, const char* name, uint8_t val){
+	_set_jvalue("B",Byte);
+}
+inline uint8_t getJByte(JNIEnv *env,jobject thiz, const char* name){
+	_get_jvalue("B",Byte);
+}
+inline void setJBoolean(JNIEnv *env, jobject thiz, const char* name, bool val){
+	_set_jvalue("Z",Boolean);
+}
+inline bool getJBoolean(JNIEnv *env,jobject thiz, const char* name){
+	_get_jvalue("Z",Boolean);
+}
 
+inline string jstrcpy(JNIEnv* env, jstring src){
+	jboolean is_copy = JNI_FALSE;
+	//size_t len = env->GetStringLength(src);
+	const char *_src = env->GetStringUTFChars(src, &is_copy);
+	string dst(_src);
+	env->ReleaseStringUTFChars(src, _src);
+	return dst;
+}
+
+inline size_t jstrcpy(JNIEnv* env, jstring src, const char* dst){
+	jboolean is_copy = JNI_FALSE;
+	const char *_src = env->GetStringUTFChars(src, &is_copy);
+	strcpy((char*)dst, _src);
+	env->ReleaseStringUTFChars(src, _src);
+	return env->GetStringLength(src);
+}
+
+/**
+TODO: moving!!!
 extern jobjectArray create2DArray(JNIEnv * env, size_t cols, size_t rows, jint* value[]);
 extern jobjectArray create2DArray(JNIEnv * env, size_t cols, size_t rows, jlong** value);
 
@@ -83,6 +136,7 @@ extern jdouble* doubleArray2Ptr(JNIEnv* env,jclass _clazz,jobject thiz,const cha
 extern void logv(JNIEnv* env,const char* fmt,...);
 extern void logw(JNIEnv* env,const char* fmt,...);
 extern void loge(JNIEnv* env,const char* fmt,...);
+**/
 
 #endif /* GLOBAL_H_ */
 

@@ -31,7 +31,6 @@ import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
-import javafx.scene.Scene;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
@@ -44,35 +43,6 @@ import javax.crypto.spec.SecretKeySpec;
 import narl.itrc.nat.Loader;
 
 public class Gawain extends Application {
-	
-	public interface EventHook {
-		/**
-		 * The main panel is visible.<p>
-		 * User can prepare everything at this moment.<p>
-		 */
-		public void kickoff();
-		/**
-		 * When program is shutdown.<p>
-		 * Everything is destroyed.<p>
-		 */
-		public void shutdown();		
-	}
-	
-	private static ArrayList<EventHook> hook = new ArrayList<EventHook>();
-	
-	public static void hook(EventHook h){
-		if(hook.contains(h)==true){
-			return;
-		}
-		hook.add(h);
-	}
-	private static void hookShown(){
-		for(EventHook h:hook){ h.kickoff(); }
-	}
-	private static void hookShutdown(){
-		for(EventHook h:hook){ h.shutdown(); }
-	}
-	//--------------------------------------------//
 	
 	private static final Properties propCache = new Properties();
 	private static final String propName = "conf.properties";	
@@ -237,7 +207,7 @@ public class Gawain extends Application {
 		}
 	};
 
-	private static void streamHooker(){
+	private static void pipe_stdio(){
 		//Check whether we need logger file.
 		try {
 			String name = propCache.getProperty("logger","");
@@ -415,42 +385,11 @@ public class Gawain extends Application {
 	}
 	//--------------------------------------------//
 	
-	private static PanBase panRoot = null;
-	
-	//private static PanLogger panLogger = new PanLogger();
-	
-	public static Scene getMainScene(){
-		if(panRoot==null){
-			return null;
-		}
-		return panRoot.stage().getScene();
-	}
-	
-	public static boolean isMainWindow(PanBase pan){
-		return pan.equals(panRoot);
-	}
-	
+	public static PanBase mainPanel = null;
+		
 	@Override
 	public void start(Stage primaryStage) throws Exception {
-		new Loader().standby();
-		try {			
-			String name = propCache.getProperty("LAUNCH","");
-			//panRoot = (PanBase)Class.forName(name)
-			//	.getConstructor(Stage.class)
-			//	.newInstance(primaryStage);
-			panRoot = (PanBase)Class.forName(name)
-				.getConstructor()
-				.newInstance();
-			panRoot.appear(primaryStage);
-			Misc.logv("啟動 launch [%s]",name);
-		} catch (
-			InstantiationException | 
-			IllegalAccessException | 
-			ClassNotFoundException e
-		) {
-			Misc.loge("fail to load "+e.getMessage());
-			//TODO:???? panLogger.appear();
-		}
+		new Loader().launch(primaryStage);
 	}
 	
 	private static final CountDownLatch e_latch = new CountDownLatch(1);
@@ -469,10 +408,9 @@ public class Gawain extends Application {
 		
 	public static void main(String[] argv) {
 		propInit();
-		streamHooker();
+		pipe_stdio();
 		//liceBind();//check dark license~~~		
-		launch(argv);		
-		hookShutdown();
+		launch(argv);
 		propRestore();
 	}
 	//--------------------------------------------//
@@ -508,9 +446,7 @@ public class Gawain extends Application {
 			txt = System.getenv("HOME");
 		}else{
 			txt = System.getenv("HOMEPATH");
-			if(txt==null){
-				txt = System.getenv("HOMEPATH");
-			}
+			txt = "C:"+txt;
 		}
 		if(txt==null){
 			txt = ".";
@@ -528,14 +464,14 @@ public class Gawain extends Application {
 			}
 		}
 		
-		//check whether this is a jar file
+		//check whether self is a jar file or not~~~
 		try {
 			txt = Gawain.class.getProtectionDomain()
-					.getCodeSource()
-					.getLocation()
-					.toURI()
-					.toString()
-					.replace('/',File.separatorChar);
+				.getCodeSource()
+				.getLocation()
+				.toURI()
+				.toString()
+				.replace('/',File.separatorChar);
 		} catch (URISyntaxException e) {
 			e.printStackTrace();
 			txt = "";

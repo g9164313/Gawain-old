@@ -1,25 +1,19 @@
 package narl.itrc;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FilenameFilter;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
-import com.sun.glass.ui.Application;
-
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
-import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
+
 import javafx.scene.Node;
-import javafx.scene.control.ComboBox;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.input.KeyCombination;
 import javafx.stage.Window;
-import javafx.util.Duration;
 
 public class Misc {
 
@@ -46,48 +40,10 @@ public class Misc {
 	 */
 	public static void loge(String fmt,Object... arg){
 		System.out.print(String.format('\27'+fmt+"\n", arg));
-	}
-
-	public final static String TXT_UNKNOW = "？？？";
-	
-	public static native long realloc(long ptr,long len);
-	public static native long free(long ptr);//always return '0'
-	
-	//Should we deprecate this function???
-	/*public static Thread tskCheck(Thread tsk,Class<?> clazz,Object... parm){
-		if(tsk!=null){
-			while(tsk.isAlive()==true){
-				delay(100);
-				logv("wait task- %s",clazz.toString());
-			}
-		}
-		try{
-			int cnt = parm.length;
-			if(cnt==0){					
-				tsk = (Thread) clazz.newInstance();
-			}else{
-				Class<?>[] type = new Class<?>[cnt];
-				for(int i=0; i<cnt; i++){
-					type[i] = parm[i].getClass();
-				}
-				tsk = (Thread) clazz.getConstructor(type).newInstance(parm);
-			}				
-		} catch (
-			InstantiationException | 
-			IllegalAccessException | 
-			IllegalArgumentException | 
-			InvocationTargetException | 
-			NoSuchMethodException | 
-			SecurityException e
-		) {
-			e.printStackTrace();
-		}
-		tsk.start();
-		return tsk;
-	}*/
+	}	
 	//--------------------------//
 
-	public static final KeyCombination shortcut_save = KeyCombination.keyCombination("Ctrl+S");
+	/*public static final KeyCombination shortcut_save = KeyCombination.keyCombination("Ctrl+S");
 	public static final KeyCombination shortcut_load = KeyCombination.keyCombination("Ctrl+L");
 	public static final KeyCombination shortcut_edit = KeyCombination.keyCombination("Ctrl+E");
 	
@@ -102,71 +58,85 @@ public class Misc {
 		}
 		box.getItems().add(txt);
 		box.getSelectionModel().select(cnt);
-	}
+	}*/
 	
+	/**
+	 * blocking thread, time unit is milliseconds.<p>
+	 * @param millisec - time to delay
+	 */
 	public static void delay(long millisec){
 		try {
 			TimeUnit.MILLISECONDS.sleep(millisec);
 		} catch (Exception e) {
+			//e.printStackTrace();
 		}
 	}
-	public static void delay_sec(long second){
+
+	/**
+	 * list all files(include sub-directory).<p>
+	 * @param path - directory node
+	 * @param allAppx - appendix or extension (ex:.jpg;.dll;.png...)
+	 * @param allList - the result of list, output value
+	 */
+	public static void listFiles(
+		final File path,
+		final String allAppx,
+		final ArrayList<File> allList
+	) {
+		File[] lst;
+		if(allAppx.length()==0) {
+			lst = path.listFiles();
+		}else {
+			lst = path.listFiles(new FltFile(allAppx));
+		}
+		if(lst==null) {
+			return;
+		}
+		for(File fs:lst){			
+			if(fs.isDirectory()==true) {
+				listFiles(fs,allAppx,allList);
+			}else if(fs.isFile()==true) {
+				allList.add(fs);
+			}
+		}
+	}
+	private static class FltFile implements FilenameFilter{
+		private String[] appx;
+		private boolean excu;//exclude flag
+		public FltFile(String allAppx) {
+			excu = false;
+			if(allAppx.charAt(0)=='^') {
+				excu = true;
+				allAppx = allAppx.substring(1);
+			}
+			appx = allAppx.split(";");
+		}
+		@Override
+		public boolean accept(File dir, String name) {
+			name = name.toLowerCase();
+			for(String txt:appx) {
+				txt = txt.toLowerCase();
+				if(name.endsWith(txt)==true) {
+					return (excu==true)?(false):(true);
+				}
+			}					
+			return (excu==true)?(true):(false);
+		}
+	};
+	public static void copyFile(final File src, final File dst) {
 		try {
-			TimeUnit.SECONDS.sleep(second);
-		} catch (Exception e) {
+			int len;
+			byte[] buf = new byte[1024*512];
+			FileInputStream ss = new FileInputStream(src);
+			FileOutputStream dd = new FileOutputStream(dst);
+			while((len=ss.read(buf))>0){
+				dd.write(buf, 0, len);
+			}
+			dd.close();
+			ss.close();
+		} catch (IOException e) {
 			e.printStackTrace();
 		}
-	}
-	//----------------------------------------//
-
-	private static int    chkSerialIndx = 0;
-	private static String chkSerialName = "";
-	
-	public static String checkSerial(String fullName){
-		if(chkSerialName.equalsIgnoreCase(fullName)==false){
-			chkSerialName = fullName;
-			chkSerialIndx = 0; //reset it~~~
-		}
-		int pos = fullName.lastIndexOf(File.separatorChar);
-		if(pos<0){
-			Misc.logw("[imwriteX] invalid path-->"+fullName);
-			return "";
-		}
-		String name = fullName.substring(pos+1);
-		String path = fullName.substring(0,pos);		
-		File dir = new File(path); 
-		if(dir.isDirectory()==false){
-			logw("[imwriteX] invalid directory-->"+path);
-			return fullName;
-		}
-		pos = name.lastIndexOf('.');
-		if(pos<0){
-			logw("[imwriteX] invalid name-->"+name);
-			return fullName;
-		}
-		final String prex = name.substring(0,pos);
-		final String appx = name.substring(pos);		
-		do{
-			fullName = String.format(
-				"%s%c%s-%04d%s",
-				path,
-				File.separatorChar,
-				prex,
-				chkSerialIndx,
-				appx
-			);
-			chkSerialIndx++;
-			dir = new File(fullName);
-		}while(dir.exists()==true);
-		return fullName;
-	}
-	
-	public static String modify_appx(String name,String appx){
-		int pos = name.lastIndexOf('.');
-		if(pos<0){
-			return name;
-		}
-		return name.substring(0,pos)+"."+appx;
 	}
 	
 	public static ImageView getIconView(String name){
@@ -187,7 +157,7 @@ public class Misc {
 	public static Image getResImage(String pkg, String name){
 		return new Image(Gawain.class.getResourceAsStream(pkg+"/"+name));
 	}
-
+	
 	/*public static FileChooser genChooseImage(){
 		final FileChooser.ExtensionFilter exts[] = {
 			new FileChooser.ExtensionFilter("PNG","*.png"),
@@ -232,7 +202,6 @@ public class Misc {
 		}
 		return txt;
 	}
-	
 	public static byte[] txt2hex(String txt){
 		int len = txt.length();
 		byte[] hex = new byte[len/2];
@@ -243,7 +212,7 @@ public class Misc {
 	}
 	
 	/**
-	 * It is same as "Integer.valueOf()", but this function accepts leading zero.<p>
+	 * It's same as "Integer.valueOf()", but this function accepts leading zero.<p>
 	 * @param txt - the string of integer value(including leading zero)
 	 * @return integer value
 	 */
@@ -336,16 +305,6 @@ public class Misc {
 	    return sb.toString();
 	}
 	//----------------------------------------//
-		
-	private static SimpleDateFormat fmtTime = new SimpleDateFormat ("hh:mm:ss");	
-	public static String getTimeTxt(){
-		return fmtTime.format(new Date(System.currentTimeMillis()));
-	}
-	
-	private static SimpleDateFormat fmtDate = new SimpleDateFormat ("yyyy.MM.dd");
-	public static String getDateTxt(){
-		return fmtDate.format(new Date(System.currentTimeMillis()));
-	}
 	
 	public static String[] trim2phy(String txt){
 		final String[] res = {null,null};
@@ -519,118 +478,6 @@ public class Misc {
 			txt = "[ERROR]: "+e.getMessage();
 		}		
 		return txt;
-	}
-	
-	/**
-	 * It is just a macro or template function...
-	 * @param tsk - lamda function
-	 */
-	public static void invoke(EventHandler<ActionEvent> tsk){
-		if(Application.isEventThread()==true){
-			tsk.handle(null);
-		}else{
-			final Runnable node = new Runnable(){
-				@Override
-				public void run() {
-					tsk.handle(null);
-				}
-			};
-			Application.invokeAndWait(node);
-		}
-	}
-		
-	/**
-	 * It is just a macro or template function...
-	 * First delay with few seconds, then task run~~~
-	 * @param msec - delay milli-second
-	 * @param tsk - lamda function
-	 */
-	public static void invoke(int msec, EventHandler<ActionEvent> tsk){
-		if(Application.isEventThread()==true){
-			final Timeline timer = new Timeline(new KeyFrame(
-				Duration.millis(msec),
-				eventAfter->{
-					tsk.handle(null);
-				}
-			));			
-			timer.setCycleCount(1);
-			timer.play();			
-		}else{
-			final Runnable node = new Runnable(){
-				@Override
-				public void run() {
-					tsk.handle(null);
-				}
-			};
-			delay(msec);
-			Application.invokeAndWait(node);
-		}
-	}
-	//--------------------------//
-	//I don't know how to set up category for below lines
-	
-	public static native byte[] screenshot2dib(int[] info);
-	
-	public static native byte[] screenshot2bmp(int[] info);
-	
-	public static native byte[] screenshot2png(int[] info);
-	
-	public static native void deleteScreenshot(byte[] data);
-	
-	public static native void sendMouseClick(int mx, int my);
-	
-	public static native void sendKeyboardText(String text);
-	
-	public static native void getCursorPos(int[] pos);
-	
-	public static native void imwrite(String name,byte[] data, int width, int height, int[] roi);
-	
-	public static double hypot(double[] pa,double[] pb){
-		return Math.hypot(pa[0]-pb[0], pa[1]-pb[1]);
-	}
-	
-	public static float hypot(int[] pa,int[] pb){
-		return (float) Math.hypot(pa[0]-pb[0], pa[1]-pb[1]);
-	}
-	
-	public static int hypotInt(int[] pa,int[] pb){
-		return Math.round((float)Math.hypot(pa[0]-pb[0], pa[1]-pb[1]));
-	}
-	
-	public static float[] int2float(int[] src){
-		float[] dst = new float[src.length];
-		for(int i=0; i<src.length; i++){
-			dst[i] = Math.round(src[i]);
-		}
-		return dst;
-	}
-	
-	public static Double[] int2double(Integer[] src){
-		Double[] dst = new Double[src.length];
-		for(int i=0; i<src.length; i++){
-			if(src[i]==null){
-				dst[i] = null;
-				continue;
-			}
-			dst[i] = src[i].doubleValue();
-		}
-		return dst;
-	}
-		
-	public static int[] double2int(double[] src){
-		int[] dst = new int[src.length];
-		for(int i=0; i<src.length; i++){
-			dst[i] = (int)(Math.round(src[i]));
-		}
-		return dst;
-	}
-
-	public static long[] double2long(double[] src){
-		long[] dst = new long[src.length];
-		for(int i=0; i<src.length; i++){
-			dst[i] = Math.round(src[i]);
-		}
-		return dst;
 	}
 }
 

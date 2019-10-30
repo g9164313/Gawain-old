@@ -2,61 +2,63 @@
 .btn-raised-1{
 	-fx-button-type: RAISED;
 	-fx-font-size: 1.4em;
-	-fx-background-color: #7392B7;
-	-fx-text-fill: BLACK;
+	-fx-background-color: #e1bee7;
+	-fx-text-fill: black;
 }
-
 .btn-raised-2 {
 	-fx-button-type: RAISED;
 	-fx-font-size: 1.4em;
-	-fx-background-color: #759EB8;
-	-fx-text-fill: BLACK;
+	-fx-background-color: #d1c4e9;
+	-fx-text-fill: black;
 }
 .btn-raised-3 {
 	-fx-button-type: RAISED;
 	-fx-font-size: 1.4em;
-	-fx-background-color: #C5D5EA;
-	-fx-text-fill: BLACK;
+	-fx-background-color: #c5cae9;
+	-fx-text-fill: black;
 }
 .btn-raised-4 {
 	-fx-button-type: RAISED;
 	-fx-font-size: 1.4em;	
-	-fx-background-color: #B3C5D7;
-	-fx-text-fill: BLACK;
+	-fx-background-color: #bbdefb;
+	-fx-text-fill: black;
+}
+.btn-raised-5 {
+	-fx-button-type: RAISED;
+	-fx-font-size: 1.4em;	
+	-fx-background-color: #b3e5fc;
+	-fx-text-fill: black;
 }
 
 .btn-flat-tick {
+	-fx-button-type: FLAT;
 	-fx-padding: 0.7em 0.57em;
 	-fx-font-size: 7px;
-	-fx-button-type: FLAT;
-	-fx-text-fill: BLACK;
-}
-
-.ground-pad-small {
-	-fx-alignment: center;
-	-fx-background-color: white;
-	-fx-font-size: 19px;
-    -fx-spacing: 7;
-    -fx-padding: 7;
-    -fx-hgap: 7;
-	-fx-vgap: 7;	
+	-fx-text-fill: black;
 }
 
 .ground-pad {
 	-fx-alignment: center;
 	-fx-background-color: white;
-	-fx-font-size: 1.8em;
+	-fx-font-size: 1.6em;
     -fx-spacing: 13;
     -fx-padding: 13;
     -fx-hgap: 13;
 	-fx-vgap: 13;
 }
-
 .box-pad {
 	-fx-background-color: white;
-	-fx-font-size: 1.8em;
+	-fx-font-size: 1.6em;
     -fx-spacing: 13;
     -fx-padding: 13;
+    -fx-hgap: 13;
+	-fx-vgap: 13;
+}
+.box-pad-inner {
+	-fx-background-color: white;
+	-fx-font-size: 1.6em;
+    -fx-spacing: 13;
+    -fx-padding: 13, 0, 13, 0;
     -fx-hgap: 13;
 	-fx-vgap: 13;
 }

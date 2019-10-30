@@ -1,17 +1,12 @@
 package narl.itrc;
 
 import java.io.File;
-import java.math.BigDecimal;
 import java.util.List;
 
 import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXDecorator;
 import com.jfoenix.controls.JFXSpinner;
-import com.jfoenix.controls.JFXTextField;
 
-import javafx.beans.binding.Bindings;
-import javafx.beans.property.FloatProperty;
-import javafx.beans.property.IntegerProperty;
 import javafx.concurrent.Task;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
@@ -23,7 +18,6 @@ import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
-import javafx.scene.control.TextField;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCombination;
@@ -34,12 +28,12 @@ import javafx.scene.text.Font;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
-import javafx.util.converter.NumberStringConverter;
 
 public abstract class PanBase {	
 	
+	private Scene scene;
 	private Stage stage;
-	
+		
 	public PanBase(){
 		stage = new Stage(StageStyle.DECORATED);
 	}
@@ -49,52 +43,28 @@ public abstract class PanBase {
 	}
 	//------------------------//
 	
+	public Parent root() {
+		return scene.getRoot();
+	}
+	public Scene scene() {
+		return scene;
+	}
 	public Stage stage(){ 
 		return stage; 
 	}
-
-	private boolean use_decor = false;
+	
+	private boolean use_decorator = false;
 	
 	/**
 	 * use JFXDecorator, Attention call this before standby() or appear().<p> 
 	 * @return
 	 */
 	public PanBase use_decorator(boolean flag){
-		use_decor = flag;
+		use_decorator = flag;
 		return this;
 	}
 	
-	/**
-	 * present a new panel, user can provide a owner
-	 * @return self
-	 */
-	public PanBase appear(Stage owner){
-		stage = owner;
-		init();
-		stage.show();
-		return this;
-	}
-	
-	/**
-	 * present a new panel, but no-blocking
-	 * @return self
-	 */
-	public PanBase appear(){
-		init();
-		stage.show();
-		return this;
-	}
-
-	/**
-	 * present a new panel, and blocking for dismissing.<p>
-	 * Never return to caller.<p>
-	 */
-	public void standby(){
-		init();
-		stage.showAndWait();
-	}
-	
-	private void init(){
+	public void prepare(){
 		
 		spin.visibleProperty().set(false);
 		
@@ -112,30 +82,64 @@ public abstract class PanBase {
 		final StackPane face2 = new StackPane(face1,spin);
 		face2.setMinSize(320,240);
 		
-		Parent root;		
-		if(use_decor==true){
+		Parent root;
+		if(use_decorator==true){
 			JFXDecorator dec = new JFXDecorator(stage, face2);
 			//dec.setCustomMaximize(true);
 			root = dec;
 		}else{
 			root = (Parent)face2;
 		}
-		final Scene se = new Scene(root);		
+		
+		scene = new Scene(root);		
 		//load a default style...
-		se.getStylesheets().add(
+		scene.getStylesheets().add(
 			Gawain.class.getResource("res/styles.css").toExternalForm()
 		);				
 		//if user give us a URL, try to load a custom style file....		
 		//se.getStylesheets().add(customCSS.toExternalForm());
 		//capture some short-key
-		se.setOnKeyPressed(eventHookPress);		
+		scene.setOnKeyPressed(eventHookPress);		
 		//root.getStyleClass().add("layout-white");
-		stage.setScene(se);
+	}
+	
+	private PanBase _init(final boolean wait) {
+		if(scene==null) {
+			prepare();
+		}
+		stage.setScene(scene);
 		stage.sizeToScene();
 		stage.centerOnScreen();
-	}	
+		if(wait==false) {
+			stage.show();
+		}else {
+			stage.showAndWait();
+		}
+		return this;
+	}
+	
+	/**
+	 * present a new panel, but no-blocking
+	 * @return self
+	 */
+	public PanBase appear(){
+		return _init(false);
+	}
+	/**
+	 * present a new panel, and blocking for dismissing.<p>
+	 * Never return to caller.<p>
+	 */
+	public void standby(){
+		_init(true);
+	}
 	//------------------------//
 	
+	/**
+	 * Create all objects on panel, this is run by other thread.<p>
+	 * So, don't bind any property in this method, or make anything doing by GUI-thread.<p>
+	 * @param self - super class,
+	 * @return
+	 */
 	public abstract Node eventLayout(PanBase self);
 
 	protected class DutyFace extends VBox {
@@ -264,7 +268,7 @@ public abstract class PanBase {
 		public void handle(KeyEvent event) {
 			KeyCode cc = event.getCode();
 			if(cc==KeyCode.ESCAPE){
-				if(Gawain.isMainWindow(PanBase.this)==true){
+				if(Gawain.mainPanel.equals(PanBase.this)==true){
 					if(notifyConfirm("！！注意！！","確認離開主程式？")==ButtonType.CANCEL){
 						return;
 					}			
@@ -460,7 +464,7 @@ public abstract class PanBase {
 	}	
 	//----------------------------------------------//
 	
-	private static void validInteger(
+	/*private static void validInteger(
 		final int min,
 		final int max,
 		final TextField box,
@@ -545,6 +549,6 @@ public abstract class PanBase {
 			new NumberStringConverter("#.####")
 		);
 		return box;
-	}
+	}*/
 }
 

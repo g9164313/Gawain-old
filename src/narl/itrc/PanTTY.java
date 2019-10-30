@@ -5,7 +5,6 @@ import java.io.FilenameFilter;
 
 import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXComboBox;
-import com.sun.glass.ui.Application;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.ObservableList;
 import javafx.scene.Node;
@@ -18,7 +17,6 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
-import javafx.scene.paint.Color;
 
 public class PanTTY extends PanBase {
 
@@ -100,12 +98,10 @@ public class PanTTY extends PanBase {
 		init_screen();
 		
 		stage().setOnShown(e->{
-			dev.setPeek((buf,cnt)->update_screen(buf,cnt));
 			update_item(lstCmb);
 			update_face(btnLink);
 		});
 		stage().setOnCloseRequest(e->{
-			dev.setPeek(null);
 			if(closeAndShutdown) {
 				dev.close();
 			}
@@ -160,7 +156,7 @@ public class PanTTY extends PanBase {
 	
 	private final int CUR_WIDTH = 20;
 	private final int CUR_HEIGHT= 10;
-	private int cursor = 0;//for screen
+	//private int cursor = 0;//for screen
 	private GridPane screen = new GridPane();	
 	private void init_screen() { 
 		screen.getStyleClass().addAll("border");
@@ -172,7 +168,7 @@ public class PanTTY extends PanBase {
 		}
 	}
 	
-	private void update_screen(
+	/*private void update_screen(
 		final byte[] buf, 
 		final int cnt
 	) {
@@ -202,7 +198,7 @@ public class PanTTY extends PanBase {
 				cursor+=1;
 			}
 		});
-	}
+	}*/
 	
 	private void update_face(final Button btn) {
 		boolean flag = dev.isLive();
@@ -289,7 +285,7 @@ public class PanTTY extends PanBase {
 			//we don't know how to enumerate Windows Serial Ports
 			final String[] name = new String[16];
 			for(int i=0; i<name.length; i++) {
-				name[i] = String.format("\\\\\\\\.\\\\COM%d", i+1);
+				name[i] = String.format("COM%d", i+1);
 			}
 			lst.addAll(name);
 		}

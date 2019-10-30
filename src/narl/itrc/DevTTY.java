@@ -1,9 +1,5 @@
 package narl.itrc;
 
-import com.sun.glass.ui.Application;
-
-import javafx.concurrent.Task;
-
 public class DevTTY extends DevBase {
 
 	public DevTTY(){
@@ -31,19 +27,8 @@ public class DevTTY extends DevBase {
 	public void setPathName(String path){
 		pathName = path;
 	}
-	
 	public String getPathName(){
 		return pathName;
-	}
-	
-	public boolean isLive(){
-		if(Gawain.isExit()==true) {
-			return false;
-		}
-		if(handle==0L) {
-			return false;
-		}
-		return true;
 	}
 	//-----------------------//
 	
@@ -52,352 +37,241 @@ public class DevTTY extends DevBase {
 	 * @param path - device path name, like "/dev/ttyS0,19200,8n1"
 	 * @return true - success, false - something is wrong
 	 */
-	public boolean open(String path){
+	public void open(String path){
 		pathName = path;//reset path name~~~
-		return open();
+		open();
 	}
-	
-	protected boolean asynMode = true;
 	
 	/**
 	 * Open tty device and parser path name.<p>
 	 * Format is "[device name],[baud rate],[data bit][mask][stop bit]".<p>
+	 * Data bit:<p>
+	 *   7,8 <p>
 	 * Mask type:<p>
 	 *   'n' mean "none".<p>
 	 *   'o' mean "odd".<p>
 	 *   'e' mean "event".<p>
 	 *   'm' mean "mark".<p>
 	 *   's' mean "space".<p>
+	 * Stop bit:<p>
+	 *   1,2 <p>
 	 * @return true - success, false - something is wrong
 	 */
-	public boolean open(){		
-		handle = 0L;//reset this~~~
-		if(pathName==null){
-			return false;
-		}else if(pathName.length()==0){
-			return false;
-		}
+	@Override
+	public void open() {
 		//check path name is valid~~~
+		if(pathName.length()==0){
+			return;
+		}
 		String[] attr = pathName.split(",");
 		if(attr.length!=3){
-			return false;
-		}		
-		try{
-			String name = attr[0];			
-			int baud = Integer.valueOf(attr[1]);
-			char[] vals = attr[2].toCharArray();
-			if(vals.length<3){
-				return false;
-			}
-			implOpen(
-				name, baud, 
-				vals[0], vals[1], vals[2], 
-				'?'
-			);			
-		}catch(NumberFormatException e){
-			return false;
+			return;
 		}
-		//prepare reading task~~~
-		boolean flag = isLive();
-		if(flag==true) {
-			if(asynMode==true) {
-				looper_start();
-			}
-			afterOpen();
+		if(attr[1].matches("^\\d+$")==false) {
+			return;
 		}
-		return flag;
+		if(attr[2].matches("^[78][noems][12]")==false) {
+			return;
+		}
+		char[] vals = attr[2].toCharArray();
+		implOpen(
+			attr[0], 
+			Integer.valueOf(attr[1]), 
+			vals[0], vals[1], vals[2], 
+			'?'
+		);		
+		startLoop();
 	}
-	
 	/**
 	 * close tty device.<p>
 	 */
-	public void close(){
-		if(handle==0L){
-			return;
-		}
-		looper_stop();
-		afterClose();
+	@Override
+	public void close() {
+		stopLoop();
 		implClose();
+		
 	}
-
-	protected void afterOpen() { }
-	protected void afterClose() { }
+	@Override
+	public boolean isLive(){
+		if(handle==0L) {
+			return false;
+		}
+		if(Gawain.isExit()==true) {
+			return false;
+		}
+		return true;
+	}	
 	//-----------------------//
 
-	public class Action extends DevBase.Act {
-		
-		private String w_data = "";
-		private String[] r_data = {"", ""};
-		//private String r_match = null;
-		private ReadBack hook = null;
-		private boolean backByUI = true;
-		
-		public Action() {
-			setWork(act->{				
-				flush_stream();
-				writeTxt(w_data);
-				index_reading(this);
-				check_repeat(act);
-			});
-		}
-		
-		public Action writeData(final String data) {
-			w_data = data;
-			return this;
-		}
-		public Action indexOfData(
-			final String tail,
-			final ReadBack callback
-		) {
-			return indexOfData("", tail, callback);
-		}
-		public Action indexOfData(
-			final String head, 
-			final String tail,
-			final ReadBack callback
-		) {
-			r_data[0] = head;
-			r_data[1] = tail;
-			hook = callback;
-			return this;
-		}
-		
-		public Action backbyUI(boolean flag){
-			backByUI = flag;
-			return this;
-		}
-		
-		private void callback() {
-			if(hook==null) {
-				return;
-			}
-			if(backByUI==false) {
-				hook.callback(
-					this,
-					stream.toString()
-				);
-			}else {
-				Application.invokeAndWait(()->{
-					hook.callback(
-						this,
-						stream.toString()
-					);
-				});
-			}
-			flush_stream();
-		}
-	};
-	
 	public interface ReadBack {
-		void callback(final Action action, final String txt);
+		void callback(String txt);
 	};
-
-	public interface Peek {
-		void looper(byte[] buf, int cnt);
+	public interface FetchBack {
+		void callback(String cmd, String txt);
 	};
 	
-	private Peek peek=null;
-	
-	public void setPeek(final Peek callback) {
-		peek = callback;
+	protected final StringBuffer buff = new StringBuffer(1024*4);
+		
+	@Override
+	protected void doLoop(DevBase dev) {
+		fill_buff();
 	}
-	
-	protected final StringBuffer stream = new StringBuffer(512);
-	
-	protected String flush_stream() {
-		String txt = stream.toString();
-		stream.delete(0, stream.length());
-		return txt;
-	}
-	
-	private void buff_stream(
-		final byte[] buf, 
-		final int cnt
-	) {
+	private void fill_buff() {
+		final byte[] tmp = new byte[512];		
+		int cnt = implRead(tmp,0,tmp.length);
 		if(cnt<=0) {
 			return;
 		}
-		int len = stream.length();
-		int cap = stream.capacity();
-		if((len+cnt)>=cap) {
-			stream.delete(0, cnt);
+		//TODO: peek buffer feature~~~~
+		buff.append((char)tmp[0]);
+		int cap = buff.capacity();
+		if(buff.length()>=cap) {
+			buff.delete(0, cap/2);
 		}
-		for(int i=0; i<cnt; i++) {
-			stream.append(((char)buf[i]));
-		}
-		if(peek!=null) {
-			peek.looper(buf, cnt);
-		}
-		//debug_buf(buf,cnt);
 	}
 	
-	private void debug_buf(
-		final byte[] buf, 
-		final int cnt
-	) {
-		String txt="";
-		for(int i=0; i<cnt; i++) {
-			txt = txt + ((char)buf[i]);
+	protected class FastFetch extends DevBase.Action 
+		implements DevBase.Work
+	{		
+		private short ends;
+		private long tick1, count=0L;
+		private long expire = 100L;
+		private boolean w_flag = false;
+		private String w_text = "";
+		private FetchBack result;
+		
+		public FastFetch(
+			final int stage,
+			final int the_end,
+			final int expired,
+			final String writing,
+			final FetchBack hooker			
+		) {				
+			stgx = (short)stage;			
+			next = (short)-1;			
+			hook = this;
+			ends = (short)the_end;
+			expire = expired;
+			w_text = writing;
+			result = hooker;			
 		}
-		Misc.logv("R-->%s", txt);
-	}
-	
-	@Override
-	protected void wait_act(Task<?> looper) {
-		byte[] buf = new byte[32];
-		int cnt = implRead(buf,0,-1);
-		buff_stream(buf,cnt);
-	}
+		public FastFetch(
+			final int stage,
+			final String writing,
+			final FetchBack hooker
+		) {				
+			this(stage,stage+1,5,writing,hooker);			
+		}
+		public FastFetch(
+			final int stage,
+			final int the_end,
+			final String writing,
+			final FetchBack hooker
+		) {				
+			this(stage,the_end,5,writing,hooker);			
+		}
+		
+		@Override
+		public void doWork(Action act) {
+			if(w_flag==false) {
+				buff.delete(0, buff.length());//clear buffer~~~
+				writeTxt(w_text);
+				tick1 = System.currentTimeMillis();
+				count = buff.length();
+				w_flag = true;
+				return;
+			}
+			long cnt = buff.length();
+			if((cnt-count)==0 && count!=0) {
+				//stream no growth~~~
+				long t2 = System.currentTimeMillis();
+				if((t2-tick1)>=expire) {
+					act.next = ends;
+					if(act.stgx<0) {
+						//this action will be hold
+						//so reset this fetch action again!!!
+						w_flag = false;
+					}
+					if(result!=null) {
+						result.callback(w_text,buff.toString());
+					}
+					return;
+				}
+			}else {
+				//update count for stream~~~
+				tick1 = System.currentTimeMillis();
+				count = cnt;
+			}
+		}
+	};
 	//------------------------------------//
 	
-	private void index_reading(final Action act) {
-		
-		int idx=0, off=0, try_count = 10;
-		boolean hasHead=(act.r_data[0].length()==0)?(true):(false);
-		boolean hasTail=(act.r_data[1].length()==0)?(true):(false);
-		
-		byte[] buf = new byte[32];
-		
-		while(isLive()==true){
-			
-			if(try_count<0) {
-				Misc.logw(
-					"[%s] fail to indexof(%s,%s)", 
-					TAG, act.r_data[0], act.r_data[1]
-				);
-				break;
-			}
-			
-			int cnt = implRead(buf,0,-1);
-			
-			buff_stream(buf,cnt);
-			
-			if(cnt<=0) {
-				try_count-=1;
-			}
-			
-			if(act.r_data[0].length()!=0) {				
-				idx = stream.lastIndexOf(act.r_data[0]);
-				if(idx>=0) {					
-					stream.delete(0, idx);
-					hasHead = true;
-				}
-			}
-			if(act.r_data[1].length()!=0) {
-				idx = stream.lastIndexOf(act.r_data[1]);
-				if(idx>=0) {					
-					off = stream.length();
-					stream.delete(
-						idx+act.r_data[1].length(), 
-						off
-					);
-					hasTail = true;
-				}
-			}			
-			
-			if(hasHead==true && hasTail==true) {
-				act.callback();
-				break;
-			}
-		}
-	}
-	
 	/**
-	 * It is same as readTxt(), but no head pattern.<p>
-	 * Just for convenience.<p>
-	 * @param tail - text start with, it can be null
-	 * @param hook - callback
+	 * Access TTY by native code. blocking until one byte.<p>
+	 * @return the byte which device gave
 	 */
-	public void readTxt(
-		final String tail,
-		final ReadBack hook
-	) {
-		readTxt("",tail,hook);
-	}
-	
-	/**
-	 * Wait stream which had some pattern.<p>
-	 * @param head - text start with, it can be null
-	 * @param tail - text end with, it can be null
-	 * @param hook - callback
-	 */
-	public void readTxt(
-		final String head, 
-		final String tail,
-		final ReadBack hook
-	) {
-		take(new Action().indexOfData(head, tail, hook));
-	}
-	
-	/**
-	 * Fetch text by writing data.<p>
-	 * @param data - write command
-	 * @param head - reading text which match head
-	 * @param tail - reading text which match head
-	 * @param hook - callback function
-	 */
-	public void fetchTxt(
-		final String data,
-		final String head, 
-		final String tail,
-		final ReadBack hook
-	) {
-		take(new Action()
-			.writeData(data)
-			.indexOfData(head, tail, hook)
-		);
-	}
-	
-	/**
-	 * Fetch text by writing data.<p>
-	 * Just match tail data.<p>
-	 * @param data - write command
-	 * @param tail - reading text which match head
-	 * @param hook - callback function
-	 */
-	public void fetchTxt(
-		final String data,
-		final String tail,
-		final ReadBack hook
-	) {
-		take(new Action()
-			.writeData(data)
-			.indexOfData("", tail, hook)
-		);
-	}
-	
 	public byte readByte() {
 		byte[] buf = {0};
-		do {
-			int cnt = implRead(buf,0,1);
-			if(cnt>0) {
-				break;
+		int res=0;
+		while(isLive()==true && res<=0){
+			res = implRead(buf,0,1);
+			if(res<=0) {
+				Misc.delay(5);
 			}
-			Misc.delay(3);
-		}while(isLive()==true);
-		return buf[0];
-	}	
-	
-	public void readBuff(byte[] buf, int len) {
-		int off = 0;
-		if(len<0) {
-			len = buf.length;
 		}
-		do {
+		return buf[0];
+	}
+	/**
+	 * Access TTY by native code.<p>
+	 * @param buf - data buffer 
+	 * @param off - offset in buffer
+	 * @param len - data length
+	 * @return data in length
+	 */
+	public int readByte(byte[] buf, int off, int len) {
+		return implRead(buf,off,len);
+	}
+	/**
+	 * Access TTY by native code, but blocking.<p>
+	 * @param buf - data buffer 
+	 * @param off - offset in buffer
+	 * @param len - data length
+	 * @return data in length
+	 */
+	public void readBytePurge(byte[] buf, int off, int len) {
+		while(isLive()==true && len>0){
 			int cnt = implRead(buf,off,len);
-			if(cnt>0) {
-				off = off + cnt;
-				len = len - cnt;
+			if(cnt<=0) {
+				Misc.delay(10);
 				continue;
-			}else if(cnt==0) {
-				break;
 			}
-			Misc.delay(3);
-		}while(isLive()==true);
+			off+=cnt;
+			len-=cnt;
+		}
+	}
+	/**
+	 * Access TTY by native code.<p>
+	 * @param val - context value
+	 */
+	public int writeByte(byte val){
+		byte[] buf = {val};
+		return implWrite(buf,0,1);
+	}
+	public int writeByte(int val){
+		return writeByte((byte)(val&0xFF));
+	}
+	/**
+	 * Access TTY by native code.<p>
+	 * @param buf - context value
+	 * @param off - offset from buffer
+	 * @param size- buffer size
+	 * @return 
+	 */
+	public int writeByte(byte[] buf, int off, int size){
+		return implWrite(buf,off,size);
 	}
 	
 	//private final static Charset cc_set = Charset.forName("UTF-8");
-	
 	/**
 	 * Write text via terminal-port.<p>
 	 * @param txt - context data
@@ -411,23 +285,76 @@ public class DevTTY extends DevBase {
 		}
 		implWrite(txt.getBytes(),0,-1);
 	}
-
-	public void writeByte(byte[] buf, int off, int len){
-		implWrite(buf,off,len);
-	}
 	
-	public void writeByte(byte[] buf, int len){
-		implWrite(buf,0,len);
-	}
+	protected static final int DEFAULT_FETCH_EXPIRED = 100;
 	
 	/**
-	 * Write byte data via terminal-port.<p>
-	 * @param buf - context data
+	 * Blocking method.<p>
+	 * write text and wait for response in expired time.<p>
+	 * @param txt - writing text.<p>
+	 * @param exp - waiting time for millisec.<p>
+	 * @return data buffer
 	 */
-	public void writeByte(byte... buf){
-		implWrite(buf,0,-1);
-	}	
-	//-----------------------//
+	public String fetchTxt(
+		final String cmd,		
+		final int expire_ms
+	) {
+		writeTxt(cmd);
+		
+		String txt = "";
+		
+		final byte[] tmp = new byte[256];
+		
+		long t1 = System.currentTimeMillis();
+		
+		while(Gawain.isExit()==false){
+			
+			int cnt = implRead(tmp,0,-1);
+			
+			long t2 = System.currentTimeMillis();
+			
+			if(cnt>0) {
+				txt = txt + new String(tmp,0,cnt);
+				t1 = System.currentTimeMillis();
+			}else {
+				if((t2-t1)>expire_ms) {
+					return txt;
+				}
+				Misc.delay(DEFAULT_FETCH_EXPIRED/4);//wait TTY input buffer
+			}
+		};
+		return txt;
+	}
+	/**
+	 * fetch text with expired time (5ms). 
+	 * @param cmd - writing command
+	 * @return fetched data
+	 */
+	public String fetchTxt(
+		final String cmd
+	) {
+		return fetchTxt(cmd, DEFAULT_FETCH_EXPIRED);
+	}
+	
+	public void asyncFetch(
+		final String cmd,
+		final int expire_ms, 
+		final FetchBack result
+	) {
+		doing(0,0,(act)->{
+			String txt = fetchTxt(cmd,expire_ms);
+			if(result!=null) {
+				result.callback(cmd, txt);
+			}
+		});
+	}
+	public void asyncFetch(
+		final String cmd,
+		final FetchBack result
+	) {
+		asyncFetch(cmd, DEFAULT_FETCH_EXPIRED, result);
+	}
+	//------------------------------------//
 	
 	private native void implOpen(
 		String name,

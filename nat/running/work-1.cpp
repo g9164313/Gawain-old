@@ -6,7 +6,11 @@
  */
 #include <iostream>
 #include <algorithm>
+#include <vector>
+#include <string>
 #include <vision.hpp>
+
+using namespace std;
 
 Scalar cc[] = {
 	Scalar(0, 3, 250, 178),
