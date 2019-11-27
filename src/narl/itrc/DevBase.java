@@ -1,190 +1,145 @@
 package narl.itrc;
 
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 
-public abstract class DevBase implements Runnable {
+import javafx.concurrent.Task;
+
+public abstract class DevBase {
 	
 	protected String TAG = "DevBase";
 	
-	public DevBase(){
-	}
-
 	abstract public void open();	
 	abstract public void close();
 	abstract public boolean isLive();
 	
-	public interface Work {
-		public void doWork(Action act);
+	//public StringProperty state = new SimpleStringProperty();
+		
+	public final AtomicReference<String> nextState = new AtomicReference<String>("");
+	
+	private ConcurrentHashMap<String,Runnable> state = new ConcurrentHashMap<String,Runnable>();
+	
+	private AtomicReference<Runnable> interrupt = new AtomicReference<Runnable>(null);
+	
+	private String init_s_name = "";
+	
+	private long tick = -1;
+	
+	public boolean waiting(final long period) {
+		if(tick<=0) {
+			//start timer!!
+			tick = System.currentTimeMillis();
+			return true;
+		}
+		if((System.currentTimeMillis() - tick)<period) {
+			return true;
+		}
+		//restart period~~~
+		tick = -1L;
+		return false;
 	}
-	protected class Action {
+	
+	private class StateFlow extends Task<String> {
 		
-		protected short stgx;
-		protected short next;		
-		protected Work hook;
-		
-		public Action() {
-			this(nxt_stage,DEATH_STAGE,null);
-		}
-		public Action(
-			final int stage,
-			final Work work
-		) {
-			this(stage,stage+1,work);
-		}
-		public Action(
-			final int stage,
-			final int next_stage,
-			final Work work
-		) {
-			stgx = (short)stage;
-			next = (short)next_stage;
-			hook = work;
-		}
-		private void do_work() {
-			if(hook==null) {
+		void looper() {			
+			//check whether we have interrupt~~
+			Runnable work = interrupt.get();			
+			if(work!=null) {
+				updateTitle("interrupt!!");
+				updateValue("***");
+				work.run();
+				interrupt.set(null);
 				return;
 			}
-			hook.doWork(this);
+			//go through state-flow
+			String name = nextState.get();
+			if(name==null) {
+				//special case, do nothing~~~
+				return;
+			}
+			if(name.length()==0) {
+				//special case, do nothing~~~
+				return;
+			}
+			work = state.get(name);
+			if(work==null) {
+				updateTitle("No state:"+name);
+				updateValue("???");
+				nextState.set(init_s_name);
+				return;
+			}
+			updateTitle("state:"+name);
+			updateValue(name);			
+			work.run();
+		}
+		
+		@Override
+		protected String call() throws Exception {
+			do {
+				if(Gawain.isExit()==true) {
+					close();
+					return "!exist";
+				}
+				if(state.isEmpty()==true) {
+					continue;
+				}
+				looper();
+			}while(isCancelled()==false);
+			return "";
 		}
 	};
-	protected final ConcurrentLinkedQueue<Action> action = new ConcurrentLinkedQueue<Action>();
-		
-	public DevBase doing(final Action act) {
-		action.offer(act);
-		if(looper!=null) {
-			looper.interrupt();
+	private StateFlow tsk = null;
+	
+	public DevBase interrupt(final Runnable work) {
+		if(interrupt.get()!=null) {
+			Misc.logw("%s is busy!!", TAG);
+			return this;
 		}
+		interrupt.set(work);
 		return this;
-	}		
-	public DevBase doing(
-		final int stgx,
-		final DevBase.Work work
+	}
+	
+	public DevBase setupState0(
+		final String name,
+		final Runnable work
 	) {
-		doing(new Action(stgx,work));
-		return this;
+		return setup_state(true, name, work);
 	}
-	public DevBase doing(
-		final int stgx,
-		final int next,
-		final DevBase.Work work
+	public DevBase setupStateX(
+		final String name,
+		final Runnable work
 	) {
-		doing(new Action(stgx,next,work));
+		return setup_state(false, name, work);
+	}
+	private DevBase setup_state(
+		final boolean is_init,
+		final String name,
+		final Runnable work
+	) {
+		if(is_init==true) {
+			init_s_name = name;
+			nextState.set(name);
+		}
+		state.put(name, work);
 		return this;
 	}
-	public DevBase doingNow(final DevBase.Work work) {
-		doing(new Action(0,0,work));
-		return this;
-	}
 	
-	
-	public final AtomicBoolean exitLoop = new AtomicBoolean();
-	
-	private short nxt_stage;
-	private final short SELF_STAGE =-1;//goto self
-	private final short DEATH_STAGE= 0;//poll action
-	private final short FIRST_STAGE= 1;//first action
-		
-	private final int MAX_STGX_FAIL = 5;
-	private int stgx_fail_cnt = MAX_STGX_FAIL;
-	
-	private void doAction() {
-		
-		if(action.isEmpty()==true) {
+	public void playFlow() {
+		if(tsk==null) {
+			tsk = new StateFlow();
+		}else if(tsk.isRunning()==true) {
 			return;
 		}
-		
-		Action act = action.poll();		
-		final short head = act.stgx;
-		do{
-			short act_stgx = (short)Math.abs(act.stgx);
-			if(act_stgx==nxt_stage || act_stgx==DEATH_STAGE) {
-				
-				act.do_work();
-				
-				if(act.next==SELF_STAGE){
-					
-					nxt_stage = act_stgx;
-					action.offer(act);
-					
-				}else if(act.next==DEATH_STAGE) {
-					
-					if(act_stgx!=DEATH_STAGE) {
-						nxt_stage = (short)(act.stgx + 1);
-					}
-					
-				}else if(act.next>=FIRST_STAGE) {
-					
-					nxt_stage = act.next;
-					if(act.stgx<SELF_STAGE) {
-						action.offer(act);
-					}
-				}
-				return;
-			}else {
-				action.offer(act);
-				act = action.poll();
-			}
-		}while(head!=act.stgx);	
-		
-		if(stgx_fail_cnt<=0) {
-			//not match stage, reset stage number!!!
-			nxt_stage = (short)Math.abs(act.stgx);
-			stgx_fail_cnt = MAX_STGX_FAIL;//reset it again~~~
-		}else {
-			stgx_fail_cnt -=1;
-		}
-		action.offer(act);
+		Thread th = new Thread(tsk,TAG);
+		th.setDaemon(true);
+		th.start();
 	}
 	
-	//user must override this event
-	protected void doLoop(DevBase dev) {
-	}
-	
-	@Override
-	public void run() {
-		nxt_stage = FIRST_STAGE;
-		do {
-			doAction();
-			doLoop(this);
-		}while(exitLoop.get()==false);
-		Misc.logv("%s is deadth", TAG);
-	}
-
-	
-	private Thread looper = null;
-	
-	protected void beforeLoop() {}
-	protected void afterLoop() {}
-	
-	public void startLoop() {		
-		if(looper!=null) {
-			if(looper.isAlive()==true) {
-				return;
-			}
-		}
-		action.clear();		
-		exitLoop.set(false);
-		looper = new Thread(this,TAG);
-		looper.setDaemon(true);
-		beforeLoop();
-		looper.start();
-		afterLoop();
-	} 
-		
-	public void stopLoop() {		
-		if(looper==null) {
+	public void stopFlow() {
+		if(tsk==null) {
 			return;
+		}else if(tsk.isRunning()==true) {
+			while(tsk.cancel()==true);
 		}
-		if(looper.isAlive()==false) {
-			return;
-		}		
-		try {
-			exitLoop.set(true);
-			looper.interrupt();
-			looper.join();
-			looper = null;
-		} catch (InterruptedException e) {
-		}
-	}
+	}	
 }

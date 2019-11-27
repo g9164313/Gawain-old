@@ -13,6 +13,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.RandomAccessFile;
+import java.lang.reflect.InvocationTargetException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -23,7 +24,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Properties;
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.jar.JarFile;
 
 import javafx.animation.KeyFrame;
@@ -45,12 +46,13 @@ import narl.itrc.nat.Loader;
 public class Gawain extends Application {
 	
 	private static final Properties propCache = new Properties();
-	private static final String propName = "conf.properties";	
+	private static final String propName = "conf.properties";
+	
 	public static String getConfigName(){
 		return pathSock+propName;
 	}
 	
-	private static void propInit(){
+	private static void propPrepare(){
 		try {
 			InputStream stm=null;
 			File fs = new File(getConfigName());			
@@ -70,9 +72,22 @@ public class Gawain extends Application {
 		return propCache;
 	}
 	
+	public static boolean propFlag(final String option) {
+		String val = propCache.getProperty(option, "");
+		if(val.length()==0) {
+			return false;
+		}
+		val = val.trim().toLowerCase();
+		if(val.charAt(0)=='t') {
+			//true or 't' is okay~~
+			return true;
+		}
+		return false;
+	}
+	
 	private static void propRestore(){
 		try {
-			File fs = new File(pathSock+propName);
+			File fs = new File(getConfigName());
 			if(fs.exists()==false){
 				return;
 			}
@@ -98,7 +113,9 @@ public class Gawain extends Application {
 					continue;
 				}
 				col[0] = col[0].trim();
-				String val = propCache.getProperty(col[0],null);
+				String val = propCache
+						.getProperty(col[0],null)
+						.replace("\\", "\\\\");
 				if(val==null){
 					continue;//is this possible???
 				}
@@ -107,13 +124,14 @@ public class Gawain extends Application {
 			}
 			//add the new options...
 			for(Object key:propCache.keySet()){
-				String val = (String)propCache.get(key);
-				lst.add(String.format("%s = %s\n", (String)key, (String)val));
+				String val = ((String)propCache.get(key))
+					.replace("\\", "\\\\");
+				lst.add(String.format("%s = %s", (String)key, (String)val));
 			}
 			//dump data and option!!!
 			BufferedWriter wr = new BufferedWriter(new FileWriter(fs));
 			for(String txt:lst){				
-				wr.write(txt+"\n");
+				wr.write(txt+"\r\n");
 			}
 			wr.close();
 		} catch (FileNotFoundException e) {
@@ -222,8 +240,6 @@ public class Gawain extends Application {
 		System.setErr(new PrintStream(new PipeStream(System.err)));
 	}
 	//--------------------------------------------//
-	
-	private static final String jarName; 
 
 	private static void liceWrite(byte[] dat){
 		if(jarName.length()==0){
@@ -385,39 +401,65 @@ public class Gawain extends Application {
 	}
 	//--------------------------------------------//
 	
-	public static PanBase mainPanel = null;
-		
-	@Override
-	public void start(Stage primaryStage) throws Exception {
-		new Loader().launch(primaryStage);
+	private static final AtomicBoolean flagExit = new AtomicBoolean(false);
+	
+	public static boolean isExit() {
+		return flagExit.get();
 	}
-	
-	private static final CountDownLatch e_latch = new CountDownLatch(1);
-	
 	@Override
 	public void stop() throws Exception {
-		e_latch.countDown();
+		flagExit.set(true);
 	}
 	
-	public static boolean isExit(){
-		if(e_latch.getCount()==0L){
-			return true;
-		}
-		return false;
-	}
+	public static PanBase mainPanel = null;
+	
+	@Override
+	public void start(Stage init_stage) throws Exception {
 		
+		try {
+			String name = Gawain.prop().getProperty("LAUNCH","");
+			if(name.length()==0) {
+				
+			}else {
+				mainPanel = (PanBase)Class.forName(name)
+					.getConstructor()
+					.newInstance();
+					//.getConstructor(Stage.class)
+					//.newInstance(p_stage);
+			}
+		} catch (
+			InstantiationException | 
+			IllegalAccessException | 
+			IllegalArgumentException | 
+			InvocationTargetException | 
+			NoSuchMethodException |
+			SecurityException | 
+			ClassNotFoundException e
+		) {
+			e.printStackTrace();
+			Misc.loge("啟動類別失敗");
+		}
+		new Loader().launch(init_stage);
+	}
+	
 	public static void main(String[] argv) {
-		propInit();
+		propPrepare();
 		pipe_stdio();
-		//liceBind();//check dark license~~~		
+		//liceBind();//check dark license~~~
 		launch(argv);
 		propRestore();
 	}
 	//--------------------------------------------//
 	//In this section, we initialize all global variables~~
 	
+	public static final String sheet = Gawain.class.
+		getResource("res/styles.css").
+		toExternalForm() ;
+	
+	private static final String jarName; 
+	
 	public static final boolean isPOSIX;
-		
+	
 	public static final String pathRoot;//Working directory.
 	public static final String pathHome;//User home directory.
 	public static final String pathSock;//Data or setting directory.
@@ -426,7 +468,8 @@ public class Gawain extends Application {
 	public static final File dirHome;
 	public static final File dirSock;
 	
-	static{
+	static {
+		
 		String txt = null;
 		
 		//check operation system....

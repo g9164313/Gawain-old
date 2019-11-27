@@ -1,7 +1,6 @@
 package narl.itrc.nat;
 
 import java.io.File;
-import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -13,20 +12,20 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.VBox;
-import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import narl.itrc.Gawain;
 import narl.itrc.Misc;
-import narl.itrc.PanBase;
 
 public class Loader extends Task<Integer> {
 
 	@Override
 	protected Integer call() throws Exception {
 		prepare_resource();
-		load_library();
-		prepare_main_panel();
+		loading_library();
+		updateProgress(-1.,-1.);//let progress-bar waiting~~~
+		updateMessage("等待主畫面... ");
+		Gawain.mainPanel.initLayout();
 		return 0;
 	}
 	
@@ -34,7 +33,6 @@ public class Loader extends Task<Integer> {
 		//File fs = new File(Gawain.pathSock);
 		//step.1: scan resource files in package
 		ArrayList<File> lstRes = new ArrayList<File>();
-		//TODO:how to get resource files in jar???
 		URL url = Loader.class.getResource(".");
 		if(url==null) {
 			return;
@@ -75,11 +73,20 @@ public class Loader extends Task<Integer> {
 		}
 	}
 	
-	private void load_library(){
+	private void loading_library(){
 		
 		LinkedList<LibFile> lst = new LinkedList<LibFile>();
-		LibUtil.listAll(Gawain.pathSock,lst);
 		
+		LibUtil.listAll(Gawain.pathSock,lst);
+		for(String key:Gawain.prop().stringPropertyNames()) {
+			if(key.matches("LIB_PATH[\\d]*")==false) {
+				continue;
+			}
+			String path = Gawain.prop().getProperty(key);
+			updateMessage("列舉: "+path);
+			LibUtil.listAll(path,lst);
+		}
+				
 		long barCur=0L,  barMax=lst.size();
 		updateProgress(0, barMax);
 
@@ -104,48 +111,12 @@ public class Loader extends Task<Integer> {
 			updateProgress(barCur, barMax);
 		}
 	}
-		
-	private Stage primer = null;
-	
-	private void prepare_main_panel() {
-		String name = Gawain.prop().getProperty("LAUNCH","");
-		//Example: if contractor has parameter, try this~~~
-		//panRoot = (PanBase)Class.forName(name)
-		//	.getConstructor(Stage.class)
-		//	.newInstance(primaryStage);
-		updateMessage("啟動-"+name);
-		try {
-			if(name.length()==0) {
-			}else {			
-				long t1 = System.currentTimeMillis();
-				Gawain.mainPanel = (PanBase)Class.forName(name)
-					.getConstructor(Stage.class)
-					.newInstance(primer);
-				Gawain.mainPanel.prepare();//lazy initialization~~~
-				long t2 = System.currentTimeMillis();
-				updateMessage(String.format("wait %dms", t2-t1));
-			}
-		} catch (
-			InstantiationException | 
-			IllegalAccessException | 
-			IllegalArgumentException | 
-			InvocationTargetException | 
-			NoSuchMethodException | 
-			SecurityException | 
-			ClassNotFoundException e
-		) {
-			Misc.loge(e.getMessage());
-			updateMessage("致命的類別錯誤!!");
-			Gawain.mainPanel = null;
-		}		
-	}
-	
 	
 	private Parent layout(Stage stg){
 		
 		ImageView img = Misc.getIconView("logo.jpg");
 		
-		Label txt = new Label();
+		Label txt = new Label();		
 		txt.textProperty().bind(messageProperty());
 
 		ProgressBar bar = new ProgressBar();
@@ -158,26 +129,23 @@ public class Loader extends Task<Integer> {
 		return lay0;
 	}
 	
-	public void launch(final Stage primaryStage){
+	public void launch(final Stage stg){
 		
-		primer = primaryStage;
-
-		final Stage stg = new Stage();
-		stg.initModality(Modality.WINDOW_MODAL);
-		stg.initStyle(StageStyle.TRANSPARENT);
-		stg.setResizable(false);
-		stg.centerOnScreen();
-		setOnSucceeded(event->{
-			Gawain.mainPanel.appear();
+		setOnSucceeded(e->{
+			long tick = System.currentTimeMillis();
+			Gawain.mainPanel.appear();			
 			stg.close();
+			Misc.logv("Startup: %dms",System.currentTimeMillis()-tick);
 		});
 		
-		Scene scn = new Scene(layout(stg));
-		scn.getStylesheets().add(Gawain.class.getResource("res/styles.css").toExternalForm());
+		final Scene scn = new Scene(layout(stg));
+		scn.getStylesheets().add(Gawain.sheet);
 		stg.setScene(scn);
-		stg.setOnShown(event->{			
-			new Thread(Loader.this,"Loader").start();
-		});
+		stg.initStyle(StageStyle.TRANSPARENT);
+		stg.setAlwaysOnTop(true);
+		stg.setResizable(false);
+		stg.centerOnScreen();		
+		stg.setOnShown(e->new Thread(this,"Loader").start());
 		stg.show();
 	}
 }

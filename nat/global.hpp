@@ -10,7 +10,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
+
 #include <stdint.h>
 #include <string.h>
 
@@ -25,7 +25,7 @@ using namespace std;
 
 #ifdef _MSC_VER
 //this direction for M$ VC2010
-#include <Windows.h>
+#include <windows.h>
 #define M_PI 3.1415
 #define NAT_EXPORT extern "C" __declspec(dllexport)
 typedef signed char  int8_t;
@@ -41,6 +41,8 @@ inline void usleep(int usec){
 inline void msleep(int msec){
 	Sleep(msec);//this is milisecond
 }
+#else
+#include <unistd.h>
 #endif
 
 #include <jni.h>
@@ -116,7 +118,11 @@ inline string jstrcpy(JNIEnv* env, jstring src){
 inline size_t jstrcpy(JNIEnv* env, jstring src, const char* dst){
 	jboolean is_copy = JNI_FALSE;
 	const char *_src = env->GetStringUTFChars(src, &is_copy);
+#ifndef _MSC_VER
 	strcpy((char*)dst, _src);
+#else
+	strcpy_s((char*)dst, 512, _src);
+#endif
 	env->ReleaseStringUTFChars(src, _src);
 	return env->GetStringLength(src);
 }

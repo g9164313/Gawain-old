@@ -22,29 +22,29 @@ import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
-import javafx.stage.StageStyle;
 
-public abstract class PanBase {	
+public abstract class PanBase {
 	
-	private Scene scene;
-	private Stage stage;
-		
+	protected DutyFace spin = new DutyFace();
+	
+	private final StackPane root = new StackPane();
+	
+	private final Scene scene = new Scene(root);
+	private final Stage stage = new Stage();
+	
 	public PanBase(){
-		stage = new Stage(StageStyle.DECORATED);
-	}
-	
-	public PanBase(Stage owner){
-		stage = owner;
 	}
 	//------------------------//
 	
 	public Parent root() {
-		return scene.getRoot();
+		return root;
 	}
 	public Scene scene() {
 		return scene;
@@ -53,84 +53,62 @@ public abstract class PanBase {
 		return stage; 
 	}
 	
-	private boolean use_decorator = false;
+	//default panel node
+	//Label txt = new Label("===\n X \n===");
+	//txt.setFont(Font.font("Arial", 60));
+	//txt.setPrefSize(200, 200);
+	//txt.setAlignment(Pos.CENTER);
+	//face1 = txt;
 	
-	/**
-	 * use JFXDecorator, Attention call this before standby() or appear().<p> 
-	 * @return
-	 */
-	public PanBase use_decorator(boolean flag){
-		use_decorator = flag;
-		return this;
-	}
-	
-	public void prepare(){
-		
-		spin.visibleProperty().set(false);
+	public void initLayout() {
 		
 		Node face1 = eventLayout(this);
-		if(face1==null){
-			//default panel node
-			Label txt = new Label("===\n X \n===");
-			txt.setFont(Font.font("Arial", 60));
-			txt.setPrefSize(200, 200);
-			txt.setAlignment(Pos.CENTER);
-			face1 = txt;
-		}
 		face1.disableProperty().bind(spin.visibleProperty());
 		
-		final StackPane face2 = new StackPane(face1,spin);
-		face2.setMinSize(320,240);
+		root.getChildren().addAll(face1, spin);
 		
-		Parent root;
-		if(use_decorator==true){
-			JFXDecorator dec = new JFXDecorator(stage, face2);
-			//dec.setCustomMaximize(true);
-			root = dec;
-		}else{
-			root = (Parent)face2;
-		}
-		
-		scene = new Scene(root);		
 		//load a default style...
-		scene.getStylesheets().add(
-			Gawain.class.getResource("res/styles.css").toExternalForm()
-		);				
-		//if user give us a URL, try to load a custom style file....		
-		//se.getStylesheets().add(customCSS.toExternalForm());
-		//capture some short-key
-		scene.setOnKeyPressed(eventHookPress);		
-		//root.getStyleClass().add("layout-white");
+		scene.setRoot(
+			(Gawain.propFlag("JFX_DECORATE")==true)?
+			(new JFXDecorator(stage, root)):
+			(root)
+		);
+		scene.setFill(Color.WHITE);
+		scene.getStylesheets().add(Gawain.sheet);				
+		scene.setOnKeyPressed(eventHotKey);//capture some short-key
 	}
 	
-	private PanBase _init(final boolean wait) {
-		if(scene==null) {
-			prepare();
+	private void prepare(){
+		Pane pan = (Pane)root();
+		if(pan.getChildren().size()==0) {
+			initLayout();
 		}
 		stage.setScene(scene);
-		stage.sizeToScene();
-		stage.centerOnScreen();
-		if(wait==false) {
-			stage.show();
+		String opt1 = Gawain.prop().getProperty("FULL_SCREEN","");
+		if(opt1.equalsIgnoreCase("true")==true) {
+			stage.setFullScreen(true);
 		}else {
-			stage.showAndWait();
+			stage.sizeToScene();
+			stage.centerOnScreen();
 		}
-		return this;
 	}
-	
+		
 	/**
 	 * present a new panel, but no-blocking
 	 * @return self
 	 */
 	public PanBase appear(){
-		return _init(false);
+		prepare();
+		stage.show();
+		return this;
 	}
 	/**
 	 * present a new panel, and blocking for dismissing.<p>
 	 * Never return to caller.<p>
 	 */
 	public void standby(){
-		_init(true);
+		prepare();
+		stage.showAndWait();		
 	}
 	//------------------------//
 	
@@ -180,8 +158,7 @@ public abstract class PanBase {
 			hook.run();
 		}
 	};
-	protected DutyFace spin = new DutyFace();
-	
+
 	protected class Duty extends Task<Integer> {
 		long p_idx = 0;
 		long p_stp = 1;
@@ -251,23 +228,18 @@ public abstract class PanBase {
 	//------------------------//
 	
 	/**
-	 * special short-key for popping logger panel.
+	 * special short-key for popping stdio panel.
 	 */
 	private static KeyCombination hotkey_console = KeyCombination.keyCombination("Ctrl+Alt+C");
 	
 	/**
-	 * special short-key for debug something.
-	 */
-	private static KeyCombination hotkey_debug = KeyCombination.keyCombination("Ctrl+Alt+D");
-	
-	/**
 	 * event for capture all key-input, this happened when user click the title of panel.
 	 */
-	private EventHandler<KeyEvent> eventHookPress = new EventHandler<KeyEvent>(){
+	private EventHandler<KeyEvent> eventHotKey = new EventHandler<KeyEvent>(){
 		@Override
 		public void handle(KeyEvent event) {
 			KeyCode cc = event.getCode();
-			if(cc==KeyCode.ESCAPE){
+			if(cc==KeyCode.F1){
 				if(Gawain.mainPanel.equals(PanBase.this)==true){
 					if(notifyConfirm("！！注意！！","確認離開主程式？")==ButtonType.CANCEL){
 						return;
@@ -275,9 +247,6 @@ public abstract class PanBase {
 				}
 				stage.close();
 			}else if(hotkey_console.match(event)==true){
-				//Gawain.showLogger();
-			}else if(hotkey_debug.match(event)==true){
-				
 			}			
 		}
 	};

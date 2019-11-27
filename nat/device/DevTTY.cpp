@@ -18,11 +18,17 @@ extern "C" JNIEXPORT void Java_narl_itrc_DevTTY_implOpen(
 	jchar stop_bit,
 	jchar flow_mode
 ) {
-	char name[500];
+	setJLong(env, thiz, NAME_HANDLE, 0);//reset handle!!!!
+
+	char name[256];
 	jstrcpy(env,jname,name);
 
+	uint8_t flowControl = getJByte(env, thiz, "flowControl");
+
+	uint16_t readTimeout= getJInt(env,thiz,"readTimeout");
+
 #if defined _MSC_VER
-	char desc[500];
+	char desc[256];
 	sprintf_s(desc,"\\\\.\\%s",name);
 
 	HANDLE hand = CreateFileA(
@@ -35,7 +41,6 @@ extern "C" JNIEXPORT void Java_narl_itrc_DevTTY_implOpen(
 		NULL /* no templates */
 	);
 	if(hand==INVALID_HANDLE_VALUE){
-		setJLong(env,thiz,NAME_HANDLE,0);//reset handle!!!!
 		return;
 	}
 	setJLong(env,thiz,NAME_HANDLE,(long)hand);
@@ -77,30 +82,85 @@ extern "C" JNIEXPORT void Java_narl_itrc_DevTTY_implOpen(
 		cout<<"no support stop-bit:"<<stop_bit<<endl;
 		break;
 	}
-	/* No software handshaking */
-	//dcb.fTXContinueOnXoff = TRUE;
-	//dcb.fOutX = FALSE;
-	//dcb.fInX = FALSE;
-	/* Binary mode (it's the only supported on Windows anyway) */
-	dcb.fBinary = TRUE;
-	/* Want errors to be blocking */
-	dcb.fAbortOnError = TRUE;
-	if(!SetCommState(hand, &dcb)){
-		cout<<"Fail to set DBCA"<<endl;
+	
+	switch (flowControl) {
+	case 1://RTS_CTS hardware fllow control
+		dcb.fOutxCtsFlow = TRUE;
+		dcb.fOutxDsrFlow = FALSE;
+		dcb.fDsrSensitivity = FALSE;
+		dcb.fDtrControl = DTR_CONTROL_ENABLE;
+		dcb.fRtsControl = RTS_CONTROL_HANDSHAKE;
+		break;
+	case 2://DTR_DSR hardware flow control
+		dcb.fOutxCtsFlow = FALSE;
+		dcb.fOutxDsrFlow = TRUE;
+		dcb.fDsrSensitivity = FALSE;
+		dcb.fDtrControl = DTR_CONTROL_HANDSHAKE;
+		dcb.fRtsControl = RTS_CONTROL_ENABLE;
+		break;
+	//case 3://XOFF_XON software flow control
+	//	dcb.fOutxCtsFlow = FALSE;
+	//	dcb.fOutxDsrFlow = FALSE;
+	//	dcb.fDsrSensitivity = FALSE;
+	//	dcb.fDtrControl = DTR_CONTROL_ENABLE;
+	//	dcb.fRtsControl = RTS_CONTROL_ENABLE;
+	//	break;
+	case 0x10://special case-1:
+		dcb.fOutxCtsFlow = FALSE;
+		dcb.fOutxDsrFlow = FALSE;
+		dcb.fDsrSensitivity = FALSE;
+		dcb.fDtrControl = DTR_CONTROL_DISABLE;
+		dcb.fRtsControl = RTS_CONTROL_DISABLE;
+		break;
+	case 0x11://special case-2: CTS-RTS
+		dcb.fOutxCtsFlow = TRUE;
+		dcb.fOutxDsrFlow = FALSE;
+		dcb.fDsrSensitivity = FALSE;
+		dcb.fDtrControl = DTR_CONTROL_DISABLE;
+		dcb.fRtsControl = RTS_CONTROL_ENABLE;
+		break;
+	case 0x13://special case-3: DSR-DTR
+		dcb.fOutxCtsFlow = FALSE;
+		dcb.fOutxDsrFlow = TRUE;
+		dcb.fDsrSensitivity = FALSE;
+		dcb.fDtrControl = DTR_CONTROL_ENABLE;
+		dcb.fRtsControl = RTS_CONTROL_DISABLE;
+		break;
 	}
-	/*COMMTIMEOUTS cpt;
-	cpt.ReadIntervalTimeout         = MAXDWORD;
-	cpt.ReadTotalTimeoutMultiplier  = 0;
-	cpt.ReadTotalTimeoutConstant    = 3000;
-	cpt.WriteTotalTimeoutMultiplier = 0;
-	cpt.WriteTotalTimeoutConstant   = 3000;
+	
+	if(SetCommState(hand, &dcb)==FALSE){
+		cout<<"Fail to set DBCA of "<<name<<endl;
+	}else {
+		//#define SHOW_DCB
+		#ifdef SHOW_DCB
+		cout << name << ":" << endl;
+		cout << "fTXContinueOnXoff:" << dcb.fTXContinueOnXoff << endl;
+		cout << "fOutX:" << dcb.fOutX << endl;
+		cout << "fInX :" << dcb.fInX << endl;
+		cout << "fDtrControl    :" << dcb.fDtrControl << endl;
+		cout << "fRtsControl    :" << dcb.fRtsControl << endl;
+		cout << "fOutxCtsFlow   :" << dcb.fOutxCtsFlow << endl;
+		cout << "fOutxDsrFlow   :" << dcb.fOutxDsrFlow << endl;
+		cout << "fDsrSensitivity:" << dcb.fDsrSensitivity << endl;
+		cout << "fAbortOnError  :" << dcb.fDsrSensitivity << endl;
+		cout << "XonChar:" << (int)dcb.XonChar << endl;
+		cout << "XoffChar:"<< (int)dcb.XoffChar<< endl;
+		cout << "EofChar:" << (int)dcb.EofChar << endl;
+		#endif
+	}
+	COMMTIMEOUTS cpt;
+	//GetCommTimeouts(hand, &cpt);
+	cpt.ReadIntervalTimeout = MAXDWORD;//milliseconds
+	cpt.ReadTotalTimeoutMultiplier = 0;
+	cpt.ReadTotalTimeoutConstant   = readTimeout;
+	cpt.WriteTotalTimeoutMultiplier= 50;
+	cpt.WriteTotalTimeoutConstant  = 0;
 	if(!SetCommTimeouts(hand, &cpt)){
 		cout<<"Fail to set Timeout"<<endl;
-	}*/
+	}
 #else
 	int fd = open(name, O_RDWR);
 	if(fd<0){
-		setJLong(env,thiz,NAME_HANDLE,0);
 		return;
 	}
 	setJLong(env,thiz,NAME_HANDLE,fd);
@@ -204,12 +264,12 @@ extern "C" JNIEXPORT jint Java_narl_itrc_DevTTY_implRead(
 	if(fd<=0){
 		return -1;
 	}
-	size_t len = env->GetArrayLength(jbuf);
-	if (length <= 0) {
-		length = len;
-	}
-	if((offset+length)>len){
+	jint len = (jint)env->GetArrayLength(jbuf) - offset;
+	if (len < 0) {
 		return -2;
+	}
+	if (length <= 0 || (length > len)) {
+		length = len;
 	}
 	jbyte* buf = env->GetByteArrayElements(jbuf,NULL);
 	size_t count;
@@ -245,12 +305,12 @@ extern "C" JNIEXPORT jint Java_narl_itrc_DevTTY_implWrite(
 	if(fd<=0){
 		return -1;
 	}	
-	size_t len = env->GetArrayLength(jbuf);
-	if (length <= 0) {
-		length = len;
-	}
-	if((offset+length)>len){
+	jint len = (jint)env->GetArrayLength(jbuf)-offset;
+	if(len<0){
 		return -2;
+	}
+	if(length<=0 || (length>len)){
+		length = len;
 	}
 	jbyte* buf = env->GetByteArrayElements(jbuf,NULL);
 	size_t count;

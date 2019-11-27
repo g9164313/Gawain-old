@@ -12,13 +12,14 @@ import javafx.beans.property.StringProperty;
 import narl.itrc.DevTTY;
 import narl.itrc.Misc;
 
+@SuppressWarnings("unused")
 public class DevShapeoko extends DevTTY {
 
 	public DevShapeoko() {
 		super("dev-shapeoko");
 	}
 	
-	@Override
+	/*@Override
 	protected void afterLoop() {
 		doing(new FastFetch( 1,   ""     , (cmd,txt)->dummy(cmd,txt)));//got caption
 		doing(new FastFetch( 2,   "$X\n" , (cmd,txt)->dummy(cmd,txt)));//unlock device
@@ -26,11 +27,11 @@ public class DevShapeoko extends DevTTY {
 		doing(new FastFetch( 4,   "G21\n", (cmd,txt)->dummy(cmd,txt)));//Set Units to Millimeters
 		doing(new FastFetch( 5,   "~\n"  , (cmd,txt)->dummy(cmd,txt)));//start cycle
 		doing(new FastFetch(-6, 7,"?\n"  , (cmd,txt)->update_property(txt)));
-	}
+	}*/
 	
 	private boolean debug = true;
 	//private boolean debug = false;
-	
+
 	private void dummy(
 		final String cmd,
 		final String txt
@@ -66,6 +67,7 @@ public class DevShapeoko extends DevTTY {
 	public final IntegerProperty Ov1= new SimpleIntegerProperty();
 	public final IntegerProperty Ov2= new SimpleIntegerProperty();
 	
+
 	private void update_property(final String txt) {
 		
 		//if(debug==true) {
@@ -128,10 +130,10 @@ public class DevShapeoko extends DevTTY {
 				_cmd = _cmd + "\n";
 			}
 			int ends = (i==commands.length-1)?(-6):(7+i+1);			
-			doing(new FastFetch(
-				7+i, ends, _cmd,
-				(cmd,txt)->dummy(cmd,txt)
-			));
+			//doing(new FastFetch(
+			//	7+i, ends, _cmd,
+			//	(cmd,txt)->dummy(cmd,txt)
+			//));
 		}		
 	}
 	
@@ -143,8 +145,8 @@ public class DevShapeoko extends DevTTY {
 	){
 		String cmd1 = (abs==true)?("G90\n"):("G91\n");
 		String cmd2 = String.format("G00X%.1fY%.1fZ%.1f\n",xx,yy,zz);
-		doing(new FastFetch( 7,   cmd1,(cmd,txt)->dummy(cmd,txt)));
-		doing(new FastFetch( 8,-6,cmd2,(cmd,txt)->dummy(cmd,txt)));
+		//doing(new FastFetch( 7,   cmd1,(cmd,txt)->dummy(cmd,txt)));
+		//doing(new FastFetch( 8,-6,cmd2,(cmd,txt)->dummy(cmd,txt)));
 	}
 	public void moveAbs(
 		float xx, 

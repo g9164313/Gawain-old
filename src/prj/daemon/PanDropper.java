@@ -13,7 +13,7 @@ import javafx.scene.control.TitledPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
-import javafx.stage.Stage;
+
 import narl.itrc.Gawain;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
@@ -26,9 +26,8 @@ public class PanDropper extends PanBase {
 	private final CapVidcap vid = new CapVidcap();
 	private final DevCamera cam = new DevCamera(vid);
 	
-	public PanDropper(Stage primer){
+	public PanDropper(){
 		//some initialization~~~
-		super(primer);
 		cam.setMinSize(600+23,800+23);
 		vid.setFlip('{');
 		vid.setupAfter(()->{

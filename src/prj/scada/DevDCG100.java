@@ -6,9 +6,10 @@ import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXRadioButton;
 import com.sun.glass.ui.Application;
 
-import javafx.animation.AnimationTimer;
+import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.FloatProperty;
 import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleFloatProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.geometry.Orientation;
@@ -21,7 +22,7 @@ import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
-import narl.itrc.DevBase;
+
 import narl.itrc.DevTTY;
 import narl.itrc.Misc;
 
@@ -39,7 +40,9 @@ import narl.itrc.Misc;
 public class DevDCG100 extends DevTTY {
 	
 	public DevDCG100(){
-		TAG = "DevDCG-stream";
+		TAG = "DCG-100";
+		flowControl = 2;//DTR-DSR
+		readTimeout = 1000;
 	}
 
 	public DevDCG100(String path_name){
@@ -47,173 +50,204 @@ public class DevDCG100 extends DevTTY {
 		setPathName(path_name);
 	}
 	
-	@Override
-	protected void afterLoop() {
-		//asyncFetch("REP\r" ,(cmd,txt)->response(cmd,txt));
-		exec(true,"REME\r",null);
-		exec(true,"REM1\r",null);
-		exec(true,"SPV\r",(txt)->{
-			//regulation value - volt
-			String _txt = trim_result(txt);
-			_txt = _txt.substring(0,_txt.length()-1);
-			float val = Float.valueOf(_txt) * 10f;
-			v_spv.set((int)val);
+	private final String STG_INIT = "init";
+	private final String STG_MONT = "monitor";
+	
+	private void state_init() {
+		//exec("REP\r" ,(txt)->Misc.logv(txt));
+		exec("SPV\r",(txt)->{
+			//regulation value - volt (value+unit)
+			txt = txt.substring(0,txt.length()-1);
+			txt_float2prop(txt,10,v_spv);
 		});
-		exec(true,"SPA\r",(txt)->{
-			//regulation value - amps
-			String _txt = trim_result(txt);
-			_txt = _txt.substring(0,_txt.length()-1);
-			float val = Float.valueOf(_txt) * 100f;
-			v_spa.set((int)val);
+		exec("SPA\r",(txt)->{
+			//regulation value - amps (value+unit)
+			txt = txt.substring(0,txt.length()-1);
+			txt_float2prop(txt,100,v_spa);
 		});
-		exec(true,"SPW\r",(txt)->{
-			//regulation value - watt
-			String _txt = trim_result(txt);
-			_txt = _txt.substring(0,_txt.length()-1);
-			float val = Float.valueOf(_txt);
-			v_spw.set((int)val);
+		exec("SPW\r",(txt)->{
+			//regulation value - watt (value+unit)
+			txt = txt.substring(0,txt.length()-1);
+			txt_int2prop(txt,1,v_spw);
 		});
-		exec(true,"SPR\r",(txt)->{
+		exec("SPR\r",(txt)->{
 			//ramp-time
-			String _txt = trim_result(txt);
-			_txt = _txt.substring(0,_txt.length()-1);
-			float val = Float.valueOf(_txt);
-			v_spr.set((int)val);
+			//unit is milliseconds
+			//report unit is second
+			txt_float2prop(txt,1000,v_spr);
 		});
-		exec(true,"SPT\r",(txt)->{
+		exec("SPT\r",(txt)->{
 			//run-time shutdown
-			//unit is second
-			String _txt = trim_result(txt);
-			float val = Float.valueOf(_txt) * 1000f;
-			v_spt.set((int)val);
+			//unit is milliseconds
+			//report unit is second
+			txt_float2prop(txt,1000,v_spt);
 		});
-		exec(true,"SPJ\r",(txt)->{
+		exec("SPJ\r",(txt)->{
 			//joules shutdown
-			String _txt = trim_result(txt);
-			float val = Float.valueOf(_txt);
-			v_spj.set((int)val);
+			txt_int2prop(txt,1,v_spj);
 		});
-		exec(true,"CHL\r",(txt)->{
+		exec("CHL\r",(txt)->{
 			//regulation mode - Amps, Volts, Watt
-			v_chl = trim_result(txt).charAt(0);
+			v_chl = trim_txt(txt).charAt(0);
 		});
-		exec(true,"CHT\r",(txt)->{
+		exec("CHT\r",(txt)->{
 			//control mode & shutdown time
 			//constant, sequence mode
 			//joules or run-time shutdown
-			v_cht = trim_result(txt);
+			v_cht = trim_txt(txt);
 		});
+		exec("REME\r",(txt)->{Application.invokeAndWait(()->{
+			isRemote.set(true);
+			switch(v_chl) {
+			case 'V': tmpRad[0].setSelected(true); break;
+			case 'A': tmpRad[1].setSelected(true); break;
+			case 'W': tmpRad[2].setSelected(true); break;
+			}
+			if(v_cht.equalsIgnoreCase("C")==true) {
+				tmpRad[3].setSelected(true);
+			}else if(v_cht.equalsIgnoreCase("CT")==true) {
+				tmpRad[4].setSelected(true);
+			}else if(v_cht.equalsIgnoreCase("CJ")==true) {
+				tmpRad[5].setSelected(true);
+			}
+		});});
+		nextState.set(STG_MONT);
+		//nextState.set(null);
 	}
 	
-	private final long period = 1000L; 
-	private long pre_loop_tick = System.currentTimeMillis();
-
-	@Override
-	protected void doLoop(DevBase dev) {
-		long cur_loop_tick = System.currentTimeMillis();
-		if((cur_loop_tick-pre_loop_tick)<period) {
-			return;
+	private int monitor_type = 0;
+	
+	private void state_monitor() {
+		if(waiting(500)==true) { return; }
+		switch(monitor_type%3) {
+		case 0:
+			exec("MVV\r",(txt)->txt_float2prop(txt,1f,volt));
+			break;
+		case 1:
+			exec("MVA\r",(txt)->txt_float2prop(txt,1f,amps));
+			break;
+		case 2:
+			exec("MVW\r",(txt)->txt_float2prop(txt,1f,watt));
+			break;
+		case 3:
+			exec("MVJ\r",(txt)->txt_float2prop(txt,1f,joul));
+			break;
 		}
-		//monitor data~~~
-		txt2prop(fetchTxt("MVV\r"), volt);
-		txt2prop(fetchTxt("MVA\r"), amps);
-		txt2prop(fetchTxt("MVW\r"), watt);
-		txt2prop(fetchTxt("MVJ\r"), joul);
-		pre_loop_tick = System.currentTimeMillis();
+		monitor_type+=1;
+	}	
+	@Override
+	protected void afterOpen() {
+		setupState0(STG_INIT, ()->state_init()).
+		setupStateX(STG_MONT, ()->state_monitor());
+		playFlow();
 	}
-	
-	protected void exec(
-		final String cmd
-	) {
-		exec(false,cmd,null);
-	}
-	protected void exec(
+		
+	public void exec(
 		final String cmd,
-		final ReadBack gui_event
+		final ReadBack hook
 	) {
-		exec(false,cmd,gui_event);
-	}
-	protected void exec(
-		final boolean silent,
-		final String cmd,		
-		final ReadBack gui_event		
-	) {
-		doingNow((act)->{
-			String txt = fetchTxt(cmd);			
-			if(txt.contains("?")==true || txt.contains("*")==false) {
-				//fail to execute command, show dialog or pass it!!!
-				Misc.loge("[X] %s-->%s",cmd,txt);
-				if(silent==true) {
-					return;
-				}
-				Application.invokeAndWait(()->{
-					final Alert diag = new Alert(AlertType.ERROR);
-					diag.setTitle("錯誤！！");
-					diag.setHeaderText("指令沒有回應:"+cmd+")"+txt);
-					diag.showAndWait();
-				});
-			}else {
-				if(gui_event!=null) {
-					Application.invokeAndWait(()->gui_event.callback(txt));
+		//writeDelay(5,cmd);
+		final int MAX_TRY = 10;
+		int cnt_try = 0;
+		writeTxt(cmd);
+		String txt = "";
+		do {
+			Misc.delay(25);
+			char cc = (char)readByte();
+			if(cc==0) {
+				//timeout!!!
+				cnt_try+=1;
+				if(cnt_try>MAX_TRY) {
+					//Do we flush buffer???
+					break;
+				}else {
+					continue;
 				}
 			}
-		});
+			txt = txt + cc;
+			if(cc=='?' || cc=='*') {
+				break;
+			}		
+		}while(isLive()==true);
+		if(hook==null) {
+			return;
+		}
+		if(txt.length()==0) {
+			Misc.loge("Timeout!! %s", cmd);
+			return;
+		}
+		txt = trim_txt(txt);
+		hook.callback(txt);
 	}
 	
-	private String trim_result(String txt) {
-		int idx = txt.indexOf(0x0D);
+	private String trim_txt(String txt) {
+		int idx = txt.indexOf(0x0A);
 		if(idx>0) {
 			txt = txt.substring(idx+1);
 		}else {
-			return "";
+			return txt;
 		}
 		idx = txt.lastIndexOf('*');
 		if(idx>0) {
 			txt = txt.substring(0,idx);
 		}else {
-			return "";
+			return txt;
 		}
 		return txt.trim();
 	}
-	private void txt2prop(
+	
+	private void txt_float2prop(
 		final String txt,
-		final FloatProperty prop 			
+		final float scale,
+		final FloatProperty prop		
 	) {
 		try {
-			String _txt = trim_result(txt);
-			if(_txt.length()==0) {
-				return;
-			}
-			float _val = Float.valueOf(_txt);
+			float val = Float.valueOf(txt) * scale;
 			if(Application.isEventThread()==true) {
-				prop.set(_val);
+				prop.set(val);
 			}else {
-				Application.invokeAndWait(()->prop.set(_val));
+				Application.invokeAndWait(()->prop.set(val));
+			}
+		}catch(NumberFormatException e) {
+			Misc.loge("[DCG-100]:wrong value-->%s", txt);
+		}
+	}
+	private void txt_float2prop(
+		final String txt,
+		final int scale,
+		final IntegerProperty prop		
+	) {
+		try {
+			int val = (int)(Float.valueOf(txt) * (float)scale);
+			if(Application.isEventThread()==true) {
+				prop.set(val);
+			}else {
+				Application.invokeAndWait(()->prop.set(val));
+			}
+		}catch(NumberFormatException e) {
+			Misc.loge("[DCG-100]:wrong value-->%s", txt);
+		}
+	}
+
+	private void txt_int2prop(
+		final String txt,
+		final int scale,
+		final IntegerProperty prop		
+	) {
+		try {
+			int val = Integer.valueOf(txt) * scale;
+			if(Application.isEventThread()==true) {
+				prop.set((int)val);
+			}else {
+				Application.invokeAndWait(()->prop.set(val));
 			}
 		}catch(NumberFormatException e) {
 			Misc.loge("[Wrong Fomrat] %s", txt);
 		}
 	}
-	/*private void txt2prop(
-		final String txt,
-		final IntegerProperty prop 			
-	) {
-		try {
-			String _txt = trim_result(txt);
-			if(_txt.length()==0) {
-				return;
-			}
-			int _val = Integer.valueOf(_txt);
-			if(Application.isEventThread()==true) {
-				prop.set(_val);
-			}else {
-				Application.invokeAndWait(()->prop.set(_val));
-			}
-		}catch(NumberFormatException e) {
-			Misc.loge("[Wrong Fomrat] %s", txt);
-		}
-	}*/
 	//-------------------------//
+	
+	public final BooleanProperty isRemote = new SimpleBooleanProperty(false);
 	
 	public final FloatProperty volt = new SimpleFloatProperty(0.f);
 	public final FloatProperty amps = new SimpleFloatProperty(0.f);
@@ -230,35 +264,56 @@ public class DevDCG100 extends DevTTY {
 	private char v_chl = 0;
 	private String v_cht = "";
 	
+	private static void exec_gui(
+		final DevDCG100 dev,
+		final String cmd
+	) {
+		dev.interrupt(()->dev.exec(cmd,(txt)->{
+			if(txt.contains("*")==true) {
+				return;
+			}
+			//command fail!!! notify user~~
+			final String _cmd = cmd.replace("\r", "");
+			final String _txt = txt.replace("\r", "");
+			Application.invokeAndWait(()->{				
+				final Alert diag = new Alert(AlertType.ERROR);
+				diag.setTitle("錯誤！！");
+				diag.setHeaderText("指令("+_cmd+")無回應:"+_txt);
+				diag.showAndWait();
+			});
+		}));
+	}
+	
 	private static void set_value(
 		final DevDCG100 dev,
 		final String cmd,
 		final String title,
 		final String text,
-		final float scale,
+		final int scale,
 		final IntegerProperty prop
 	) {
 		final TextInputDialog diag = new TextInputDialog();
 		diag.setTitle(title);
 		diag.setContentText(text);
-		Optional<String> rest = diag.showAndWait();
-		if(rest.isPresent()==true) {
-			try {
-				int val = (int)(Float.valueOf(rest.get()) * scale);
-				dev.exec(
-					String.format("%s=%d\r",cmd,val), 
-					(txt)->prop.set(val)
-				);
-			}catch(NumberFormatException exp) {				
-			}
+		Optional<String> result = diag.showAndWait();
+		if(result.isPresent()==false) {
+			return;
+		}
+		try {
+			int val = Integer.valueOf(result.get()) * scale;
+			prop.set(val);
+			exec_gui(dev,String.format("%s=%d\r",cmd,val));
+		}catch(NumberFormatException exp) {				
 		}
 	}
 	
+	private static JFXRadioButton[] tmpRad = null;//It is ugly.....
+	
 	public static Pane genPanel(final DevDCG100 dev) {
 		
-		final ToggleGroup grp1 = new ToggleGroup();
+		final ToggleGroup grp1= new ToggleGroup();
 		final ToggleGroup grp2= new ToggleGroup();
-
+		
 		final JFXRadioButton[] rad = {
 			new JFXRadioButton ("電壓"),
 			new JFXRadioButton ("電流"),
@@ -267,6 +322,9 @@ public class DevDCG100 extends DevTTY {
 			new JFXRadioButton ("間歇"),
 			new JFXRadioButton ("焦耳"),
 		};
+		for(JFXRadioButton obj:rad) {
+			obj.disableProperty().bind(dev.isRemote.not());
+		}
 		rad[0].setToggleGroup(grp1);
 		rad[1].setToggleGroup(grp1);
 		rad[2].setToggleGroup(grp1);
@@ -274,78 +332,88 @@ public class DevDCG100 extends DevTTY {
 		rad[4].setToggleGroup(grp2);
 		rad[5].setToggleGroup(grp2);
 		
-		rad[0].setOnAction(e->dev.exec("CHL=V\r"));
-		rad[1].setOnAction(e->dev.exec("CHL=A\r"));
-		rad[2].setOnAction(e->dev.exec("CHL=W\r"));
+		rad[0].setOnAction(e->exec_gui(dev,"CHL=V\r"));
+		rad[1].setOnAction(e->exec_gui(dev,"CHL=A\r"));
+		rad[2].setOnAction(e->exec_gui(dev,"CHL=W\r"));
 		
-		rad[3].setOnAction(e->dev.exec("CHT=C\r"));
-		rad[4].setOnAction(e->dev.exec("CHT=CT\r"));
-		rad[5].setOnAction(e->dev.exec("CHT=CJ\r"));
+		rad[3].setOnAction(e->exec_gui(dev,"CHT=C\r"));
+		rad[4].setOnAction(e->exec_gui(dev,"CHT=CT\r"));
+		rad[5].setOnAction(e->exec_gui(dev,"CHT=CJ\r"));
 		
+		tmpRad = rad;
 		//-------------------------------------//
 				
-		final JFXButton[] btn = new JFXButton[8];
+		final JFXButton[] btn = new JFXButton[9];
 		for(int i=0; i<btn.length; i++) {
 			btn[i] = new JFXButton(); 			
 			btn[i].setMaxWidth(Double.MAX_VALUE);
 			GridPane.setHgrow(btn[i], Priority.ALWAYS);
 		}
-		btn[0].setText("ON");
-		btn[0].getStyleClass().add("btn-raised-1");
-		btn[0].setOnAction(e->{
-			dev.exec("TRG\r");
-		});
 		
-		btn[1].setText("OFF");
-		btn[1].getStyleClass().add("btn-raised-2");
-		btn[1].setOnAction(e->{
-			dev.exec("OFF\r");
-		});
-		
-		btn[2].setText("預備時間");
-		btn[2].setOnAction(e->set_value(
+		btn[0].setText("預備時間");
+		btn[0].setOnAction(e->set_value(
 			dev,"SPR",
 			"Ramp-Time","預備訊號時間(ms)",
-			1f, dev.v_spt
+			1, dev.v_spt
 		));
 		
-		btn[3].setText("額定電壓");
-		btn[3].visibleProperty().bind(rad[0].selectedProperty());
-		btn[3].setOnAction(e->set_value(
+		btn[1].setText("額定電壓");
+		btn[1].visibleProperty().bind(rad[0].selectedProperty());
+		btn[1].setOnAction(e->set_value(
 			dev,"SPV",
 			"額定電壓","",
-			10f, dev.v_spv
-		));		
-		btn[4].setText("額定電流");
-		btn[4].visibleProperty().bind(rad[1].selectedProperty());
-		btn[4].setOnAction(e->set_value(
+			10, dev.v_spv
+		));
+		btn[2].setText("額定電流");
+		btn[2].visibleProperty().bind(rad[1].selectedProperty());
+		btn[2].setOnAction(e->set_value(
 			dev,"SPA",
 			"額定電流","",
-			100f, dev.v_spa
+			100, dev.v_spa
 		));
-		btn[5].setText("額定功率");
-		btn[5].visibleProperty().bind(rad[2].selectedProperty());
-		btn[5].setOnAction(e->set_value(
+		btn[3].setText("額定功率");
+		btn[3].visibleProperty().bind(rad[2].selectedProperty());
+		btn[3].setOnAction(e->set_value(
 			dev,"SPW",
 			"額定功率","",
-			1f, dev.v_spw
+			1, dev.v_spw
 		));
 				
-		btn[6].setText("間歇時間");
-		btn[6].visibleProperty().bind(rad[4].selectedProperty());
-		btn[6].setOnAction(e->set_value(
+		btn[4].setText("間歇時間");
+		btn[4].visibleProperty().bind(rad[4].selectedProperty());
+		btn[4].setOnAction(e->set_value(
 			dev,"SPT",
 			"Run-Time","維持輸出時間(ms)",
-			1f, dev.v_spt
+			1, dev.v_spt
 		));
 		
-		btn[7].setText("額定焦耳");		
-		btn[7].visibleProperty().bind(rad[5].selectedProperty());
-		btn[7].setOnAction(e->set_value(
+		btn[5].setText("額定焦耳");		
+		btn[5].visibleProperty().bind(rad[5].selectedProperty());
+		btn[5].setOnAction(e->set_value(
 			dev,"SPJ",
 			"Joules-Shutdown","維持總輸出功率(Joules)",
-			1f, dev.v_spj
+			1, dev.v_spj
 		));
+		
+		btn[6].setText("ON");		
+		btn[6].getStyleClass().add("btn-raised-1");
+		btn[6].disableProperty().bind(dev.isRemote.not());
+		btn[6].setOnAction(e->exec_gui(dev,"TRG\r"));
+		
+		btn[7].setText("OFF");		
+		btn[7].getStyleClass().add("btn-raised-1");
+		btn[7].disableProperty().bind(dev.isRemote.not());
+		btn[7].setOnAction(e->exec_gui(dev,"OFF\r"));
+		
+		btn[8].setText("REM-");	
+		btn[8].getStyleClass().add("btn-raised-2");		
+		btn[8].setOnAction(e->{
+			if(dev.isRemote.get()==true) {
+				exec_gui(dev,"REMF\r");//change to local
+			}else {
+				exec_gui(dev,"REME\r");//change to remote
+			}
+		});
 		
 		final Label[] txt = new Label[6];
 		for(int i=0; i<txt.length; i++) {
@@ -356,70 +424,53 @@ public class DevDCG100 extends DevTTY {
 		txt[3].visibleProperty().bind(rad[2].selectedProperty());		
 		txt[4].visibleProperty().bind(rad[4].selectedProperty());
 		txt[5].visibleProperty().bind(rad[5].selectedProperty());
-		//-------------------------------------//
+		
+		txt[0].textProperty().bind(dev.v_spr.asString("%d ms"));//ramp-time
+		txt[0].setOnMouseClicked(e->btn[0].getOnAction().handle(null));
+		
+		txt[1].textProperty().bind(dev.v_spv.multiply(0.1f).asString("%.1f V"));
+		txt[1].setOnMouseClicked(e->btn[1].getOnAction().handle(null));
+		
+		txt[2].textProperty().bind(dev.v_spa.multiply(0.01f).asString("%.2f A"));
+		txt[2].setOnMouseClicked(e->btn[2].getOnAction().handle(null));
+		
+		txt[3].textProperty().bind(dev.v_spw.asString("%d W"));
+		txt[3].setOnMouseClicked(e->btn[3].getOnAction().handle(null));
+		
+		txt[4].textProperty().bind(dev.v_spt.asString("%d ms"));//run-time shutdown
+		txt[4].setOnMouseClicked(e->btn[4].getOnAction().handle(null));
+		
+		txt[5].textProperty().bind(dev.v_spj.asString("%d kJ"));//joules shutdown
+		txt[5].setOnMouseClicked(e->btn[5].getOnAction().handle(null));
 		
 		final GridPane lay1 = new GridPane();
 		lay1.getStyleClass().addAll("box-pad-inner");
-		lay1.add(btn[2], 0, 0, 1, 1); lay1.add(txt[0], 1, 0, 1, 1);
-		lay1.add(btn[3], 0, 1, 1, 1); lay1.add(txt[1], 1, 1, 1, 1);
-		lay1.add(btn[4], 0, 1, 1, 1); lay1.add(txt[2], 1, 1, 1, 1);
-		lay1.add(btn[5], 0, 1, 1, 1); lay1.add(txt[3], 1, 1, 1, 1);
-		lay1.add(btn[6], 0, 2, 1, 1); lay1.add(txt[4], 1, 2, 1, 1);
-		lay1.add(btn[7], 0, 2, 1, 1); lay1.add(txt[5], 1, 2, 1, 1);
+		lay1.add(btn[0], 0, 0, 1, 1); lay1.add(txt[0], 1, 0, 1, 1);
+		lay1.add(btn[1], 0, 1, 1, 1); lay1.add(txt[1], 1, 1, 1, 1);
+		lay1.add(btn[2], 0, 1, 1, 1); lay1.add(txt[2], 1, 1, 1, 1);
+		lay1.add(btn[3], 0, 1, 1, 1); lay1.add(txt[3], 1, 1, 1, 1);
+		lay1.add(btn[4], 0, 2, 1, 1); lay1.add(txt[4], 1, 2, 1, 1);
+		lay1.add(btn[5], 0, 2, 1, 1); lay1.add(txt[5], 1, 2, 1, 1);
+		lay1.disableProperty().bind(dev.isRemote.not());
 		
-		final GridPane lay = new GridPane();
-		lay.getStyleClass().addAll("box-pad");
-		lay.add(new Label("調變訊號"), 0, 0);
-		lay.add(new Label("輸出模式"), 2, 0);
-		lay.add(rad[0], 0, 1);
-		lay.add(rad[1], 0, 2);
-		lay.add(rad[2], 0, 3);
-		lay.add(rad[3], 2, 1);
-		lay.add(rad[4], 2, 2);
-		lay.add(rad[5], 2, 3);
-		lay.add(new Separator(Orientation.VERTICAL), 1, 0, 1, 4);
-		lay.add(new Separator(), 0, 4, 3, 1);
-		lay.add(lay1, 0, 5, 3, 3);
-		lay.add(new Separator(), 0, 8, 3, 1);
-		lay.add(btn[0], 0, 9, 3, 1);
-		lay.add(btn[1], 0,10, 3, 1);
-		
-		//binding!!!
-		Application.invokeLater(()->{
-			
-			final AnimationTimer tim = new AnimationTimer() {
-				@Override
-				public void handle(long arg0) {
-					if(dev.v_chl==0 || dev.v_cht.length()==0) {
-						return;
-					}
-					switch(dev.v_chl) {
-					case 'V': rad[0].setSelected(true); break;
-					case 'A': rad[1].setSelected(true); break;
-					case 'W': rad[2].setSelected(true); break;
-					}
-					if(dev.v_cht.equalsIgnoreCase("C")==true) {
-						rad[3].setSelected(true);
-					}else if(dev.v_cht.equalsIgnoreCase("CT")==true) {
-						rad[4].setSelected(true);
-					}else if(dev.v_cht.equalsIgnoreCase("CJ")==true) {
-						rad[5].setSelected(true);
-					}
-					stop();
-				}
-			};
-			tim.start();
-			
-			txt[0].textProperty().bind(dev.v_spr.asString("%d ms"));//ramp-time
-			
-			txt[1].textProperty().bind(dev.v_spv.multiply(0.1f).asString("%.1f V"));
-			txt[2].textProperty().bind(dev.v_spa.multiply(0.01f).asString("%.2f A"));
-			txt[3].textProperty().bind(dev.v_spw.asString("%d W"));
-			
-			txt[4].textProperty().bind(dev.v_spt.asString("%d ms"));//run-time shutdown
-			txt[5].textProperty().bind(dev.v_spj.asString("%d kJ"));//joules shutdown
-		});
-		return lay;
+		final GridPane lay0 = new GridPane();
+		lay0.getStyleClass().addAll("box-pad");
+		lay0.add(new Label("調變訊號"), 0, 0);
+		lay0.add(new Label("輸出模式"), 2, 0);
+		lay0.add(rad[0], 0, 1);
+		lay0.add(rad[1], 0, 2);
+		lay0.add(rad[2], 0, 3);
+		lay0.add(rad[3], 2, 1);
+		lay0.add(rad[4], 2, 2);
+		lay0.add(rad[5], 2, 3);
+		lay0.add(new Separator(Orientation.VERTICAL), 1, 0, 1, 4);
+		lay0.add(new Separator(), 0, 4, 3, 1);
+		lay0.add(lay1, 0, 5, 3, 3);
+		lay0.add(new Separator(), 0, 8, 3, 1);
+		lay0.add(btn[6], 0, 9, 3, 1);
+		lay0.add(btn[7], 0,10, 3, 1);
+		lay0.add(btn[8], 0,11, 3, 1);
+		return lay0;
 	}
 }
 

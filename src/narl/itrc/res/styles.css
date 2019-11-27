@@ -37,6 +37,14 @@
 	-fx-text-fill: black;
 }
 
+.jfx-decorator .jfx-decorator-buttons-container {
+    -fx-background-color: #1e88e5;
+}
+.jfx-decorator .resize-border {
+    -fx-border-color:  #1e88e5;
+    -fx-border-width: 0 7 7 7;
+}
+
 .ground-pad {
 	-fx-alignment: center;
 	-fx-background-color: white;
