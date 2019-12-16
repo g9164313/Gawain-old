@@ -91,24 +91,26 @@ public class Loader extends Task<Integer> {
 		updateProgress(0, barMax);
 
 		while(lst.isEmpty()==false){
-			LibFile tkn = lst.pollFirst();
+			LibFile fs = lst.pollFirst();
 			try {
-				System.loadLibrary(tkn.getLibName());
-				updateMessage("載入 "+tkn.getName());
+				System.loadLibrary(fs.getLibName());
+				String name = fs.getName();
+				Misc.logv("load "+name);
+				updateMessage("載入 "+name);
+				updateProgress(barCur, barMax);
 				barCur+=1L;
 			} catch (UnsatisfiedLinkError e1) {
-				tkn.fail+=1;
-				if(tkn.fail>=(barMax-barCur)){
+				fs.fail+=1;
+				if(fs.fail>(barMax-barCur)){
 					//we can't solve the dependency problem, so drop it out.
-					updateMessage("拋棄 "+tkn.getAbsolutePath());
+					updateMessage("拋棄 "+fs.getAbsolutePath());
 					break;
 				}else{
 					//this file have the dependency problem, deal with it later.
-					lst.addLast(tkn);
-					updateMessage("重排 "+tkn.getName());
+					lst.addLast(fs);
+					updateMessage("重排 "+fs.getName());
 				}				
-			}
-			updateProgress(barCur, barMax);
+			}			
 		}
 	}
 	

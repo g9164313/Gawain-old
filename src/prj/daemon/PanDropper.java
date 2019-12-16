@@ -5,13 +5,13 @@ import com.jfoenix.controls.JFXCheckBox;
 import com.jfoenix.controls.JFXToggleButton;
 
 import javafx.beans.binding.BooleanBinding;
-import javafx.scene.Node;
 import javafx.scene.control.Accordion;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TitledPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 
 import narl.itrc.Gawain;
@@ -45,7 +45,7 @@ public class PanDropper extends PanBase {
 	}
 	
 	@Override
-	public Node eventLayout(PanBase self) {
+	public Pane eventLayout(PanBase self) {
 		
 		stage().setOnShown(e->{
 			chkOko.fire();
@@ -125,15 +125,15 @@ public class PanDropper extends PanBase {
 		}
 		btn[0].getStyleClass().add("btn-raised-1");
 		btn[0].setOnAction(e->{cam.startProcess(
-			()->stub1(cam),
-			()->spin.setVisible(true),
-			()->spin.setVisible(false)
+			()->stub1(cam),null,null
+			//()->spin.setVisible(true),
+			//()->spin.setVisible(false)
 		);});
 		btn[1].getStyleClass().add("btn-raised-2");
 		btn[1].setOnAction(e->{cam.startProcess(
-			()->stub2(cam,1),
-			()->spin.setVisible(true),
-			()->spin.setVisible(false)
+			()->stub2(cam,1),null,null
+			//()->spin.setVisible(true),
+			//()->spin.setVisible(false)
 		);});
 		btn[2].getStyleClass().add("btn-raised-2");
 		btn[2].setOnAction(e->{cam.startProcess(

@@ -72,7 +72,11 @@ public class DevSQM160 extends DevTTY {
 		nextState.set(STG_MONT);
 	}
 	private void state_monitor() {
-		if(waiting(500)==true) { return; }
+		try {
+			Thread.sleep(500);
+		} catch (InterruptedException e) {
+			return;
+		}
 		
 		String[] col;
 		col = exec_s("W").split("\\s+");
@@ -132,6 +136,7 @@ public class DevSQM160 extends DevTTY {
 		}
 		//Command Packet (Host to SQM-160 Message)
 		//<Sync character> <Length character> <Message> <CRC1><CRC2>		
+		//test command: !#@O7
 		final byte[] buf = new byte[200];
 		
 		short crc = 0x3fff;

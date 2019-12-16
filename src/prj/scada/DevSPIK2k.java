@@ -31,14 +31,14 @@ import narl.itrc.Misc;
  * @author qq
  *
  */
-public class DevSPIK2000 extends DevTTY {
+public class DevSPIK2k extends DevTTY {
 
-	public DevSPIK2000() {
+	public DevSPIK2k() {
 		TAG = "SPIK-2000";
 		flowControl = 0x10;//disable all controls
-		readTimeout = 1000;
+		readTimeout = 100;
 	}
-	public DevSPIK2000(String path_name){
+	public DevSPIK2k(String path_name){
 		this();
 		setPathName(path_name);
 	}
@@ -46,7 +46,7 @@ public class DevSPIK2000 extends DevTTY {
 	protected void afterOpen() {
 		setupState0("init", ()->{
 			fst_value1 = get_register( 0,8);
-			fst_value2 = get_register(26,6);
+			//fst_value2 = get_register(26,6);
 			nextState.set(null);
 			Application.invokeAndWait(()->{
 				if(fst_value1==null) {
@@ -86,7 +86,7 @@ public class DevSPIK2000 extends DevTTY {
 		return bcc;
 	}
 	
-	private byte[] pack(
+	private byte pack(
 		final byte[] buf,
 		final char tkn2, 
 		final char tkn3,
@@ -110,14 +110,13 @@ public class DevSPIK2000 extends DevTTY {
 		buf[off+0] = DLE;
 		buf[off+1] = ETX;
 		buf[off+2] = (byte)checksum(buf,0,off+2);
-		return buf;
+		return buf[off+2];
 	}
 	
-	private boolean notify_device() {
+	private boolean tell_3964R() {
 		writeByte(STX);
 		byte cc = 0;
 		do{
-			Misc.delay(10);
 			cc = readByte();
 			if(cc==DLE) {
 				return true;
@@ -126,15 +125,23 @@ public class DevSPIK2000 extends DevTTY {
 		return false;
 	}
 	
-	private boolean waiting_device() {
-		byte[] res = {0,0};
-		readByte(res,0,2);
-		if(res[0]==DLE && res[1]==STX) {
-			writeByte(DLE);
-			return true;
+	private boolean wait_3964R(final byte BCC) {
+		final byte[] res = {DLE,ETX,BCC};
+		writeByte(res,0,3);
+		int idx = 0;
+		int len = 2;
+		do {
+			int cnt = readByte(res,idx,len);
+			if(cnt>0) {
+				idx+=cnt;
+				len-=cnt;
+			}
+		}while(isLive()==true && len>0);
+		if(res[0]!=DLE || res[1]!=STX) {
+			Misc.loge("[wait 3964R] x%02X,%02X", res[0], res[1]);
 		}
-		Misc.loge("[SPIK-WAIT] %02X %02X", res[0], res[1]);
-		return false;
+		writeByte(DLE);
+		return true;
 	}
 	
 	private int[] get_register(
@@ -149,25 +156,25 @@ public class DevSPIK2000 extends DevTTY {
 		}else {
 			ans = new byte[4+6+3];
 		}
+		final byte BCC = pack(ans,'E','D',addr,size,0);
+		
 		//step.1 - give start code and waiting.
-		if(notify_device()==false) {
+		if(tell_3964R()==false) {
 			return null;
 		}
-		//step.2 - give device RK512 header.
-		pack(ans,'E','D',addr,size,0);
-		writeByte(ans,0,13);
-		//step.3 - wait for receiver
-		if(waiting_device()==false) {
+		//step.2 - give device RK512 header.		
+		writeByte(ans,0,13-3);
+		if(wait_3964R(BCC)==false) {
 			return null;
 		}	
-		//step.4 - get frame:
-		//	token(3byte), error-code(), 
+		//step.3 - get frame:
+		//	token(3byte), error-code(1byte), 
 		//	data package(size*2),
 		//	DLE, ETX, CRC
-		readByte(ans,0,(3+1+cnt+3));		
-		writeByte(DLE);
+		purgeByte(ans,(3+1+cnt+3));
+		//writeByte(DLE);//do we need this???
 		//end of talking~~~~
-		if(	ans[3]!=0||
+		if(	ans[3]!=0 ||
 			ans[3+1+cnt+0]!=DLE ||
 			ans[3+1+cnt+1]!=ETX 
 		) {
@@ -189,38 +196,34 @@ public class DevSPIK2000 extends DevTTY {
 		final int addr, 
 		final int... vals
 	) {
-		int size = vals.length;
+		int cnt = vals.length;
 		//prepare RK512, Data
-		byte[] ans = new byte[10+size*2+3];
-		for(int i=0; i<size; i++) {
+		byte[] ans = new byte[10+cnt*2+3];
+		for(int i=0; i<cnt; i++) {
 			ans[10+i*2+0] = (byte)((vals[i] & 0xFF00)>>8);
 			ans[10+i*2+1] = (byte)((vals[i] & 0x00FF)   );
 		}
-		pack(ans,'A','D',addr,size,size*2);
+		final byte BCC = pack(ans,'A','D',addr,cnt,cnt*2);
 		//step.1 - give start code and waiting.
-		if(notify_device()==false) {
+		if(tell_3964R()==false) {
 			return false;
 		}
 		//step.2 - give device RK512 header.
-		writeByte(ans,0,ans.length);
-		//step.3 - wait for receiver
-		if(waiting_device()==false) {
+		writeByte(ans,0,ans.length-3);
+		if(wait_3964R(BCC)==false) {
 			return false;
 		}
-		//step.4 - give echo
-		size = readByte(ans,0,7);
-		writeByte(DLE);
+		//step.3 - give echo
+		purgeByte(ans,7);
+		//writeByte(DLE);//do we need this???
 		//end of talking~~~~		
-		if(	size==7 &&
-			ans[4]==DLE &&
-			ans[5]==ETX 
+		if(	ans[1]==0 &&
+			ans[2]==0 &&
+			ans[3]==0 && 
+			ans[4]==DLE && ans[5]==ETX
 		) {
 			return true;
 		}
-		Misc.loge(
-			"[SPIK-WRITE-ECHO]: %02X %02X %02X %02X %02X %02X %02X",
-			ans[0],ans[1],ans[2],ans[3],ans[4],ans[5],ans[6]
-		);
 		return false;
 	}
 
@@ -290,7 +293,7 @@ public class DevSPIK2000 extends DevTTY {
 	}	
 	
 	private static void set_txt_value(
-		final DevSPIK2000 dev, 
+		final DevSPIK2k dev, 
 		final Label txt, 
 		final int addr
 	) {
@@ -318,7 +321,7 @@ public class DevSPIK2000 extends DevTTY {
 	private static JFXRadioButton[] tmpRad = null;
 	private static Label[] tmpTxt = null;
 	
-	public static Pane genPanel(final DevSPIK2000 dev) {
+	public static Pane genPanel(final DevSPIK2k dev) {
 		
 		final ToggleGroup grp = new ToggleGroup();
 		

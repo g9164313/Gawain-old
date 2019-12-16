@@ -6,9 +6,10 @@
 #include <signal.h>
 #endif//_MSC_VER
 
+#define JNI_PREFIX_NAME(name) Java_narl_itrc_DevTTY_##name
 #define NAME_HANDLE  "handle"
 
-extern "C" JNIEXPORT void Java_narl_itrc_DevTTY_implOpen(
+extern "C" JNIEXPORT void JNI_PREFIX_NAME(implOpen)(
 	JNIEnv * env,
 	jobject thiz,
 	jstring jname,
@@ -253,7 +254,7 @@ extern "C" JNIEXPORT void Java_narl_itrc_DevTTY_implOpen(
 #endif//_MSC_VER
 }
 
-extern "C" JNIEXPORT jint Java_narl_itrc_DevTTY_implRead(
+extern "C" JNIEXPORT jint JNI_PREFIX_NAME(implRead)(
 	JNIEnv * env,
 	jobject thiz,
 	jbyteArray jbuf,
@@ -275,16 +276,18 @@ extern "C" JNIEXPORT jint Java_narl_itrc_DevTTY_implRead(
 	size_t count;
 	jbyte* ptr = buf + offset;	
 #if defined _MSC_VER
-	DWORD res;
+	DWORD result;
 	//SetCommMask((HANDLE)fd, EV_RXCHAR);
 	//WaitCommEvent((HANDLE)fd, (LPDWORD)(&res), NULL);
-	ReadFile(
+	if (FALSE == ReadFile(
 		(HANDLE)fd,
 		ptr, length,
-		(LPDWORD)(&res),
+		(LPDWORD)(&result),
 		NULL
-	);
-	count = res;
+	)) {
+		cout << "Fail to read from TTY" << endl;
+	};
+	count = result;
 #else
 	count = read(fd,ptr,length);
 #endif
@@ -294,7 +297,7 @@ extern "C" JNIEXPORT jint Java_narl_itrc_DevTTY_implRead(
 }
 
 
-extern "C" JNIEXPORT jint Java_narl_itrc_DevTTY_implWrite(
+extern "C" JNIEXPORT jint JNI_PREFIX_NAME(implWrite)(
 	JNIEnv * env,
 	jobject thiz,
 	jbyteArray jbuf,
@@ -331,7 +334,7 @@ extern "C" JNIEXPORT jint Java_narl_itrc_DevTTY_implWrite(
 	return count;
 }
 
-extern "C" JNIEXPORT void Java_narl_itrc_DevTTY_implClose(
+extern "C" JNIEXPORT void JNI_PREFIX_NAME(implClose)(
 	JNIEnv * env,
 	jobject thiz
 ) {
