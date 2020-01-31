@@ -172,7 +172,45 @@ public class DevLKIF2 extends DevBase {
 	}
 	
 	public void resetValue(final int outID) {
-		interrupt(()->implResetValue(outID));
+		breakIn(()->implResetValue(outID));
+	}
+
+	/**
+	 * get measurement result. The character means: <p>
+	 * @: valid data. <p>
+	 * +: over range at positive (+) side. <p>
+	 * -: over range at negative (-) side. <p>
+	 * w: waiting comparator result. <p>
+	 * a: alarm
+	 * x: error, invalid value
+	 * @param id
+	 * @return
+	 */
+	public char getResult(final int id) {
+		if(rest==null) {
+			return 'x';
+		}else if(id>=rest.length) {
+			return 'x';
+		}
+		return rest[id];
+	}
+	public float getValue(final int id) {
+		if(meas==null) {
+			return 0f;
+		}else if(id>=meas.length) {
+			return 0f;
+		}
+		return meas[id];
+	}
+	public String getUnit(final int id) {
+		if(outs==null) {
+			return "";
+		}else if(id>=outs.length) {
+			return "";
+		}
+		int typ = outs[id][20];
+		int vid = outs[id][19];
+		return unit[typ][vid];
 	}
 	
 	private native void getInfo(int[] info);

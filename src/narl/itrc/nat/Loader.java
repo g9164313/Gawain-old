@@ -24,8 +24,7 @@ public class Loader extends Task<Integer> {
 		prepare_resource();
 		loading_library();
 		updateProgress(-1.,-1.);//let progress-bar waiting~~~
-		updateMessage("等待主畫面... ");
-		Gawain.mainPanel.initLayout();
+		updateMessage("等待主畫面... ");	
 		return 0;
 	}
 	
@@ -134,17 +133,15 @@ public class Loader extends Task<Integer> {
 	public void launch(final Stage stg){
 		
 		setOnSucceeded(e->{
-			long tick = System.currentTimeMillis();
-			Gawain.mainPanel.appear();			
+			Gawain.mainPanel();
 			stg.close();
-			Misc.logv("Startup: %dms",System.currentTimeMillis()-tick);
 		});
 		
 		final Scene scn = new Scene(layout(stg));
 		scn.getStylesheets().add(Gawain.sheet);
 		stg.setScene(scn);
 		stg.initStyle(StageStyle.TRANSPARENT);
-		stg.setAlwaysOnTop(true);
+		//stg.setAlwaysOnTop(true);
 		stg.setResizable(false);
 		stg.centerOnScreen();		
 		stg.setOnShown(e->new Thread(this,"Loader").start());

@@ -96,12 +96,12 @@ public class DevDCG100 extends DevTTY {
 			//joules or run-time shutdown
 			v_cht = trim_txt(txt);
 		});
-		nextState.set(null);
 		exec("REM1\r",(txt)->{});
 		exec("REME\r",(txt)->{Application.invokeAndWait(()->{
 			isRemote.set(true);
 			nextState.set(STG_MONT);
 		});});
+		nextState.set(null);
 	}	
 	private void state_monitor() {
 		try { Thread.sleep(100); } catch (InterruptedException e) { return;	}
@@ -143,7 +143,7 @@ public class DevDCG100 extends DevTTY {
 		final ReadBack hook
 	) {
 		writeTxt(cmd);
-		String txt = readTxt(1,32);
+		String txt = readTxt(readTimeout*2);
 		//callback, notify user~~~
 		if(hook==null) {
 			return;
@@ -226,13 +226,13 @@ public class DevDCG100 extends DevTTY {
 		final String cmd,
 		final ReadBack hook
 	) {
-		interrupt(()->exec(cmd,hook));
+		breakIn(()->exec(cmd,hook));
 	}
 	public void asyncTrigger() {
-		interrupt(()->exec("TRG \r",null));
+		breakIn(()->exec("TRG \r",null));
 	}
 	public void asyncTurnOff() {
-		interrupt(()->exec("OFF \r",null));
+		breakIn(()->exec("OFF \r",null));
 	}
 	//-------------------------//
 	
@@ -257,7 +257,7 @@ public class DevDCG100 extends DevTTY {
 		final DevDCG100 dev,
 		final String cmd
 	) {
-		dev.interrupt(()->dev.exec(cmd,(txt)->{
+		dev.breakIn(()->dev.exec(cmd,(txt)->{
 
 			if(txt.contains("*")==true) {
 				//very special condition~~~

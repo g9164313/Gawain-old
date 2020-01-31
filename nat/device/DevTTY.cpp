@@ -46,6 +46,18 @@ extern "C" JNIEXPORT void JNI_PREFIX_NAME(implOpen)(
 	}
 	setJLong(env,thiz,NAME_HANDLE,(long)hand);
 	
+	COMMTIMEOUTS cpt;
+	//GetCommTimeouts(hand, &cpt);
+	cpt.ReadIntervalTimeout = readTimeout*10;//milliseconds
+	cpt.ReadTotalTimeoutMultiplier = 0;
+	cpt.ReadTotalTimeoutConstant = readTimeout;
+	cpt.WriteTotalTimeoutMultiplier = 0;
+	cpt.WriteTotalTimeoutConstant = 0;
+	if (!SetCommTimeouts(hand, &cpt)) {
+		cout << "Fail to set Timeout" << endl;
+	}
+	SetCommMask(hand, EV_RXCHAR | EV_CTS);
+
 	DCB dcb;
 	GetCommState(hand, &dcb);
 	dcb.BaudRate = baud_rate;
@@ -85,6 +97,13 @@ extern "C" JNIEXPORT void JNI_PREFIX_NAME(implOpen)(
 	}
 	
 	switch (flowControl) {
+	default:
+		dcb.fOutxCtsFlow = FALSE;
+		dcb.fOutxDsrFlow = FALSE;
+		dcb.fDsrSensitivity = FALSE;
+		dcb.fDtrControl = DTR_CONTROL_ENABLE;
+		dcb.fRtsControl = RTS_CONTROL_DISABLE;
+		break;
 	case 1://RTS_CTS hardware fllow control
 		dcb.fOutxCtsFlow = TRUE;
 		dcb.fOutxDsrFlow = FALSE;
@@ -128,36 +147,8 @@ extern "C" JNIEXPORT void JNI_PREFIX_NAME(implOpen)(
 		dcb.fRtsControl = RTS_CONTROL_DISABLE;
 		break;
 	}
-	
 	if(SetCommState(hand, &dcb)==FALSE){
 		cout<<"Fail to set DBCA of "<<name<<endl;
-	}else {
-		//#define SHOW_DCB
-		#ifdef SHOW_DCB
-		cout << name << ":" << endl;
-		cout << "fTXContinueOnXoff:" << dcb.fTXContinueOnXoff << endl;
-		cout << "fOutX:" << dcb.fOutX << endl;
-		cout << "fInX :" << dcb.fInX << endl;
-		cout << "fDtrControl    :" << dcb.fDtrControl << endl;
-		cout << "fRtsControl    :" << dcb.fRtsControl << endl;
-		cout << "fOutxCtsFlow   :" << dcb.fOutxCtsFlow << endl;
-		cout << "fOutxDsrFlow   :" << dcb.fOutxDsrFlow << endl;
-		cout << "fDsrSensitivity:" << dcb.fDsrSensitivity << endl;
-		cout << "fAbortOnError  :" << dcb.fDsrSensitivity << endl;
-		cout << "XonChar:" << (int)dcb.XonChar << endl;
-		cout << "XoffChar:"<< (int)dcb.XoffChar<< endl;
-		cout << "EofChar:" << (int)dcb.EofChar << endl;
-		#endif
-	}
-	COMMTIMEOUTS cpt;
-	//GetCommTimeouts(hand, &cpt);
-	cpt.ReadIntervalTimeout = MAXDWORD;//milliseconds
-	cpt.ReadTotalTimeoutMultiplier = 0;
-	cpt.ReadTotalTimeoutConstant   = readTimeout;
-	cpt.WriteTotalTimeoutMultiplier= 50;
-	cpt.WriteTotalTimeoutConstant  = 0;
-	if(!SetCommTimeouts(hand, &cpt)){
-		cout<<"Fail to set Timeout"<<endl;
 	}
 #else
 	int fd = open(name, O_RDWR);
@@ -272,12 +263,11 @@ extern "C" JNIEXPORT jint JNI_PREFIX_NAME(implRead)(
 	if (length <= 0 || (length > len)) {
 		length = len;
 	}
-	jbyte* buf = env->GetByteArrayElements(jbuf,NULL);
 	size_t count;
+	jbyte* buf = env->GetByteArrayElements(jbuf,NULL);
 	jbyte* ptr = buf + offset;	
 #if defined _MSC_VER
 	DWORD result;
-	//SetCommMask((HANDLE)fd, EV_RXCHAR);
 	//WaitCommEvent((HANDLE)fd, (LPDWORD)(&res), NULL);
 	if (FALSE == ReadFile(
 		(HANDLE)fd,
@@ -292,7 +282,7 @@ extern "C" JNIEXPORT jint JNI_PREFIX_NAME(implRead)(
 	count = read(fd,ptr,length);
 #endif
 	env->ReleaseByteArrayElements(jbuf,buf,0);
-	//cout<<"read-len="<<len<<","<<length<<endl;
+	//cout<<"read-len="<< length <<", read="<<count<<endl;
 	return count;
 }
 
@@ -315,8 +305,8 @@ extern "C" JNIEXPORT jint JNI_PREFIX_NAME(implWrite)(
 	if(length<=0 || (length>len)){
 		length = len;
 	}
-	jbyte* buf = env->GetByteArrayElements(jbuf,NULL);
 	size_t count;
+	jbyte* buf = env->GetByteArrayElements(jbuf,NULL);
 	jbyte* ptr = buf + offset;
 #if defined _MSC_VER
 	DWORD res;

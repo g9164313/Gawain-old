@@ -140,7 +140,25 @@ public class DevTTY extends DevBase {
 	 */
 	public int readByte(byte[] buf) {
 		return implRead(buf,0,-1); 
-	}	
+	}
+	
+	/**
+	 * Read data until the end of buffer.<p>
+	 * This function is blocking!!.<p>
+	 * @param buf - keep data
+	 * @param len - maximum length
+	 */
+	public void purgeByte(byte[] buf,int len) {
+		int idx = 0;
+		do {
+			int cnt = readByte(buf,idx,len);
+			if(cnt>0) {
+				idx+=cnt;
+				len-=cnt;
+			}
+		}while(isLive()==true && len>0);
+	}
+	
 	/**
 	 * block-reading, thread will be trapped in this function.<p>
 	 * In win7, it will stop after 5 second.<p>
@@ -148,20 +166,40 @@ public class DevTTY extends DevBase {
 	 * @return
 	 */
 	public String readTxt() {
-		return readTxt(-1);
+		return readTxt(500);
 	}
 	
-	public String readTxt(final int len) {
-		final byte[] buf = new byte[64];
+	private static final int TXT_BUF_SIZE = 64;
+	
+	/**
+	 * block-reading, and try to read until TTY timeout.<p>
+	 * @param tryCount - count for trying.<p>
+	 * @param maxLength - received length.<p>
+	 * @return
+	 */
+	public String readTxt(int msec) {
+		final byte[] buf = new byte[TXT_BUF_SIZE];
+		String txt = "";
+		long t0 = System.currentTimeMillis();
+		do {
+			int cnt = implRead(buf,0,-1);
+			if(cnt>0) {
+				txt = txt + new String(buf,0,cnt);
+			}			
+		}while(isLive()==true && (System.currentTimeMillis()-t0)<msec);
+		return txt;
+	}
+	
+	public String readTxt(final String regx) {
+		final byte[] buf = new byte[TXT_BUF_SIZE];
 		String txt = "";
 		do {
 			int cnt = implRead(buf,0,-1);
-			if(cnt<=0) {
-				break;
-			}
-			txt = txt + new String(buf,0,cnt);
-			if(txt.length()>=len || len<=0) {
-				return txt;
+			if(cnt>0) {
+				txt = txt + new String(buf,0,cnt);
+				if(txt.matches(regx)==true) {
+					break;
+				}
 			}
 		}while(isLive()==true);
 		return txt;
@@ -253,10 +291,7 @@ public class DevTTY extends DevBase {
 		char stop_bit,
 		char flow_mode
 	);
-
 	private native int implRead(byte[] buf, int off, int cnt);
-	
 	private native int implWrite(byte[] buf, int off, int cnt);
-	
 	private native void implClose();
 }

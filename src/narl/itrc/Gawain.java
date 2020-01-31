@@ -413,9 +413,8 @@ public class Gawain extends Application {
 	
 	public static PanBase mainPanel = null;
 	
-	@Override
-	public void start(Stage init_stage) throws Exception {
-		
+	public static void mainPanel() {
+		long tick = System.currentTimeMillis();
 		try {
 			String name = Gawain.prop().getProperty("LAUNCH","");
 			if(name.length()==0) {
@@ -425,8 +424,11 @@ public class Gawain extends Application {
 					.getConstructor()
 					.newInstance();
 					//.getConstructor(Stage.class)
-					//.newInstance(p_stage);
+					//.newInstance(stg);
 			}
+			mainPanel.initLayout();
+			mainPanel.appear();
+			Misc.logv("Startup: %dms",System.currentTimeMillis()-tick);
 		} catch (
 			InstantiationException | 
 			IllegalAccessException | 
@@ -439,7 +441,11 @@ public class Gawain extends Application {
 			e.printStackTrace();
 			Misc.loge("啟動類別失敗");
 		}
-		new Loader().launch(init_stage);
+	}
+	
+	@Override
+	public void start(Stage stg) throws Exception {
+		new Loader().launch(stg);
 	}
 	
 	public static void main(String[] argv) {

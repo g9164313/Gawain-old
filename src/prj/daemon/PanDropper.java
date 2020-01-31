@@ -29,7 +29,7 @@ public class PanDropper extends PanBase {
 	public PanDropper(){
 		//some initialization~~~
 		cam.setMinSize(600+23,800+23);
-		vid.setFlip('{');
+		/*vid.setFlip('{');
 		vid.setupAfter(()->{
 			vid.setProperty(3, 800);//CAP_PROP_FRAME_WIDTH
 			vid.setProperty(4, 600);//CAP_PROP_FRAME_HEIGHT
@@ -41,15 +41,18 @@ public class PanDropper extends PanBase {
 			//vid.setProperty(15, 0.09);//CAP_PROP_EXPOSURE=0.0797
 			vid.setProperty(44, 0.);//CAP_PROP_AUTO_WB=1
 			//setProperty(45, 6148);//CAP_PROP_WB_TEMPERATURE=6148
-		});
+		});*/
 	}
 	
 	@Override
 	public Pane eventLayout(PanBase self) {
 		
 		stage().setOnShown(e->{
-			chkOko.fire();
+			Gawain.prop().getProperty("SHAPEOKO","");
+			
+			//chkOko.fire();
 			//chkCam.fire();
+						
 			cam.unflattenMark(Gawain.prop().getProperty("VIEW_MARK",""));
 		});
 		stage().setOnHidden(e->{
@@ -93,7 +96,7 @@ public class PanDropper extends PanBase {
 			Misc.loge("too long!!!");
 			return -2;
 		}
-		oko.move(xx, yy, 0, false);
+		oko.moveRel(xx, yy, 0);
 		if(stepACC==true) {
 			return 0;
 		}
@@ -269,22 +272,22 @@ public class PanDropper extends PanBase {
 		btn[0].setText("⇧");
 		btn[0].setOnAction(e->{
 			int yy = Math.abs(Misc.txt2int(box[1].getText()));
-			oko.move(0, 0, yy, chkMove.isSelected());
+			oko.move(chkMove.isSelected(), 0, 0, yy);
 		});
 		btn[1].setText("⇩");
 		btn[1].setOnAction(e->{
 			int yy = Math.abs(Misc.txt2int(box[1].getText()));
-			oko.move(0, 0, -yy, chkMove.isSelected());
+			oko.move(chkMove.isSelected(), 0, 0, -yy);
 		});
 		btn[2].setText("⇦");
 		btn[2].setOnAction(e->{
 			int xx = Math.abs(Misc.txt2int(box[0].getText()));
-			oko.move(-xx, 0, 0, chkMove.isSelected());
+			oko.move(chkMove.isSelected(),-xx, 0, 0);
 		});
 		btn[3].setText("⇨");
 		btn[3].setOnAction(e->{
 			int xx = Math.abs(Misc.txt2int(box[0].getText()));
-			oko.move(xx, 0, 0, chkMove.isSelected());
+			oko.move(chkMove.isSelected(), xx, 0, 0);
 		});
 		
 		final GridPane lay1 = new GridPane();
@@ -298,16 +301,16 @@ public class PanDropper extends PanBase {
 		btn[4].setOnAction(e->{
 			int xx = Misc.txt2int(box[0].getText());
 			int yy = Misc.txt2int(box[1].getText());
-			oko.move(xx,yy,0,chkMove.isSelected());
+			oko.move(chkMove.isSelected(),xx,yy,0);
 		});
 
 		btn[5].setText("歸回原點");
-		btn[5].setOnAction(e->oko.exec(
+		/*btn[5].setOnAction(e->oko.exec(
 			"$H", 
 			"G90", 
 			"G0X-170Y-170", 
 			"G92X0Y0Z0"
-		));
+		));*/
 
 		final GridPane lay = new GridPane();
 		lay.addRow(0,new Label("狀態："), txt[0]);

@@ -3,10 +3,13 @@ package narl.itrc;
 import java.io.File;
 import java.util.List;
 
-import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXDecorator;
+import com.jfoenix.controls.JFXDialog;
 import com.jfoenix.controls.JFXSpinner;
+import com.jfoenix.controls.events.JFXDialogEvent;
 
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.concurrent.Task;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
@@ -15,36 +18,35 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
-import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
-import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCombination;
-import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 
 public abstract class PanBase {
 	
-	protected DutyFace spin = new DutyFace();
-	
-	private final StackPane root = new StackPane();
-	
-	private final Scene scene = new Scene(root);
-	private final Stage stage = new Stage();
+	private Scene scene;
+	private Stage stage;
 	
 	public PanBase(){
+		stage = new Stage();
 	}
+	
+	public PanBase(Stage init_stage){
+		stage = init_stage;
+	}	
 	//------------------------//
 	
 	public Parent root() {
-		return root;
+		return scene.getRoot();
 	}
 	public Scene scene() {
 		return scene;
@@ -62,39 +64,50 @@ public abstract class PanBase {
 	
 	public void initLayout() {
 		
-		Node face1 = eventLayout(this);
-		face1.disableProperty().bind(spin.visibleProperty());
+		final Pane root = new StackPane(eventLayout(this));		
+		if(Gawain.propFlag("JFX_DECORATE")==true) {
+			scene = new Scene(new JFXDecorator(stage,root));
+		}else {
+			scene = new Scene(root);
+		}
 		
-		root.getChildren().addAll(face1, spin);
-		
-		//load a default style...
-		scene.setRoot(
-			(Gawain.propFlag("JFX_DECORATE")==true)?
-			(new JFXDecorator(stage, root)):
-			(root)
-		);
 		scene.setFill(Color.WHITE);
-		scene.getStylesheets().add(Gawain.sheet);				
-		scene.setOnKeyPressed(eventHotKey);//capture some short-key
+		scene.getStylesheets().add(Gawain.sheet);//load a default style...			
+		scene.setOnKeyPressed(event->{
+			KeyCode cc = event.getCode();
+			if(cc==KeyCode.F1){
+				if(Gawain.mainPanel.equals(PanBase.this)==true){
+					if(notifyConfirm("！！注意！！","確認離開主程式？")==ButtonType.CANCEL){
+						return;
+					}			
+				}
+				stage.close();
+			}else if(cc==KeyCode.F2){				
+				stage.setFullScreen(stage.fullScreenProperty().not().get());
+			}else if(cc==KeyCode.F3){
+				//show console ???
+			}else if(hotkey_console.match(event)==true){
+			}
+		});//capture some short-key
 	}
 	
 	private void prepare(){
-		Pane pan = (Pane)root();
-		if(pan.getChildren().size()==0) {
+		if(scene==null) {
 			initLayout();
 		}
 		stage.setScene(scene);
-		String opt1 = Gawain.prop().getProperty("FULL_SCREEN","");
-		if(opt1.equalsIgnoreCase("true")==true) {
-			stage.setFullScreen(true);
-		}else {
-			stage.sizeToScene();
-			stage.centerOnScreen();
+		stage.sizeToScene();
+		stage.centerOnScreen();
+		
+		if(Gawain.mainPanel==this) {
+			if(Gawain.propFlag("FULL_SCREEN")==true) {
+				stage.setFullScreen(true);
+			}
 		}
 	}
 		
 	/**
-	 * present a new panel, but no-blocking
+	 * present a new panel, but non-blocking
 	 * @return self
 	 */
 	public PanBase appear(){
@@ -110,148 +123,137 @@ public abstract class PanBase {
 		prepare();
 		stage.showAndWait();		
 	}
-	//------------------------//
-	
+
 	/**
 	 * Create all objects on panel, this is run by other thread.<p>
 	 * So, don't bind any property in this method, or make anything doing by GUI-thread.<p>
 	 * @param self - super class,
 	 * @return
 	 */
-	public abstract Node eventLayout(PanBase self);
-
-	protected class DutyFace extends VBox {
-		JFXSpinner icon = new JFXSpinner();//show that we are waiting
-		Label      mesg = new Label();//show progress value
-		DutyFace(){
-			icon.setRadius(48);
-			icon.setOnMouseClicked(e->{
-				if(notifyConfirm("！！注意！！","確認停止？")==ButtonType.CANCEL){
-					return;
-				}
-				if(duty==null){
-					return;
-				}
-				duty.cancel(true);
-			});		
-			mesg.setFont(Font.font("Arial", 27));
-			mesg.setAlignment(Pos.CENTER);
-			setStyle("-fx-spacing: 13;-fx-padding: 7;");
-			setAlignment(Pos.CENTER);			
-			getChildren().addAll(icon,mesg);
-			setVisible(false);
-		}
-		void event_take_on(final Runnable hook){
-			mesg.textProperty().bind(duty.messageProperty());
-			setVisible(true);			
-			if(hook==null){
-				return;
-			}
-			hook.run();
-		}
-		void event_complete(final Runnable hook){
-			mesg.textProperty().unbind();
-			setVisible(false);
-			if(hook==null){
-				return;
-			}
-			hook.run();
-		}
-	};
-
-	protected class Duty extends Task<Integer> {
-		long p_idx = 0;
-		long p_stp = 1;
-		long p_end = 100;
-		Runnable task;
-		Duty(final Runnable hook){
-			task = hook;
-		}
-		public void setMessage(String msg){
-			updateMessage(msg);
-		}
-		public void setProgress(long idx){
-			p_idx = idx;
-			long val = (p_idx * 100L) / p_end;
-			updateMessage(String.format("%2d%%", val));
-		}
-		public void incProgress(){
-			p_idx = p_idx + p_stp;
-			long val = (p_idx * 100L) / p_end;
-			updateMessage(String.format("%2d%%", val));
-		}
-		public void initProgress(long beg, long stp, long end){
-			p_idx = beg;
-			p_stp = stp;
-			p_end = end;
-			updateMessage(" 0%%");
-		}
-		@Override
-		protected Integer call() throws Exception {
-			task.run();
-			return 0;
-		}		
-	}
-	protected Duty duty;
-	
-	protected void doDuty(
-		final Runnable hookWorking
-	){
-		doDuty(null,hookWorking,null);
-	}
-	protected void doDuty(
-		final Runnable hookWorking,
-		final Runnable hookOffDuty
-	){
-		doDuty(null,hookWorking,hookOffDuty);
-	}
-	protected void doDuty(
-		final Runnable hookOnDuty,
-		final Runnable hookWorking,
-		final Runnable hookOffDuty		
-	){
-		if(duty!=null){
-			return;
-		}
-		duty = new Duty(hookWorking);
-		duty.setOnScheduled(e->spin.event_take_on(hookOnDuty));
-		duty.setOnSucceeded(e->{
-			spin.event_complete(hookOffDuty);
-			duty = null;
-		});
-		duty.setOnCancelled(e->{
-			spin.event_complete(hookOffDuty);
-			duty = null;
-		});
-		new Thread(duty,"Panel-Task").start();
-	}
-	//------------------------//
+	public abstract Pane eventLayout(PanBase self);
+	//----------------------------------------------//
 	
 	/**
 	 * special short-key for popping stdio panel.
 	 */
 	private static KeyCombination hotkey_console = KeyCombination.keyCombination("Ctrl+Alt+C");
+	//----------------------------------------------//
 	
-	/**
-	 * event for capture all key-input, this happened when user click the title of panel.
-	 */
-	private EventHandler<KeyEvent> eventHotKey = new EventHandler<KeyEvent>(){
-		@Override
-		public void handle(KeyEvent event) {
-			KeyCode cc = event.getCode();
-			if(cc==KeyCode.F1){
-				if(Gawain.mainPanel.equals(PanBase.this)==true){
-					if(notifyConfirm("！！注意！！","確認離開主程式？")==ButtonType.CANCEL){
-						return;
-					}			
-				}
-				stage.close();
-			}else if(hotkey_console.match(event)==true){
-			}			
+	protected interface FlowEvent {
+		void callback(Spinner spin,int step);
+	};
+	
+	protected static class Spinner extends JFXDialog {
+		
+		JFXSpinner icon;
+		Label mesg;
+		
+		public Spinner(){
+			
+			icon = new JFXSpinner();
+			mesg = new Label();
+			mesg.setMinWidth(100);
+			mesg.setFont(Font.font("Arial", 26));
+			mesg.setAlignment(Pos.CENTER);
+			
+			final HBox lay = new HBox(icon,mesg);
+			lay.getStyleClass().addAll("box-pad");
+			lay.setAlignment(Pos.BASELINE_LEFT);			
+			
+			setContent(lay);
+		}
+		
+		private Timeline time;
+		
+		void create_flow(final FlowEvent... event) {
+			
+			time = new Timeline();
+			time.setCycleCount(1);
+			
+			for(int i=0; i<event.length; i++) {
+				final FlowEvent obj = event[i];
+				final int step = i + 1;
+				final KeyFrame key = new KeyFrame(
+					Duration.millis(100*step),
+					String.format("step-%d",step),
+					act->obj.callback(this,step)
+				);
+				time.getKeyFrames().add(key);
+			}
+			setOnDialogOpened(e->time.play());
+			//setOnDialogClosed(e->time.stop());
+		}
+		
+		public void text(final String text) {
+			mesg.setText(text);
+		}
+		public void jump(final int step) {		
+			if(step<0) {
+				time.jumpTo(Duration.ZERO);
+			}else if(step==0) {
+				time.stop();
+				close();
+			}else {
+				time.jumpTo(Duration.millis(100*step));
+			}
 		}
 	};
-	//------------------------//
-	
+	/**
+	 * show a spinner, let user know we are working.<p>
+	 * GUI-thread will execute runnable objects one by one.<p>
+	 * @param runs - working duty
+	 */
+	protected void notifyFlow(final FlowEvent... event) {		
+		final Spinner dlg = new Spinner();
+		dlg.create_flow(event);		
+		dlg.show((StackPane)root());
+	}
+	/**
+	 * show a spinner, let user know we are working.<p>
+	 * Convenience method.<p>
+	 */
+	protected void notifySpin() {
+		notifySpin(null,null);	
+	}
+	/**
+	 * show a spinner, let user know we are working.<p>
+	 * @param event1 - After the dialog show...
+	 * @param event2 - After closing the dialog...
+	 */
+	protected void notifySpin(
+		final EventHandler<JFXDialogEvent> event1,
+		final EventHandler<JFXDialogEvent> event2
+	) {
+		final JFXDialog dlg = new Spinner();
+		dlg.setOnDialogOpened(event1);
+		dlg.setOnDialogClosed(event2);
+		dlg.show((StackPane)root());
+	}
+	/**
+	 * show a spinner, let user know we are working.<p>
+	 * @param task - a working thread.<p>
+	 */
+	protected void notifyTask(
+		final Task<?> task,
+		final Runnable hook
+	) {
+		final Spinner dlg = new Spinner();
+		dlg.mesg.textProperty().bind(task.messageProperty());
+		task.setOnSucceeded(e->{
+			if(hook!=null) {
+				hook.run();
+			}
+			dlg.close();
+		});
+		task.setOnCancelled(e->dlg.close());
+		dlg.setOnDialogOpened(e->new Thread(task).start());
+		dlg.setOnDialogClosed(e->task.cancel());
+		dlg.show((StackPane)root());
+	}
+	protected void notifyTask(final Task<?> tsk) {
+		notifyTask(tsk,null);
+	}
+
 	/**
 	 * macro-expansion for information alter dialog
 	 * @param title
@@ -267,7 +269,6 @@ public abstract class PanBase {
 			null
 		);
 	}
-	
 	/**
 	 * macro-expansion for warning alter dialog
 	 * @param title
@@ -283,7 +284,6 @@ public abstract class PanBase {
 			null
 		);
 	}
-	
 	/**
 	 * macro-expansion for error alter dialog
 	 * @param title 
@@ -326,198 +326,32 @@ public abstract class PanBase {
 		}
 		return dia.showAndWait().get();
 	}
-	//------------------------//
+	//----------------------------------------------//
 	
-	protected List<File> chooseFiles(String title){
+	protected List<File> chooseFiles(final String title){
 		final FileChooser dia = new FileChooser();
 		dia.setTitle(title);
 		dia.setInitialDirectory(Gawain.dirHome);
 		return dia.showOpenMultipleDialog(stage);
 	}
 	
-	protected File chooseFile(String title){
+	protected File chooseFile(final String title){
 		final FileChooser dia = new FileChooser();
 		dia.setTitle(title);
 		dia.setInitialDirectory(Gawain.dirHome);
 		return dia.showOpenDialog(stage);
 	}
-	//------------------------//
-
-	public static Button genButtonFlat(
-		final String title,
-		final String iconName
-	){		
-		final double def_size = 25.;
-		Button btn = new Button();
-		btn.getStyleClass().add("btn-flat");
-		btn.setMaxWidth(def_size);
-		btn.setPrefHeight(def_size);
-		if(title.length()!=0){
-			btn.setText(title);
-		}
-		if(iconName.length()!=0){
-			ImageView img = Misc.getIconView(iconName);
-			img.setFitWidth(def_size);
-			img.setFitHeight(def_size);
-			btn.setGraphic(img);
-		}		
-		return btn;
-	}
 	
-	private static Button gen_def_button(
-		final String title,
-		final String iconName,
-		final String styleName
-	){
-		Button btn = new Button();
-		if(title.length()!=0){
-			btn.setText(title);
+	protected String saveAsFile(final String default_name){
+		final FileChooser dia = new FileChooser();
+		dia.setTitle("儲存成為...");
+		dia.setInitialFileName(default_name);
+		dia.setInitialDirectory(Gawain.dirHome);
+		File fs = dia.showSaveDialog(stage);
+		if(fs==null) {
+			return "";
 		}
-		if(styleName.length()!=0){
-			btn.getStyleClass().add(styleName);
-		}
-		if(iconName!=null){
-			if(iconName.length()!=0){
-				btn.setGraphic(Misc.getIconView(iconName));
-			}
-		}		
-		btn.setMaxWidth(Double.MAX_VALUE);
-		return btn;
-	}
-		
-	public static Button genButton0(
-		final String title,
-		final String iconName
-	){
-		return gen_def_button(title,iconName,"");
-	}
-	
-	public static Button genButton1(
-		final String title,
-		final String iconName
-	){
-		return gen_fx_button(title,iconName,"btn-raised-1");
-	}
-	public static Button genButton2(
-		final String title,
-		final String iconName
-	){
-		return gen_fx_button(title,iconName,"btn-raised-2");
-	}
-	public static Button genButton3(
-		final String title,
-		final String iconName
-	){
-		return gen_fx_button(title,iconName,"btn-raised-3");
-	}
-	public static Button genButton4(
-		final String title,
-		final String iconName
-	){
-		return gen_fx_button(title,iconName,"btn-raised-4");
-	}
-	
-	private static Button gen_fx_button(
-		final String title,
-		final String iconName,
-		final String styleName
-	){
-		JFXButton btn = new JFXButton(title);
-		btn.getStyleClass().add(styleName);
-		if(iconName!=null){
-			if(iconName.length()!=0){
-				btn.setGraphic(Misc.getIconView(iconName));
-			}
-		}
-		return btn;
+		return fs.getAbsolutePath();
 	}	
-	//----------------------------------------------//
-	
-	/*private static void validInteger(
-		final int min,
-		final int max,
-		final TextField box,
-		final IntegerProperty val
-	){
-		int curVal = 0;
-		try{
-			curVal = Integer.valueOf(box.getText());
-			if(curVal<min){
-				box.setText(String.valueOf(min));
-			}else if(max<curVal){
-				box.setText(String.valueOf(max));			
-			}else{
-				box.setText(String.valueOf(curVal));
-				val.setValue(curVal);//assign new value~~~
-			}
-		}catch(NumberFormatException e){
-			box.setText(String.valueOf(val.get()));//restore old value~~~~
-		}
-		box.positionCaret(box.getText().length());
-	}
-		
-	private static void validFloat(
-		final BigDecimal min,
-		final BigDecimal max,
-		final TextField box,
-		final FloatProperty val
-	){		
-		try{
-			BigDecimal _val = new BigDecimal(val.get());
-			if(_val.compareTo(min)<0){
-				box.setText(min.toString());
-			}else if(_val.compareTo(max)>0){
-				box.setText(max.toString());
-			}else{
-				box.setText(_val.toString());
-				val.setValue(_val.floatValue());//assign new value~~~
-			}
-		}catch(NumberFormatException e){
-			box.setText(String.valueOf(val.get()));//restore old value~~~~
-		}
-		box.positionCaret(box.getText().length());
-	}
-		
-	public static TextField genBoxInteger(
-		final int min, 
-		final int max,
-		final IntegerProperty val
-	){
-		final JFXTextField box = new JFXTextField();
-		box.setOnAction(event->{
-			validInteger(min,max,box,val);
-		});
-		box.focusedProperty().addListener((arg1,newVal,oldVal)->{
-			validInteger(min,max,box,val);
-		});
-		Bindings.bindBidirectional(
-			box.textProperty(), 
-			val, 
-			new NumberStringConverter("#")
-		);
-		return box;
-	} 
-
-	public static TextField genBoxFloat(
-		final String min, 
-		final String max,
-		final FloatProperty val
-	){
-		final JFXTextField box = new JFXTextField();
-		final BigDecimal _min = new BigDecimal(min);
-		final BigDecimal _max = new BigDecimal(max);
-		box.setOnAction(event->{
-			validFloat(_min,_max,box,val);
-		});
-		box.focusedProperty().addListener((arg1,newVal,oldVal)->{
-			validFloat(_min,_max,box,val);
-		});
-		Bindings.bindBidirectional(
-			box.textProperty(), 
-			val, 
-			new NumberStringConverter("#.####")
-		);
-		return box;
-	}*/
 }
 

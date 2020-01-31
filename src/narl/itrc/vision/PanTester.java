@@ -1,6 +1,6 @@
 package narl.itrc.vision;
 
-import javafx.scene.Node;
+import javafx.scene.layout.Pane;
 import narl.itrc.PanBase;
 
 public class PanTester extends PanBase {
@@ -11,7 +11,7 @@ public class PanTester extends PanBase {
 	
 	
 	@Override
-	public Node eventLayout(PanBase self) {
+	public Pane eventLayout(PanBase self) {
 		
 		final CapVidcap vid = new CapVidcap();
 		final DevCamera cam = new DevCamera(vid);		

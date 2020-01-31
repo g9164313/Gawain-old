@@ -235,7 +235,7 @@ public class DevSPIK2k extends DevTTY {
 		final Callback event,
 		final int addr, 
 		final int size		
-	) {interrupt(()->{
+	) {breakIn(()->{
 		int[] val = get_register(addr,size);
 		if(Application.isEventThread()==false) {
 			return;
@@ -253,7 +253,7 @@ public class DevSPIK2k extends DevTTY {
 		final Callback event,
 		final int addr,
 		final int... vals
-	) {interrupt(()->{		
+	) {breakIn(()->{		
 		boolean flag = set_register(addr,vals);
 		if(event==null) {
 			return;

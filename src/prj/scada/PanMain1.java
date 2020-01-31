@@ -2,6 +2,7 @@ package prj.scada;
 
 import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXTabPane;
+import com.jfoenix.controls.JFXTextField;
 
 import javafx.scene.control.Accordion;
 import javafx.scene.control.Label;
@@ -12,49 +13,51 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import narl.itrc.DevModbus;
 import narl.itrc.Gawain;
-import narl.itrc.Misc;
 import narl.itrc.PanBase;
 
 public class PanMain1 extends PanBase {
 	
 	final DevModbus coup = new DevModbus();
-	final DevDCG100 dcg1 = new DevDCG100();	
+	//final DevDCG100 dcg1 = new DevDCG100();	
 	final DevSPIK2k spik = new DevSPIK2k();
 	final DevSQM160 sqm1 = new DevSQM160();
-		
+
 	final LayGauge lay_gaug = new LayGauge();
 	
-	final LayHistory lay_hist = new LayHistory(
-		dcg1.volt, dcg1.amps, dcg1.watt, dcg1.joul,
-		sqm1.rate[0], sqm1.high[0]
-	);
-	
-	public PanMain1() {		
-		coup.mapRegister("h8000-8004");		
-	}
+	final TblHistory tbl_hist = new TblHistory();
 
+	public PanMain1() {
+	}
+	
 	@Override
 	public Pane eventLayout(PanBase self) {
 		
-		stage().setOnShown(e->{	
+		stage().setOnShown(e->{			
+			tbl_hist.bindProperty(
+				LayDCG100.prop[0], LayDCG100.prop[1], 
+				LayDCG100.prop[2], LayDCG100.prop[2],
+				sqm1.rate[0], sqm1.high[0]
+			);			
 			String arg;
 			arg = Gawain.prop().getProperty("modbus", "");
-			if(arg.length()!=0) {
+			if(arg.length()!=0) {				
+				coup.mapRegister("h8000-8004");
 				coup.open(arg);
+				lay_gaug.bindProperty(coup);
 			}
-			arg = Gawain.prop().getProperty("DCG100", "");
-			if(arg.length()>0) {
-				lay_gaug.bindProperty(dcg1);
-				dcg1.open(arg);
-			}
+			//arg = Gawain.prop().getProperty("DCG100", "");
+			//if(arg.length()>0) {
+				//lay_gaug.bindProperty(dcg1);
+				//dcg1.open(arg);
+			//}
 			arg = Gawain.prop().getProperty("SPIK2k", "");
 			if(arg.length()>0) {
 				spik.open(arg);
 			}
 			arg = Gawain.prop().getProperty("SQM160", "");
 			if(arg.length()>0) {
-				lay_gaug.bindProperty(sqm1);
 				sqm1.open(arg);
+				lay_gaug.bindProperty(sqm1);				
 			}
 		});
 		//--------------------//
@@ -63,20 +66,20 @@ public class PanMain1 extends PanBase {
 		lay4.getTabs().addAll(
 			new Tab("管路"),
 			new Tab("監測",lay_gaug),
-			new Tab("紀錄",lay_hist)
+			new Tab("紀錄",tbl_hist)
 		);
 		lay4.getSelectionModel().select(2);
 	
 		final TitledPane[] lay3 = {
 			new TitledPane("快速設定"  ,lay_ctrl()),
-			new TitledPane("DCG-100"  ,DevDCG100.genPanel(dcg1)),
+			//new TitledPane("DCG-100"  ,DevDCG100.genPanel(dcg1)),
+			new TitledPane("DCG-100"  ,LayDCG100.genPanel(coup)),
 			new TitledPane("SPIK-2000",DevSPIK2k.genPanel(spik)),
 			new TitledPane("SQM-160"  ,DevSQM160.genPanel(sqm1))
 		};
 		final Accordion lay2 = new Accordion(lay3);
 		lay2.setExpandedPane(lay3[0]);
-		lay2.setMaxHeight(200);
-		
+
 		final BorderPane lay0 = new BorderPane();
 		lay0.setCenter(lay4);
 		lay0.setRight(lay2);
@@ -85,63 +88,69 @@ public class PanMain1 extends PanBase {
 	
 	private Pane lay_ctrl() {
 		
-		Label[] txt = { 
-			new Label(),
-			new Label(), 
-			new Label(),
-			new Label(), 
-			new Label(), 
-		};
-
-		txt[0].textProperty().bind(coup.register(8000).asString("DI.x: %H"));
-		txt[1].textProperty().bind(coup.register(8001).multiply(0.20f).asString("AI.1: %.1fV"));
-		txt[2].textProperty().bind(coup.register(8002).multiply(1.06f).asString("AI.2: %.1fW"));
-		txt[3].textProperty().bind(coup.register(8003).multiply(0.20f).asString("AI.3: %.1fV"));
-		txt[4].textProperty().bind(coup.register(8004).multiply(1.06f).asString("AI.4: %.1fW"));
+		final JFXTextField[] box = new JFXTextField[5];
+		for(int i=0; i<box.length; i++) {
+			JFXTextField obj = new JFXTextField();
+			obj.setMaxWidth(Double.MAX_VALUE);
+			obj.setLabelFloat(true);
+			//GridPane.setHgrow(obj, Priority.ALWAYS);
+			//GridPane.setFillWidth(obj, true);
+			box[i] = obj;
+		}
+		box[0].setPromptText("輸出功率(Watt)");
+		box[0].setText("50");
+		box[0].setOnAction(e->{
+			try {				
+				int val = Integer.valueOf(box[0].getText());
+				coup.asyncWriteVal(8006,val);
+			}catch(NumberFormatException exp) {
+				return;
+			}
+		});
 		
-		final JFXButton[] btn = {
-			new JFXButton("點火(ON )"),
-			new JFXButton("熄火(OFF)"),
-			new JFXButton("test-3"),
-			new JFXButton("test-4"),
-		};
-		for(JFXButton b:btn) {
-			b.setMaxWidth(Double.MAX_VALUE);
+		final JFXButton[] btn = new JFXButton[4];
+		for(int i=0; i<btn.length; i++) {
+			JFXButton obj = new JFXButton();
+			obj.setMaxWidth(Double.MAX_VALUE);
+			//GridPane.setHgrow(obj, Priority.ALWAYS);
+			//GridPane.setFillWidth(obj, true);
+			btn[i] = obj;
 		}
 
 		btn[0].getStyleClass().add("btn-raised-1");
+		btn[0].setText("點火");
 		btn[0].setOnAction(e->{
-			notifyFlow((spin,step)->{
-				Misc.logv("step="+step);
-				dcg1.asyncTrigger();
-			},(spin,step)->{
-				Misc.logv("step="+step);				
-				if(dcg1.isFlowing()==true) {
-					spin.remain(step);
-				}				
-			},(spin,step)->{
-				Misc.logv("step="+step);
-				lay_hist.startRecord();
-			},(spin,step)->{
-				Misc.logv("step="+step);
-				spin.close();
-			});			
+			try {				
+				int val = Integer.valueOf(box[0].getText());
+				coup.syncWriteVal(8006, val);
+				coup.syncWriteXOR(8005, 0x1);
+				tbl_hist.startRecord();
+			}catch(NumberFormatException exp) {
+				return;
+			}
 		});
+		
 		btn[1].getStyleClass().add("btn-raised-2");
+		btn[1].setText("熄火");
 		btn[1].setOnAction(e->{
-			//lay_hist.stopRecord();
-		});		
-		btn[2].setOnAction(e->{
-			coup.writeXOR(8005, 0x3);
+			coup.syncWriteXOR(8005, 0x1);
+			tbl_hist.stopRecord();
 		});
-		btn[3].setOnAction(e->{
-			coup.write(8006, 0);
+		
+		btn[2].getStyleClass().add("btn-raised-2");
+		btn[2].setText("匯出");
+		btn[2].setOnAction(e->{
+			String name = saveAsFile("record.xlsx");
+			if(name.length()==0) {
+				return;
+			}
+			notifyTask(tbl_hist.dumpRecord(name));	
 		});
 		
 		final VBox lay = new VBox();
 		lay.getStyleClass().addAll("box-pad");
+		lay.getChildren().addAll(new Label(),box[0]);
 		lay.getChildren().addAll(btn);
-		lay.getChildren().addAll(txt);
 		return lay;
 	}	
 }
