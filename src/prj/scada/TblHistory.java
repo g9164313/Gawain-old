@@ -1,7 +1,12 @@
 package prj.scada;
 
-import java.sql.Timestamp;
-import java.text.SimpleDateFormat;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXComboBox;
@@ -11,26 +16,23 @@ import com.sun.glass.ui.Application;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
+import javafx.beans.binding.DoubleBinding;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.FloatProperty;
-import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.property.StringProperty;
+import javafx.collections.ObservableList;
+import javafx.concurrent.Task;
 import javafx.scene.control.SingleSelectionModel;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.VBox;
 
 import javafx.util.Duration;
 import javafx.util.StringConverter;
 
-public class LayHistory extends BorderPane {
+public class TblHistory extends TableView<Record> {
 
-	private final TableView<Record> tbl = new TableView<>();
-	
 	@SuppressWarnings("unchecked")
-	public LayHistory() {
+	public TblHistory() {
 		
 		final TableColumn<Record,String> col0 = new TableColumn<>("時間");
 		final TableColumn<Record,String> col1 = new TableColumn<>("電壓");
@@ -47,6 +49,14 @@ public class LayHistory extends BorderPane {
 		//col4.setCellValueFactory(new PropertyValueFactory<Record,String>("joul"));
 		col5.setCellValueFactory(new PropertyValueFactory<Record,String>("rate"));
 		col6.setCellValueFactory(new PropertyValueFactory<Record,String>("high"));
+		
+		DoubleBinding col_w = widthProperty().subtract(col0.prefWidthProperty()).divide(5f);
+		col0.setPrefWidth(100);
+		col1.prefWidthProperty().bind(col_w);
+		col2.prefWidthProperty().bind(col_w);
+		col3.prefWidthProperty().bind(col_w);
+		col5.prefWidthProperty().bind(col_w);
+		col6.prefWidthProperty().bind(col_w);
 		
 		final TableColumn<Record,String> colA = new TableColumn<>("總輸出");		
 		final TableColumn<Record,String> colB = new TableColumn<>("薄膜");
@@ -90,26 +100,14 @@ public class LayHistory extends BorderPane {
 			boolean flag = flagTime.get();
 			flagTime.set(!flag);	
 		});
-
-		tbl.setEditable(false);		
-		tbl.getColumns().addAll(col0,colA,colB);
 		
-		final VBox lay1 = new VBox();
-		lay1.getStyleClass().addAll("box-pad");
-		lay1.getChildren().addAll(
-			tgl,cmb,
-			btn[0],btn[1],btn[2]
-		);
-		
-		getStyleClass().addAll("box-pad");
-		setLeft(lay1);
-		setCenter(tbl);
+		setEditable(false);
+		getColumns().addAll(col0,colA,colB);
 	}
 	
 	private FloatProperty[] vals = null;
 	
-	public LayHistory(final FloatProperty... values) {
-		this();
+	public void bindProperty(final FloatProperty... values) {
 		vals = values;
 	}
 	
@@ -126,12 +124,12 @@ public class LayHistory extends BorderPane {
 		}
 
 		//do we need dump???
-		tbl.getItems().clear();
+		getItems().clear();
 		
 		final KeyFrame kfm = new KeyFrame(
 			flagDura.getSelectedItem(), e->{				
 			//simulation();			
-			tbl.getItems().add(new Record(vals));
+			getItems().add(new Record(vals));
 		});
 		time = new Timeline(kfm);
 		time.setCycleCount(Animation.INDEFINITE);
@@ -155,42 +153,50 @@ public class LayHistory extends BorderPane {
 		press_timer(false);
 	}
 	
-	private static final SimpleDateFormat s_fmt = new SimpleDateFormat("HH:mm:ss");
-	
-	public static class Record {
+	public Task<?> dumpRecord(final String name) {
 		
-		final StringProperty stmp = new SimpleStringProperty();
-		final StringProperty volt = new SimpleStringProperty();
-		final StringProperty amps = new SimpleStringProperty();
-		final StringProperty watt = new SimpleStringProperty();
-		final StringProperty joul = new SimpleStringProperty();
-		final StringProperty rate = new SimpleStringProperty();
-		final StringProperty high = new SimpleStringProperty();
-		
-		public String getStmp() { return stmp.get(); }
-		public String getVolt() { return volt.get(); }
-		public String getAmps() { return amps.get(); }
-		public String getWatt() { return watt.get(); }
-		public String getjoul() { return joul.get(); }
-		public String getRate() { return rate.get(); }
-		public String getHigh() { return high.get(); }
-
-		public Record() {
-			final Timestamp ss = new Timestamp(System.currentTimeMillis());
-			stmp.set(s_fmt.format(ss));
-		}
-		
-		public Record(final FloatProperty[] arg) {
-			this();
-			if(arg==null) {
-				return;
+		return new Task<Void>() {
+			@Override
+			protected Void call() throws Exception {
+				
+				XSSFWorkbook workbook = new XSSFWorkbook();
+		        XSSFSheet sheet = workbook.createSheet("Datatypes in Java");
+				
+		        //create title~~~~
+		        Row row = sheet.createRow(0);
+		        row.createCell(0).setCellValue("時間");					
+				row.createCell(1).setCellValue("電壓");
+				row.createCell(2).setCellValue("電流");
+				row.createCell(3).setCellValue("功率");
+				row.createCell(4).setCellValue("焦耳");
+				row.createCell(5).setCellValue("速率");
+				row.createCell(6).setCellValue("厚度");
+				
+				ObservableList<Record> lst = getItems();
+				for(int i=0; i<lst.size(); i++) {
+					row = sheet.createRow(i+1);
+					updateMessage(String.format("處理項目: %d/%d", i, lst.size()));
+					Record itm = lst.get(i);
+					row.createCell(0).setCellValue(itm.getStmp());					
+					row.createCell(1).setCellValue(itm.getValue(1));
+					row.createCell(2).setCellValue(itm.getValue(2));
+					row.createCell(3).setCellValue(itm.getValue(3));
+					row.createCell(4).setCellValue(itm.getValue(4));
+					row.createCell(5).setCellValue(itm.getValue(5));
+					row.createCell(6).setCellValue(itm.getValue(6));
+				}
+				
+				try {
+					updateMessage("匯出檔案中...");
+		            workbook.write(new FileOutputStream(name));
+		            workbook.close();
+		        } catch (FileNotFoundException e) {
+		            e.printStackTrace();
+		        } catch (IOException e) {
+		            e.printStackTrace();
+		        }
+				return null;
 			}
-			volt.set(String.format("%.1f", arg[0].get()));
-			amps.set(String.format("%.2f", arg[1].get()));
-			watt.set(String.format("%.0f", arg[2].get()));
-			joul.set(String.format("%.0f", arg[3].get()));
-			rate.set(String.format("%.3f", arg[4].get()));
-			high.set(String.format("%.3f", arg[5].get()));
-		}
-	};
+		};
+	}
 }
