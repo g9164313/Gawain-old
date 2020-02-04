@@ -6,9 +6,11 @@ import com.jfoenix.controls.JFXTextField;
 
 import javafx.scene.control.Accordion;
 import javafx.scene.control.Label;
+import javafx.scene.control.Separator;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TitledPane;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import narl.itrc.DevModbus;
@@ -32,12 +34,7 @@ public class PanMain1 extends PanBase {
 	@Override
 	public Pane eventLayout(PanBase self) {
 		
-		stage().setOnShown(e->{			
-			tbl_hist.bindProperty(
-				LayDCG100.prop[0], LayDCG100.prop[1], 
-				LayDCG100.prop[2], LayDCG100.prop[2],
-				sqm1.rate[0], sqm1.high[0]
-			);			
+		stage().setOnShown(e->{		
 			String arg;
 			arg = Gawain.prop().getProperty("modbus", "");
 			if(arg.length()!=0) {				
@@ -57,8 +54,9 @@ public class PanMain1 extends PanBase {
 			arg = Gawain.prop().getProperty("SQM160", "");
 			if(arg.length()>0) {
 				sqm1.open(arg);
-				lay_gaug.bindProperty(sqm1);				
+				lay_gaug.bindProperty(sqm1);
 			}
+			tbl_hist.bindProperty(coup,sqm1);
 		});
 		//--------------------//
 		
@@ -88,6 +86,17 @@ public class PanMain1 extends PanBase {
 	
 	private Pane lay_ctrl() {
 		
+		final Label[] txt = new Label[5];
+		for(int i=0; i<txt.length; i++) {
+			Label obj = new Label();
+			obj.setMaxWidth(Double.MAX_VALUE);
+			txt[i] = obj;
+		}
+		txt[0].textProperty().bind(sqm1.filmData[0]);
+		txt[1].textProperty().bind(sqm1.filmData[1]);
+		txt[2].textProperty().bind(sqm1.rate[0].asString("%6.3f"));
+		txt[3].textProperty().bind(sqm1.high[0].asString("%6.3f"));
+		
 		final JFXTextField[] box = new JFXTextField[5];
 		for(int i=0; i<box.length; i++) {
 			JFXTextField obj = new JFXTextField();
@@ -98,7 +107,7 @@ public class PanMain1 extends PanBase {
 			box[i] = obj;
 		}
 		box[0].setPromptText("輸出功率(Watt)");
-		box[0].setText("50");
+		box[0].setText("100");
 		box[0].setOnAction(e->{
 			try {				
 				int val = Integer.valueOf(box[0].getText());
@@ -108,7 +117,7 @@ public class PanMain1 extends PanBase {
 			}
 		});
 		
-		final JFXButton[] btn = new JFXButton[4];
+		final JFXButton[] btn = new JFXButton[5];
 		for(int i=0; i<btn.length; i++) {
 			JFXButton obj = new JFXButton();
 			obj.setMaxWidth(Double.MAX_VALUE);
@@ -122,8 +131,10 @@ public class PanMain1 extends PanBase {
 		btn[0].setOnAction(e->{
 			try {				
 				int val = Integer.valueOf(box[0].getText());
-				coup.syncWriteVal(8006, val);
-				coup.syncWriteXOR(8005, 0x1);
+				coup.asyncBreakIn(()->{
+					coup.writeVal (8006, val);
+					coup.writeBit1(8005, 0);
+				});
 				tbl_hist.startRecord();
 			}catch(NumberFormatException exp) {
 				return;
@@ -133,7 +144,7 @@ public class PanMain1 extends PanBase {
 		btn[1].getStyleClass().add("btn-raised-2");
 		btn[1].setText("熄火");
 		btn[1].setOnAction(e->{
-			coup.syncWriteXOR(8005, 0x1);
+			coup.asyncWriteBit0(8005, 0);
 			tbl_hist.stopRecord();
 		});
 		
@@ -147,11 +158,29 @@ public class PanMain1 extends PanBase {
 			notifyTask(tbl_hist.dumpRecord(name));	
 		});
 		
-		final VBox lay = new VBox();
-		lay.getStyleClass().addAll("box-pad");
-		lay.getChildren().addAll(new Label(),box[0]);
-		lay.getChildren().addAll(btn);
-		return lay;
+		btn[3].getStyleClass().add("btn-raised-2");
+		btn[3].setText("開始紀錄");
+		btn[3].setOnAction(e->tbl_hist.startRecord());
+		
+		btn[4].getStyleClass().add("btn-raised-2");
+		btn[4].setText("停止紀錄");
+		btn[4].setOnAction(e->tbl_hist.stopRecord());
+		
+		final GridPane lay2 = new GridPane();
+		lay2.getStyleClass().addAll("box-pad-inner");
+		lay2.add(new Label("薄膜參數"), 0, 0, 2, 1);
+		lay2.addRow(1, new Label("名稱："), txt[0]);
+		lay2.addRow(2, new Label("密度："), txt[1]);
+		lay2.addRow(3, new Label("速率："), txt[2]);
+		lay2.addRow(4, new Label("厚度："), txt[3]);
+		
+		final VBox lay0 = new VBox();
+		lay0.getStyleClass().addAll("box-pad");
+		lay0.getChildren().addAll(new Label(),box[0]);
+		lay0.getChildren().add(lay2);
+		lay0.getChildren().add(new Separator());
+		lay0.getChildren().addAll(btn);
+		return lay0;
 	}	
 }
 

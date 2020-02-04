@@ -10,10 +10,10 @@ import narl.itrc.DevModbus;
 
 public class LayGauge extends FlowPane {
 
-	private final Tile gag[] = new Tile[6];
+	public final Tile gag[] = new Tile[6];
 		
 	public LayGauge() {
-		
+
 		//gauge for DCG-100
 		gag[0] = TileBuilder.create()
 			.skinType(SkinType.GAUGE)

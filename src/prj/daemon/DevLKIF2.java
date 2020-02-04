@@ -29,6 +29,8 @@ public class DevLKIF2 extends DevBase {
 		}
 	}
 	
+	private static final String STA_LOOPER = "looper";
+	
 	@Override
 	public void open() {
 		clear_payload();
@@ -38,8 +40,8 @@ public class DevLKIF2 extends DevBase {
 		if(head==null) {
 			return;
 		}
-		setupState0("looper",()->looper());
-		playFlow(); 
+		addState(STA_LOOPER,()->looper());
+		playFlow(STA_LOOPER); 
 	}
 
 	@Override
@@ -171,9 +173,10 @@ public class DevLKIF2 extends DevBase {
 		meas = null;
 	}
 	
-	public void resetValue(final int outID) {
-		breakIn(()->implResetValue(outID));
-	}
+	public void resetValue(final int outID) {asyncBreakIn(()->{
+		implResetValue(outID);
+		nextState(STA_LOOPER);
+	});}
 
 	/**
 	 * get measurement result. The character means: <p>
@@ -280,5 +283,4 @@ public class DevLKIF2 extends DevBase {
 		}
 		return lay0;
 	}
-	
 }

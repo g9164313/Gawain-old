@@ -148,8 +148,7 @@ public class DevTTY extends DevBase {
 	 * @param buf - keep data
 	 * @param len - maximum length
 	 */
-	public void purgeByte(byte[] buf,int len) {
-		int idx = 0;
+	public void purgeByte(byte[] buf, int idx, int len) {
 		do {
 			int cnt = readByte(buf,idx,len);
 			if(cnt>0) {
@@ -238,7 +237,7 @@ public class DevTTY extends DevBase {
 	 */
 	public int writeByte(final byte[] buf){
 		return implWrite(buf,0,-1);
-	} 
+	}
 	/**
 	 * Write text via terminal-port.<p>
 	 * @param txt - context data

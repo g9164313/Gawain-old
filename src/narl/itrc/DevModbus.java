@@ -42,6 +42,7 @@ public class DevModbus extends DevBase {
 	
 	private short slave= 0;//MODBUS_BROADCAST_ADDRESS
 
+	private final static String STG_LOOPER = "looper";
 	
 	@Override
 	public void open() {
@@ -74,14 +75,17 @@ public class DevModbus extends DevBase {
 				tcpPort = Integer.valueOf(col[1]);
 			}
 			implOpenTcp();
+			
+		}else {
+			handle = 0L;
+		}
+		if(mems.size()!=0 && isLive()==true) {
+			playFlow(STG_LOOPER);
 		}
 	}
 	public void open(final String name) {
 		devPath = name;
 		open();
-		if(mems.size()!=0) {
-			playFlow();
-		}
 	}
 	
 	@Override
@@ -172,8 +176,7 @@ public class DevModbus extends DevBase {
 			}
 			mems.add(new RCell(typ,off,cnt));
 		}		
-		setupState0("looper",()->looper());
-		//playFlow();
+		addState(STG_LOOPER,()->looper());
 	}	
 	private void looper() {
 		try {
@@ -187,10 +190,10 @@ public class DevModbus extends DevBase {
 		for(RCell reg:mems) {
 			reg.fecth();
 		}
-		if(mems.size()==0) {
-			return;
-		}
 		Application.invokeAndWait(()->{
+			if(mems.size()==0) {
+				return;
+			}
 			for(RCell reg:mems) {
 				reg.update_by_gui();
 			}
@@ -208,16 +211,13 @@ public class DevModbus extends DevBase {
 		return null;
 	}
 	
-	public void asyncWriteVal(int addr,int val) {breakIn(()->writeVal(addr,val));}
-	public void asyncWrite_OR(int addr,int val) {breakIn(()->write_OR(addr,val));}
-	public void asyncWriteAND(int addr,int val) {breakIn(()->writeAND(addr,val));}
-	public void asyncWriteXOR(int addr,int val) {breakIn(()->writeXOR(addr,val));}
-
-	public void syncWriteVal(int addr,int val) {syncBreakIn(()->writeVal(addr,val));}
-	public void syncWrite_OR(int addr,int val) {syncBreakIn(()->write_OR(addr,val));}
-	public void syncWriteAND(int addr,int val) {syncBreakIn(()->writeAND(addr,val));}
-	public void syncWriteXOR(int addr,int val) {syncBreakIn(()->writeXOR(addr,val));}
-
+	public void asyncWriteVal(int addr,int val) {asyncBreakIn(()->writeVal(addr,val));}
+	public void asyncWrite_OR(int addr,int val) {asyncBreakIn(()->write_OR(addr,val));}
+	public void asyncWriteAND(int addr,int val) {asyncBreakIn(()->writeAND(addr,val));}
+	public void asyncWriteXOR(int addr,int val) {asyncBreakIn(()->writeXOR(addr,val));}
+	public void asyncWriteBit0(int addr,int bit) {asyncBreakIn(()->writeBit0(addr,bit));}
+	public void asyncWriteBit1(int addr,int bit) {asyncBreakIn(()->writeBit1(addr,bit));}
+	
 	public void writeVal(int addr,int val) {
 		short[] buff = { (short)(val&0xFFFF) };
 		implWrite(addr,buff);
@@ -240,7 +240,19 @@ public class DevModbus extends DevBase {
 		buff[0] = (short)((buff[0] ^ val) & 0xFFFF);
 		implWrite(addr,buff);
 	}
-	
+	public void writeBit0(int addr,int bit) {
+		short[] buff = {0};
+		implReadR(addr,buff);
+		buff[0] = (short)((buff[0] & ((~1)<<bit)) & 0xFFFF);
+		implWrite(addr,buff);
+	}
+	public void writeBit1(int addr,int bit) {
+		short[] buff = {0};
+		implReadR(addr,buff);
+		buff[0] = (short)((buff[0] | (( 1)<<bit)) & 0xFFFF);
+		implWrite(addr,buff);
+	}
+		
 	private native void implOpenRtu();	
 	private native void implOpenTcp();
 	private native void implReadH(int addr,short buff[]);//holding(input) register

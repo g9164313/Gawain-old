@@ -99,9 +99,9 @@ public class DevDCG100 extends DevTTY {
 		exec("REM1\r",(txt)->{});
 		exec("REME\r",(txt)->{Application.invokeAndWait(()->{
 			isRemote.set(true);
-			nextState.set(STG_MONT);
+			nextState(STG_MONT);
 		});});
-		nextState.set(null);
+		nextState("");
 	}	
 	private void state_monitor() {
 		try { Thread.sleep(100); } catch (InterruptedException e) { return;	}
@@ -128,14 +128,14 @@ public class DevDCG100 extends DevTTY {
 			return;
 		}
 		Misc.logv("monitor again...");
-		nextState.set(STG_MONT);
+		nextState(STG_MONT);
 	}
 	@Override
 	protected void afterOpen() {
-		setupState0(STG_INIT, ()->state_init()).
-		setupStateX(STG_MONT, ()->state_monitor());
-		setupStateX(STG_WAIT, ()->state_wait());
-		playFlow();
+		addState(STG_INIT, ()->state_init()).
+		addState(STG_MONT, ()->state_monitor());
+		addState(STG_WAIT, ()->state_wait());
+		playFlow(STG_INIT);
 	}
 		
 	private void exec(
@@ -225,14 +225,15 @@ public class DevDCG100 extends DevTTY {
 	public void asyncExec(
 		final String cmd,
 		final ReadBack hook
-	) {
-		breakIn(()->exec(cmd,hook));
-	}
+	) {asyncBreakIn(()->{
+		exec(cmd,hook);
+		nextState(STG_MONT);
+	});}
 	public void asyncTrigger() {
-		breakIn(()->exec("TRG \r",null));
+		asyncBreakIn(()->exec("TRG \r",null));
 	}
 	public void asyncTurnOff() {
-		breakIn(()->exec("OFF \r",null));
+		asyncBreakIn(()->exec("OFF \r",null));
 	}
 	//-------------------------//
 	
@@ -257,12 +258,11 @@ public class DevDCG100 extends DevTTY {
 		final DevDCG100 dev,
 		final String cmd
 	) {
-		dev.breakIn(()->dev.exec(cmd,(txt)->{
-
+		dev.asyncBreakIn(()->dev.exec(cmd,(txt)->{
 			if(txt.contains("*")==true) {
 				//very special condition~~~
 				if(cmd.contains("TRG")==true) {
-					dev.nextState.set(STG_WAIT);
+					dev.nextState(STG_WAIT);
 				}
 				return;
 			}

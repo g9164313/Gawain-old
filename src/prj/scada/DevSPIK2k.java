@@ -20,7 +20,6 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 
 import narl.itrc.DevTTY;
-import narl.itrc.Misc;
 
 /**
  * SPIK2000 is a high voltage pulse generator.<p>
@@ -36,7 +35,7 @@ public class DevSPIK2k extends DevTTY {
 	public DevSPIK2k() {
 		TAG = "SPIK-2000";
 		flowControl = 0x10;//disable all controls
-		readTimeout = 100;
+		readTimeout = 500;
 	}
 	public DevSPIK2k(String path_name){
 		this();
@@ -44,10 +43,10 @@ public class DevSPIK2k extends DevTTY {
 	}
 	@Override
 	protected void afterOpen() {
-		setupState0("init", ()->{
+		addState("init", ()->{
 			fst_value1 = get_register( 0,8);
 			//fst_value2 = get_register(26,6);
-			nextState.set(null);
+			nextState("");
 			Application.invokeAndWait(()->{
 				if(fst_value1==null) {
 					return;
@@ -65,7 +64,7 @@ public class DevSPIK2k extends DevTTY {
 				tmpTxt[3].setText(String.format("Toff-: %4d", fst_value1[7]));
 			});
 		});
-		playFlow();
+		playFlow("init");
 	}
 	//----------------------------------//
 	
@@ -128,19 +127,11 @@ public class DevSPIK2k extends DevTTY {
 	private boolean wait_3964R(final byte BCC) {
 		final byte[] res = {DLE,ETX,BCC};
 		writeByte(res,0,3);
-		int idx = 0;
-		int len = 2;
-		do {
-			int cnt = readByte(res,idx,len);
-			if(cnt>0) {
-				idx+=cnt;
-				len-=cnt;
-			}
-		}while(isLive()==true && len>0);
-		if(res[0]!=DLE || res[1]!=STX) {
-			Misc.loge("[wait 3964R] x%02X,%02X", res[0], res[1]);
-		}
+		purgeByte(res,0,2);
 		writeByte(DLE);
+		//if(res[0]!=DLE || res[1]!=STX) {
+		//	return false;
+		//}
 		return true;
 	}
 	
@@ -171,8 +162,8 @@ public class DevSPIK2k extends DevTTY {
 		//	token(3byte), error-code(1byte), 
 		//	data package(size*2),
 		//	DLE, ETX, CRC
-		purgeByte(ans,(3+1+cnt+3));
-		//writeByte(DLE);//do we need this???
+		purgeByte(ans,0,(3+1+cnt+3));
+		writeByte(DLE);
 		//end of talking~~~~
 		if(	ans[3]!=0 ||
 			ans[3+1+cnt+0]!=DLE ||
@@ -210,21 +201,23 @@ public class DevSPIK2k extends DevTTY {
 		}
 		//step.2 - give device RK512 header.
 		writeByte(ans,0,ans.length-3);
-		if(wait_3964R(BCC)==false) {
-			return false;
-		}
+		//if(wait_3964R(BCC)==false) {
+		//	return false;
+		//}
+		wait_3964R(BCC);//don't care 03 3A??
 		//step.3 - give echo
-		purgeByte(ans,7);
-		//writeByte(DLE);//do we need this???
+		purgeByte(ans,0,7);
+		writeByte(DLE);
 		//end of talking~~~~		
-		if(	ans[1]==0 &&
+		/*if(	ans[1]==0 &&
 			ans[2]==0 &&
 			ans[3]==0 && 
 			ans[4]==DLE && ans[5]==ETX
 		) {
 			return true;
 		}
-		return false;
+		return false;*/
+		return true;
 	}
 
 	private interface Callback {
@@ -235,11 +228,8 @@ public class DevSPIK2k extends DevTTY {
 		final Callback event,
 		final int addr, 
 		final int size		
-	) {breakIn(()->{
+	) {asyncBreakIn(()->{
 		int[] val = get_register(addr,size);
-		if(Application.isEventThread()==false) {
-			return;
-		}
 		Application.invokeAndWait(()->{
 			if(val==null) {
 				show_fail(addr,size);
@@ -253,11 +243,8 @@ public class DevSPIK2k extends DevTTY {
 		final Callback event,
 		final int addr,
 		final int... vals
-	) {breakIn(()->{		
+	) {asyncBreakIn(()->{		
 		boolean flag = set_register(addr,vals);
-		if(event==null) {
-			return;
-		}
 		Application.invokeAndWait(()->{
 			if(flag==false) {
 				show_fail(addr,vals[0]);
@@ -360,8 +347,8 @@ public class DevSPIK2k extends DevTTY {
 		}
 		btn[0].setOnAction(e->dev.setRegister(_v->{},1,0x21));//DC-1 on
 		btn[1].setOnAction(e->dev.setRegister(_v->{},1,0x20));//DC-1 off
-		btn[2].setOnAction(e->dev.setRegister(_v->{},1,0x22));//DC-2 on
-		btn[3].setOnAction(e->dev.setRegister(_v->{},1,0x23));//DC-2 off
+		btn[2].setOnAction(e->dev.setRegister(_v->{},1,0x23));//DC-2 on
+		btn[3].setOnAction(e->dev.setRegister(_v->{},1,0x22));//DC-2 off
 		btn[4].setOnAction(e->dev.setRegister(_v->{},1,0x02));//RUN on
 		btn[5].setOnAction(e->dev.setRegister(_v->{},1,0x01));//RUB off
 		

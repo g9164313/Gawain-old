@@ -87,11 +87,8 @@ public class LayDCG100 {
 		}
 		btn[0].setText("點火");
 		btn[0].setOnAction(e->{
-			int power = Integer.valueOf(box[0].getText());
-			dev.breakIn(()->{		
-			dev.writeVal(8006,power);
-			dev.write_OR(8005,0x01);
-		});});
+			//int power = Integer.valueOf(box[0].getText());
+		});
 		
 		btn[1].setText("熄火");
 		btn[1].setOnAction(e->dev.asyncWriteAND(8005,0xFE));

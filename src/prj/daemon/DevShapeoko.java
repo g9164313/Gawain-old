@@ -44,7 +44,7 @@ public class DevShapeoko extends DevTTY {
 		String ans = readTxt(2000);//message is very slow.... 
 		if(ans.contains("Grbl")==false) {
 			Misc.loge("No Grbl controller!!");
-			nextState.set(null);
+			nextState("");
 			return;
 		}
 		Misc.logv(ans);
@@ -54,7 +54,7 @@ public class DevShapeoko extends DevTTY {
 		exec("M05",null);//spindle off
 		exec("G21",null);//set units to Millimeters
 		exec("~"  ,null);		
-		nextState.set(STG_MONT);
+		nextState(STG_MONT);
 		//nextState.set(null);
 	}
 	private void state_monitor() {
@@ -63,9 +63,9 @@ public class DevShapeoko extends DevTTY {
 	}
 	@Override
 	protected void afterOpen() {
-		setupState0(STG_INIT, ()->state_initialize()).
-		setupStateX(STG_MONT, ()->state_monitor());
-		playFlow();
+		addState(STG_INIT, ()->state_initialize()).
+		addState(STG_MONT, ()->state_monitor());
+		playFlow(STG_INIT);
 	}
 
 	private final AtomicBoolean isIdle = new AtomicBoolean(false);//mirror for state flag.
@@ -166,28 +166,31 @@ public class DevShapeoko extends DevTTY {
 	public String exec(final String cmd) {
 		return exec(cmd,null);
 	}
-	public void asyncExec(final String cmd) {breakIn(()->{
-		exec(cmd,null);
-	});}	
-	public void syncExec(final String cmd) {syncBreakIn(()->{
-		exec(cmd,null);
-	});}
 	
+	/**
+	 * Move probe head, but only one direction.<p>
+	 * @param axis
+	 * @param val
+	 * @param abs
+	 */
 	public void move(
+		final boolean abs,
 		final char axis,
-		final float val,
-		final boolean abs
+		final float val		
 	){
 		final String cmd = String.format(
 			"%s\nG00%C%.1f\n",
 			(abs==true)?("G90"):("G91"),
 			axis, val
 		);
-		breakIn(()->exec(cmd,null));
+		asyncBreakIn(()->{
+			exec(cmd,null);
+			nextState(STG_MONT);
+		});
 	}
 	
 	/**
-	 * move probe head.<p>
+	 * Move probe head.User can assign any position.<p>
 	 * @param abs : relative or absolute position value
 	 * @param xx : x-axis position value.
 	 * @param yy : y-axis position value.
@@ -204,8 +207,26 @@ public class DevShapeoko extends DevTTY {
 			(abs==true)?("G90\n"):("G91\n"),
 			xx,yy,zz
 		);
-		breakIn(()->exec(cmd));
+		asyncBreakIn(()->{
+			exec(cmd,null);
+			nextState(STG_MONT);
+		});
 	}
+	public void moveAbs(
+		float xx, 
+		float yy,
+		float zz
+	){
+		move(true,xx,yy,zz);
+	}
+	public void moveRel(
+		float xx, 
+		float yy, 
+		float zz
+	){
+		move(false,xx,yy,zz);
+	}
+		
 	/**
 	 * Same as 'move()', but block current thread(caller).<p>
 	 * @param abs : relative or absolute position value
@@ -224,31 +245,17 @@ public class DevShapeoko extends DevTTY {
 			(abs==true)?("G90\n"):("G91\n"),
 			xx,yy,zz
 		);		
-		breakIn(()->{
+		asyncBreakIn(()->{
 			isIdle.set(true);
-			exec(cmd);
+			exec(cmd,null);
+			nextState(STG_MONT);
 		});
-		waiting();
 		while(isIdle.get()==false) {
 			try {
 				Thread.sleep(10);
 			} catch (InterruptedException e) {
 			}
 		}
-	}
-	public void moveAbs(
-		float xx, 
-		float yy,
-		float zz
-	){
-		move(true,xx,yy,zz);
-	}
-	public void moveRel(
-		float xx, 
-		float yy, 
-		float zz
-	){
-		move(false,xx,yy,zz);
 	}
 	public void syncMoveAbs(
 		float xx, 
@@ -275,7 +282,7 @@ public class DevShapeoko extends DevTTY {
 	public void travelScan(
 		final int step,
 		final float... points
-	) {breakIn(()->{
+	) {asyncBreakIn(()->{
 		
 		final float LF = Math.min(points[0],points[2]);//left
 		final float RH = Math.max(points[0],points[2]);//right
@@ -336,6 +343,7 @@ public class DevShapeoko extends DevTTY {
 		);//go to original point
 		Misc.logv("\n"+cmd);//dry-run~~
 		exec(cmd);
+		nextState(STG_MONT);
 	});}
 	//---------------------------------------//
 	
@@ -383,7 +391,7 @@ public class DevShapeoko extends DevTTY {
 			break;
 		default: Misc.logw("invalid direction token."); return;
 		}
-		dev.move(axs, val, chkAbs.isSelected());
+		dev.move(chkAbs.isSelected(), axs, val);
 	}
 	
 	private static final String FMT_VAL = "%#7.1f mm";

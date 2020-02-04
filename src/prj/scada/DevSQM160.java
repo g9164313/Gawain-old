@@ -25,7 +25,7 @@ public class DevSQM160 extends DevTTY {
 
 	public DevSQM160() {
 		TAG = "SQM-160";
-		readTimeout = 100;
+		readTimeout = 30;
 	}
 	public DevSQM160(String path_name) {
 		this();
@@ -44,17 +44,16 @@ public class DevSQM160 extends DevTTY {
 	
 	private void state_init() {
 		String res;
-		res = exec_s("A0?");
-		if(res.charAt(0)=='A') {
-			res = res.substring(1).trim();
-			a_value = res.split("\\s+");
-		}
-		res = exec_s("B?");
+		//res = exec("@");// !#@(79)(55) --> !0AMON_Ver_4.13(85)(119)
+		res = exec("A0?");
+		parse_a_value(res);
+		
+		res = exec("B?");
 		if(res.charAt(0)=='A') {
 			res = res.substring(1).trim();
 			b_value = res.split("\\s+");
 		}
-		res = exec_s("C?");
+		res = exec("C?");
 		if(res.charAt(0)=='A') {
 			res = res.substring(1).trim();
 			c_value = res.split("\\s+");
@@ -95,17 +94,17 @@ public class DevSQM160 extends DevTTY {
 				highRange[1].set(Float.valueOf(c_value[5]));
 			}
 		});
-		nextState.set(STG_MONT);
+		nextState(STG_MONT);
 	}
 	private void state_monitor() {
 		try {
-			Thread.sleep(100);
+			Thread.sleep(500);
 		} catch (InterruptedException e) {
 			return;
 		}
 		String res;
 		String[] col;
-		res = exec_s("W");
+		/*res = exec("W");
 		if(res.charAt(0)=='A') {
 			res = res.substring(1).trim();
 			col = res.split("\\s+");
@@ -115,18 +114,24 @@ public class DevSQM160 extends DevTTY {
 				int jj = rr * 6 + cc;
 				w_value[jj] = Float.valueOf(col[ii]);
 			}
-		}
-		res = exec_s("M");
+		}else{
+			return;
+		}*/
+		res = exec("M");
 		if(res.charAt(0)=='A') {
 			res = res.substring(1).trim();
 			col = res.split("\\s+");
 			m_value = Float.valueOf(col[0]);
+		}else {
+			return;
 		}
-		res = exec_s("O");
+		res = exec("O");
 		if(res.charAt(0)=='A') {
 			res = res.substring(1).trim();
 			col = res.split("\\s+");
 			o_value = Float.valueOf(col[0]);
+		}else {
+			return;
 		}
 		Application.invokeAndWait(()->{
 			rate[0].set(m_value);
@@ -140,10 +145,27 @@ public class DevSQM160 extends DevTTY {
 	}	
 	@Override
 	protected void afterOpen() {
-		setupState0(STG_INIT, ()->state_init()).
-		setupStateX(STG_MONT, ()->state_monitor());
-		playFlow();
+		addState(STG_INIT, ()->state_init()).
+		addState(STG_MONT, ()->state_monitor());
+		playFlow(STG_INIT);
 	}
+	
+	private void parse_a_value(String res) {
+		a_value = new String[8];
+		for(int i=0; i<a_value.length; i++) {
+			a_value[i] = "???";
+		}
+		if(res.charAt(0)!='A') {
+			return;
+		}
+		res = res.substring(1).trim();
+		a_value[0] = res.substring(0,8);
+		String[] cols = res.substring(8).trim().split("\\s+");
+		for(int i=1; i<a_value.length; i++) {
+			a_value[i] = cols[i-1];
+		}
+	}
+	
 	
 	private short calc_crc(short crc, int val) {
 		crc = (short) (crc ^ (short)val);
@@ -157,63 +179,64 @@ public class DevSQM160 extends DevTTY {
 		return (short) (crc & 0x3fff);
 	}
 	
-	private String exec_(
-		final boolean sync,
-		final String cmd
-	) {		
-		if(cmd.length()>190) {
-			Misc.loge("command is too long!!");
-			return "";
-		}
+	private String exec(final String cmd) {
+		
 		//Command Packet (Host to SQM-160 Message)
-		//<Sync character> <Length character> <Message> <CRC1><CRC2>		
+		//<Sync character> <Length character> <Message> <CRC1><CRC2>
+		//max-length is 190 byte
 		//test command: !#@O7
 		final byte[] buf = new byte[200];
-		
-		short crc = 0x3fff;
-		int off = (sync)?(2):(1);
 		int len = cmd.length();
+		short crc;
 		
-		byte _len = (byte)(len+34);
+		writeByte('!');//write sync character~~~
 		
-		if(sync==true) {
-			buf[0] = '!';
-			buf[1] = _len;
-		}else {
-			buf[0] = _len;
-		}
-		crc = calc_crc(crc,_len);		
+		buf[0] = (byte)(len+34);
+		crc = 0x3fff;
+		crc = calc_crc(crc,buf[0]);		
 		for(int i=0; i<len; i++) {			
 			int val = cmd.charAt(i) & 0xFF;			
-			buf[i+off] = (byte)val;			
+			buf[i+1] = (byte)val;			
 			crc = calc_crc(crc,val);
 		}
-		buf[off+len+0] = (byte) (((crc   ) & 0x7f) + 34);
-		buf[off+len+1] = (byte) (((crc>>7) & 0x7f) + 34);
+		buf[len+1] = (byte) (((crc   ) & 0x7f) + 34);
+		buf[len+2] = (byte) (((crc>>7) & 0x7f) + 34);
 				
-		len = off + len + 2;//total packet size
-		writeByte(buf,0,len);
+		len = 1 + len + 2;//total packet size
+		writeByte(buf,0,len);//write command and CRC
 		
-		//Response Packet (SQM-160 to Host Message)
-		buf[0] = readByte();
-		if(buf[0]=='!') {
-			//sync character!!
-			buf[0] = readByte();
+		//Response package (SQM-160 to Host Message)
+		buf[0] = readByte();//sync character!!
+		if(buf[0]!='!') {
+			Misc.loge("[%s] no sync character...", TAG);
+			readByte(buf,0,50);//purge data~~~			
+			return "C";//what is going on?
+		}
+		buf[0] = readByte();//package length, it must be ASCII code
+		if(buf[0]<0x20 || 0x7E<buf[0]) {
+			Misc.loge("[%s] wrong package length...", TAG);
+			readByte(buf,0,50);//purge data~~~	
+			return "C";//what is going on?
 		}
 		len = (buf[0]&0xFF)-35;
-		for(int i=0; i<len; i++) {
-			buf[i] = readByte();
+		readByte(buf,0,len+2);//include CRC
+		
+		//verify CRC...
+		crc = 0x3fff;
+		crc = calc_crc(crc,len+35);		
+		for(int i=0; i<len; i++) {			
+			int val = buf[i] & 0xFF;			
+			crc = calc_crc(crc,val);
 		}
-		buf[len] = 0;//null terminate
-		readByte();//CRC-1
-		readByte();//CRC-2
+		if((((crc   )&0x7f)+34)!=(buf[len+0]&0xFF) ){
+			Misc.loge("[%s] CRC is wrong!!", TAG);
+			return "C";
+		}
+		if((((crc>>7)&0x7f)+34)!=(buf[len+1]&0xFF) ){
+			Misc.loge("[%s] CRC is wrong!!", TAG);
+			return "C";
+		}
 		return new String(buf,0,len);
-	}
-	public String exec_s(final String cmd) {	
-		return exec_(true, cmd);
-	}
-	public String exec_c(final String cmd) {	
-		return exec_(false, cmd);
 	}
 	//-------------------------//
 	
@@ -225,7 +248,7 @@ public class DevSQM160 extends DevTTY {
 		new SimpleStringProperty("??"),//final thickness
 		new SimpleStringProperty("??"),//thickness set-point
 		new SimpleStringProperty("??"),//time set-point
-		new SimpleStringProperty("??"),//Sensor Average
+		new SimpleStringProperty("??"),//sensor Average
 		new SimpleStringProperty("??"),
 	};
 	
@@ -289,11 +312,11 @@ public class DevSQM160 extends DevTTY {
 		final DevSQM160 dev,
 		final String cmd,
 		final ReadBack hook
-	) { dev.breakIn(()->{
+	) { dev.asyncBreakIn(()->{
 		if(cmd.length()==0) {
 			return;
 		}
-		final String res = dev.exec_s(cmd);
+		final String res = dev.exec(cmd);
 		if(hook!=null) {
 			hook.callback(res);
 		}else {
@@ -312,14 +335,15 @@ public class DevSQM160 extends DevTTY {
 				break;
 			}
 		}
+		dev.nextState(dev.STG_MONT);
 	});}
 	
-	private static void set_film_gui(
+	private static void active_film_gui(
 		final DevSQM160 dev,
 		final int idx
-	) { dev.breakIn(()->{
+	) { dev.asyncBreakIn(()->{
 		String res;
-		res = dev.exec_s("D"+idx);
+		res = dev.exec(String.format("D%C", (char)(idx+48)));
 		if(res.charAt(0)!='A') {
 			Application.invokeAndWait(()->{
 				Alert alert = new Alert(AlertType.ERROR);
@@ -331,11 +355,8 @@ public class DevSQM160 extends DevTTY {
 			return;
 		}
 		//update information~~~
-		res = dev.exec_s("A"+idx+"?");
-		if(res.charAt(0)=='A') {
-			res = res.substring(1).trim();
-			dev.a_value = res.split("\\s+");
-		}
+		res = dev.exec(String.format("A%C?", (char)(idx+48)));
+		dev.parse_a_value(res);
 		Application.invokeAndWait(()->{
 			for(int i=0; i<dev.a_value.length; i++) {
 				dev.a_value[i] = dev.a_value[i].trim();
@@ -352,9 +373,9 @@ public class DevSQM160 extends DevTTY {
 			txt[i].setMaxWidth(Double.MAX_VALUE);			
 			GridPane.setHgrow(txt[i], Priority.ALWAYS);
 		}
-		txt[0].textProperty().bind(dev.rate[0].asString("%.3f"));
+		txt[0].textProperty().bind(dev.rate[0].asString("%6.3f"));
 		txt[1].textProperty().bind(dev.unitRate);
-		txt[2].textProperty().bind(dev.high[0].asString("%.3f"));
+		txt[2].textProperty().bind(dev.high[0].asString("%6.3f"));
 		txt[3].textProperty().bind(dev.unitHigh);
 		txt[4].textProperty().bind(dev.filmData[0]);//film name
 		txt[5].textProperty().bind(dev.filmData[1]);//film Density (g/cm3)
@@ -385,17 +406,19 @@ public class DevSQM160 extends DevTTY {
 			dia.setContentText("薄膜編號:");
 			Optional<Integer> opt = dia.showAndWait();
 			if(opt.isPresent()) {
-				set_film_gui(dev,opt.get().intValue());
+				active_film_gui(dev,opt.get().intValue());
 			}			
 		});
 		btn[3].setText("設定薄膜");
-		btn[3].setOnAction(e->{});
+		btn[3].setOnAction(e->{
+			
+		});
 		//btn[3].setText("Shutter");
 		//btn[3].setOnAction(e->exec_gui(dev,"",(res)->{	
 		//}));
 		//btn[4].setText("恢復預設");
 		//btn[4].setOnAction(e->{});
-		
+
 		final GridPane lay0 = new GridPane();
 		lay0.getStyleClass().addAll("box-pad");
 		lay0.add(new Separator(), 0, 1, 3, 1);

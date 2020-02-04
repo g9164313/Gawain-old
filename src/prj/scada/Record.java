@@ -50,9 +50,6 @@ public class Record {
 	
 	public Record(final FloatProperty[] arg) {
 		this();
-		if(arg==null) {
-			return;
-		}
 		volt.set(String.format("%.1f", arg[0].get()));
 		amps.set(String.format("%.2f", arg[1].get()));
 		watt.set(String.format("%.0f", arg[2].get()));

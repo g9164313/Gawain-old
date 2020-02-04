@@ -19,6 +19,8 @@ import javafx.animation.Timeline;
 import javafx.beans.binding.DoubleBinding;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.FloatProperty;
+import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.SimpleFloatProperty;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.scene.control.SingleSelectionModel;
@@ -28,6 +30,7 @@ import javafx.scene.control.cell.PropertyValueFactory;
 
 import javafx.util.Duration;
 import javafx.util.StringConverter;
+import narl.itrc.DevModbus;
 
 public class TblHistory extends TableView<Record> {
 
@@ -82,7 +85,11 @@ public class TblHistory extends TableView<Record> {
 		cmb.getItems().addAll(
 			Duration.seconds(1.),
 			Duration.seconds(5.),
-			Duration.seconds(10.)
+			Duration.seconds(10.),
+			Duration.seconds(15.),
+			Duration.seconds(20.),
+			Duration.seconds(25.),
+			Duration.seconds(30.)
 		);
 		flagDura = cmb.getSelectionModel();
 		flagDura.select(0);
@@ -111,6 +118,30 @@ public class TblHistory extends TableView<Record> {
 		vals = values;
 	}
 	
+	public void bindProperty(
+		final DevModbus coup,
+		final DevSQM160 sqm1
+	) {
+		vals = new FloatProperty[6];
+		vals[0] = new SimpleFloatProperty();
+		vals[1] = new SimpleFloatProperty();
+		vals[2] = new SimpleFloatProperty();
+		vals[3] = new SimpleFloatProperty();
+
+		IntegerProperty prop;
+		prop = coup.register(8001);
+		if(prop!=null) {
+			vals[0].bind(prop.multiply(0.20f));
+		}
+		prop = coup.register(8002);
+		if(prop!=null) {
+			vals[2].bind(prop.multiply(1.06f));
+		}
+		vals[1].bind(vals[2].divide(vals[0].add(Float.MIN_VALUE)));
+		vals[4] = sqm1.rate[0];
+		vals[5] = sqm1.high[0];
+	}
+	
 	private BooleanProperty flagTime = null;
 	private SingleSelectionModel<Duration> flagDura = null;
 	private Timeline time = null;
@@ -128,9 +159,12 @@ public class TblHistory extends TableView<Record> {
 		
 		final KeyFrame kfm = new KeyFrame(
 			flagDura.getSelectedItem(), e->{				
-			//simulation();			
-			getItems().add(new Record(vals));
+			//simulation();	
+			Record rec = new Record(vals);
+			getItems().add(rec);
+			scrollTo(rec);
 		});
+		
 		time = new Timeline(kfm);
 		time.setCycleCount(Animation.INDEFINITE);
 		time.play();
