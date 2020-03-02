@@ -8,8 +8,6 @@ import com.jfoenix.controls.JFXDialog;
 import com.jfoenix.controls.JFXSpinner;
 import com.jfoenix.controls.events.JFXDialogEvent;
 
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
 import javafx.concurrent.Task;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
@@ -29,7 +27,6 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
-import javafx.util.Duration;
 
 public abstract class PanBase {
 	
@@ -64,7 +61,7 @@ public abstract class PanBase {
 	
 	public void initLayout() {
 		
-		final Pane root = new StackPane(eventLayout(this));		
+		final Pane root = new StackPane(eventLayout(this));			
 		if(Gawain.propFlag("JFX_DECORATE")==true) {
 			scene = new Scene(new JFXDecorator(stage,root));
 		}else {
@@ -72,7 +69,8 @@ public abstract class PanBase {
 		}
 		
 		scene.setFill(Color.WHITE);
-		scene.getStylesheets().add(Gawain.sheet);//load a default style...			
+		scene.getStylesheets().add(Gawain.sheet);//load a default style...
+		root.getStyleClass().addAll("background");
 		scene.setOnKeyPressed(event->{
 			KeyCode cc = event.getCode();
 			if(cc==KeyCode.F1){
@@ -139,88 +137,31 @@ public abstract class PanBase {
 	private static KeyCombination hotkey_console = KeyCombination.keyCombination("Ctrl+Alt+C");
 	//----------------------------------------------//
 	
-	protected interface FlowEvent {
-		void callback(Spinner spin,int step);
-	};
-	
 	protected static class Spinner extends JFXDialog {
-		
 		JFXSpinner icon;
 		Label mesg;
-		
 		public Spinner(){
-			
 			icon = new JFXSpinner();
 			mesg = new Label();
 			mesg.setMinWidth(100);
 			mesg.setFont(Font.font("Arial", 26));
 			mesg.setAlignment(Pos.CENTER);
-			
 			final HBox lay = new HBox(icon,mesg);
+			lay.setAlignment(Pos.BASELINE_LEFT);
 			lay.getStyleClass().addAll("box-pad");
-			lay.setAlignment(Pos.BASELINE_LEFT);			
-			
+			lay.setAlignment(Pos.BASELINE_LEFT);	
 			setContent(lay);
 		}
-		
-		private Timeline time;
-		
-		void create_flow(final FlowEvent... event) {
-			
-			time = new Timeline();
-			time.setCycleCount(1);
-			
-			for(int i=0; i<event.length; i++) {
-				final FlowEvent obj = event[i];
-				final int step = i + 1;
-				final KeyFrame key = new KeyFrame(
-					Duration.millis(100*step),
-					String.format("step-%d",step),
-					act->obj.callback(this,step)
-				);
-				time.getKeyFrames().add(key);
-			}
-			setOnDialogOpened(e->time.play());
-			//setOnDialogClosed(e->time.stop());
-		}
-		
 		public void text(final String text) {
 			mesg.setText(text);
 		}
-		public void jump(final int step) {		
-			if(step<0) {
-				time.jumpTo(Duration.ZERO);
-			}else if(step==0) {
-				time.stop();
-				close();
-			}else {
-				time.jumpTo(Duration.millis(100*step));
-			}
-		}
 	};
-	/**
-	 * show a spinner, let user know we are working.<p>
-	 * GUI-thread will execute runnable objects one by one.<p>
-	 * @param runs - working duty
-	 */
-	protected void notifyFlow(final FlowEvent... event) {		
-		final Spinner dlg = new Spinner();
-		dlg.create_flow(event);		
-		dlg.show((StackPane)root());
-	}
-	/**
-	 * show a spinner, let user know we are working.<p>
-	 * Convenience method.<p>
-	 */
-	protected void notifySpin() {
-		notifySpin(null,null);	
-	}
 	/**
 	 * show a spinner, let user know we are working.<p>
 	 * @param event1 - After the dialog show...
 	 * @param event2 - After closing the dialog...
 	 */
-	protected void notifySpin(
+	public void notifyTask(
 		final EventHandler<JFXDialogEvent> event1,
 		final EventHandler<JFXDialogEvent> event2
 	) {
@@ -233,7 +174,7 @@ public abstract class PanBase {
 	 * show a spinner, let user know we are working.<p>
 	 * @param task - a working thread.<p>
 	 */
-	protected void notifyTask(
+	public void notifyTask(
 		final Task<?> task,
 		final Runnable hook
 	) {
@@ -250,7 +191,7 @@ public abstract class PanBase {
 		dlg.setOnDialogClosed(e->task.cancel());
 		dlg.show((StackPane)root());
 	}
-	protected void notifyTask(final Task<?> tsk) {
+	public void notifyTask(final Task<?> tsk) {
 		notifyTask(tsk,null);
 	}
 
@@ -299,7 +240,6 @@ public abstract class PanBase {
 			null
 		);
 	}
-	
 	public static ButtonType notifyConfirm(
 		final String title,
 		final String message
@@ -310,7 +250,6 @@ public abstract class PanBase {
 			null
 		);
 	}
-	
 	private static ButtonType popup_alter(
 		final AlertType type,
 		final String title,
@@ -342,7 +281,7 @@ public abstract class PanBase {
 		return dia.showOpenDialog(stage);
 	}
 	
-	protected String saveAsFile(final String default_name){
+	public String saveAsFile(final String default_name){
 		final FileChooser dia = new FileChooser();
 		dia.setTitle("儲存成為...");
 		dia.setInitialFileName(default_name);

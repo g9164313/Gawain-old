@@ -3,39 +3,139 @@ package prj.scada;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Optional;
 
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import com.jfoenix.controls.JFXButton;
-import com.jfoenix.controls.JFXComboBox;
+import com.jfoenix.controls.JFXRadioButton;
 import com.jfoenix.controls.JFXToggleButton;
-import com.sun.glass.ui.Application;
 
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.beans.binding.DoubleBinding;
-import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.FloatProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleFloatProperty;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
-import javafx.scene.control.SingleSelectionModel;
+import javafx.geometry.Pos;
+import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.control.ToggleGroup;
 import javafx.scene.control.cell.PropertyValueFactory;
-
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.VBox;
 import javafx.util.Duration;
-import javafx.util.StringConverter;
+
 import narl.itrc.DevModbus;
+import narl.itrc.Misc;
+import narl.itrc.PanBase;
 
-public class TblHistory extends TableView<Record> {
+public class TblHistory extends VBox {
 
+	private final TableView<Record> table = new TableView<Record>();
+	
+	private final JFXToggleButton starter = new JFXToggleButton();
+	
+	private final ToggleGroup period = new ToggleGroup();
+	
+	private Optional<Timeline> time = Optional.empty();
+	
+	public TblHistory(final PanBase pan) {
+		
+		init_table();
+		
+		final JFXRadioButton[] rad = {
+			new JFXRadioButton(" 1 秒"),
+			new JFXRadioButton("10 秒"),
+			new JFXRadioButton("30 秒"),
+		};
+		rad[0].setUserData(Duration.seconds(1.));
+		rad[1].setUserData(Duration.seconds(10.));
+		rad[2].setUserData(Duration.seconds(30.));
+		for(int i=0; i<rad.length; i++) {
+			rad[i].setToggleGroup(period);
+		}
+		period.selectToggle(rad[0]);
+		
+		starter.setText("紀錄");
+		starter.setOnAction(e->{
+			if(time.isPresent()==false) {
+				startRecord();
+			}else {
+				stopRecord();
+			}
+		});
+		
+		final JFXButton btnDump = new JFXButton("匯出");
+		btnDump.disableProperty().bind(starter.selectedProperty());
+		btnDump.getStyleClass().add("btn-raised-1");
+		btnDump.setMinWidth(120.);
+		btnDump.setOnAction(e->{
+			String name = pan.saveAsFile("record.xlsx");
+			if(name.length()==0) {
+				return;
+			}
+			pan.notifyTask(dumpRecord(name));
+		});
+		
+		final HBox lay0 = new HBox(); 
+		lay0.getStyleClass().addAll("box-pad");
+		lay0.setAlignment(Pos.BASELINE_LEFT);
+		lay0.getChildren().addAll(
+			starter,
+			new Label("週期:"), 
+			rad[0], rad[1], rad[2],
+			new Label("    "),
+			btnDump
+		);
+				
+		getChildren().addAll(table,lay0);
+	}
+	
+	public void startRecord() {Misc.exec_gui(()->{
+		
+		if(time.isPresent()==true) {
+			return;
+		}
+		table.getItems().clear();
+		
+		Object obj = period.getSelectedToggle().getUserData();
+		final KeyFrame kfm = new KeyFrame(
+			(Duration)obj, e->{				
+			//simulation();	
+			Record rec = new Record(vals);
+			table.getItems().add(rec);
+			table.scrollTo(rec);
+		});		
+		Timeline tt = new Timeline(kfm);
+		tt.setCycleCount(Animation.INDEFINITE);
+		tt.play();
+		time = Optional.of(tt);
+		//time.getKeyFrames().get(0).getOnFinished().handle(null);
+		
+		starter.setSelected(true);
+	});}
+	public void stopRecord() {Misc.exec_gui(()->{
+		
+		if(time.isPresent()==false) {
+			return;
+		}
+		time.get().stop();
+		time = Optional.empty();
+		
+		starter.setSelected(false);
+	});}
+	//--------------------------------//
+	
 	@SuppressWarnings("unchecked")
-	public TblHistory() {
+	private void init_table() {
 		
 		final TableColumn<Record,String> col0 = new TableColumn<>("時間");
 		final TableColumn<Record,String> col1 = new TableColumn<>("電壓");
@@ -66,58 +166,17 @@ public class TblHistory extends TableView<Record> {
 		colA.getColumns().addAll(col1,col2,col3);
 		colB.getColumns().addAll(col5,col6);
 		
-		final JFXToggleButton tgl = new JFXToggleButton();
-		flagTime = tgl.selectedProperty();
-		flagTime.addListener(e->recording());
+		table.setEditable(false);
+		table.getColumns().addAll(col0,colA,colB);
 		
-		final JFXComboBox<Duration> cmb = new JFXComboBox<>();
-		cmb.setConverter(new StringConverter<Duration>() {
-			@Override
-			public Duration fromString(String arg0) {
-				return null;
-			}
-			@Override
-			public String toString(Duration arg0) {
-				int val = (int)arg0.toSeconds();
-				return String.format("%2d秒", val);
-			}
-		});
-		cmb.getItems().addAll(
-			Duration.seconds(1.),
-			Duration.seconds(5.),
-			Duration.seconds(10.),
-			Duration.seconds(15.),
-			Duration.seconds(20.),
-			Duration.seconds(25.),
-			Duration.seconds(30.)
-		);
-		flagDura = cmb.getSelectionModel();
-		flagDura.select(0);
-		
-		final JFXButton[] btn = {
-			new JFXButton("test-1"),
-			new JFXButton("test-2"),
-			new JFXButton("test-3"),
-		};
-		for(int i=0; i<btn.length; i++) {
-			btn[i].setMaxWidth(Double.MAX_VALUE);
-			btn[i].getStyleClass().add("btn-raised-1");
-		}
-		btn[0].setOnAction(e->{
-			boolean flag = flagTime.get();
-			flagTime.set(!flag);	
-		});
-		
-		setEditable(false);
-		getColumns().addAll(col0,colA,colB);
+		VBox.setVgrow(table, Priority.ALWAYS);
 	}
 	
 	private FloatProperty[] vals = null;
 	
 	public void bindProperty(final FloatProperty... values) {
 		vals = values;
-	}
-	
+	}	
 	public void bindProperty(
 		final DevModbus coup,
 		final DevSQM160 sqm1
@@ -142,51 +201,6 @@ public class TblHistory extends TableView<Record> {
 		vals[5] = sqm1.high[0];
 	}
 	
-	private BooleanProperty flagTime = null;
-	private SingleSelectionModel<Duration> flagDura = null;
-	private Timeline time = null;
-	
-	private void recording() {
-		
-		if(flagTime.get()==false) {
-			time.stop();
-			time = null;
-			return;
-		}
-
-		//do we need dump???
-		getItems().clear();
-		
-		final KeyFrame kfm = new KeyFrame(
-			flagDura.getSelectedItem(), e->{				
-			//simulation();	
-			Record rec = new Record(vals);
-			getItems().add(rec);
-			scrollTo(rec);
-		});
-		
-		time = new Timeline(kfm);
-		time.setCycleCount(Animation.INDEFINITE);
-		time.play();
-		time.getKeyFrames().get(0).getOnFinished().handle(null);
-	} 
-	
-	private void press_timer(final boolean flag) {
-		if(Application.isEventThread()==true) {
-			flagTime.set(flag);
-		}else {
-			Application.invokeAndWait(()->flagTime.set(flag));
-		}
-	}
-	
-	public void startRecord() {
-		press_timer(true);
-	}
-	
-	public void stopRecord() {
-		press_timer(false);
-	}
-	
 	public Task<?> dumpRecord(final String name) {
 		
 		return new Task<Void>() {
@@ -206,7 +220,7 @@ public class TblHistory extends TableView<Record> {
 				row.createCell(5).setCellValue("速率");
 				row.createCell(6).setCellValue("厚度");
 				
-				ObservableList<Record> lst = getItems();
+				ObservableList<Record> lst = table.getItems();
 				for(int i=0; i<lst.size(); i++) {
 					row = sheet.createRow(i+1);
 					updateMessage(String.format("處理項目: %d/%d", i, lst.size()));

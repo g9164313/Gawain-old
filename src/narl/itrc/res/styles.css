@@ -1,4 +1,8 @@
 
+.background {
+    -fx-background-color: WHITE;
+}
+
 .btn-raised-1{
 	-fx-button-type: RAISED;
 	-fx-font-size: 1.4em;
@@ -35,7 +39,6 @@
 
 .ground-pad {
 	-fx-alignment: center;
-	-fx-background-color: white;
 	-fx-font-size: 1.6em;
     -fx-spacing: 13;
     -fx-padding: 13;
@@ -43,7 +46,6 @@
 	-fx-vgap: 13;
 }
 .box-pad {
-	-fx-background-color: white;
 	-fx-font-size: 1.6em;
     -fx-spacing: 13;
     -fx-padding: 7;
@@ -51,7 +53,6 @@
 	-fx-vgap: 7;    
 }
 .box-pad-inner {
-	-fx-background-color: white;
 	-fx-font-size: 1.6em;
     -fx-spacing: 13, 0, 13, 0;
     -fx-padding:  7, 0,  7, 0;
@@ -63,7 +64,6 @@
 	-fx-border-color: black;
 	-fx-border-width: 1.7px;
 	-fx-border-radius: 10px;
-	-fx-background-color: white;
     -fx-spacing: 13;
     -fx-padding: 7;
     -fx-hgap: 7;
@@ -127,25 +127,6 @@
 	-fx-border-insets: 25 8 8 8;
 	-fx-border-color: black;
 	-fx-border-width: 2;
-	/*-fx-background-color: rgb(253,0,253)*/
-}
-
-.decorate1-border {
-	-fx-content-display: center;
-	-fx-border-color: black;
-	-fx-border-width: 0.5px;
-	/*-fx-background-color: rgb(253,0,253)*/
-}
-.decorate2-border {
-	-fx-content-display: center;
-	-fx-border-color: red;
-	-fx-border-width: 1.5px;
-	/*-fx-background-color: rgb(253,0,253)*/
-}
-.decorate3-border {
-	-fx-content-display: center;
-	-fx-border-color: blue;
-	-fx-border-width: 1.5px;
 	/*-fx-background-color: rgb(253,0,253)*/
 }
 

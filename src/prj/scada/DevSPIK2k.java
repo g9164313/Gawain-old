@@ -119,20 +119,21 @@ public class DevSPIK2k extends DevTTY {
 			cc = readByte();
 			if(cc==DLE) {
 				return true;
+			}else if(cc!=STX) {
+				readByte();
 			}
 		}while(isLive()==true);
 		return false;
 	}
 	
-	private boolean wait_3964R(final byte BCC) {
+	private void wait_3964R(final byte BCC) {
 		final byte[] res = {DLE,ETX,BCC};
 		writeByte(res,0,3);
 		purgeByte(res,0,2);
-		writeByte(DLE);
 		//if(res[0]!=DLE || res[1]!=STX) {
-		//	return false;
+		// return; ???
 		//}
-		return true;
+		writeByte(DLE);
 	}
 	
 	private int[] get_register(
@@ -155,9 +156,7 @@ public class DevSPIK2k extends DevTTY {
 		}
 		//step.2 - give device RK512 header.		
 		writeByte(ans,0,13-3);
-		if(wait_3964R(BCC)==false) {
-			return null;
-		}	
+		wait_3964R(BCC);
 		//step.3 - get frame:
 		//	token(3byte), error-code(1byte), 
 		//	data package(size*2),
@@ -165,6 +164,8 @@ public class DevSPIK2k extends DevTTY {
 		purgeByte(ans,0,(3+1+cnt+3));
 		writeByte(DLE);
 		//end of talking~~~~
+		
+		//check whether answer is valid....
 		if(	ans[3]!=0 ||
 			ans[3+1+cnt+0]!=DLE ||
 			ans[3+1+cnt+1]!=ETX 
@@ -201,22 +202,11 @@ public class DevSPIK2k extends DevTTY {
 		}
 		//step.2 - give device RK512 header.
 		writeByte(ans,0,ans.length-3);
-		//if(wait_3964R(BCC)==false) {
-		//	return false;
-		//}
-		wait_3964R(BCC);//don't care 03 3A??
-		//step.3 - give echo
+		wait_3964R(BCC);
+		//step.3 - fetch echo ???
 		purgeByte(ans,0,7);
 		writeByte(DLE);
-		//end of talking~~~~		
-		/*if(	ans[1]==0 &&
-			ans[2]==0 &&
-			ans[3]==0 && 
-			ans[4]==DLE && ans[5]==ETX
-		) {
-			return true;
-		}
-		return false;*/
+		//end of talking~~~~
 		return true;
 	}
 
@@ -381,9 +371,9 @@ public class DevSPIK2k extends DevTTY {
 		final GridPane lay0 = new GridPane();
 		lay0.getStyleClass().addAll("box-pad");
 		lay0.add(new Label("操作模式"), 0, 0, 4, 1);
-		lay0.addRow(1, rad[0], rad[3]);
-		lay0.addRow(2, rad[1], rad[4]);
-		lay0.addRow(3, rad[2]);
+		lay0.addRow(1, rad[1], rad[3]);
+		lay0.addRow(2, rad[2], rad[4]);
+		lay0.addRow(3, rad[0]);
 		lay0.add(new Separator(), 0, 4, 4, 1);
 		lay0.add(txt[ 0], 0, 5, 4, 1);
 		lay0.add(txt[ 1], 0, 6, 4, 1);

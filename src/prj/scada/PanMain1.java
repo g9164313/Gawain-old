@@ -19,14 +19,14 @@ import narl.itrc.PanBase;
 
 public class PanMain1 extends PanBase {
 	
-	final DevModbus coup = new DevModbus();
-	//final DevDCG100 dcg1 = new DevDCG100();	
+	final DevModbus coup = new DevModbus().mapRegister("h8000-8004");
+	final DevDCG100 dcg1 = new DevDCG100();	
 	final DevSPIK2k spik = new DevSPIK2k();
 	final DevSQM160 sqm1 = new DevSQM160();
 
 	final LayGauge lay_gaug = new LayGauge();
 	
-	final TblHistory tbl_hist = new TblHistory();
+	final TblHistory tbl_hist = new TblHistory(this);
 
 	public PanMain1() {
 	}
@@ -34,29 +34,30 @@ public class PanMain1 extends PanBase {
 	@Override
 	public Pane eventLayout(PanBase self) {
 		
-		stage().setOnShown(e->{		
+		stage().setOnShown(e->{
+			
+			tbl_hist.bindProperty(coup,sqm1);
+			
 			String arg;
 			arg = Gawain.prop().getProperty("modbus", "");
-			if(arg.length()!=0) {				
-				coup.mapRegister("h8000-8004");
-				coup.open(arg);
+			if(arg.length()!=0) {
 				lay_gaug.bindProperty(coup);
+				coup.open(arg);				
 			}
-			//arg = Gawain.prop().getProperty("DCG100", "");
-			//if(arg.length()>0) {
-				//lay_gaug.bindProperty(dcg1);
-				//dcg1.open(arg);
-			//}
+			arg = Gawain.prop().getProperty("DCG100", "");
+			if(arg.length()>0) {
+				lay_gaug.bindProperty(dcg1);
+				dcg1.open(arg);
+			}
 			arg = Gawain.prop().getProperty("SPIK2k", "");
 			if(arg.length()>0) {
 				spik.open(arg);
 			}
 			arg = Gawain.prop().getProperty("SQM160", "");
 			if(arg.length()>0) {
-				sqm1.open(arg);
 				lay_gaug.bindProperty(sqm1);
+				sqm1.open(arg);				
 			}
-			tbl_hist.bindProperty(coup,sqm1);
 		});
 		//--------------------//
 		
@@ -70,8 +71,8 @@ public class PanMain1 extends PanBase {
 	
 		final TitledPane[] lay3 = {
 			new TitledPane("快速設定"  ,lay_ctrl()),
-			//new TitledPane("DCG-100"  ,DevDCG100.genPanel(dcg1)),
-			new TitledPane("DCG-100"  ,LayDCG100.genPanel(coup)),
+			new TitledPane("DCG-100"  ,DevDCG100.genPanel(dcg1)),
+			//new TitledPane("DCG-100"  ,LayDCG100.genPanel(coup)),
 			new TitledPane("SPIK-2000",DevSPIK2k.genPanel(spik)),
 			new TitledPane("SQM-160"  ,DevSQM160.genPanel(sqm1))
 		};
@@ -113,7 +114,6 @@ public class PanMain1 extends PanBase {
 				int val = Integer.valueOf(box[0].getText());
 				coup.asyncWriteVal(8006,val);
 			}catch(NumberFormatException exp) {
-				return;
 			}
 		});
 		
@@ -131,13 +131,13 @@ public class PanMain1 extends PanBase {
 		btn[0].setOnAction(e->{
 			try {				
 				int val = Integer.valueOf(box[0].getText());
+				sqm1.zeros();
 				coup.asyncBreakIn(()->{
 					coup.writeVal (8006, val);
 					coup.writeBit1(8005, 0);
 				});
 				tbl_hist.startRecord();
 			}catch(NumberFormatException exp) {
-				return;
 			}
 		});
 		
@@ -147,24 +147,6 @@ public class PanMain1 extends PanBase {
 			coup.asyncWriteBit0(8005, 0);
 			tbl_hist.stopRecord();
 		});
-		
-		btn[2].getStyleClass().add("btn-raised-2");
-		btn[2].setText("匯出");
-		btn[2].setOnAction(e->{
-			String name = saveAsFile("record.xlsx");
-			if(name.length()==0) {
-				return;
-			}
-			notifyTask(tbl_hist.dumpRecord(name));	
-		});
-		
-		btn[3].getStyleClass().add("btn-raised-2");
-		btn[3].setText("開始紀錄");
-		btn[3].setOnAction(e->tbl_hist.startRecord());
-		
-		btn[4].getStyleClass().add("btn-raised-2");
-		btn[4].setText("停止紀錄");
-		btn[4].setOnAction(e->tbl_hist.stopRecord());
 		
 		final GridPane lay2 = new GridPane();
 		lay2.getStyleClass().addAll("box-pad-inner");

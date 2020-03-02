@@ -173,19 +173,26 @@ public class DevTTY extends DevBase {
 	/**
 	 * block-reading, and try to read until TTY timeout.<p>
 	 * @param tryCount - count for trying.<p>
-	 * @param maxLength - received length.<p>
 	 * @return
 	 */
 	public String readTxt(int msec) {
 		final byte[] buf = new byte[TXT_BUF_SIZE];
 		String txt = "";
-		long t0 = System.currentTimeMillis();
+		long t1 = System.currentTimeMillis();
 		do {
 			int cnt = implRead(buf,0,-1);
 			if(cnt>0) {
 				txt = txt + new String(buf,0,cnt);
-			}			
-		}while(isLive()==true && (System.currentTimeMillis()-t0)<msec);
+				t1 = System.currentTimeMillis();//reset timer
+			}else {
+				long t2 = System.currentTimeMillis();
+				if(msec>0 && (t2-t1)<msec) {
+					continue;
+				}else {
+					break;
+				}
+			}
+		}while(isLive()==true);
 		return txt;
 	}
 	

@@ -154,7 +154,7 @@ public class DevModbus extends DevBase {
 	
 	private ArrayList<RCell> mems = new ArrayList<>();
 	
-	public void mapRegister(final String... hexAddr) {
+	public DevModbus mapRegister(final String... hexAddr) {
 		
 		for(String txt:hexAddr) {
 			//if(txt.matches("[rRhH]\\d{4}(-)?(?(1)\\d{4})")==false) {
@@ -171,12 +171,13 @@ public class DevModbus extends DevBase {
 			if(col.length>=2) {
 				cnt = Integer.valueOf(col[1]) - off + 1;
 				if(cnt<=0) {
-					return;
+					return this;
 				}
 			}
 			mems.add(new RCell(typ,off,cnt));
 		}		
 		addState(STG_LOOPER,()->looper());
+		return this;
 	}	
 	private void looper() {
 		try {

@@ -8,6 +8,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
+import com.sun.glass.ui.Application;
+
 import javafx.event.ActionEvent;
 
 import javafx.scene.Node;
@@ -436,6 +438,17 @@ public class Misc {
 		return txt.substring(beg,end);
 	}	
 	//--------------------------//
+	
+	/**
+	 * a wrap for GUI-thread application.
+	 */
+	public static void exec_gui(final Runnable work) {
+		if(Application.isEventThread()==true) {
+			work.run();
+		}else {
+			Application.invokeAndWait(work);
+		}
+	}
 	
 	/**
 	 * execute a command. Remember this is 'blocking' function
