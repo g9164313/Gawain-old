@@ -34,8 +34,8 @@ import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 
 import narl.itrc.DevModbus;
+import narl.itrc.Gawain;
 import narl.itrc.Misc;
-import narl.itrc.PanBase;
 
 public class TblHistory extends VBox {
 
@@ -47,7 +47,7 @@ public class TblHistory extends VBox {
 	
 	private Optional<Timeline> time = Optional.empty();
 	
-	public TblHistory(final PanBase pan) {
+	public TblHistory() {
 		
 		init_table();
 		
@@ -78,11 +78,11 @@ public class TblHistory extends VBox {
 		btnDump.getStyleClass().add("btn-raised-1");
 		btnDump.setMinWidth(120.);
 		btnDump.setOnAction(e->{
-			String name = pan.saveAsFile("record.xlsx");
+			String name = Gawain.mainPanel.saveAsFile("record.xlsx");
 			if(name.length()==0) {
 				return;
 			}
-			pan.notifyTask(dumpRecord(name));
+			Gawain.mainPanel.notifyTask(dumpRecord(name));
 		});
 		
 		final HBox lay0 = new HBox(); 
@@ -99,6 +99,8 @@ public class TblHistory extends VBox {
 		getChildren().addAll(table,lay0);
 	}
 	
+	public DevPoster poster = null;
+	
 	public void startRecord() {Misc.exec_gui(()->{
 		
 		if(time.isPresent()==true) {
@@ -109,19 +111,27 @@ public class TblHistory extends VBox {
 		Object obj = period.getSelectedToggle().getUserData();
 		final KeyFrame kfm = new KeyFrame(
 			(Duration)obj, e->{				
-			//simulation();	
-			Record rec = new Record(vals);
-			table.getItems().add(rec);
-			table.scrollTo(rec);
+			//simulation();
+			Record itm = new Record(vals);
+			ObservableList<Record> obv = table.getItems();
+			if(obv.size()>=3600){
+				obv.remove(0, 1800);
+			}
+			if(poster!=null){
+				poster.queue.offer(itm.toJSON());
+			}
+			obv.add(itm);
+			table.scrollTo(itm);
 		});		
 		Timeline tt = new Timeline(kfm);
 		tt.setCycleCount(Animation.INDEFINITE);
 		tt.play();
 		time = Optional.of(tt);
 		//time.getKeyFrames().get(0).getOnFinished().handle(null);
-		
+
 		starter.setSelected(true);
 	});}
+	
 	public void stopRecord() {Misc.exec_gui(()->{
 		
 		if(time.isPresent()==false) {

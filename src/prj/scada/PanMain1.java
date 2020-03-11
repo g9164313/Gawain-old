@@ -25,19 +25,11 @@ public class PanMain1 extends PanBase {
 	final DevSQM160 sqm1 = new DevSQM160();
 
 	final LayGauge lay_gaug = new LayGauge();
-	
-	final TblHistory tbl_hist = new TblHistory(this);
+	final TblHistory tbl_hist = new TblHistory();
 
 	public PanMain1() {
-	}
-	
-	@Override
-	public Pane eventLayout(PanBase self) {
-		
+		super();
 		stage().setOnShown(e->{
-			
-			tbl_hist.bindProperty(coup,sqm1);
-			
 			String arg;
 			arg = Gawain.prop().getProperty("modbus", "");
 			if(arg.length()!=0) {
@@ -58,16 +50,25 @@ public class PanMain1 extends PanBase {
 				lay_gaug.bindProperty(sqm1);
 				sqm1.open(arg);				
 			}
+			arg = Gawain.prop().getProperty("http_poster", "");
+			if(arg.length()>0) {
+				tbl_hist.poster = new DevPoster(arg);
+				tbl_hist.poster.open();
+			}
+			tbl_hist.bindProperty(coup,sqm1);
 		});
-		//--------------------//
-		
+	}
+	
+	@Override
+	public Pane eventLayout(PanBase self) {
+
 		final JFXTabPane lay4 = new JFXTabPane();
 		lay4.getTabs().addAll(
 			new Tab("管路"),
 			new Tab("監測",lay_gaug),
 			new Tab("紀錄",tbl_hist)
 		);
-		lay4.getSelectionModel().select(2);
+		lay4.getSelectionModel().select(1);
 	
 		final TitledPane[] lay3 = {
 			new TitledPane("快速設定"  ,lay_ctrl()),

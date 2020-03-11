@@ -57,4 +57,20 @@ public class Record {
 		rate.set(String.format("%.3f", arg[4].get()));
 		high.set(String.format("%.3f", arg[5].get()));
 	}
+	
+	public String toJSON(){
+		return String.format(
+			"{"+
+			"\"sss\":\"%s\", "+			
+			"\"volt\":\"%s\", "+"\"amps\":\"%s\", "+
+			"\"watt\":\"%s\", "+"\"joul\":\"%s\", "+
+			"\"rate\":\"%s\", "+"\"high\":\"%s\", "+
+			"}",
+			stmp.get(),
+			volt.get(), amps.get(), 
+			watt.get(), joul.get(),
+			rate.get(), high.get()
+		);
+	}
 }
+

@@ -8,7 +8,6 @@ import com.sun.glass.ui.Application;
 
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
-import javafx.concurrent.Task;
 
 public abstract class DevBase implements Runnable {
 	
@@ -83,13 +82,14 @@ public abstract class DevBase implements Runnable {
 		}while(Gawain.isExit()==false && isExist.get()==false);
 		close();
 	}
-	
-	Task<Integer> ggyy;
-	
+
 	private Thread task = null;
 	
 	public boolean isFlowing() {
-		return false;
+		if(task==null){
+			return false;
+		}
+		return task.isAlive();
 	}
 		
 	public DevBase addState(
@@ -131,16 +131,6 @@ public abstract class DevBase implements Runnable {
 		}
 	}
 	
-	public void idleState() {
-		nextState("");		
-		do{
-			try {
-				Thread.sleep(1);
-			} catch (InterruptedException e) {
-			}
-		}while(task.getState()!=Thread.State.WAITING);
-	}
-		
 	public DevBase asyncBreakIn(final Runnable work) {
 		if(task==null) {
 			work.run();
@@ -160,5 +150,15 @@ public abstract class DevBase implements Runnable {
 		work.run();
 		nextState(prev_state_name);		
 		return this;
-	}	
+	}
+	private void idleState() {
+		nextState("");		
+		do{
+			try {
+				Thread.sleep(1);
+			} catch (InterruptedException e) {
+			}
+		}while(task.getState()!=Thread.State.WAITING);
+	}
 }
+
