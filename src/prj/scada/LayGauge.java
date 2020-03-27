@@ -4,6 +4,8 @@ import eu.hansolo.tilesfx.Tile;
 import eu.hansolo.tilesfx.TileBuilder;
 import eu.hansolo.tilesfx.Tile.SkinType;
 import javafx.beans.binding.FloatBinding;
+import javafx.beans.binding.NumberBinding;
+import javafx.beans.property.FloatProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.scene.layout.FlowPane;
 import narl.itrc.DevModbus;
@@ -71,22 +73,21 @@ public class LayGauge extends FlowPane {
 	
 	public LayGauge bindProperty(final DevModbus dev) {
 		IntegerProperty prop;
+		
 		prop = dev.register(8001);
 		if(prop==null) {
 			return this;
 		}
 		final FloatBinding a_volt = prop.multiply(0.20f);
+		gag[0].valueProperty().bind(a_volt);
+		
 		prop = dev.register(8002);
 		if(prop==null) {
 			return this;
 		}
 		final FloatBinding a_watt = prop.multiply(1.06f);
-		//final FloatBinding b_volt = dev.register(8001).multiply(0.20f);
-		//final FloatBinding b_watt = dev.register(8002).multiply(1.06f);
-		gag[0].valueProperty().bind(a_volt);
 		gag[1].valueProperty().bind(a_watt.divide(a_volt.add(Float.MIN_VALUE)));
 		gag[2].valueProperty().bind(a_watt);
-		//gag[3].valueProperty().bind(dev);
 		return this;
 	}
 	
@@ -109,6 +110,41 @@ public class LayGauge extends FlowPane {
 		gag[5].setMinValue(dev.highRange[0].doubleValue());
 		gag[5].setMaxValue(dev.highRange[1].doubleValue());
 		gag[5].setUnit(dev.unitHigh.get());
+		return this;
+	}
+	
+	public LayGauge bindProperty(
+		final DevSQM160 dev1,
+		final DevModbus dev2
+	) {			
+		FloatProperty rate_min = dev1.rateRange[0];
+		FloatProperty rate_max = dev1.rateRange[1];
+		FloatProperty high_min = dev1.highRange[0];
+		FloatProperty high_max = dev1.highRange[1];
+				
+		IntegerProperty prop;
+		
+		prop = dev2.register(8003);
+		if(prop==null) {
+			return this;
+		}
+		NumberBinding rate = prop
+			.multiply(rate_max.subtract(rate_min))
+			.divide(5.f)
+			.add(rate_min);
+		
+		gag[4].valueProperty().bind(rate);
+		
+		prop = dev2.register(8004);
+		if(prop==null) {
+			return this;
+		}
+		NumberBinding high = prop
+			.multiply(high_max.subtract(high_min))
+			.divide(5.f)
+			.add(high_min);
+		gag[5].valueProperty().bind(high);
+		
 		return this;
 	}
 	

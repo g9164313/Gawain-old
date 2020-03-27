@@ -34,7 +34,7 @@ public class PanMain1 extends PanBase {
 			arg = Gawain.prop().getProperty("modbus", "");
 			if(arg.length()!=0) {
 				lay_gaug.bindProperty(coup);
-				coup.open(arg);				
+				coup.open(arg);		
 			}
 			arg = Gawain.prop().getProperty("DCG100", "");
 			if(arg.length()>0) {
@@ -48,14 +48,18 @@ public class PanMain1 extends PanBase {
 			arg = Gawain.prop().getProperty("SQM160", "");
 			if(arg.length()>0) {
 				lay_gaug.bindProperty(sqm1);
-				sqm1.open(arg);				
+				sqm1.open(arg);
 			}
 			arg = Gawain.prop().getProperty("http_poster", "");
 			if(arg.length()>0) {
 				tbl_hist.poster = new DevPoster(arg);
 				tbl_hist.poster.open();
 			}
-			tbl_hist.bindProperty(coup,sqm1);
+			tbl_hist.bindProperty(
+				dcg1.volt, dcg1.amps, 
+				dcg1.watt, dcg1.joul,
+				sqm1.rate[0], sqm1.high[0]
+			);
 		});
 	}
 	
@@ -113,7 +117,8 @@ public class PanMain1 extends PanBase {
 		box[0].setOnAction(e->{
 			try {				
 				int val = Integer.valueOf(box[0].getText());
-				coup.asyncWriteVal(8006,val);
+				//coup.asyncWriteVal(8006,val);
+				dcg1.asyncExec("SPW="+val);
 			}catch(NumberFormatException exp) {
 			}
 		});
@@ -133,9 +138,13 @@ public class PanMain1 extends PanBase {
 			try {				
 				int val = Integer.valueOf(box[0].getText());
 				sqm1.zeros();
-				coup.asyncBreakIn(()->{
-					coup.writeVal (8006, val);
-					coup.writeBit1(8005, 0);
+				//coup.asyncBreakIn(()->{
+				//	coup.writeVal (8006, val);
+				//	coup.writeBit1(8005, 0);
+				//});
+				dcg1.asyncBreakIn(()->{
+					dcg1.exec("SPW="+val);
+					dcg1.exec("TRG");
 				});
 				tbl_hist.startRecord();
 			}catch(NumberFormatException exp) {
@@ -145,7 +154,8 @@ public class PanMain1 extends PanBase {
 		btn[1].getStyleClass().add("btn-raised-2");
 		btn[1].setText("熄火");
 		btn[1].setOnAction(e->{
-			coup.asyncWriteBit0(8005, 0);
+			//coup.asyncWriteBit0(8005, 0);
+			dcg1.asyncExec("OFF");
 			tbl_hist.stopRecord();
 		});
 		

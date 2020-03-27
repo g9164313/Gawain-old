@@ -49,7 +49,7 @@ public class DevSQM160 extends DevTTY {
 	
 	private void state_init() {
 		String res;
-		//res = exec("@");// !#@yU --> !0AMON_Ver_4.13(85)(119)
+		//res = exec("@");//!#@O7 --> !0AMON_Ver_4.13(85)(119)
 		res = exec("A0?");
 		parse_a_value(res);
 		
@@ -100,10 +100,11 @@ public class DevSQM160 extends DevTTY {
 			}
 		});
 		nextState(STG_MONT);
+		//nextState("");
 	}
 	private void state_monitor() {
 		try {
-			Thread.sleep(500);
+			Thread.sleep(250);
 		} catch (InterruptedException e) {
 			return;
 		}
@@ -152,8 +153,7 @@ public class DevSQM160 extends DevTTY {
 				freq[i].set(w_value[i+(6*2-1)]);
 			}
 		});
-	}	
-	@Override
+	}
 	protected void afterOpen() {
 		addState(STG_INIT, ()->state_init()).
 		addState(STG_MONT, ()->state_monitor());
@@ -175,8 +175,7 @@ public class DevSQM160 extends DevTTY {
 			a_value[i] = cols[i-1];
 		}
 	}
-	
-	
+		
 	private short calc_crc(short crc, int val) {
 		crc = (short) (crc ^ (short)val);
 		for (int ix = 0; ix < 8; ix++) {
@@ -220,14 +219,14 @@ public class DevSQM160 extends DevTTY {
 		if(buf[0]!='!') {
 			Misc.loge("[%s] no sync character...", TAG);
 			readByte(buf,0,50);//purge data~~~			
-			return "C";//what is going on?
+			return "E";//what is going on?
 		}
 		buf[0] = readByte();//package length, it must be ASCII code
 		len = (buf[0]&0xFF)-35;
 		if(buf[0]<0x20 || 0x7E<buf[0] || len<=0) {
 			Misc.loge("[%s] wrong package length...", TAG);
 			readByte(buf,0,50);//purge data~~~	
-			return "C";//what is going on?
+			return "E";//what is going on?
 		}
 		readByte(buf,0,len+2);//include CRC
 		
@@ -240,11 +239,11 @@ public class DevSQM160 extends DevTTY {
 		}
 		if((((crc   )&0x7f)+34)!=(buf[len+0]&0xFF) ){
 			Misc.loge("[%s] CRC is wrong!!", TAG);
-			return "C";
+			return "E";
 		}
 		if((((crc>>7)&0x7f)+34)!=(buf[len+1]&0xFF) ){
 			Misc.loge("[%s] CRC is wrong!!", TAG);
-			return "C";
+			return "E";
 		}
 		return new String(buf,0,len);
 	}
@@ -344,14 +343,14 @@ public class DevSQM160 extends DevTTY {
 			case 'A':
 				//normal response, do nothing~~~
 				break;
-			case 'B':
+			case 'C':
 				Misc.logv("[%s] CMD:%s--> invalid", dev.TAG, cmd);
 				break;
-			case 'C':
+			case 'D':
 				Misc.logv("[%s] CMD:%s--> problem data", dev.TAG, cmd);
 				break;
 			default:
-				Misc.logv("[%s] CMD:%s-->%s", dev.TAG, cmd, res);
+				Misc.logv("[%s] CMD:%s--> internal error", dev.TAG, cmd);
 				break;
 			}
 		}

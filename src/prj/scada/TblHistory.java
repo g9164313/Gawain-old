@@ -187,7 +187,7 @@ public class TblHistory extends VBox {
 	public void bindProperty(final FloatProperty... values) {
 		vals = values;
 	}	
-	public void bindProperty(
+	/*public void bindProperty(
 		final DevModbus coup,
 		final DevSQM160 sqm1
 	) {
@@ -209,7 +209,7 @@ public class TblHistory extends VBox {
 		vals[1].bind(vals[2].divide(vals[0].add(Float.MIN_VALUE)));
 		vals[4] = sqm1.rate[0];
 		vals[5] = sqm1.high[0];
-	}
+	}*/
 	
 	public Task<?> dumpRecord(final String name) {
 		

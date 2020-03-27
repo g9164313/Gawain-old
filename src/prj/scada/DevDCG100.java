@@ -48,21 +48,12 @@ public class DevDCG100 extends DevTTY {
 		setPathName(path_name);
 	}
 	
-	@Override
-	protected void afterOpen() {
-		addState(STG_INIT, ()->state_init()).
-		addState(STG_MONT, ()->state_monitor());
-		addState(STG_FIRE, ()->state_firing());
-		playFlow(STG_INIT);
-	}
-	
 	private final static String STG_INIT = "init";
 	private final static String STG_MONT = "monitor";
-	private final static String STG_FIRE = "firing";
 	
 	private void state_init() {
 		String ans;
-		//ans = fetch("REP");
+		//ans = exec("REP");
 		//Misc.logv(ans);
 		v_spr = cook(exec("SPR"),"5.000");
 		v_spv = cook(exec("SPV"),"100.0V");
@@ -76,7 +67,7 @@ public class DevDCG100 extends DevTTY {
 		}
 		v_cht = cook(exec("CHT"),"C");
 		//change to HOST control
-		ans = exec("REM1");
+		//ans = exec("REM1");
 		//change to remote control
 		ans = exec("REME");
 		if(ans.contains("*")==true) {			
@@ -88,15 +79,11 @@ public class DevDCG100 extends DevTTY {
 	}	
 	private void state_monitor() {
 		try { 
-			Thread.sleep(500); 
+			Thread.sleep(250); 
 		}catch(InterruptedException e) { 
 			return;
 		}
 		measurement();
-	}
-	private void state_firing() {
-		
-		//nextState(STG_MONT);
 	}
 	private void measurement() {
 		final String[] val = {"","","",""};
@@ -113,6 +100,11 @@ public class DevDCG100 extends DevTTY {
 		//Misc.logv("V=%s A=%s W=%s J=%s", 
 		//	val[0], val[1], val[2], val[3]);
 	}
+	protected void afterOpen() {
+		addState(STG_INIT, ()->state_init()).
+		addState(STG_MONT, ()->state_monitor());
+		playFlow(STG_INIT);
+	}
 	
 	public final BooleanProperty isRemote = new SimpleBooleanProperty(false);
 	
@@ -121,43 +113,52 @@ public class DevDCG100 extends DevTTY {
 	public final FloatProperty watt = new SimpleFloatProperty(0.f);
 	public final FloatProperty joul = new SimpleFloatProperty(0.f);
 		
-	private String exec(String txt) {
+	public String exec(String txt) {
 		if(txt.endsWith("\r")==false) {
 			txt = txt + "\r";
 		}
 		writeTxt(txt);
-		txt = readTxt(1000)
+		
+		txt = ""; //clear command~~~
+		int ans = 0;
+		int cnt = 0;
+		do{
+			ans = readByte();
+			if(cnt>=50){
+				return "?";
+			}
+			if(ans==0){
+				cnt+=1;
+				continue;
+			}
+			if((ans&0x80)!=0){
+				cnt+=1;
+				continue;
+			}
+			txt = txt + (char)ans;
+		}while(!(ans=='*' || ans=='?'));
+		txt = txt
 			.replace("\r\n", "\n")
 			.replace("\n\r", "\n")
 			.trim();
-		//check whether all characters are valid~~
-		for(int i=0; i<txt.length(); i++) {
-			int cc = txt.charAt(i);
-			if(cc==0 || cc==7 || cc==10 || cc==13) {
-				continue;
-			}
-			if(cc<32 || 126<cc) {
-				return "?";//invalid answer
-			}
-		}
 		return txt;
 	}
 	private String cook(
-		final String val,
-		final String def
+		final String responseText,
+		final String defaultValue
 	) {
-		int len = val.length();
+		int len = responseText.length();
 		if(len==0) {
 			return "";
 		}
-		if(val.charAt(len-1)!='*') {
-			return def;
+		if(responseText.charAt(len-1)!='*') {
+			return defaultValue;
 		}
-		int pos = val.indexOf('\n');
+		int pos = responseText.indexOf('\n');
 		if(pos<0) {
-			return def;
+			return defaultValue;
 		}
-		return val.substring(pos,len-1).trim();
+		return responseText.substring(pos,len-1).trim();
 	}
 	private void txt2prop(
 		final String txt,
@@ -184,7 +185,7 @@ public class DevDCG100 extends DevTTY {
 	
 	public void asyncExec(final String cmd) {asyncBreakIn(()->{
 		final String res = exec(cmd);
-		if(res.matches(".*[\\*]$")==true) {
+		if(res.endsWith("*")==true) {
 			return;
 		}
 		Application.invokeAndWait(()->{
@@ -276,7 +277,7 @@ public class DevDCG100 extends DevTTY {
 	public static Pane genPanel(final DevDCG100 dev) {
 		
 		final ToggleGroup grp1= new ToggleGroup();
-
+		final ToggleGroup grp2= new ToggleGroup();
 		final JFXRadioButton[] rad = {
 			new JFXRadioButton ("電壓"),
 			new JFXRadioButton ("電流"),
@@ -286,10 +287,15 @@ public class DevDCG100 extends DevTTY {
 			new JFXRadioButton ("焦耳"),
 		};
 		for(JFXRadioButton obj:rad) {
-			obj.setToggleGroup(grp1);
 			obj.setMaxWidth(Double.MAX_VALUE);
 			GridPane.setHgrow(obj,Priority.ALWAYS);
 		}
+		rad[0].setToggleGroup(grp1);
+		rad[1].setToggleGroup(grp1);
+		rad[2].setToggleGroup(grp1);
+		rad[3].setToggleGroup(grp2);
+		rad[4].setToggleGroup(grp2);
+		rad[5].setToggleGroup(grp2);
 		rad[0].setOnAction(e->dev.asyncExec("CHL=V"));
 		rad[1].setOnAction(e->dev.asyncExec("CHL=A"));
 		rad[2].setOnAction(e->dev.asyncExec("CHL=W"));
