@@ -5,7 +5,9 @@ import java.util.Optional;
 import com.jfoenix.controls.JFXButton;
 import com.sun.glass.ui.Application;
 
+import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.FloatProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleFloatProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
@@ -46,6 +48,7 @@ public class DevSQM160 extends DevTTY {
 	private String[] a_value= new String[0];
 	private String[] b_value= new String[0];
 	private String[] c_value= new String[0];
+	private boolean  u_value = false;
 	
 	private void state_init() {
 		String res;
@@ -62,6 +65,11 @@ public class DevSQM160 extends DevTTY {
 		if(res.charAt(0)=='A') {
 			res = res.substring(1).trim();
 			c_value = res.split("\\s+");
+		}
+		res = exec("U?");
+		if(res.charAt(0)=='A') {
+			res = res.substring(1).trim(); 
+			u_value = (Integer.valueOf(res)>0)?(true):(false);
 		}
 		Application.invokeAndWait(()->{
 			if(a_value.length>=8) {
@@ -98,6 +106,7 @@ public class DevSQM160 extends DevTTY {
 				highRange[0].set(Float.valueOf(c_value[4]));
 				highRange[1].set(Float.valueOf(c_value[5]));
 			}
+			shutter.set(u_value);
 		});
 		nextState(STG_MONT);
 		//nextState("");
@@ -110,41 +119,33 @@ public class DevSQM160 extends DevTTY {
 		}
 		String res;
 		String[] col;
-		/*res = exec("W");
-		if(res.charAt(0)=='A') {
-			res = res.substring(1).trim();
-			col = res.split("\\s+");
-			for(int ii=1; ii<=w_value.length; ii++) {
-				int rr = (ii-1)%3;
-				int cc = (ii-1)/3;
-				int jj = rr * 6 + cc;
-				w_value[jj] = Float.valueOf(col[ii]);
-			}
-		}else{
-			return;
-		}*/
 		try {
-		res = exec("M");
-		if(res.charAt(0)=='A') {
-			res = res.substring(1).trim();
-			col = res.split("\\s+");
-			m_value = Float.valueOf(col[0]);
-		}else {
-			return;
-		}
-		res = exec("O");
-		if(res.charAt(0)=='A') {
-			res = res.substring(1).trim();
-			col = res.split("\\s+");
-			o_value = Float.valueOf(col[0]);
-		}else {
-			return;
-		}
+			res = exec("M");
+			if(res.charAt(0)=='A') {
+				res = res.substring(1).trim();
+				col = res.split("\\s+");
+				m_value = Float.valueOf(col[0]);
+			}else {
+				return;
+			}
+			res = exec("O");
+			if(res.charAt(0)=='A') {
+				res = res.substring(1).trim();
+				col = res.split("\\s+");
+				o_value = Float.valueOf(col[0]);
+			}else {
+				return;
+			}
+			res = exec("U?");
+			if(res.charAt(0)=='A') {
+				res = res.substring(1).trim(); 
+				u_value = (Integer.valueOf(res)>0)?(true):(false);
+			}
 		}catch(NumberFormatException e) {
 			Misc.logv("[%s] %s",TAG,e.getMessage());
-			return;
 		}
 		Application.invokeAndWait(()->{
+			shutter.set(u_value);
 			rate[0].set(m_value);
 			high[0].set(o_value);
 			for(int i=1; i<=6; i++) {
@@ -198,8 +199,6 @@ public class DevSQM160 extends DevTTY {
 		int len = cmd.length();
 		short crc;
 		
-		writeByte('!');//write sync character~~~
-		
 		buf[0] = (byte)(len+34);
 		crc = 0x3fff;
 		crc = calc_crc(crc,buf[0]);		
@@ -211,11 +210,15 @@ public class DevSQM160 extends DevTTY {
 		buf[len+1] = (byte) (((crc   ) & 0x7f) + 34);
 		buf[len+2] = (byte) (((crc>>7) & 0x7f) + 34);
 				
-		len = 1 + len + 2;//total packet size
-		writeByte(buf,0,len);//write command and CRC
+		writeByte('!');//write sync character~~~
+		writeByte(buf,0,1);//write length
+		writeByte(buf,1,len+2);//write command and CRC
 		
 		//Response package (SQM-160 to Host Message)
-		buf[0] = readByte();//sync character!!
+		do{
+			//sync character!!
+			buf[0] = readByte();
+		}while(buf[0]==0);
 		if(buf[0]!='!') {
 			Misc.loge("[%s] no sync character...", TAG);
 			readByte(buf,0,50);//purge data~~~			
@@ -247,17 +250,39 @@ public class DevSQM160 extends DevTTY {
 		}
 		return new String(buf,0,len);
 	}
-	
+	public void shutter(final boolean flag) {asyncBreakIn(()->{
+		String res = exec((flag)?("U1"):("U0"));
+		if(res.charAt(0)=='A'){
+			Application.invokeAndWait(()->shutter.set(flag));
+		}
+		nextState(STG_MONT);
+	});}
 	public void zeros() {asyncBreakIn(()->{
 		String res;
-		do {
-			res = exec("T");
-		}while(res.charAt(0)!='A');
-		do {
-			res = exec("S");
-		}while(res.charAt(0)!='A');
+		res = exec("T");
+		if(res.charAt(0)!='A'){
+			Misc.logw("[%s] fail to reset reading value", TAG);
+		}
+		res = exec("S");
+		if(res.charAt(0)!='A'){
+			Misc.logw("[%s] fail to reset time value", TAG);
+		}
+		nextState(STG_MONT);
+	});}
+	public void shutter_zeros(){asyncBreakIn(()->{		
+		String res;
+		res = exec("T");
+		res = exec("S");
+		res = exec("U1");
+		if(res.charAt(0)=='A'){
+			Application.invokeAndWait(()->shutter.set(true));
+		}
+		nextState(STG_MONT);
 	});}
 	//-------------------------//
+	public final BooleanProperty shutter = new SimpleBooleanProperty(false);
+	public final StringProperty unitRate = new SimpleStringProperty("??");
+	public final StringProperty unitHigh = new SimpleStringProperty("??");
 	
 	public final StringProperty[] filmData = {
 		new SimpleStringProperty("??"),//name
@@ -270,10 +295,7 @@ public class DevSQM160 extends DevTTY {
 		new SimpleStringProperty("??"),//sensor Average
 		new SimpleStringProperty("??"),
 	};
-	
-	public final StringProperty unitRate = new SimpleStringProperty("??");
-	public final StringProperty unitHigh = new SimpleStringProperty("??");
-	
+
 	public final FloatProperty[] freqRange = {
 		new SimpleFloatProperty(1f),
 		new SimpleFloatProperty(6.4e6f)
@@ -327,7 +349,7 @@ public class DevSQM160 extends DevTTY {
 		new SimpleFloatProperty()
 	};
 	
-	private static void exec_gui(
+	public static void exec_gui(
 		final DevSQM160 dev,
 		final String cmd,
 		final ReadBack hook
@@ -376,17 +398,16 @@ public class DevSQM160 extends DevTTY {
 		
 		final JFXButton[] btn = new JFXButton[6];
 		for(int i=0; i<btn.length; i++) {
-			btn[i] = new JFXButton();
-			btn[i].getStyleClass().add("btn-raised-1");
+			btn[i] = new JFXButton();			
 			btn[i].setMaxWidth(Double.MAX_VALUE);			
 			GridPane.setHgrow(btn[i], Priority.ALWAYS);
 		}
+		btn[0].getStyleClass().add("btn-raised-1");
 		btn[0].setText("讀值歸零");
-		btn[0].setOnAction(e->exec_gui(dev,"S",null));
-		btn[1].setText("重新計時");
-		btn[1].setOnAction(e->exec_gui(dev,"T",null));		
-		btn[2].setText("選取薄膜");
-		btn[2].setOnAction(e->{
+		btn[0].setOnAction(e->dev.zeros());
+		btn[1].getStyleClass().add("btn-raised-2");
+		btn[1].setText("選取薄膜");
+		btn[1].setOnAction(e->{
 			PadTouch pad = new PadTouch("薄膜編號:",'N');
 			Optional<String> opt = pad.showAndWait();
 			if(opt.isPresent()==true) {
@@ -397,19 +418,21 @@ public class DevSQM160 extends DevTTY {
 				active_film_gui(dev,idx);
 			}		
 		});
-		btn[3].setText("設定薄膜");
-		btn[3].setOnAction(e->{
+		btn[2].getStyleClass().add("btn-raised-2");
+		btn[2].setText("設定薄膜");
+		btn[2].setOnAction(e->{
 			DialogFilm dia = new DialogFilm(dev.a_value);
 			Optional<String[]> opt = dia.showAndWait();
 			if(opt.isPresent()==true) {
-				reset_film_gui(dev,opt.get());
+				update_film_gui(dev,opt.get());
 			}
 		});
-		
-		btn[4].setText("Zeros");
-		btn[4].setOnAction(e->dev.zeros());
-		//btn[4].setText("恢復預設");
-		//btn[4].setOnAction(e->{});
+		btn[3].getStyleClass().add("btn-raised-3");
+		btn[3].setText("擋板-開");
+		btn[3].setOnAction(e->exec_gui(dev,"U1",null));
+		btn[4].getStyleClass().add("btn-raised-3");
+		btn[4].setText("擋板-關");
+		btn[4].setOnAction(e->exec_gui(dev,"U0",null));
 
 		final GridPane lay0 = new GridPane();
 		lay0.getStyleClass().addAll("box-pad");
@@ -435,53 +458,74 @@ public class DevSQM160 extends DevTTY {
 		final DevSQM160 dev,
 		final int idx
 	) { dev.asyncBreakIn(()->{
-		
 		char id = (char)(idx+48);
-		
 		String cmd,res;
-		
 		//active film parameter
 		cmd = String.format("D%c", id);		
 		res = dev.exec(cmd);
-		if(res.charAt(0)!='A') {
+		if(res.charAt(0)=='A') {
+			//update information~~~
+			cmd = String.format("A%c?", id);
+			res = dev.exec(cmd);
+			if(res.charAt(0)=='A') {
+				dev.parse_a_value(res);
+				Application.invokeAndWait(()->{
+					for(int i=0; i<dev.a_value.length; i++) {
+						dev.a_value[i] = dev.a_value[i].trim();
+						dev.filmData[i].set(dev.a_value[i]);
+					}
+				});
+			}
+		}else{
 			Application.invokeAndWait(()->{
 				Alert alert = new Alert(AlertType.ERROR);
 				alert.setTitle("!!錯誤!!");
-				alert.setHeaderText("無法設定薄膜-"+idx);
+				alert.setHeaderText("無法使用薄膜-"+idx);
 				alert.setContentText(null);
 				alert.showAndWait();
 			});
-			return;
-		}
-		//update information~~~
-		cmd = String.format("A%c?", id);
-		res = dev.exec(cmd);
-		if(res.charAt(0)=='A') {
-			dev.parse_a_value(res);
-			Application.invokeAndWait(()->{
-				for(int i=0; i<dev.a_value.length; i++) {
-					dev.a_value[i] = dev.a_value[i].trim();
-					dev.filmData[i].set(dev.a_value[i]);
-				}
-			});
-		}		
+		}	
 	});}
 	
-	private static void reset_film_gui(
+	private static void update_film_gui(
 		final DevSQM160 dev,
 		final String[] arg
 	) { dev.asyncBreakIn(()->{
-		
 		char id = (char)(48+Integer.valueOf(arg[0]));
-		
+		int cnt = arg[1].length();
+		if(cnt<8){
+			//padding~~~
+			cnt = 8 - cnt;
+			for(int i=0; i<cnt; i++){
+				arg[1] = arg[1] + ' ';
+			}
+		}else{
+			arg[1] = arg[1].substring(0,8);
+		}
+		arg[1] = arg[1]
+			.replace(' ', '_')
+			.toUpperCase();
 		String cmd = String.format(
 			"A%C%s %s %s %s %s %s %s %s",
-			id, 
-			arg[1], arg[2], arg[3], arg[4], 
-			arg[5], arg[6], arg[7], arg[8]
+			id, arg[1], 
+			arg[2], arg[3], arg[4], arg[5], 
+			arg[6], arg[7], arg[8]
 		);
-		
-		if(dev.exec(cmd).charAt(0)!='A') {
+		if(dev.exec(cmd).charAt(0)=='A') {
+			if(id!=48){
+				return;
+			}
+			String res = dev.exec("A0?");
+			if(res.charAt(0)=='A') {
+				dev.parse_a_value(res);
+				Application.invokeAndWait(()->{
+					for(int i=0; i<dev.a_value.length; i++) {
+						dev.a_value[i] = dev.a_value[i].trim();
+						dev.filmData[i].set(dev.a_value[i]);
+					}
+				});
+			}
+		}else{
 			Application.invokeAndWait(()->{
 				Alert alert = new Alert(AlertType.ERROR);
 				alert.setTitle("!!錯誤!!");
@@ -540,13 +584,6 @@ public class DevSQM160 extends DevTTY {
 				for(int i=0; i<res.length; i++) {
 					res[i] = box[i].getText().trim();
 				}
-				//name is special, use underscore replace space
-				//max-length must be 8 character, and it is upper-case.
-				res[0] = res[0].replace(' ', '_');
-				if(res[0].length()>8) {
-					res[0] = res[0].substring(0,8).toUpperCase();
-				}
-				//time set-point unit is second!!!
 				return res;
 			});
 						

@@ -6,10 +6,11 @@ import java.text.SimpleDateFormat;
 import javafx.beans.property.FloatProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+import narl.itrc.Gawain;
 
 public class Record {
 	
-	private static final SimpleDateFormat s_fmt = new SimpleDateFormat("HH:mm:ss");
+	private static final SimpleDateFormat s_fmt = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 	
 	final StringProperty stmp = new SimpleStringProperty();
 	final StringProperty volt = new SimpleStringProperty();
@@ -43,9 +44,18 @@ public class Record {
 		return Double.valueOf(txt);
 	}
 	
+	private String json_appx = "";
+	
 	public Record() {
 		final Timestamp ss = new Timestamp(System.currentTimeMillis());
 		stmp.set(s_fmt.format(ss));
+		
+		//user can append some information in jason 
+		json_appx = Gawain.prop().getProperty("json_appx", "");
+		if(json_appx.length()!=0 && json_appx.endsWith(",")==false){
+			json_appx = json_appx + ", ";
+		}
+		return;
 	}
 	
 	public Record(final FloatProperty[] arg) {
@@ -61,10 +71,10 @@ public class Record {
 	public String toJSON(){
 		return String.format(
 			"{"+
-			"\"sss\":\"%s\", "+			
+			"\"dt\":\"%s\", "+	json_appx  +
 			"\"volt\":\"%s\", "+"\"amps\":\"%s\", "+
 			"\"watt\":\"%s\", "+"\"joul\":\"%s\", "+
-			"\"rate\":\"%s\", "+"\"high\":\"%s\", "+
+			"\"rate\":\"%s\", "+"\"high\":\"%s\" "+
 			"}",
 			stmp.get(),
 			volt.get(), amps.get(), 

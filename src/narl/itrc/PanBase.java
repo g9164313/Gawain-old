@@ -61,7 +61,8 @@ public abstract class PanBase {
 	
 	public void initLayout() {
 		
-		final Pane root = new StackPane(eventLayout(this));			
+		//final Pane root = new StackPane(eventLayout(this));
+		final Pane root = eventLayout(this);
 		if(Gawain.propFlag("JFX_DECORATE")==true) {
 			scene = new Scene(new JFXDecorator(stage,root));
 		}else {

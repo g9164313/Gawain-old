@@ -244,13 +244,13 @@ public class DevModbus extends DevBase {
 	public void writeBit0(int addr,int bit) {
 		short[] buff = {0};
 		implReadR(addr,buff);
-		buff[0] = (short)((buff[0] & ((~1)<<bit)) & 0xFFFF);
+		buff[0] = (short)((buff[0] & ~(1<<bit)) & 0xFFFF);
 		implWrite(addr,buff);
 	}
 	public void writeBit1(int addr,int bit) {
 		short[] buff = {0};
 		implReadR(addr,buff);
-		buff[0] = (short)((buff[0] | (( 1)<<bit)) & 0xFFFF);
+		buff[0] = (short)((buff[0] |  (1<<bit)) & 0xFFFF);
 		implWrite(addr,buff);
 	}
 		

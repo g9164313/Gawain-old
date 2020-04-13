@@ -1,33 +1,27 @@
 
 .background {
-    -fx-background-color: WHITE;
+   -fx-background-color: WHITE;
 }
 
 .btn-raised-1{
 	-fx-button-type: RAISED;
 	-fx-font-size: 1.4em;
-	-fx-background-color: #b4ffff;
+	-fx-background-color: #26a69a;
 	-fx-text-fill: black;
 }
 .btn-raised-2 {
 	-fx-button-type: RAISED;
-	-fx-font-size: 1.4em;
-	-fx-background-color: #80deea;
+	-fx-font-size: 1.4em; 
+	-fx-background-color: #81d4fa;
 	-fx-text-fill: black;
 }
 .btn-raised-3 {
 	-fx-button-type: RAISED;
 	-fx-font-size: 1.4em;
-	-fx-background-color: #4bacb8;
+	-fx-background-color: #c5e1a5;
 	-fx-text-fill: black;
 }
 
-.btn-flat-tick {
-	-fx-button-type: FLAT;
-	-fx-padding: 0.7em 0.57em;
-	-fx-font-size: 7px;
-	-fx-text-fill: black;
-}
 
 .jfx-decorator .jfx-decorator-buttons-container {
     -fx-background-color: #1e88e5;
@@ -46,17 +40,17 @@
 	-fx-vgap: 13;
 }
 .box-pad {
-	-fx-font-size: 1.6em;
-    -fx-spacing: 13;
-    -fx-padding: 7;
-    -fx-hgap: 7;
+	-fx-font-size: 1.4em;
+  -fx-spacing: 13;
+  -fx-padding: 7;
+  -fx-hgap: 7;
 	-fx-vgap: 7;    
 }
 .box-pad-inner {
-	-fx-font-size: 1.6em;
-    -fx-spacing: 13, 0, 13, 0;
-    -fx-padding:  7, 0,  7, 0;
-    -fx-hgap: 7;
+	-fx-font-size: 1.4em;
+  -fx-spacing: 13, 0, 13, 0;
+  -fx-padding:  7, 0,  7, 0;
+  -fx-hgap: 7;
 	-fx-vgap: 7; 
 }
 
@@ -64,9 +58,9 @@
 	-fx-border-color: black;
 	-fx-border-width: 1.7px;
 	-fx-border-radius: 10px;
-    -fx-spacing: 13;
-    -fx-padding: 7;
-    -fx-hgap: 7;
+  -fx-spacing: 13;
+  -fx-padding: 7;
+  -fx-hgap: 7;
 	-fx-vgap: 7;
 }
 
@@ -104,30 +98,6 @@
 	-fx-effect: dropshadow(three-pass-box, black, 10, 0, 0, 0);
 	-fx-padding: 7px;
 	-fx-spacing: 7px;
-}
-
-.board-center {
-  -fx-hgap: 7.0;
-  -fx-vgap: 7.0;
-  -fx-alignment: baseline-center;
-}
-
-.anchor-small {
-	-fx-padding: 7 7 7 7;
-}
-
-.decorate0-title {
-	-fx-translate-y: -20;
-}
-.decorate0-content {
- 	-fx-padding: 7px 7px 7px 7px;
-}
-.decorate0-border {
-	-fx-content-display: top;
-	-fx-border-insets: 25 8 8 8;
-	-fx-border-color: black;
-	-fx-border-width: 2;
-	/*-fx-background-color: rgb(253,0,253)*/
 }
 
 .flipper-front {

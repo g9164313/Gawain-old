@@ -33,7 +33,7 @@ public abstract class DevBase implements Runnable {
 	
 	protected final AtomicBoolean isExist = new AtomicBoolean(true);
 	
-	private final ConcurrentHashMap<String,Runnable> state_work = new ConcurrentHashMap<String,Runnable>();
+	private final ConcurrentHashMap<String,Runnable> state = new ConcurrentHashMap<String,Runnable>();
 	
 	private final AtomicReference<String> next_state_name = new AtomicReference<String>("");
 	
@@ -57,14 +57,14 @@ public abstract class DevBase implements Runnable {
 				}
 				continue;
 			}				
-			Runnable work = state_work.get(name);
+			Runnable work = state.get(name);
 			if(work==null) {
 				Misc.loge("[%s] invalid state - %s", TAG,name);
 				next_state_name.set("");
 			}else {
 				work.run();
 				if(name.equals(STA_BREAK_IN)==true) {
-					state_work.remove(STA_BREAK_IN);
+					state.remove(STA_BREAK_IN);
 					//next state no changed, go back to previous state.
 					name = next_state_name.get();
 					if(name.equals(STA_BREAK_IN)==true) {
@@ -91,12 +91,16 @@ public abstract class DevBase implements Runnable {
 		}
 		return task.isAlive();
 	}
-		
+	
+	public boolean isBreaking(){
+		return state.contains(STA_BREAK_IN);
+	}
+	
 	public DevBase addState(
 		final String name,
 		final Runnable work
 	) {
-		state_work.put(name, work);
+		state.put(name, work);
 		return this;
 	}
 	
@@ -131,16 +135,26 @@ public abstract class DevBase implements Runnable {
 		}
 	}
 	
+	/**
+	 * Caller won't be blocked.
+	 * @param work - runnable code
+	 * @return self
+	 */
 	public DevBase asyncBreakIn(final Runnable work) {
 		if(task==null) {
 			work.run();
 			return this;
 		}
-		state_work.put(STA_BREAK_IN, work);
+		state.put(STA_BREAK_IN, work);
 		nextState(STA_BREAK_IN);
 		return this;
 	}
 	
+	/**
+	 * Device will wait for caller.
+	 * @param work - runnable code
+	 * @return self
+	 */
 	public DevBase syncBreakIn(final Runnable work) {
 		if(task==null) {
 			work.run();

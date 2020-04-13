@@ -3,7 +3,6 @@ package prj.scada;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Scanner;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -65,13 +64,9 @@ public class DevPoster extends DevBase {
 		addState(id, ()->{
 			try{
 				looper();
-			} catch (InterruptedException e) {
-				Misc.loge("[%s] blocking fail!!");
-			} catch (MalformedURLException e) {
-				Misc.loge("[%s] invalid URL!!");
-				addr = "";
-			} catch (IOException e) {
-				Misc.loge("[%s] connection fail!!");
+			} catch (IOException | InterruptedException e) {
+				Misc.loge("[%s] %s",TAG, e.getMessage());
+				//nextState("");
 			}
 		});
 		playFlow(id);

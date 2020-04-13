@@ -18,8 +18,6 @@ import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.beans.binding.DoubleBinding;
 import javafx.beans.property.FloatProperty;
-import javafx.beans.property.IntegerProperty;
-import javafx.beans.property.SimpleFloatProperty;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.geometry.Pos;
@@ -33,7 +31,6 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 
-import narl.itrc.DevModbus;
 import narl.itrc.Gawain;
 import narl.itrc.Misc;
 
@@ -101,6 +98,19 @@ public class TblHistory extends VBox {
 	
 	public DevPoster poster = null;
 	
+	private void record(){
+		Record itm = new Record(vals);
+		ObservableList<Record> obv = table.getItems();
+		if(obv.size()>=3600){
+			obv.remove(0, 1800);
+		}
+		if(poster!=null){
+			poster.queue.offer(itm.toJSON());
+		}
+		obv.add(itm);
+		table.scrollTo(itm);
+	}
+	
 	public void startRecord() {Misc.exec_gui(()->{
 		
 		if(time.isPresent()==true) {
@@ -108,25 +118,14 @@ public class TblHistory extends VBox {
 		}
 		table.getItems().clear();
 		
-		Object obj = period.getSelectedToggle().getUserData();
 		final KeyFrame kfm = new KeyFrame(
-			(Duration)obj, e->{				
-			//simulation();
-			Record itm = new Record(vals);
-			ObservableList<Record> obv = table.getItems();
-			if(obv.size()>=3600){
-				obv.remove(0, 1800);
-			}
-			if(poster!=null){
-				poster.queue.offer(itm.toJSON());
-			}
-			obv.add(itm);
-			table.scrollTo(itm);
-		});		
-		Timeline tt = new Timeline(kfm);
-		tt.setCycleCount(Animation.INDEFINITE);
-		tt.play();
-		time = Optional.of(tt);
+			(Duration)period.getSelectedToggle().getUserData(), 
+			e->record()
+		);		
+		Timeline obj = new Timeline(kfm);
+		obj.setCycleCount(Animation.INDEFINITE);
+		obj.play();
+		time = Optional.of(obj);
 		//time.getKeyFrames().get(0).getOnFinished().handle(null);
 
 		starter.setSelected(true);

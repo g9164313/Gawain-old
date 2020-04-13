@@ -1,10 +1,13 @@
 package prj.scada;
 
 import com.jfoenix.controls.JFXButton;
+import com.jfoenix.controls.JFXCheckBox;
 import com.jfoenix.controls.JFXTabPane;
 import com.jfoenix.controls.JFXTextField;
 
+import javafx.event.ActionEvent;
 import javafx.scene.control.Accordion;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
 import javafx.scene.control.Tab;
@@ -24,43 +27,46 @@ public class PanMain1 extends PanBase {
 	final DevSPIK2k spik = new DevSPIK2k();
 	final DevSQM160 sqm1 = new DevSQM160();
 
-	final LayGauge lay_gaug = new LayGauge();
-	final TblHistory tbl_hist = new TblHistory();
-
+	final LayGauge lay_gauge = new LayGauge();
+	final TblHistory tbl_history = new TblHistory();
+	final LadderBase lst_ladder = new LadderBase();
+	
 	public PanMain1() {
 		super();
-		stage().setOnShown(e->{
-			String arg;
-			arg = Gawain.prop().getProperty("modbus", "");
-			if(arg.length()!=0) {
-				lay_gaug.bindProperty(coup);
-				coup.open(arg);		
-			}
-			arg = Gawain.prop().getProperty("DCG100", "");
-			if(arg.length()>0) {
-				lay_gaug.bindProperty(dcg1);
-				dcg1.open(arg);
-			}
-			arg = Gawain.prop().getProperty("SPIK2k", "");
-			if(arg.length()>0) {
-				spik.open(arg);
-			}
-			arg = Gawain.prop().getProperty("SQM160", "");
-			if(arg.length()>0) {
-				lay_gaug.bindProperty(sqm1);
-				sqm1.open(arg);
-			}
-			arg = Gawain.prop().getProperty("http_poster", "");
-			if(arg.length()>0) {
-				tbl_hist.poster = new DevPoster(arg);
-				tbl_hist.poster.open();
-			}
-			tbl_hist.bindProperty(
-				dcg1.volt, dcg1.amps, 
-				dcg1.watt, dcg1.joul,
-				sqm1.rate[0], sqm1.high[0]
-			);
-		});
+		stage().setOnShown(e->on_shown());
+	}
+	
+	private void on_shown(){
+		String arg;
+		arg = Gawain.prop().getProperty("modbus", "");
+		if(arg.length()!=0) {
+			lay_gauge.bindProperty(coup);
+			coup.open(arg);		
+		}
+		arg = Gawain.prop().getProperty("DCG100", "");
+		if(arg.length()>0) {
+			lay_gauge.bindProperty(dcg1);
+			dcg1.open(arg);
+		}
+		arg = Gawain.prop().getProperty("SPIK2k", "");
+		if(arg.length()>0) {
+			spik.open(arg);
+		}
+		arg = Gawain.prop().getProperty("SQM160", "");
+		if(arg.length()>0) {
+			lay_gauge.bindProperty(sqm1);
+			sqm1.open(arg);
+		}
+		arg = Gawain.prop().getProperty("http_poster", "");
+		if(arg.length()>0) {
+			tbl_history.poster = new DevPoster(arg);
+			tbl_history.poster.open();
+		}
+		tbl_history.bindProperty(
+			dcg1.volt, dcg1.amps, 
+			dcg1.watt, dcg1.joul,
+			sqm1.rate[0], sqm1.high[0]
+		);
 	}
 	
 	@Override
@@ -69,15 +75,15 @@ public class PanMain1 extends PanBase {
 		final JFXTabPane lay4 = new JFXTabPane();
 		lay4.getTabs().addAll(
 			new Tab("管路"),
-			new Tab("監測",lay_gaug),
-			new Tab("紀錄",tbl_hist)
+			new Tab("監測",lay_gauge),
+			new Tab("製程",lst_ladder),
+			new Tab("紀錄",tbl_history)
 		);
-		lay4.getSelectionModel().select(1);
+		lay4.getSelectionModel().select(2);
 	
 		final TitledPane[] lay3 = {
 			new TitledPane("快速設定"  ,lay_ctrl()),
 			new TitledPane("DCG-100"  ,DevDCG100.genPanel(dcg1)),
-			//new TitledPane("DCG-100"  ,LayDCG100.genPanel(coup)),
 			new TitledPane("SPIK-2000",DevSPIK2k.genPanel(spik)),
 			new TitledPane("SQM-160"  ,DevSQM160.genPanel(sqm1))
 		};
@@ -86,13 +92,13 @@ public class PanMain1 extends PanBase {
 
 		final BorderPane lay0 = new BorderPane();
 		lay0.setCenter(lay4);
-		lay0.setRight(lay2);
+		//lay0.setRight(lay2);
 		return lay0;
 	}
 	
 	private Pane lay_ctrl() {
 		
-		final Label[] txt = new Label[5];
+		final Label[] txt = new Label[6];
 		for(int i=0; i<txt.length; i++) {
 			Label obj = new Label();
 			obj.setMaxWidth(Double.MAX_VALUE);
@@ -100,9 +106,9 @@ public class PanMain1 extends PanBase {
 		}
 		txt[0].textProperty().bind(sqm1.filmData[0]);
 		txt[1].textProperty().bind(sqm1.filmData[1]);
-		txt[2].textProperty().bind(sqm1.rate[0].asString("%6.3f"));
-		txt[3].textProperty().bind(sqm1.high[0].asString("%6.3f"));
-		
+		txt[2].textProperty().bind(sqm1.filmData[2]);
+		txt[3].textProperty().bind(sqm1.filmData[3]);
+
 		final JFXTextField[] box = new JFXTextField[5];
 		for(int i=0; i<box.length; i++) {
 			JFXTextField obj = new JFXTextField();
@@ -127,54 +133,112 @@ public class PanMain1 extends PanBase {
 		for(int i=0; i<btn.length; i++) {
 			JFXButton obj = new JFXButton();
 			obj.setMaxWidth(Double.MAX_VALUE);
-			//GridPane.setHgrow(obj, Priority.ALWAYS);
-			//GridPane.setFillWidth(obj, true);
 			btn[i] = obj;
 		}
 
 		btn[0].getStyleClass().add("btn-raised-1");
-		btn[0].setText("點火");
-		btn[0].setOnAction(e->{
+		btn[0].setText("擋片-ON");
+		btn[0].setOnAction(e->sqm1.shutter_zeros());
+		btn[1].getStyleClass().add("btn-raised-2");
+		btn[1].setText("擋片-OFF");
+		btn[1].setOnAction(e->sqm1.shutter(false));
+		
+		btn[2].getStyleClass().add("btn-raised-1");
+		btn[2].setText("電漿-ON");
+		btn[2].setOnAction(e->{
 			try {				
 				int val = Integer.valueOf(box[0].getText());
 				sqm1.zeros();
-				//coup.asyncBreakIn(()->{
-				//	coup.writeVal (8006, val);
-				//	coup.writeBit1(8005, 0);
-				//});
 				dcg1.asyncBreakIn(()->{
 					dcg1.exec("SPW="+val);
 					dcg1.exec("TRG");
 				});
-				tbl_hist.startRecord();
+				tbl_history.startRecord();
 			}catch(NumberFormatException exp) {
 			}
 		});
-		
-		btn[1].getStyleClass().add("btn-raised-2");
-		btn[1].setText("熄火");
-		btn[1].setOnAction(e->{
+		btn[3].getStyleClass().add("btn-raised-2");
+		btn[3].setText("電漿-OFF");
+		btn[3].setOnAction(e->{
 			//coup.asyncWriteBit0(8005, 0);
 			dcg1.asyncExec("OFF");
-			tbl_hist.stopRecord();
+			tbl_history.stopRecord();
 		});
 		
 		final GridPane lay2 = new GridPane();
 		lay2.getStyleClass().addAll("box-pad-inner");
-		lay2.add(new Label("薄膜參數"), 0, 0, 2, 1);
-		lay2.addRow(1, new Label("名稱："), txt[0]);
-		lay2.addRow(2, new Label("密度："), txt[1]);
-		lay2.addRow(3, new Label("速率："), txt[2]);
-		lay2.addRow(4, new Label("厚度："), txt[3]);
+		lay2.addRow(0, new Label("薄膜名稱 ：" ), txt[0]);
+		lay2.addRow(1, new Label("Density："), txt[1]);
+		lay2.addRow(2, new Label("Tooling："), txt[2]);
+		lay2.addRow(3, new Label("Z-Ratio："), txt[3]);
+		
+		final JFXCheckBox[] rad = {
+			new JFXCheckBox("Shutter"),
+			new JFXCheckBox("Bipolar"),
+			new JFXCheckBox("Unipolar"),
+			new JFXCheckBox("Gun-1"),
+			new JFXCheckBox("Gun-2"),
+		};
+		rad[0].setDisable(true);
+		rad[0].selectedProperty().bind(sqm1.shutter);
+		rad[0].setStyle("-fx-opacity: 1.0;");
+		
+		rad[1].setOnAction(e->{
+			//a mutex for checking I/O
+			if(rad[1].isSelected()){
+				rad[2].setSelected(false);
+				coup.asyncBreakIn(()->{
+					coup.writeBit1(8005, 0);
+					coup.writeBit0(8005, 1);
+				});
+			}else{
+				coup.asyncWriteBit0(8005,0);
+			}
+		});
+		rad[2].setOnAction(e->{
+			//a mutex for checking I/O
+			if(rad[2].isSelected()){
+				rad[1].setSelected(false);
+				coup.asyncBreakIn(()->{
+					coup.writeBit1(8005, 1);
+					coup.writeBit0(8005, 0);
+				});
+			}else{
+				coup.asyncWriteBit0(8005,1);
+			}
+		});
+		rad[3].setOnAction(e->select_io_pin(e,8005,2));
+		rad[4].setOnAction(e->select_io_pin(e,8005,3));
+		rad[3].visibleProperty().bind(rad[2].selectedProperty());
+		rad[4].visibleProperty().bind(rad[2].selectedProperty());
+		
+		final GridPane lay3 = new GridPane();
+		lay3.getStyleClass().addAll("box-pad-inner");
+		lay3.addColumn(0, rad);
 		
 		final VBox lay0 = new VBox();
 		lay0.getStyleClass().addAll("box-pad");
 		lay0.getChildren().addAll(new Label(),box[0]);
 		lay0.getChildren().add(lay2);
 		lay0.getChildren().add(new Separator());
+		lay0.getChildren().add(lay3);
+		lay0.getChildren().add(new Separator());
 		lay0.getChildren().addAll(btn);
 		return lay0;
-	}	
+	}
+	
+	private void select_io_pin(
+		final ActionEvent event,
+		final int address,
+		final int bitmask
+	){
+		final CheckBox chk = (CheckBox)event.getSource();
+		if(chk.isSelected()==true){
+			coup.asyncWriteBit1(address, bitmask);
+		}else{
+			coup.asyncWriteBit0(address, bitmask);
+		}
+	}
 }
 
 /**
@@ -211,10 +275,12 @@ public class PanMain1 extends PanBase {
  * Um - 24V
  * FE - Function Earth
  */
-//h8000       - digital input
-//h8001~h8004 - analog  input
-//r8005       - digital output
-//r8006~r8009 - analog  output
+/**
+ * h8000       - digital input
+ * h8001~h8004 - analog  input
+ * r8005       - digital output
+ * r8006~r8009 - analog  output
+ */
 /**
  * DCG-100 analog control
  * pin.1 -->I1-2.1 (ch.B: out, DC on read-back
