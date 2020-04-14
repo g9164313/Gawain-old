@@ -18,6 +18,7 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import narl.itrc.DevModbus;
 import narl.itrc.Gawain;
+import narl.itrc.Ladder;
 import narl.itrc.PanBase;
 
 public class PanMain1 extends PanBase {
@@ -29,7 +30,7 @@ public class PanMain1 extends PanBase {
 
 	final LayGauge lay_gauge = new LayGauge();
 	final TblHistory tbl_history = new TblHistory();
-	final LadderBase lst_ladder = new LadderBase();
+	final Ladder lst_ladder = new Ladder();
 	
 	public PanMain1() {
 		super();

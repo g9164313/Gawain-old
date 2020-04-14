@@ -34,9 +34,9 @@
 .ground-pad {
 	-fx-alignment: center;
 	-fx-font-size: 1.6em;
-    -fx-spacing: 13;
-    -fx-padding: 13;
-    -fx-hgap: 13;
+  -fx-spacing: 13;
+  -fx-padding: 13;
+  -fx-hgap: 13;
 	-fx-vgap: 13;
 }
 .box-pad {
