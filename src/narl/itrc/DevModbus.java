@@ -130,12 +130,13 @@ public class DevModbus extends DevBase {
 				return;
 			}
 			switch(type) {
-			case 'r':
-			case 'R':
+			//coils ??? support ???
+			case 'I':
+				//input register
 				implReadR(address,values);
 				break;
-			case 'h':
 			case 'H':
+				//holding register
 				implReadH(address,values);
 				break;
 			}
@@ -154,31 +155,6 @@ public class DevModbus extends DevBase {
 	
 	private ArrayList<RCell> mems = new ArrayList<>();
 	
-	public DevModbus mapRegister(final String... hexAddr) {
-		
-		for(String txt:hexAddr) {
-			//if(txt.matches("[rRhH]\\d{4}(-)?(?(1)\\d{4})")==false) {
-			if(txt.matches("[rRhH]\\d{4}[-]?(\\d{4})?")==false) {
-				continue;
-			}
-			char typ = txt.charAt(0);
-			int off = 0;
-			int cnt = 1;
-			String[] col = txt.substring(1).split("-");
-			if(col.length>=1) {
-				off = Integer.valueOf(col[0]);
-			}
-			if(col.length>=2) {
-				cnt = Integer.valueOf(col[1]) - off + 1;
-				if(cnt<=0) {
-					return this;
-				}
-			}
-			mems.add(new RCell(typ,off,cnt));
-		}		
-		addState(STG_LOOPER,()->looper());
-		return this;
-	}	
 	private void looper() {
 		try {
 			Thread.sleep(100);
@@ -200,16 +176,55 @@ public class DevModbus extends DevBase {
 			}
 		});
 	}
-	public IntegerProperty register(int addr) {
+	
+	public DevModbus mapRegister(final String... address) {
+		for(String txt:address) {
+			txt = txt.toUpperCase();
+			if(txt.matches("[CHI]\\d{4}[-]?(\\d{4})?")==false) {
+				continue;
+			}
+			char typ = txt.toUpperCase().charAt(0);
+			int off = 0;
+			int cnt = 1;
+			String[] col = txt.substring(1).split("-");
+			if(col.length>=1) {
+				off = Integer.valueOf(col[0]);
+			}
+			if(col.length>=2) {
+				cnt = Integer.valueOf(col[1]) - off + 1;
+				if(cnt<=0) {
+					return this;
+				}
+			}
+			mems.add(new RCell(typ,off,cnt));
+		}		
+		addState(STG_LOOPER,()->looper());
+		return this;
+	}
+	public DevModbus mapRegister16(final String... hexAddr) {
+		ArrayList<String> lst = new ArrayList<String>();
+		
+		return mapRegister(lst.toArray(new String[0]));
+	}	
+	private IntegerProperty register(final char type, final int addr) {
 		for(RCell reg:mems) {
 			int beg = reg.address;
 			int end = reg.address + reg.values.length - 1;
-			if(beg<=addr && addr<=end) {
+			if(beg<=addr && addr<=end && reg.type==type) {				
 				int off = addr - beg;
 				return reg._values[off];
 			}
 		}
 		return null;
+	}
+	public IntegerProperty coilRegister(final int address) {
+		return register('C',address); 
+	}
+	public IntegerProperty holdingRegister(final int address) {
+		return register('H',address);
+	}
+	public IntegerProperty inputRegister(final int address) {
+		return register('I',address);
 	}
 	
 	public void asyncWriteVal(int addr,int val) {asyncBreakIn(()->writeVal(addr,val));}
@@ -256,8 +271,8 @@ public class DevModbus extends DevBase {
 		
 	private native void implOpenRtu();	
 	private native void implOpenTcp();
-	private native void implReadH(int addr,short buff[]);//holding(input) register
-	private native void implReadR(int addr,short buff[]);//read register
+	private native void implReadH(int addr,short buff[]);//holding register
+	private native void implReadR(int addr,short buff[]);//input register
 	private native void implWrite(int addr,short buff[]);//write register
 	private native void implClose();
 }

@@ -10,11 +10,11 @@ import javafx.beans.property.IntegerProperty;
 import javafx.scene.layout.FlowPane;
 import narl.itrc.DevModbus;
 
-public class LayGauge extends FlowPane {
+public class LayGauges extends FlowPane {
 
 	public final Tile gag[] = new Tile[6];
 		
-	public LayGauge() {
+	public LayGauges() {
 
 		//gauge for DCG-100
 		gag[0] = TileBuilder.create()
@@ -71,17 +71,17 @@ public class LayGauge extends FlowPane {
 		getChildren().addAll(gag);
 	}
 	
-	public LayGauge bindProperty(final DevModbus dev) {
+	public LayGauges bindProperty(final DevModbus dev) {
 		IntegerProperty prop;
 		
-		prop = dev.register(8001);
+		prop = dev.inputRegister(8001);
 		if(prop==null) {
 			return this;
 		}
 		final FloatBinding a_volt = prop.multiply(0.20f);
 		gag[0].valueProperty().bind(a_volt);
 		
-		prop = dev.register(8002);
+		prop = dev.inputRegister(8002);
 		if(prop==null) {
 			return this;
 		}
@@ -91,7 +91,7 @@ public class LayGauge extends FlowPane {
 		return this;
 	}
 	
-	public LayGauge bindProperty(final DevDCG100 dev) {		
+	public LayGauges bindProperty(final DevDCG100 dev) {		
 		gag[0].valueProperty().bind(dev.volt);
 		gag[1].valueProperty().bind(dev.amps);
 		gag[2].valueProperty().bind(dev.watt);
@@ -99,7 +99,7 @@ public class LayGauge extends FlowPane {
 		return this;
 	}
 	
-	public LayGauge bindProperty(final DevSQM160 dev) {
+	public LayGauges bindProperty(final DevSQM160 dev) {
 		
 		gag[4].valueProperty().bind(dev.rate[0]);
 		gag[4].setMinValue(dev.rateRange[0].doubleValue());
@@ -113,7 +113,7 @@ public class LayGauge extends FlowPane {
 		return this;
 	}
 	
-	public LayGauge bindProperty(
+	public LayGauges bindProperty(
 		final DevSQM160 dev1,
 		final DevModbus dev2
 	) {			
@@ -124,7 +124,7 @@ public class LayGauge extends FlowPane {
 				
 		IntegerProperty prop;
 		
-		prop = dev2.register(8003);
+		prop = dev2.inputRegister(8003);
 		if(prop==null) {
 			return this;
 		}
@@ -135,7 +135,7 @@ public class LayGauge extends FlowPane {
 		
 		gag[4].valueProperty().bind(rate);
 		
-		prop = dev2.register(8004);
+		prop = dev2.inputRegister(8004);
 		if(prop==null) {
 			return this;
 		}

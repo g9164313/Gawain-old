@@ -137,9 +137,7 @@ public class PanTestUnit extends PanBase {
 				Integer.valueOf(box[2].getText()),
 				Integer.valueOf(box[3].getText())
 			);
-			notifyTask(new TaskGetSurface(grid),()->{
-				
-			});
+			notifyTask(new TaskGetSurface(grid));
 		});
 		
 		btn[1].setText("test-2");

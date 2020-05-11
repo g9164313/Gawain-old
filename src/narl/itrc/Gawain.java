@@ -142,23 +142,18 @@ public class Gawain extends Application {
 	}
 	//--------------------------------------------//
 	
-	public static class LogMessage {
+	public static class LogText {
 		public long tick;
-		public char type;		
-		public String text;
-		public LogMessage(String txt){
+		public char type = 0;		
+		public String text = "";
+		public LogText(String txt){
 			tick = System.currentTimeMillis();
 			if(txt.length()==0){
-				type = 22;
-				text = "";
-			}else{
-				type = txt.charAt(0);
-				if(type==21 || type==22 || type==23){
-					text = txt.substring(1);
-				}else{
-					type = 21;
-					text = txt;
-				}
+				return;
+			}
+			type = txt.charAt(0);
+			if(type==17 || type==18 || type==19){
+				text = txt.substring(1);
 			}
 		}
 		@Override
@@ -172,9 +167,9 @@ public class Gawain extends Application {
 	
 	private static FileWriter logFile = null;
 	
-	private static int MAX_LOG_SIZE = 200;
+	private static int MAX_LOG_SIZE = 500;
 	
-	public static final ArrayBlockingQueue<LogMessage> logQueue = new ArrayBlockingQueue<>(MAX_LOG_SIZE);
+	public static final ArrayBlockingQueue<LogText> logQueue = new ArrayBlockingQueue<>(MAX_LOG_SIZE);
 		
 	private static class PipeStream extends OutputStream {
 		private ByteArrayOutputStream buf = new ByteArrayOutputStream();
@@ -192,7 +187,7 @@ public class Gawain extends Application {
 					if(logQueue.size()>=MAX_LOG_SIZE){
 						logQueue.poll();
 					}
-					LogMessage msg = new LogMessage(buf.toString());					
+					LogText msg = new LogText(buf.toString());					
 					logQueue.put(msg);
 					if(logFile!=null){
 						logFile.write(msg.toString());
@@ -417,15 +412,11 @@ public class Gawain extends Application {
 		long tick = System.currentTimeMillis();
 		try {
 			String name = Gawain.prop().getProperty("LAUNCH","");
-			if(name.length()==0) {
-				
-			}else {
-				mainPanel = (PanBase)Class.forName(name)
-					.getConstructor()
-					.newInstance();
-					//.getConstructor(Stage.class)
-					//.newInstance(stg);
-			}
+			mainPanel = (PanBase)Class.forName(name)
+				.getConstructor()
+				.newInstance();
+				//.getConstructor(Stage.class)
+				//.newInstance(stg);
 			mainPanel.initLayout();
 			mainPanel.appear();
 			Misc.logv("Startup: %dms",System.currentTimeMillis()-tick);

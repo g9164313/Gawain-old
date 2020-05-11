@@ -6,19 +6,19 @@ import com.jfoenix.controls.JFXTabPane;
 import com.jfoenix.controls.JFXTextField;
 
 import javafx.event.ActionEvent;
-import javafx.scene.control.Accordion;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Separator;
 import javafx.scene.control.Tab;
-import javafx.scene.control.TitledPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import narl.itrc.DevModbus;
 import narl.itrc.Gawain;
-import narl.itrc.Ladder;
+import narl.itrc.LayLadder;
 import narl.itrc.PanBase;
 
 public class PanMain1 extends PanBase {
@@ -28,9 +28,9 @@ public class PanMain1 extends PanBase {
 	final DevSPIK2k spik = new DevSPIK2k();
 	final DevSQM160 sqm1 = new DevSQM160();
 
-	final LayGauge lay_gauge = new LayGauge();
-	final TblHistory tbl_history = new TblHistory();
-	final Ladder lst_ladder = new Ladder();
+	final LayGauges gauges = new LayGauges();
+	final LayLogger logger = new LayLogger();
+	final LayLadder ladder = new LayLadder();
 	
 	public PanMain1() {
 		super();
@@ -41,12 +41,12 @@ public class PanMain1 extends PanBase {
 		String arg;
 		arg = Gawain.prop().getProperty("modbus", "");
 		if(arg.length()!=0) {
-			lay_gauge.bindProperty(coup);
+			gauges.bindProperty(coup);
 			coup.open(arg);		
 		}
 		arg = Gawain.prop().getProperty("DCG100", "");
 		if(arg.length()>0) {
-			lay_gauge.bindProperty(dcg1);
+			gauges.bindProperty(dcg1);
 			dcg1.open(arg);
 		}
 		arg = Gawain.prop().getProperty("SPIK2k", "");
@@ -55,15 +55,15 @@ public class PanMain1 extends PanBase {
 		}
 		arg = Gawain.prop().getProperty("SQM160", "");
 		if(arg.length()>0) {
-			lay_gauge.bindProperty(sqm1);
+			gauges.bindProperty(sqm1);
 			sqm1.open(arg);
 		}
 		arg = Gawain.prop().getProperty("http_poster", "");
 		if(arg.length()>0) {
-			tbl_history.poster = new DevPoster(arg);
-			tbl_history.poster.open();
+			logger.poster = new DevPoster(arg);
+			logger.poster.open();
 		}
-		tbl_history.bindProperty(
+		logger.bindProperty(
 			dcg1.volt, dcg1.amps, 
 			dcg1.watt, dcg1.joul,
 			sqm1.rate[0], sqm1.high[0]
@@ -72,51 +72,48 @@ public class PanMain1 extends PanBase {
 	
 	@Override
 	public Pane eventLayout(PanBase self) {
-
-		final JFXTabPane lay4 = new JFXTabPane();
-		lay4.getTabs().addAll(
-			new Tab("管路"),
-			new Tab("監測",lay_gauge),
-			new Tab("製程",lst_ladder),
-			new Tab("紀錄",tbl_history)
+		
+		ladder.addCassette("時間延遲", StepDelay.class);
+		ladder.addCassette("薄膜監控", StepWatcher.class, sqm1);
+		ladder.addCassette("擋板開關", StepShutter.class, sqm1);
+		ladder.addCassette("火力控制", StepKindler.class, dcg1);
+		
+		
+		final HBox lay1 = new HBox();
+		lay1.getStyleClass().addAll("box-pad");
+		lay1.getChildren().addAll(
+			DevDCG100.genPanel(dcg1),
+			DevSPIK2k.genPanel(spik),
+			DevSQM160.genPanel(sqm1)
 		);
-		lay4.getSelectionModel().select(2);
-	
-		final TitledPane[] lay3 = {
-			new TitledPane("快速設定"  ,lay_ctrl()),
-			new TitledPane("DCG-100"  ,DevDCG100.genPanel(dcg1)),
-			new TitledPane("SPIK-2000",DevSPIK2k.genPanel(spik)),
-			new TitledPane("SQM-160"  ,DevSQM160.genPanel(sqm1))
-		};
-		final Accordion lay2 = new Accordion(lay3);
-		lay2.setExpandedPane(lay3[0]);
+
+		final ScrollPane lay2 = new ScrollPane(lay1);
+		lay2.setPrefViewportWidth(800);
+		lay2.setMinViewportHeight(500);
+		
+		final JFXTabPane lay3 = new JFXTabPane();
+		lay3.getTabs().addAll(
+			new Tab("管路"),
+			new Tab("監測",gauges),
+			new Tab("製程",ladder),
+			new Tab("紀錄",logger),			
+			new Tab("裝置",lay2)
+		);
+		lay3.getSelectionModel().select(2);
 
 		final BorderPane lay0 = new BorderPane();
-		lay0.setCenter(lay4);
-		//lay0.setRight(lay2);
+		lay0.setCenter(lay3);
+		lay0.setRight(lay_ctrl());
 		return lay0;
 	}
 	
 	private Pane lay_ctrl() {
 		
-		final Label[] txt = new Label[6];
-		for(int i=0; i<txt.length; i++) {
-			Label obj = new Label();
-			obj.setMaxWidth(Double.MAX_VALUE);
-			txt[i] = obj;
-		}
-		txt[0].textProperty().bind(sqm1.filmData[0]);
-		txt[1].textProperty().bind(sqm1.filmData[1]);
-		txt[2].textProperty().bind(sqm1.filmData[2]);
-		txt[3].textProperty().bind(sqm1.filmData[3]);
-
 		final JFXTextField[] box = new JFXTextField[5];
 		for(int i=0; i<box.length; i++) {
 			JFXTextField obj = new JFXTextField();
 			obj.setMaxWidth(Double.MAX_VALUE);
 			obj.setLabelFloat(true);
-			//GridPane.setHgrow(obj, Priority.ALWAYS);
-			//GridPane.setFillWidth(obj, true);
 			box[i] = obj;
 		}
 		box[0].setPromptText("輸出功率(Watt)");
@@ -139,7 +136,7 @@ public class PanMain1 extends PanBase {
 
 		btn[0].getStyleClass().add("btn-raised-1");
 		btn[0].setText("擋片-ON");
-		btn[0].setOnAction(e->sqm1.shutter_zeros());
+		btn[0].setOnAction(e->sqm1.shutter_on_zeros());
 		btn[1].getStyleClass().add("btn-raised-2");
 		btn[1].setText("擋片-OFF");
 		btn[1].setOnAction(e->sqm1.shutter(false));
@@ -154,7 +151,7 @@ public class PanMain1 extends PanBase {
 					dcg1.exec("SPW="+val);
 					dcg1.exec("TRG");
 				});
-				tbl_history.startRecord();
+				logger.startRecord();
 			}catch(NumberFormatException exp) {
 			}
 		});
@@ -163,15 +160,29 @@ public class PanMain1 extends PanBase {
 		btn[3].setOnAction(e->{
 			//coup.asyncWriteBit0(8005, 0);
 			dcg1.asyncExec("OFF");
-			tbl_history.stopRecord();
+			logger.stopRecord();
 		});
+		
+		final Label[] txt = new Label[6];
+		for(int i=0; i<txt.length; i++) {
+			Label obj = new Label();
+			obj.setMaxWidth(Double.MAX_VALUE);
+			txt[i] = obj;
+		}
+		txt[0].textProperty().bind(sqm1.filmData[0]);
+		txt[1].textProperty().bind(sqm1.filmData[1]);
+		txt[2].textProperty().bind(sqm1.filmData[2]);
+		txt[3].textProperty().bind(sqm1.filmData[3]);
+		txt[4].textProperty().bind(sqm1.shutterCycle);
 		
 		final GridPane lay2 = new GridPane();
 		lay2.getStyleClass().addAll("box-pad-inner");
 		lay2.addRow(0, new Label("薄膜名稱 ：" ), txt[0]);
 		lay2.addRow(1, new Label("Density："), txt[1]);
 		lay2.addRow(2, new Label("Tooling："), txt[2]);
-		lay2.addRow(3, new Label("Z-Ratio："), txt[3]);
+		lay2.addRow(3, new Label("Z-Ratio："), txt[3]);		
+		lay2.addRow(4, new Label("擋板週期："), txt[4]);
+		lay2.setOnMouseClicked(e->sqm1.updateFilm());
 		
 		final JFXCheckBox[] rad = {
 			new JFXCheckBox("Shutter"),
@@ -218,7 +229,7 @@ public class PanMain1 extends PanBase {
 		lay3.addColumn(0, rad);
 		
 		final VBox lay0 = new VBox();
-		lay0.getStyleClass().addAll("box-pad");
+		lay0.getStyleClass().addAll("box-pad","border");
 		lay0.getChildren().addAll(new Label(),box[0]);
 		lay0.getChildren().add(lay2);
 		lay0.getChildren().add(new Separator());

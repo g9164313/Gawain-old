@@ -9,6 +9,7 @@ import com.jfoenix.controls.JFXSpinner;
 import com.jfoenix.controls.events.JFXDialogEvent;
 
 import javafx.concurrent.Task;
+import javafx.concurrent.WorkerStateEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -52,6 +53,10 @@ public abstract class PanBase {
 		return stage; 
 	}
 	
+	public static PanBase self(final Node obj){
+		return (PanBase)(obj.getScene().getUserData());
+	}
+	
 	//default panel node
 	//Label txt = new Label("===\n X \n===");
 	//txt.setFont(Font.font("Arial", 60));
@@ -60,18 +65,20 @@ public abstract class PanBase {
 	//face1 = txt;
 	
 	public void initLayout() {
-		
-		//final Pane root = new StackPane(eventLayout(this));
-		final Pane root = eventLayout(this);
+		final Pane face = eventLayout(this);
+		StackPane.setAlignment(face, Pos.BOTTOM_LEFT);
+        StackPane.setAlignment(face, Pos.TOP_RIGHT);
+        final Pane root = new StackPane(face);
+		//final Pane root = eventLayout(this);
+		root.getStyleClass().addAll("background");
 		if(Gawain.propFlag("JFX_DECORATE")==true) {
 			scene = new Scene(new JFXDecorator(stage,root));
 		}else {
 			scene = new Scene(root);
 		}
-		
+		scene.setUserData(this);//keep self-pointer
 		scene.setFill(Color.WHITE);
-		scene.getStylesheets().add(Gawain.sheet);//load a default style...
-		root.getStyleClass().addAll("background");
+		scene.getStylesheets().add(Gawain.sheet);//load a default style...		
 		scene.setOnKeyPressed(event->{
 			KeyCode cc = event.getCode();
 			if(cc==KeyCode.F1){
@@ -93,15 +100,16 @@ public abstract class PanBase {
 	private void prepare(){
 		if(scene==null) {
 			initLayout();
-		}
+		}		
 		stage.setScene(scene);
-		stage.sizeToScene();
-		stage.centerOnScreen();
-		
-		if(Gawain.mainPanel==this) {
-			if(Gawain.propFlag("FULL_SCREEN")==true) {
-				stage.setFullScreen(true);
-			}
+		if(
+			Gawain.propFlag("FULL_SCREEN")==true && 
+			Gawain.mainPanel==this
+		) {
+			stage.setFullScreen(true);
+		}else{			
+			stage.sizeToScene();
+			stage.centerOnScreen();
 		}
 	}
 		
@@ -137,8 +145,8 @@ public abstract class PanBase {
 	 */
 	private static KeyCombination hotkey_console = KeyCombination.keyCombination("Ctrl+Alt+C");
 	//----------------------------------------------//
-	
-	protected static class Spinner extends JFXDialog {
+		
+	public static class Spinner extends JFXDialog {
 		JFXSpinner icon;
 		Label mesg;
 		public Spinner(){
@@ -148,13 +156,16 @@ public abstract class PanBase {
 			mesg.setFont(Font.font("Arial", 26));
 			mesg.setAlignment(Pos.CENTER);
 			final HBox lay = new HBox(icon,mesg);
-			lay.setAlignment(Pos.BASELINE_LEFT);
 			lay.getStyleClass().addAll("box-pad");
-			lay.setAlignment(Pos.BASELINE_LEFT);	
+			lay.setAlignment(Pos.CENTER_LEFT);	
 			setContent(lay);
 		}
-		public void text(final String text) {
+		public Spinner(final String text){
+			this();
 			mesg.setText(text);
+		}
+		public static Spinner getSelf(JFXDialogEvent e){
+			return (Spinner)(e.getSource());
 		}
 	};
 	/**
@@ -162,28 +173,33 @@ public abstract class PanBase {
 	 * @param event1 - After the dialog show...
 	 * @param event2 - After closing the dialog...
 	 */
-	public void notifyTask(
+	public void notifyEvent(
+		final String text,
 		final EventHandler<JFXDialogEvent> event1,
 		final EventHandler<JFXDialogEvent> event2
 	) {
-		final JFXDialog dlg = new Spinner();
+		JFXDialog dlg = new Spinner(text);		
 		dlg.setOnDialogOpened(event1);
 		dlg.setOnDialogClosed(event2);
 		dlg.show((StackPane)root());
+	}
+	public void notifyEvent(final String text) {
+		notifyEvent(text);
 	}
 	/**
 	 * show a spinner, let user know we are working.<p>
 	 * @param task - a working thread.<p>
 	 */
 	public void notifyTask(
-		final Task<?> task,
-		final Runnable hook
+		final Task<?> task
 	) {
-		final Spinner dlg = new Spinner();
+		Spinner dlg = new Spinner();
 		dlg.mesg.textProperty().bind(task.messageProperty());
+		//override old handler~~~
+		final EventHandler<WorkerStateEvent> hook = task.getOnSucceeded();
 		task.setOnSucceeded(e->{
-			if(hook!=null) {
-				hook.run();
+			if(hook!=null){
+				hook.handle(e);
 			}
 			dlg.close();
 		});
@@ -192,10 +208,8 @@ public abstract class PanBase {
 		dlg.setOnDialogClosed(e->task.cancel());
 		dlg.show((StackPane)root());
 	}
-	public void notifyTask(final Task<?> tsk) {
-		notifyTask(tsk,null);
-	}
-
+	//----------------------------------------------//
+	
 	/**
 	 * macro-expansion for information alter dialog
 	 * @param title

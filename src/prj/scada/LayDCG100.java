@@ -26,13 +26,13 @@ public class LayDCG100 {
 	
 	public static void bindProperty(final DevModbus dev) {
 		//channel A
-		prop[0].bind(dev.register(8001).multiply(0.20f));
+		prop[0].bind(dev.inputRegister(8001).multiply(0.20f));
 		prop[1].bind(prop[2].divide(prop[0].add(Float.MIN_VALUE)));
-		prop[2].bind(dev.register(8002).multiply(1.06f));
+		prop[2].bind(dev.inputRegister(8002).multiply(1.06f));
 		//channel B
-		prop[3].bind(dev.register(8003).multiply(0.20f));
+		prop[3].bind(dev.inputRegister(8003).multiply(0.20f));
 		prop[4].bind(prop[5].divide(prop[3].add(Float.MIN_VALUE)));
-		prop[5].bind(dev.register(8004).multiply(1.06f));
+		prop[5].bind(dev.inputRegister(8004).multiply(1.06f));
 	}
 	
 	private static void set_power(

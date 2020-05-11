@@ -22,7 +22,6 @@
 	-fx-text-fill: black;
 }
 
-
 .jfx-decorator .jfx-decorator-buttons-container {
     -fx-background-color: #1e88e5;
 }
@@ -53,7 +52,9 @@
   -fx-hgap: 7;
 	-fx-vgap: 7; 
 }
-
+.big-font {
+	-fx-font-size: 1.9em;
+}
 .box-border {
 	-fx-border-color: black;
 	-fx-border-width: 1.7px;
@@ -65,7 +66,7 @@
 }
 
 .border {
-	-fx-border-width: 1px; 
+	-fx-border-width: 1.5px; 
 	-fx-border-color: black;
 }
 

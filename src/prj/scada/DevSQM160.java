@@ -49,6 +49,8 @@ public class DevSQM160 extends DevTTY {
 	private String[] b_value= new String[0];
 	private String[] c_value= new String[0];
 	private boolean  u_value = false;
+
+	private long tick_shutter_on;
 	
 	private void state_init() {
 		String res;
@@ -107,13 +109,29 @@ public class DevSQM160 extends DevTTY {
 				highRange[1].set(Float.valueOf(c_value[5]));
 			}
 			shutter.set(u_value);
+			shutter.addListener((obv,v1,v2)->{
+				if(v1.booleanValue()==false && 
+					v2.booleanValue()==true
+				){
+					//shutter closed change to open
+					tick_shutter_on = System.currentTimeMillis();
+					shutterCycle.set(DEF_DASH);					
+				}else if(
+					v1.booleanValue()==true && 
+					v2.booleanValue()==false
+				){
+					//shutter open change to closed
+					long diff = System.currentTimeMillis() - tick_shutter_on;
+					shutterCycle.set(Misc.tick2time(diff));					
+				}
+			});
 		});
 		nextState(STG_MONT);
 		//nextState("");
 	}
 	private void state_monitor() {
 		try {
-			Thread.sleep(250);
+			Thread.sleep(500);
 		} catch (InterruptedException e) {
 			return;
 		}
@@ -144,6 +162,7 @@ public class DevSQM160 extends DevTTY {
 		}catch(NumberFormatException e) {
 			Misc.logv("[%s] %s",TAG,e.getMessage());
 		}
+		
 		Application.invokeAndWait(()->{
 			shutter.set(u_value);
 			rate[0].set(m_value);
@@ -189,7 +208,7 @@ public class DevSQM160 extends DevTTY {
 		return (short) (crc & 0x3fff);
 	}
 	
-	private String exec(final String cmd) {
+	public String exec(final String cmd) {
 		
 		//Command Packet (Host to SQM-160 Message)
 		//<Sync character> <Length character> <Message> <CRC1><CRC2>
@@ -251,6 +270,8 @@ public class DevSQM160 extends DevTTY {
 		return new String(buf,0,len);
 	}
 	public void shutter(final boolean flag) {asyncBreakIn(()->{
+		//U1 --> shutter open
+		//U0 --> shutter close
 		String res = exec((flag)?("U1"):("U0"));
 		if(res.charAt(0)=='A'){
 			Application.invokeAndWait(()->shutter.set(flag));
@@ -269,7 +290,7 @@ public class DevSQM160 extends DevTTY {
 		}
 		nextState(STG_MONT);
 	});}
-	public void shutter_zeros(){asyncBreakIn(()->{		
+	public void shutter_on_zeros(){asyncBreakIn(()->{		
 		String res;
 		res = exec("T");
 		res = exec("S");
@@ -280,7 +301,10 @@ public class DevSQM160 extends DevTTY {
 		nextState(STG_MONT);
 	});}
 	//-------------------------//
+	private final static String DEF_DASH = "--------";
 	public final BooleanProperty shutter = new SimpleBooleanProperty(false);
+	public final StringProperty shutterCycle = new SimpleStringProperty(DEF_DASH);
+	
 	public final StringProperty unitRate = new SimpleStringProperty("??");
 	public final StringProperty unitHigh = new SimpleStringProperty("??");
 	
@@ -420,13 +444,7 @@ public class DevSQM160 extends DevTTY {
 		});
 		btn[2].getStyleClass().add("btn-raised-2");
 		btn[2].setText("設定薄膜");
-		btn[2].setOnAction(e->{
-			DialogFilm dia = new DialogFilm(dev.a_value);
-			Optional<String[]> opt = dia.showAndWait();
-			if(opt.isPresent()==true) {
-				update_film_gui(dev,opt.get());
-			}
-		});
+		btn[2].setOnAction(e->dev.updateFilm());
 		btn[3].getStyleClass().add("btn-raised-3");
 		btn[3].setText("擋板-開");
 		btn[3].setOnAction(e->exec_gui(dev,"U1",null));
@@ -485,55 +503,6 @@ public class DevSQM160 extends DevTTY {
 				alert.showAndWait();
 			});
 		}	
-	});}
-	
-	private static void update_film_gui(
-		final DevSQM160 dev,
-		final String[] arg
-	) { dev.asyncBreakIn(()->{
-		char id = (char)(48+Integer.valueOf(arg[0]));
-		int cnt = arg[1].length();
-		if(cnt<8){
-			//padding~~~
-			cnt = 8 - cnt;
-			for(int i=0; i<cnt; i++){
-				arg[1] = arg[1] + ' ';
-			}
-		}else{
-			arg[1] = arg[1].substring(0,8);
-		}
-		arg[1] = arg[1]
-			.replace(' ', '_')
-			.toUpperCase();
-		String cmd = String.format(
-			"A%C%s %s %s %s %s %s %s %s",
-			id, arg[1], 
-			arg[2], arg[3], arg[4], arg[5], 
-			arg[6], arg[7], arg[8]
-		);
-		if(dev.exec(cmd).charAt(0)=='A') {
-			if(id!=48){
-				return;
-			}
-			String res = dev.exec("A0?");
-			if(res.charAt(0)=='A') {
-				dev.parse_a_value(res);
-				Application.invokeAndWait(()->{
-					for(int i=0; i<dev.a_value.length; i++) {
-						dev.a_value[i] = dev.a_value[i].trim();
-						dev.filmData[i].set(dev.a_value[i]);
-					}
-				});
-			}
-		}else{
-			Application.invokeAndWait(()->{
-				Alert alert = new Alert(AlertType.ERROR);
-				alert.setTitle("!!錯誤!!");
-				alert.setHeaderText("無法設定薄膜參數");
-				alert.setContentText(null);
-				alert.showAndWait();
-			});
-		}
 	});}
 	
 	private static class DialogFilm extends Dialog<String[]> {		
@@ -600,5 +569,62 @@ public class DevSQM160 extends DevTTY {
 			lay.addRow(8, new Label("偵測器開關："), box[8]);
 			return lay;
 		}
-	};	
+	};
+	
+	private static void update_film_gui(
+		final DevSQM160 dev,
+		final String[] arg
+	) { dev.asyncBreakIn(()->{
+		char id = (char)(48+Integer.valueOf(arg[0]));
+		int cnt = arg[1].length();
+		if(cnt<8){
+			//padding~~~
+			cnt = 8 - cnt;
+			for(int i=0; i<cnt; i++){
+				arg[1] = arg[1] + ' ';
+			}
+		}else{
+			arg[1] = arg[1].substring(0,8);
+		}
+		arg[1] = arg[1]
+			.replace(' ', '_')
+			.toUpperCase();
+		String cmd = String.format(
+			"A%C%s %s %s %s %s %s %s %s",
+			id, arg[1], 
+			arg[2], arg[3], arg[4], arg[5], 
+			arg[6], arg[7], arg[8]
+		);
+		if(dev.exec(cmd).charAt(0)=='A') {
+			if(id!=48){
+				return;
+			}
+			String res = dev.exec("A0?");
+			if(res.charAt(0)=='A') {
+				dev.parse_a_value(res);
+				Application.invokeAndWait(()->{
+					for(int i=0; i<dev.a_value.length; i++) {
+						dev.a_value[i] = dev.a_value[i].trim();
+						dev.filmData[i].set(dev.a_value[i]);
+					}
+				});
+			}
+		}else{
+			Application.invokeAndWait(()->{
+				Alert alert = new Alert(AlertType.ERROR);
+				alert.setTitle("!!錯誤!!");
+				alert.setHeaderText("無法設定薄膜參數");
+				alert.setContentText(null);
+				alert.showAndWait();
+			});
+		}
+	});}
+	//call by GUI-thread
+	public void updateFilm(){
+		DialogFilm dia = new DialogFilm(a_value);
+		Optional<String[]> opt = dia.showAndWait();
+		if(opt.isPresent()==true) {
+			update_film_gui(this,opt.get());
+		}
+	}
 }

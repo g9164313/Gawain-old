@@ -25,7 +25,7 @@ public class Misc {
 	 * @param arg - pass through 'printf()'
 	 */
 	public static void logv(String fmt,Object... arg){
-		System.out.print(String.format('\25'+fmt+"\n", arg));
+		System.out.print(String.format('\21'+fmt+"\n", arg));
 	}
 	/**
 	 * just show messages, it is like 'stdout'
@@ -33,7 +33,7 @@ public class Misc {
 	 * @param arg - pass through 'printf()'
 	 */
 	public static void logw(String fmt,Object... arg){
-		System.out.print(String.format('\26'+fmt+"\n", arg));
+		System.out.print(String.format('\22'+fmt+"\n", arg));
 	}
 	/**
 	 * just show messages, it is like 'stderr'
@@ -41,7 +41,7 @@ public class Misc {
 	 * @param arg - pass through 'printf()'
 	 */
 	public static void loge(String fmt,Object... arg){
-		System.out.print(String.format('\27'+fmt+"\n", arg));
+		System.out.print(String.format('\23'+fmt+"\n", arg));
 	}	
 	//--------------------------//
 
@@ -89,7 +89,7 @@ public class Misc {
 		if(allAppx.length()==0) {
 			lst = path.listFiles();
 		}else {
-			lst = path.listFiles(new FltFile(allAppx));
+			lst = path.listFiles(new FilterFile(allAppx));
 		}
 		if(lst==null) {
 			return;
@@ -102,10 +102,10 @@ public class Misc {
 			}
 		}
 	}
-	private static class FltFile implements FilenameFilter{
+	private static class FilterFile implements FilenameFilter{
 		private String[] appx;
 		private boolean excu;//exclude flag
-		public FltFile(String allAppx) {
+		public FilterFile(String allAppx) {
 			excu = false;
 			if(allAppx.charAt(0)=='^') {
 				excu = true;
@@ -231,6 +231,30 @@ public class Misc {
 		}
 		return Integer.valueOf(txt);
 	}
+	
+	/**
+	 * change tick(number value) to text.<p>
+	 * @param tick - unit is millisecond.
+	 * @return time-stamp text (時:分:秒)
+	 */
+	public static String tick2time(final long tick){
+		long sec = tick / 1000L;
+		long min = sec / 60; sec = sec % 60;
+		long hour= min / 60; min = min % 60;
+		if(hour!=0){
+			return String.format(
+				" %3d時  %2d分  %2d秒", 
+				hour, min, sec
+			);
+		}else if(min!=0){
+			return String.format(
+				" %2d分  %2d秒",
+				min, sec
+			);
+		}
+		return String.format(" %2d秒",sec);
+	}
+	
 	
 	/**
 	 * Un-escape a string that contains standard Java escape sequences.

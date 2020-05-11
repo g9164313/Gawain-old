@@ -1,6 +1,7 @@
 package narl.itrc;
 
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.jfoenix.controls.JFXButton;
 
@@ -15,12 +16,19 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 
 public class Stepper extends HBox {
-
+	
+	public static final int PAUSE =  10001;//do we need this???
+	public static final int NEXT  =      1;//next step
+	public static final int HOLD  =      0;//camp or don't move
+	public static final int ABORT = -10001;
+	
 	private static final Image v_empty = new WritableImage(24,24);
 	private static final Image v_arrow = Misc.getIconImage("arrow-right.png");
 	private static final Image v_pen = Misc.getIconImage("pen.png");
 	private static final Image v_tash_can = Misc.getIconImage("trash-can.png");
 	
+	public final AtomicInteger result = new AtomicInteger(HOLD);
+		
 	private ImageView imgSign = new ImageView();
 
 	private JFXButton btnEdit = new JFXButton();
@@ -29,18 +37,11 @@ public class Stepper extends HBox {
 	public Optional<Runnable[]> works = Optional.empty();
 	public Optional<ObservableList<Stepper>> items = Optional.empty();
 	
-	/**
-	 * decide that work should repeat or stop self.<p>
-	 * >0 : repeat
-	 * =0 : next 
-	 * <0 : abort
-	 */
-	public int result = 0;
-	
 	public Stepper(){
+		imgSign.setImage(v_empty);
 	}
 	
-	public void indicate(boolean flag){
+	public void indicator(boolean flag){
 		if(flag){
 			imgSign.setImage(v_arrow);
 		}else{
@@ -50,7 +51,7 @@ public class Stepper extends HBox {
 	
 	public Stepper doLayout(){
 		
-		indicate(false);
+		indicator(false);
 		
 		Node cntxt = getContent();
 		HBox.setHgrow(cntxt, Priority.ALWAYS);
@@ -61,7 +62,7 @@ public class Stepper extends HBox {
 		btnDrop.setGraphic(new ImageView(v_tash_can));
 		btnDrop.setOnAction(e->dropping());
 				
-		setAlignment(Pos.BASELINE_LEFT);
+		setAlignment(Pos.CENTER_LEFT);
 		getChildren().addAll(imgSign,cntxt,btnEdit,btnDrop);		
 		return this;
 	}
@@ -83,4 +84,40 @@ public class Stepper extends HBox {
 	protected void eventEdit(){
 		//let user pop a panel to edit parameter~~~
 	}
+	
+	protected void set(Runnable run){
+		Runnable[] tmp = {run};
+		works = Optional.of(tmp);
+	}
+	
+	protected void set(Runnable... runs){
+		works = Optional.of(runs);
+	}
+	
+	protected void reset(){
+		result.set(NEXT);//default is go to next step.
+	}
+	
+	public class Delay implements Runnable {
+		long span;//millisecond
+		long tick = -1L;//millisecond
+		public Delay(long ms){
+			span = ms;
+		}
+		@Override
+		public void run() {
+			if(tick<0L){
+				tick = System.currentTimeMillis();
+				return;
+			}
+			long diff = System.currentTimeMillis() - tick;
+			if(diff>span){
+				tick = -1L;
+				result.set(NEXT);//next turn~~~
+			}else{
+				result.set(HOLD);//hold-on and camp~~~~
+			}
+		}
+	} 
+	
 }

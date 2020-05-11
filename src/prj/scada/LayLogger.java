@@ -34,7 +34,7 @@ import javafx.util.Duration;
 import narl.itrc.Gawain;
 import narl.itrc.Misc;
 
-public class TblHistory extends VBox {
+public class LayLogger extends VBox {
 
 	private final TableView<Record> table = new TableView<Record>();
 	
@@ -44,7 +44,7 @@ public class TblHistory extends VBox {
 	
 	private Optional<Timeline> time = Optional.empty();
 	
-	public TblHistory() {
+	public LayLogger() {
 		
 		init_table();
 		
@@ -98,6 +98,16 @@ public class TblHistory extends VBox {
 	
 	public DevPoster poster = null;
 	
+	private void simulation(){
+		for(FloatProperty val:vals){
+			float vv = val.get();
+			float ss = (float)Math.random();
+			ss = ss * 10f;
+			vv = ss * 3f + 7f;
+			val.set(vv);
+		}
+	}
+	
 	private void record(){
 		Record itm = new Record(vals);
 		ObservableList<Record> obv = table.getItems();
@@ -112,7 +122,6 @@ public class TblHistory extends VBox {
 	}
 	
 	public void startRecord() {Misc.exec_gui(()->{
-		
 		if(time.isPresent()==true) {
 			return;
 		}
