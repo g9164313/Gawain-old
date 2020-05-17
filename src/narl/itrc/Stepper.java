@@ -94,30 +94,33 @@ public class Stepper extends HBox {
 		works = Optional.of(runs);
 	}
 	
-	protected void reset(){
-		result.set(NEXT);//default is go to next step.
+	public boolean waiting_async = false;
+	protected void waiting_async(){
+		waiting_async = true;
+		result.set(HOLD);
 	}
 	
-	public class Delay implements Runnable {
-		long span;//millisecond
-		long tick = -1L;//millisecond
-		public Delay(long ms){
-			span = ms;
+	private long tick = -1L;	
+	protected long waiting(long period){
+		if(tick<=0L){
+			tick = System.currentTimeMillis();
 		}
-		@Override
-		public void run() {
-			if(tick<0L){
-				tick = System.currentTimeMillis();
-				return;
-			}
-			long diff = System.currentTimeMillis() - tick;
-			if(diff>span){
-				tick = -1L;
-				result.set(NEXT);//next turn~~~
-			}else{
-				result.set(HOLD);//hold-on and camp~~~~
-			}
+		long pass = System.currentTimeMillis() - tick;
+		if(pass>=period){
+			tick = -1L;//reset for next turn~~~
+			result.set(NEXT);
+		}else{
+			result.set(HOLD);
 		}
-	} 
+		long rem = period - pass;
+		return (rem>0)?(rem):(0);
+	}
+	protected long waiting(final String time){
+		return waiting(Misc.time2tick(time));
+	}
 	
+	protected void prepare(){
+		indicator(false);
+		result.set(HOLD);
+	}
 }

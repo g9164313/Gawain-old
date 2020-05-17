@@ -145,6 +145,9 @@ public abstract class DevBase implements Runnable {
 			work.run();
 			return this;
 		}
+		if(state.contains(STA_BREAK_IN)==true){
+			return this;
+		}
 		state.put(STA_BREAK_IN, work);
 		nextState(STA_BREAK_IN);
 		return this;

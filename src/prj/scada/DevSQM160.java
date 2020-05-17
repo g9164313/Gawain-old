@@ -50,8 +50,6 @@ public class DevSQM160 extends DevTTY {
 	private String[] c_value= new String[0];
 	private boolean  u_value = false;
 
-	private long tick_shutter_on;
-	
 	private void state_init() {
 		String res;
 		//res = exec("@");//!#@O7 --> !0AMON_Ver_4.13(85)(119)
@@ -84,19 +82,19 @@ public class DevSQM160 extends DevTTY {
 				switch(Integer.valueOf(b_value[3])) {
 				case 0:
 					unitRate.set("A/s");//Å, font problem
-					unitHigh.set("kA");
+					unitThick.set("kA");
 					break;
 				case 1:
 					unitRate.set("nm/s");
-					unitHigh.set("μm");
+					unitThick.set("μm");
 					break;
 				case 2:
 					unitRate.set("Hz");
-					unitHigh.set("Hz");
+					unitThick.set("Hz");
 					break;
 				case 3:
 					unitRate.set("ng/cm²/s");
-					unitHigh.set("μg/cm²");
+					unitThick.set("μg/cm²");
 					break;
 				}
 			}
@@ -109,7 +107,7 @@ public class DevSQM160 extends DevTTY {
 				highRange[1].set(Float.valueOf(c_value[5]));
 			}
 			shutter.set(u_value);
-			shutter.addListener((obv,v1,v2)->{
+			/*shutter.addListener((obv,v1,v2)->{
 				if(v1.booleanValue()==false && 
 					v2.booleanValue()==true
 				){
@@ -121,10 +119,12 @@ public class DevSQM160 extends DevTTY {
 					v2.booleanValue()==false
 				){
 					//shutter open change to closed
-					long diff = System.currentTimeMillis() - tick_shutter_on;
-					shutterCycle.set(Misc.tick2time(diff));					
+					shutterCycle.set(Misc.tick2time(
+						System.currentTimeMillis() - tick_shutter_on,
+						true
+					));					
 				}
-			});
+			});*/
 		});
 		nextState(STG_MONT);
 		//nextState("");
@@ -166,10 +166,10 @@ public class DevSQM160 extends DevTTY {
 		Application.invokeAndWait(()->{
 			shutter.set(u_value);
 			rate[0].set(m_value);
-			high[0].set(o_value);
+			thick[0].set(o_value);
 			for(int i=1; i<=6; i++) {
 				rate[i].set(w_value[i+(6*0-1)]);
-				high[i].set(w_value[i+(6*1-1)]);
+				thick[i].set(w_value[i+(6*1-1)]);
 				freq[i].set(w_value[i+(6*2-1)]);
 			}
 		});
@@ -180,13 +180,13 @@ public class DevSQM160 extends DevTTY {
 		playFlow(STG_INIT);
 	}
 	
-	private void parse_a_value(String res) {
+	public String[] parse_a_value(String res) {
 		a_value = new String[8];
 		for(int i=0; i<a_value.length; i++) {
 			a_value[i] = "???";
 		}
 		if(res.charAt(0)!='A') {
-			return;
+			return a_value;
 		}
 		res = res.substring(1).trim();
 		a_value[0] = res.substring(0,8);
@@ -194,6 +194,7 @@ public class DevSQM160 extends DevTTY {
 		for(int i=1; i<a_value.length; i++) {
 			a_value[i] = cols[i-1];
 		}
+		return a_value;
 	}
 		
 	private short calc_crc(short crc, int val) {
@@ -299,14 +300,12 @@ public class DevSQM160 extends DevTTY {
 			Application.invokeAndWait(()->shutter.set(true));
 		}
 		nextState(STG_MONT);
-	});}
+	});}	
 	//-------------------------//
-	private final static String DEF_DASH = "--------";
 	public final BooleanProperty shutter = new SimpleBooleanProperty(false);
-	public final StringProperty shutterCycle = new SimpleStringProperty(DEF_DASH);
-	
+
 	public final StringProperty unitRate = new SimpleStringProperty("??");
-	public final StringProperty unitHigh = new SimpleStringProperty("??");
+	public final StringProperty unitThick= new SimpleStringProperty("??");
 	
 	public final StringProperty[] filmData = {
 		new SimpleStringProperty("??"),//name
@@ -317,7 +316,6 @@ public class DevSQM160 extends DevTTY {
 		new SimpleStringProperty("??"),//thickness set-point
 		new SimpleStringProperty("??"),//time set-point
 		new SimpleStringProperty("??"),//sensor Average
-		new SimpleStringProperty("??"),
 	};
 
 	public final FloatProperty[] freqRange = {
@@ -343,7 +341,7 @@ public class DevSQM160 extends DevTTY {
 		new SimpleFloatProperty(),
 		new SimpleFloatProperty()
 	};
-	public final FloatProperty[] high= {
+	public final FloatProperty[] thick= {
 		new SimpleFloatProperty(),//average thick value
 		new SimpleFloatProperty(),
 		new SimpleFloatProperty(),
@@ -413,8 +411,8 @@ public class DevSQM160 extends DevTTY {
 		}
 		txt[0].textProperty().bind(dev.rate[0].asString("%6.3f"));
 		txt[1].textProperty().bind(dev.unitRate);
-		txt[2].textProperty().bind(dev.high[0].asString("%6.3f"));
-		txt[3].textProperty().bind(dev.unitHigh);
+		txt[2].textProperty().bind(dev.thick[0].asString("%6.3f"));
+		txt[3].textProperty().bind(dev.unitThick);
 		txt[4].textProperty().bind(dev.filmData[0]);//film name
 		txt[5].textProperty().bind(dev.filmData[1]);//film Density (g/cm3)
 		txt[6].textProperty().bind(dev.filmData[2]);//film Tooling (%)
@@ -566,10 +564,19 @@ public class DevSQM160 extends DevTTY {
 			lay.addRow(5, new Label("最終厚度："), box[5]);
 			lay.addRow(6, new Label("厚度停止點："), box[6]);
 			lay.addRow(7, new Label("時間停止點："), box[7]);
-			lay.addRow(8, new Label("偵測器開關："), box[8]);
+			lay.addRow(8, new Label("偵測器編號："), box[8]);
 			return lay;
 		}
 	};
+	
+	//call by GUI-thread
+	public void updateFilm(){
+		DialogFilm dia = new DialogFilm(a_value);
+		Optional<String[]> opt = dia.showAndWait();
+		if(opt.isPresent()==true) {
+			update_film_gui(this,opt.get());
+		}
+	}
 	
 	private static void update_film_gui(
 		final DevSQM160 dev,
@@ -619,12 +626,4 @@ public class DevSQM160 extends DevTTY {
 			});
 		}
 	});}
-	//call by GUI-thread
-	public void updateFilm(){
-		DialogFilm dia = new DialogFilm(a_value);
-		Optional<String[]> opt = dia.showAndWait();
-		if(opt.isPresent()==true) {
-			update_film_gui(this,opt.get());
-		}
-	}
 }

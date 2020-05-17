@@ -235,26 +235,67 @@ public class Misc {
 	/**
 	 * change tick(number value) to text.<p>
 	 * @param tick - unit is millisecond.
-	 * @return time-stamp text (時:分:秒)
+	 * @param usePlainText
+	 * @return stamp text (時:分:秒)
 	 */
-	public static String tick2time(final long tick){
+	public static String tick2time(final long tick, final boolean usePlainText){
 		long sec = tick / 1000L;
 		long min = sec / 60; sec = sec % 60;
 		long hour= min / 60; min = min % 60;
+		String txt = "";
 		if(hour!=0){
-			return String.format(
-				" %3d時  %2d分  %2d秒", 
-				hour, min, sec
-			);
+			if(usePlainText){
+				txt = String.format(
+					"%2d時 %2d分 %2d秒", 
+					hour, min, sec
+				);
+
+			}else{
+				txt = String.format(
+					"%2d:%2d:%2d", 
+					hour, min, sec
+				);
+			}
 		}else if(min!=0){
-			return String.format(
-				" %2d分  %2d秒",
-				min, sec
-			);
+			if(usePlainText){
+				txt = String.format("%2d分 %2d秒", min, sec);
+			}else{
+				txt = String.format("%2d:%2d", min, sec);
+			}
+		}else{
+			if(usePlainText){
+				txt = String.format("%2d秒", sec);
+			}else{
+				txt = String.format("%2d", sec);
+			}
 		}
-		return String.format(" %2d秒",sec);
+		return txt;
 	}
-	
+	public static String tick2time(final long tick){
+		return tick2time(tick,false);
+	}
+	/**
+	 * change text to millisecond.<p>
+	 * Text format is hh:mm:ss.<p>
+	 * @param time - 
+	 * @return tick, unit is millisecond
+	 */
+	public static long time2tick(final String time){
+		final long[] scale = {1L, 60L, 3600L};
+		String[] arg = time.replace("\\s", "").split(":");
+		int size = (arg.length>=3)?(3):(arg.length);
+		long tick = 0L;
+		for(int i=0; i<size; i++){
+			//remove leading zeros~~~
+			String txt = arg[i].replaceFirst("^0+(?!$)","");
+			long val = (txt.length()==0)?
+				(0L):
+				(Integer.valueOf(txt));
+			val = val * 1000L * scale[size-1-i];
+			tick += val;
+		}
+		return tick;
+	}
 	
 	/**
 	 * Un-escape a string that contains standard Java escape sequences.

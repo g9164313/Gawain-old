@@ -18,8 +18,10 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import narl.itrc.DevModbus;
 import narl.itrc.Gawain;
-import narl.itrc.LayLadder;
+import narl.itrc.Ladder;
 import narl.itrc.PanBase;
+import narl.itrc.StepReplay;
+import narl.itrc.StepSticker;
 
 public class PanMain1 extends PanBase {
 	
@@ -30,11 +32,24 @@ public class PanMain1 extends PanBase {
 
 	final LayGauges gauges = new LayGauges();
 	final LayLogger logger = new LayLogger();
-	final LayLadder ladder = new LayLadder();
+	final Ladder ladder = new Ladder();
 	
 	public PanMain1() {
 		super();
 		stage().setOnShown(e->on_shown());
+		
+		ladder.addStep("電極切換",StepGunHub.class, coup);
+		ladder.addStep("高壓控制",StepKindler.class, dcg1, sqm1);
+		ladder.addStep("薄膜監控",StepWatcher.class, dcg1, sqm1);		
+		ladder.addStep("分隔線" ,StepSticker.class);
+		ladder.addStep("迴圈次數",StepReplay.class);
+		final Object[][] bag_1 = {
+			{StepGunHub.class, coup},
+			{StepKindler.class, dcg1, sqm1},
+			{StepWatcher.class, dcg1, sqm1},
+			{StepSticker.class}
+		};
+		ladder.addStepBag("單層鍍膜", bag_1);
 	}
 	
 	private void on_shown(){
@@ -66,18 +81,12 @@ public class PanMain1 extends PanBase {
 		logger.bindProperty(
 			dcg1.volt, dcg1.amps, 
 			dcg1.watt, dcg1.joul,
-			sqm1.rate[0], sqm1.high[0]
+			sqm1.rate[0], sqm1.thick[0]
 		);
 	}
 	
 	@Override
 	public Pane eventLayout(PanBase self) {
-		
-		ladder.addCassette("時間延遲", StepDelay.class);
-		ladder.addCassette("薄膜監控", StepWatcher.class, sqm1);
-		ladder.addCassette("擋板開關", StepShutter.class, sqm1);
-		ladder.addCassette("火力控制", StepKindler.class, dcg1);
-		
 		
 		final HBox lay1 = new HBox();
 		lay1.getStyleClass().addAll("box-pad");
@@ -158,7 +167,6 @@ public class PanMain1 extends PanBase {
 		btn[3].getStyleClass().add("btn-raised-2");
 		btn[3].setText("電漿-OFF");
 		btn[3].setOnAction(e->{
-			//coup.asyncWriteBit0(8005, 0);
 			dcg1.asyncExec("OFF");
 			logger.stopRecord();
 		});
@@ -173,7 +181,7 @@ public class PanMain1 extends PanBase {
 		txt[1].textProperty().bind(sqm1.filmData[1]);
 		txt[2].textProperty().bind(sqm1.filmData[2]);
 		txt[3].textProperty().bind(sqm1.filmData[3]);
-		txt[4].textProperty().bind(sqm1.shutterCycle);
+		txt[4].textProperty().bind(sqm1.filmData[7]);
 		
 		final GridPane lay2 = new GridPane();
 		lay2.getStyleClass().addAll("box-pad-inner");
@@ -181,7 +189,7 @@ public class PanMain1 extends PanBase {
 		lay2.addRow(1, new Label("Density："), txt[1]);
 		lay2.addRow(2, new Label("Tooling："), txt[2]);
 		lay2.addRow(3, new Label("Z-Ratio："), txt[3]);		
-		lay2.addRow(4, new Label("擋板週期："), txt[4]);
+		lay2.addRow(4, new Label("感測器編號："), txt[4]);
 		lay2.setOnMouseClicked(e->sqm1.updateFilm());
 		
 		final JFXCheckBox[] rad = {

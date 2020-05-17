@@ -98,6 +98,7 @@ public class LayLogger extends VBox {
 	
 	public DevPoster poster = null;
 	
+	@SuppressWarnings("unused")
 	private void simulation(){
 		for(FloatProperty val:vals){
 			float vv = val.get();
@@ -126,7 +127,7 @@ public class LayLogger extends VBox {
 			return;
 		}
 		table.getItems().clear();
-		
+
 		final KeyFrame kfm = new KeyFrame(
 			(Duration)period.getSelectedToggle().getUserData(), 
 			e->record()

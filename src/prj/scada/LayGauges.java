@@ -106,10 +106,10 @@ public class LayGauges extends FlowPane {
 		gag[4].setMaxValue(dev.rateRange[1].doubleValue());
 		gag[4].setUnit(dev.unitRate.get());
 
-		gag[5].valueProperty().bind(dev.high[0]);
+		gag[5].valueProperty().bind(dev.thick[0]);
 		gag[5].setMinValue(dev.highRange[0].doubleValue());
 		gag[5].setMaxValue(dev.highRange[1].doubleValue());
-		gag[5].setUnit(dev.unitHigh.get());
+		gag[5].setUnit(dev.unitThick.get());
 		return this;
 	}
 	
