@@ -76,14 +76,14 @@ public class Loader extends Task<Integer> {
 		
 		LinkedList<LibFile> lst = new LinkedList<LibFile>();
 		
-		LibUtil.listAll(Gawain.pathSock,lst);
+		LibUtility.listAll(Gawain.pathSock,lst);
 		for(String key:Gawain.prop().stringPropertyNames()) {
 			if(key.matches("LIB_PATH[\\d]*")==false) {
 				continue;
 			}
 			String path = Gawain.prop().getProperty(key);
 			updateMessage("列舉: "+path);
-			LibUtil.listAll(path,lst);
+			LibUtility.listAll(path,lst);
 		}
 				
 		long barCur=0L,  barMax=lst.size();

@@ -44,7 +44,7 @@ public class DevSPIK2k extends DevTTY {
 	@Override
 	protected void afterOpen() {
 		addState("init", ()->{
-			fst_value1 = get_register( 0,8);
+			fst_value1 = get_register(0,8);
 			//fst_value2 = get_register(26,6);
 			nextState("");
 			Application.invokeAndWait(()->{
@@ -113,16 +113,17 @@ public class DevSPIK2k extends DevTTY {
 	}
 	
 	private boolean tell_3964R() {
+		long t0 = System.currentTimeMillis();
+		long dt = 0L;
 		writeByte(STX);
 		byte cc = 0;
 		do{
 			cc = readByte();
 			if(cc==DLE) {
 				return true;
-			}else if(cc!=STX) {
-				readByte();
 			}
-		}while(isLive()==true);
+			dt = System.currentTimeMillis() - t0;
+		}while(dt<5000);
 		return false;
 	}
 	
@@ -136,7 +137,7 @@ public class DevSPIK2k extends DevTTY {
 		writeByte(DLE);
 	}
 	
-	private int[] get_register(
+	public int[] get_register(
 		final int addr, 
 		final int size
 	) {
@@ -184,7 +185,7 @@ public class DevSPIK2k extends DevTTY {
 		return val;
 	}
 	
-	private boolean set_register(
+	public boolean set_register(
 		final int addr, 
 		final int... vals
 	) {

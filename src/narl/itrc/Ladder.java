@@ -1,10 +1,13 @@
 package narl.itrc;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Optional;
+import java.util.Scanner;
 
 import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXListView;
@@ -43,13 +46,13 @@ public class Ladder extends BorderPane {
 		btn[0].getStyleClass().add("btn-raised-1");
 		btn[0].setGraphic(Misc.getIconView("database-import.png"));
 		btn[0].disableProperty().bind(is_climbing);
-		btn[0].setOnAction(e->launch_task(taskImport));
+		btn[0].setOnAction(e->import_step());
 		//Export procedure
 		btn[1].setText("匯出");
 		btn[1].getStyleClass().add("btn-raised-1");
 		btn[1].setGraphic(Misc.getIconView("database-export.png"));
 		btn[1].disableProperty().bind(is_climbing);
-		btn[1].setOnAction(e->launch_task(taskOutport));
+		btn[1].setOnAction(e->export_step());
 		//Run all steps
 		btn[2].setText("執行");
 		btn[2].getStyleClass().add("btn-raised-2");
@@ -69,8 +72,8 @@ public class Ladder extends BorderPane {
 		btn[4].disableProperty().bind(is_climbing.not());
 		btn[4].setOnAction(e->abort_or_pause(true));
 				
-		steps.getStyleClass().addAll("box-pad");
-		steps.getChildren().addAll(
+		kits.getStyleClass().addAll("box-pad");
+		kits.getChildren().addAll(
 			btn[0],btn[1],
 			btn[2],btn[3],btn[4]			
 		);
@@ -80,7 +83,7 @@ public class Ladder extends BorderPane {
 		
 		final TitledPane[] lay2 = {
 			new TitledPane("操作",lay3),
-			new TitledPane("步驟",steps),
+			new TitledPane("步驟",kits),
 		};
 		final Accordion accr = new Accordion(lay2);
 		accr.setExpandedPane(lay2[0]);
@@ -91,91 +94,112 @@ public class Ladder extends BorderPane {
 	}
 	//--------------------------------//
 	
-	public Task<Integer> taskImport = null;
-	public Task<Integer> taskOutport= null;
-	
-	private void launch_task(Task<?> tsk){
-		if(tsk==null){
-			PanBase.notifyWarning("!!警告!!", "不支援此動作。");
-		}else{
-			((PanBase)getScene().getUserData()).notifyTask(tsk);
-		}
-	}
-	
 	private final JFXListView<Stepper> recipe = new JFXListView<Stepper>();
 	
-	private final VBox steps = new VBox();
+	private final VBox kits = new VBox();
+	
+	private class StepTyp {
+		String name;
+		Class<?> clzz;
+		Object[] args;
+		StepTyp(
+			String title,
+			Class<?> class_type, 
+			Object... argument
+		){
+			name = title;
+			clzz = class_type;
+			args = argument;
+		}		
+		Stepper instance(){
+			Stepper obj = null;
+			try {				
+				if(args.length==0){
+					obj = (Stepper)clzz.newInstance();
+				}else{
+					for(Constructor<?> cnst:clzz.getConstructors()){
+						if(cnst.getParameterCount()==args.length){
+							obj = (Stepper) cnst.newInstance(args);
+							break;
+						}
+					}
+				}
+				obj.items = Optional.of(recipe.getItems());
+				obj = obj.doLayout();
+				recipe.getItems().add(obj);
+				recipe.scrollTo(obj);
+			} catch (InstantiationException | IllegalAccessException e1) {
+				e1.printStackTrace();
+			} catch (IllegalArgumentException e1) {
+				e1.printStackTrace();
+			} catch (InvocationTargetException e1) {
+				e1.printStackTrace();
+			}
+			return obj;
+		}
+	};
+	private ArrayList<StepTyp> steps = new ArrayList<StepTyp>();
+	
+	private StepTyp getType(final Stepper src){
+		final Class<?> s_clzz = src.getClass();
+		for(StepTyp dst:steps){
+			if(dst.clzz==s_clzz){
+				return dst;
+			}
+		}
+		return null;
+	}
+	private StepTyp getType(final String src){
+		for(StepTyp obj:steps){
+			String dst = obj.clzz.getName();
+			if(dst.equals(src)==true){
+				return obj;
+			}
+		}
+		return null;
+	}
+	private StepTyp getType(final Class<?> src){
+		for(StepTyp obj:steps){			
+			if(src==obj.clzz){
+				return obj;
+			}
+		}
+		return null;
+	}
 	
 	public Ladder addStep(
 		final String title,
-		final Class<?> stp,
-		final Object... arg
+		final Class<?> clazz,
+		final Object... argument
 	){
+		final StepTyp obj = new StepTyp(title,clazz,argument);
+		steps.add(obj);
 		final JFXButton btn = new JFXButton(title);
 		btn.getStyleClass().add("btn-raised-3");
 		btn.setMaxWidth(Double.MAX_VALUE);
 		btn.disableProperty().bind(is_climbing);
-		btn.setOnAction(e->step_instance(stp,arg));
-		steps.getChildren().add(btn);
+		btn.setOnAction(e->obj.instance());
+		kits.getChildren().add(btn);
 		return this;
 	}
 	
-	public Ladder addStepBag(
+	public Ladder addSack(
 		final String title,
-		final Object[][] bag
+		final Class<?>... sack
 	){
 		final JFXButton btn = new JFXButton(title);
 		btn.getStyleClass().add("btn-raised-3");
 		btn.setMaxWidth(Double.MAX_VALUE);
 		btn.disableProperty().bind(is_climbing);
 		btn.setOnAction(e->{
-			for(Object[] obj:bag){
-				if(obj.length>1){					
-					step_instance(
-						(Class<?>)obj[0],
-						Arrays.copyOfRange(obj, 1, obj.length)
-					);
-				}else{
-					step_instance((Class<?>)obj[0]);
-				}
+			for(Class<?> clzz:sack){
+				getType(clzz).instance();
 			}
 		});
-		steps.getChildren().add(btn);
+		kits.getChildren().add(btn);
 		return this;
-	}
-	
-	private void step_instance(
-		final Class<?> step,
-		final Object... args
-	){
-		try {
-			Stepper obj = null;
-			if(args.length==0){
-				obj = (Stepper)step.newInstance();
-			}else{
-				for(Constructor<?> cnst:step.getConstructors()){
-					if(cnst.getParameterCount()==args.length){
-						obj = (Stepper) cnst.newInstance(args);
-						break;
-					}
-				}
-			}
-			if(obj==null){
-				Misc.logw("Invalid stepper class...");
-				return;
-			}
-			obj.items = Optional.of(recipe.getItems());
-			obj = obj.doLayout();
-			recipe.getItems().add(obj);
-			recipe.scrollTo(obj);
-		} catch (InstantiationException | IllegalAccessException e1) {
-			e1.printStackTrace();
-		} catch (IllegalArgumentException e1) {
-			e1.printStackTrace();
-		} catch (InvocationTargetException e1) {
-			e1.printStackTrace();
-		}
-	}
+	}	
+	//--------------------------------//
 	
 	public void setPrelogue(final Runnable run){
 		beg_step.work = run;
@@ -183,9 +207,80 @@ public class Ladder extends BorderPane {
 	public void setEpilogue(final Runnable run){
 		end_step.work = run;
 	}
+	
+	private void import_step(){
+		final PanBase pan = (PanBase)getScene().getUserData();
+		final File fid = pan.loadFrom();
+		if(fid==null){
+			return;
+		}
+		recipe.getItems().clear();
+		final Task<?> tsk = new Task<Integer>(){
+			@Override
+			protected Integer call() throws Exception {
+				Scanner stm = new Scanner(fid);
+				int l_id = 0;
+				while(stm.hasNextLine()==true){
+					l_id+=1;
+					String txt = stm.nextLine().replace("\r\n", "");
+					if(txt.matches(".*[>].*[@].*")==false){
+						updateMessage("無法解析的內文: L"+l_id);
+						continue;
+					}
+					final String[] arg = txt.split("[>]|[@]");
+					final StepTyp typ = getType(arg[2].trim());
+					if(typ==null){
+						Misc.loge("[Ladder] 找不到 class - %s",arg[2]);
+						continue;
+					}
+					Misc.invoke(()->typ.instance().expand(arg[1].trim()));
+					updateMessage(String.format("匯入 %s", arg[0]));
+				}
+				stm.close();
+				return 3;
+			}
+		};
+		pan.notifyTask(tsk);
+	}
+	
+	private void export_step(){
+		final PanBase pan = (PanBase)getScene().getUserData();
+		final File fid = pan.saveAs("recipe.txt");
+		if(fid==null){
+			return;
+		}
+		final Task<?> tsk = new Task<Integer>(){
+			@Override
+			protected Integer call() throws Exception {
+				ObservableList<Stepper> lst = recipe.getItems();
+				FileWriter out = new FileWriter(fid);				
+				for(int i=0; i<lst.size(); i++){
+					updateMessage(String.format(
+						"匯出中 %2d/%2d",
+						i+1, lst.size()
+					));
+					final Stepper stp = lst.get(i);
+					final StepTyp typ = getType(stp);
+					if(typ==null){
+						Misc.loge("[Ladder] 找不到 class - %s",stp.toString());
+						continue;
+					}
+					out.write(String.format(
+						"%s> %s @ %s", 
+						typ.name, 
+						stp.flatten(), 
+						typ.clzz.getName()
+					));
+					out.write("\r\n");
+				}				
+				out.close();
+				return 0;
+			}
+		};
+		pan.notifyTask(tsk);		
+	}
 	//--------------------------------//
 	
-
 	private BooleanProperty is_climbing = new SimpleBooleanProperty(false);
 	
 	private Optional<Timeline> timer = Optional.empty();

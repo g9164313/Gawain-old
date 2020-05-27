@@ -8,7 +8,7 @@ import java.util.LinkedList;
 import narl.itrc.Gawain;
 import narl.itrc.Misc;
 
-class LibUtil {
+class LibUtility {
 	
 	public static void checkProperty(final String attr){
 		

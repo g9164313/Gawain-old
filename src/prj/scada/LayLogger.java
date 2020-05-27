@@ -1,5 +1,6 @@
 package prj.scada;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -75,11 +76,11 @@ public class LayLogger extends VBox {
 		btnDump.getStyleClass().add("btn-raised-1");
 		btnDump.setMinWidth(120.);
 		btnDump.setOnAction(e->{
-			String name = Gawain.mainPanel.saveAsFile("record.xlsx");
-			if(name.length()==0) {
+			File fid = Gawain.mainPanel.saveAs("record.xlsx");
+			if(fid==null) {
 				return;
 			}
-			Gawain.mainPanel.notifyTask(dumpRecord(name));
+			Gawain.mainPanel.notifyTask(dumpRecord(fid));
 		});
 		
 		final HBox lay0 = new HBox(); 
@@ -122,7 +123,7 @@ public class LayLogger extends VBox {
 		table.scrollTo(itm);
 	}
 	
-	public void startRecord() {Misc.exec_gui(()->{
+	public void startRecord() {Misc.invoke(()->{
 		if(time.isPresent()==true) {
 			return;
 		}
@@ -141,7 +142,7 @@ public class LayLogger extends VBox {
 		starter.setSelected(true);
 	});}
 	
-	public void stopRecord() {Misc.exec_gui(()->{
+	public void stopRecord() {Misc.invoke(()->{
 		
 		if(time.isPresent()==false) {
 			return;
@@ -220,7 +221,7 @@ public class LayLogger extends VBox {
 		vals[5] = sqm1.high[0];
 	}*/
 	
-	public Task<?> dumpRecord(final String name) {
+	public Task<?> dumpRecord(final File fid) {
 		
 		return new Task<Void>() {
 			@Override
@@ -255,7 +256,7 @@ public class LayLogger extends VBox {
 				
 				try {
 					updateMessage("匯出檔案中...");
-		            workbook.write(new FileOutputStream(name));
+		            workbook.write(new FileOutputStream(fid));
 		            workbook.close();
 		        } catch (FileNotFoundException e) {
 		            e.printStackTrace();

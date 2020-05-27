@@ -41,7 +41,7 @@ public class Misc {
 	 * @param arg - pass through 'printf()'
 	 */
 	public static void loge(String fmt,Object... arg){
-		System.out.print(String.format('\23'+fmt+"\n", arg));
+		System.err.print(String.format('\23'+fmt+"\n", arg));
 	}	
 	//--------------------------//
 
@@ -507,7 +507,7 @@ public class Misc {
 	/**
 	 * a wrap for GUI-thread application.
 	 */
-	public static void exec_gui(final Runnable work) {
+	public static void invoke(final Runnable work) {
 		if(Application.isEventThread()==true) {
 			work.run();
 		}else {

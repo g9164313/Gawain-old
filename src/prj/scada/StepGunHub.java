@@ -23,7 +23,7 @@ public class StepGunHub extends Stepper {
 		set(op_1,op_2,op_3);
 	}
 	
-	private final static String init_txt = "切換電極";
+	private final static String init_txt = "電極切換";
 	private Label msg1 = new Label(init_txt);
 	private Label msg2 = new Label("");
 	
@@ -74,8 +74,8 @@ public class StepGunHub extends Stepper {
 	@Override
 	protected Node getContent(){
 
-		msg1.setPrefWidth(100);
-		msg2.setPrefWidth(100);
+		msg1.setPrefWidth(150);
+		msg2.setPrefWidth(150);
 		//default selection
 		unipolar.setSelected(true);
 		gun1.setSelected(true);
@@ -97,5 +97,55 @@ public class StepGunHub extends Stepper {
 		lay.add(gun1, 4, 1);
 		lay.add(gun2, 5, 1);
 		return lay;
+	}
+
+	private static final String TAG0 = "unipolar";
+	private static final String TAG1 = "gun-1";
+	private static final String TAG2 = "gun-2";
+	@Override
+	public String flatten() {
+		boolean[] flg = {
+			unipolar.isSelected(),
+			gun1.isSelected(),
+			gun2.isSelected()
+		};		
+		return String.format(
+			"%s:%b,  %s:%b,  %s:%b", 
+			TAG0, flg[0], 
+			TAG1, flg[1], 
+			TAG2, flg[2]
+		);
+	}
+	@Override
+	public void expand(String txt) {
+		if(txt.matches("([^:,\\s]+[:][^:,]+[,]?[\\s]*)+")==false){
+			return;
+		}
+		String[] arg = txt.split(":|,");
+		for(int i=0; i<arg.length; i+=2){
+			final String tag = arg[i+0].trim();
+			final String val = arg[i+1].trim();
+			if(tag.equals(TAG0)==true){
+				if(val.equals("true")){
+					bipolar.setSelected(false);
+					unipolar.setSelected(true);
+				}else{
+					bipolar.setSelected(true);
+					unipolar.setSelected(false);
+				}
+			}else if(tag.equals(TAG1)==true){
+				if(val.equals("true")){
+					gun1.setSelected(true);
+				}else{
+					gun1.setSelected(false);
+				}
+			}else if(tag.equals(TAG2)==true){
+				if(val.equals("true")){
+					gun2.setSelected(true);
+				}else{
+					gun2.setSelected(false);
+				}
+			}
+		}
 	}
 }

@@ -18,18 +18,18 @@ import narl.itrc.Stepper;
 
 public class StepWatcher extends Stepper {
 
-	private DevDCG100 dcg;
 	private DevSQM160 sqm;
-	
+	private DevDCG100 dcg;
+		
 	public StepWatcher(
-		final DevDCG100 dev1, 
-		final DevSQM160 dev2
+		final DevSQM160 dev1,
+		final DevDCG100 dev2 
 	){
-		dcg = dev1;
-		sqm = dev2;
+		sqm = dev1;
+		dcg = dev2;
 		set(
 			op_1, op_2, op_3, 
-			op_4, op_5, op_6, 
+			op_5, op_6, 
 			op_7, op_8
 		);
 		//StringProperty[] dat = sqm.filmData;
@@ -38,17 +38,17 @@ public class StepWatcher extends Stepper {
 		//args[2].setText(dat[3].get());
 	}
 	
-	private final static String init_txt = "監控程序";
+	private final static String init_txt = "厚度監控";
 	private Label msg1 = new Label(init_txt);
 	private Label msg2 = new Label("");
 	
 	private TextField[] args = {
 		new TextField(),//density
 		new TextField(),//tooling
-		new TextField(),//z-ratio
+		new TextField(),//z-factor
 		new TextField(),//final thickness
-		new TextField(),//thickness Setpoint
-		new TextField(),//Time Setpoint
+		new TextField(),//thickness set-point
+		new TextField(),//Time set-point
 		new TextField(),//sensor number
 	};
 	
@@ -62,7 +62,7 @@ public class StepWatcher extends Stepper {
 		final String[] vals = {
 			args[0].getText().trim(),//density
 			args[1].getText().trim(),//tooling
-			args[2].getText().trim(),//z-ratio
+			args[2].getText().trim(),//z-factor
 			args[3].getText().trim(),//final thickness
 			args[4].getText().trim(),//thickness set-point(kA)
 			args[5].getText().trim(),//time set-point (mm:ss)
@@ -93,6 +93,7 @@ public class StepWatcher extends Stepper {
 			if(sqm.exec("D1").charAt(0)!='A') {
 				result.set(ABORT);
 				Application.invokeLater(()->PanBase.notifyError("失敗", "無法使用薄膜參數!!"));
+				return;
 			}
 			result.set(NEXT);
 		});
@@ -118,15 +119,6 @@ public class StepWatcher extends Stepper {
 				Application.invokeLater(()->PanBase.notifyError("失敗", "無法開啟擋板!!"));
 			}
 		});
-	};
-	
-	final Runnable op_4 = ()->{
-		//wait shutter ready
-		msg1.setText("等待中");
-		msg2.setText(String.format(
-			"剩餘  %s",
-			Misc.tick2time(waiting(3000),true)
-		));
 	};
 	
 	final Runnable op_5 = ()->{
@@ -176,11 +168,37 @@ public class StepWatcher extends Stepper {
 		msg2.setText(Misc.tick2time(tick_end-tick_beg,true));
 	};
 	
+	
+	private void select_film(){
+		PadTouch pad = new PadTouch("薄膜編號:",'N');
+		Optional<String> opt = pad.showAndWait();
+		if(opt.isPresent()==false) {
+			return;
+		}
+		final char id = (char)(48+Integer.valueOf(opt.get()));
+		sqm.asyncBreakIn(()->{
+			String txt = sqm.exec(String.format("A%c?", id));
+			if(txt.charAt(0)=='A'){
+				//restore film data~~~
+				Application.invokeAndWait(()->{
+					String[] val = sqm.parse_a_value(txt);
+					for(int i=0; i<args.length; i++){
+						args[i].setText(val[i+1]);
+					}
+					return;
+				});
+			}else{
+				//show message~~~
+				Application.invokeAndWait(()->PanBase.notifyError("錯誤","無法讀取薄膜資料!!"));
+			}				
+		});
+	}
+	
 	@Override
 	protected Node getContent(){
 		
-		msg1.setPrefWidth(100);
-		msg2.setPrefWidth(100);
+		msg1.setPrefWidth(150);
+		msg2.setPrefWidth(150);
 		for(TextField box:args){
 			box.setMaxWidth(90);
 		}
@@ -210,32 +228,48 @@ public class StepWatcher extends Stepper {
 		return lay;
 	}
 	
-	private void select_film(){
-		PadTouch pad = new PadTouch("薄膜編號:",'N');
-		Optional<String> opt = pad.showAndWait();
-		if(opt.isPresent()==false) {
+	private static final String TAG0 = "density";
+	private static final String TAG1 = "tooling";
+	private static final String TAG2 = "z-factor";
+	private static final String TAG3 = "final-thick";
+	private static final String TAG4 = "set-thick";
+	private static final String TAG5 = "set-time";
+	private static final String TAG6 = "sensor-bit";
+	@Override
+	public String flatten() {
+		return String.format(
+			"%s:%s,  %s:%s,  %s:%s,  %s:%s,  %s:%s", 
+			TAG0, args[0].getText(),
+			TAG2, args[2].getText(),
+			TAG1, args[1].getText(),
+			TAG6, args[6].getText(),
+			TAG3, args[3].getText()
+		);
+	}
+	@Override
+	public void expand(String txt) {
+		if(txt.matches("([^:,\\s]+[:][^:,]+[,]?[\\s]*)+")==false){
 			return;
 		}
-		final char id = (char)(48+Integer.valueOf(opt.get()));
-		sqm.asyncBreakIn(()->{
-			String txt = sqm.exec(String.format("A%c?", id));
-			if(txt.charAt(0)=='A'){
-				//restore film data~~~
-				Application.invokeAndWait(()->{
-					String[] val = sqm.parse_a_value(txt);
-					for(int i=0; i<args.length; i++){
-						args[i].setText(val[i+1]);
-					}
-					return;
-				});
-			}else{
-				//show message~~~
-				Application.invokeAndWait(()->PanBase.notifyError("錯誤","無法讀取薄膜資料!!"));
-			}				
-		});
-	}
-	
-	@Override
-	protected void eventEdit(){		
+		String[] arg = txt.split(":|,");
+		for(int i=0; i<arg.length; i+=2){
+			final String tag = arg[i+0].trim();
+			final String val = arg[i+1].trim();
+			if(tag.equals(TAG0)==true){
+				args[0].setText(val);
+			}else if(tag.equals(TAG1)==true){
+				args[1].setText(val);
+			}else if(tag.equals(TAG2)==true){
+				args[2].setText(val);
+			}else if(tag.equals(TAG3)==true){
+				args[3].setText(val);
+			}else if(tag.equals(TAG4)==true){
+				args[4].setText(val);				
+			}else if(tag.equals(TAG5)==true){
+				args[5].setText(val);
+			}else if(tag.equals(TAG6)==true){
+				args[6].setText(val);
+			}
+		}
 	}
 }

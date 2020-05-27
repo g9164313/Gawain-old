@@ -13,11 +13,9 @@ import javafx.scene.layout.Priority;
 public class StepSticker extends Stepper {
 
 	public StepSticker(){
-		set(operation);
+		//set(op);
 	}
-	final Runnable operation = ()->{
-		Misc.logv("--ggyy--");
-	};
+	//final Runnable op = ()->{};
 	
 	final Label msg = new Label();
 	
@@ -41,5 +39,22 @@ public class StepSticker extends Stepper {
 		if (res.isPresent()){
 		   msg.setText(res.get());
 		}
+	}
+	
+	@Override
+	public String flatten() {
+		final String txt = msg.getText();
+		if(txt.length()==0){
+			return "";
+		}
+		return String.format("msg:%s",txt);
+	}
+	@Override
+	public void expand(String txt) {
+		if(txt.matches("([^:,\\s]+[:][^:,]+[,]?[\\s]*)+")==false){
+			return;
+		}
+		String[] arg = txt.split(":|,");
+		msg.setText(arg[1]);
 	}
 }

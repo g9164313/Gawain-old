@@ -30,7 +30,7 @@ public class StepReplay extends Stepper {
 	};
 	
 	void update_msg(){
-		msg1.setText(String.format("/%3d",index));
+		msg1.setText(String.format("%3d/",index));
 	}
 	
 	@Override
@@ -43,12 +43,12 @@ public class StepReplay extends Stepper {
 	
 	@Override
 	protected Node getContent(){
-		arg1.setPrefWidth(47);
-		arg2.setPrefWidth(47);
+		arg1.setPrefWidth(90);
+		arg2.setPrefWidth(90);
 		update_msg();
 		GridPane lay = new GridPane();
 		lay.getStyleClass().addAll("box-pad");
-		lay.addRow(0,new Label("重複次數"), new Label("："), arg1, msg1);
+		lay.addRow(0,new Label("重複次數"), new Label("："), msg1, arg1);
 		lay.addRow(1,new Label("回跳步驟"), new Label("："), arg2);
 		return lay;
 	}
@@ -62,5 +62,13 @@ public class StepReplay extends Stepper {
 		}
 		count = Integer.valueOf(opt.get());
 		update_msg();*/
+	}
+	
+	@Override
+	public String flatten() {
+		return "";
+	}
+	@Override
+	public void expand(String txt) {
 	}
 }

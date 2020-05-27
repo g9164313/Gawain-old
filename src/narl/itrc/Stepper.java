@@ -15,7 +15,7 @@ import javafx.scene.image.WritableImage;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 
-public class Stepper extends HBox {
+public abstract class Stepper extends HBox {
 	
 	public static final int PAUSE =  10001;//do we need this???
 	public static final int NEXT  =      1;//next step
@@ -123,4 +123,7 @@ public class Stepper extends HBox {
 		indicator(false);
 		result.set(HOLD);
 	}
+	
+	public abstract String flatten();
+	public abstract void expand(String txt);
 }

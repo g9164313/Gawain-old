@@ -288,24 +288,20 @@ public abstract class PanBase {
 		dia.setInitialDirectory(Gawain.dirHome);
 		return dia.showOpenMultipleDialog(stage);
 	}
-	
-	protected File chooseFile(final String title){
+
+	public File loadFrom(){
 		final FileChooser dia = new FileChooser();
-		dia.setTitle(title);
+		dia.setTitle("讀取檔案...");
 		dia.setInitialDirectory(Gawain.dirHome);
 		return dia.showOpenDialog(stage);
 	}
 	
-	public String saveAsFile(final String default_name){
+	public File saveAs(final String default_name){
 		final FileChooser dia = new FileChooser();
 		dia.setTitle("儲存成為...");
 		dia.setInitialFileName(default_name);
 		dia.setInitialDirectory(Gawain.dirHome);
-		File fs = dia.showSaveDialog(stage);
-		if(fs==null) {
-			return "";
-		}
-		return fs.getAbsolutePath();
+		return dia.showSaveDialog(stage);
 	}	
 }
 

@@ -38,18 +38,23 @@ public class PanMain1 extends PanBase {
 		super();
 		stage().setOnShown(e->on_shown());
 		
-		ladder.addStep("電極切換",StepGunHub.class, coup);
-		ladder.addStep("高壓控制",StepKindler.class, dcg1, sqm1);
-		ladder.addStep("薄膜監控",StepWatcher.class, dcg1, sqm1);		
+		//initial step-box for recipe
 		ladder.addStep("分隔線" ,StepSticker.class);
+		ladder.addStep("薄膜切換",StepSetFilm.class, sqm1);
+		ladder.addStep("電極切換",StepGunHub.class , coup);
+		ladder.addStep("高壓控制",StepKindler.class, sqm1, dcg1, spik);
+		ladder.addStep("厚度監控",StepWatcher.class, sqm1, dcg1);		
 		ladder.addStep("迴圈次數",StepReplay.class);
-		final Object[][] bag_1 = {
-			{StepGunHub.class, coup},
-			{StepKindler.class, dcg1, sqm1},
-			{StepWatcher.class, dcg1, sqm1},
-			{StepSticker.class}
-		};
-		ladder.addStepBag("單層鍍膜", bag_1);
+		ladder.addSack(
+			"<單層鍍膜>", 
+			StepSticker.class,
+			StepSetFilm.class,
+			StepGunHub.class,
+			StepKindler.class,
+			StepWatcher.class
+		);
+		ladder.setPrelogue(()->{});
+		ladder.setEpilogue(()->{});
 	}
 	
 	private void on_shown(){
