@@ -69,7 +69,7 @@ public class StepSetFilm extends Stepper {
 	};
 	
 	@Override
-	protected Node getContent(){
+	public Node getContent(){
 		update_info();
 		msg.setPrefWidth(150);		
 		HBox lay = new HBox(
@@ -80,9 +80,8 @@ public class StepSetFilm extends Stepper {
 		lay.getStyleClass().addAll("box-pad");
 		return lay;
 	}
-	
 	@Override
-	protected void eventEdit(){
+	public void eventEdit(){
 		select_idx();
 	}
 	

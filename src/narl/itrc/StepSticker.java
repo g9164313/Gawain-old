@@ -20,7 +20,7 @@ public class StepSticker extends Stepper {
 	final Label msg = new Label();
 	
 	@Override
-	protected Node getContent(){
+	public Node getContent(){
 		Separator ss1 = new Separator();
 		Separator ss2 = new Separator();
 		HBox.setHgrow(ss1, Priority.ALWAYS);
@@ -30,7 +30,7 @@ public class StepSticker extends Stepper {
 		return lay;
 	}
 	@Override
-	protected void eventEdit(){
+	public void eventEdit(){
 		TextInputDialog dia = new TextInputDialog();
 		//dia.setTitle("Text Input Dialog");
 		//dia.setHeaderText("Look, a Text Input Dialog");

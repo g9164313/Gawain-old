@@ -112,7 +112,7 @@ public class LayLogger extends VBox {
 	
 	private void record(){
 		Record itm = new Record(vals);
-		ObservableList<Record> obv = table.getItems();
+		ObservableList<Record> obv = table.getItems();		
 		if(obv.size()>=3600){
 			obv.remove(0, 1800);
 		}

@@ -6,7 +6,6 @@ import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.concurrent.TimeUnit;
 
 import com.sun.glass.ui.Application;
 
@@ -21,27 +20,27 @@ public class Misc {
 
 	/**
 	 * just show messages, it is like 'stdout'
-	 * @param fmt - pass through 'printf()' 
-	 * @param arg - pass through 'printf()'
+	 * @param fmt - pass to 'String.printf()' 
+	 * @param arg - pass to 'String.printf()' 
 	 */
 	public static void logv(String fmt,Object... arg){
-		System.out.print(String.format('\21'+fmt+"\n", arg));
+		System.out.print(String.format('\21'+fmt+"\20\r\n", arg));
 	}
 	/**
 	 * just show messages, it is like 'stdout'
-	 * @param fmt - pass through 'printf()' 
-	 * @param arg - pass through 'printf()'
+	 * @param fmt - pass to 'String.printf()' 
+	 * @param arg - pass to 'String.printf()' 
 	 */
 	public static void logw(String fmt,Object... arg){
-		System.out.print(String.format('\22'+fmt+"\n", arg));
+		System.out.print(String.format('\22'+fmt+"\20\r\n", arg));
 	}
 	/**
 	 * just show messages, it is like 'stderr'
-	 * @param fmt - pass through 'printf()' 
-	 * @param arg - pass through 'printf()'
+	 * @param fmt - pass to 'String.printf()' 
+	 * @param arg - pass to 'String.printf()' 
 	 */
 	public static void loge(String fmt,Object... arg){
-		System.err.print(String.format('\23'+fmt+"\n", arg));
+		System.out.print(String.format('\23'+fmt+"\20\r\n", arg));
 	}	
 	//--------------------------//
 
@@ -61,18 +60,6 @@ public class Misc {
 		box.getItems().add(txt);
 		box.getSelectionModel().select(cnt);
 	}*/
-	
-	/**
-	 * blocking thread, time unit is milliseconds.<p>
-	 * @param millisec - time to delay
-	 */
-	public static void delay(long millisec){
-		try {
-			TimeUnit.MILLISECONDS.sleep(millisec);
-		} catch (Exception e) {
-			//e.printStackTrace();
-		}
-	}
 
 	/**
 	 * list all files(include sub-directory).<p>

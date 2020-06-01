@@ -8,7 +8,6 @@ import com.jfoenix.controls.JFXButton;
 import javafx.collections.ObservableList;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
-import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.image.WritableImage;
@@ -26,8 +25,6 @@ public abstract class Stepper extends HBox {
 	private static final Image v_arrow = Misc.getIconImage("arrow-right.png");
 	private static final Image v_pen = Misc.getIconImage("pen.png");
 	private static final Image v_tash_can = Misc.getIconImage("trash-can.png");
-	
-	public final AtomicInteger result = new AtomicInteger(HOLD);
 		
 	private ImageView imgSign = new ImageView();
 
@@ -36,6 +33,8 @@ public abstract class Stepper extends HBox {
 	
 	public Optional<Runnable[]> works = Optional.empty();
 	public Optional<ObservableList<Stepper>> items = Optional.empty();
+	
+	protected final AtomicInteger result = new AtomicInteger(HOLD);
 	
 	public Stepper(){
 		imgSign.setImage(v_empty);
@@ -73,18 +72,7 @@ public abstract class Stepper extends HBox {
 		}
 		items.get().remove(this);
 	}
-	
-	protected Node getContent(){
-		Label txt = new Label("-DEFAULT-");
-		txt.setMaxWidth(Double.MAX_VALUE);
-		txt.getStyleClass().addAll("border");
-		return txt;
-	}
-	
-	protected void eventEdit(){
-		//let user pop a panel to edit parameter~~~
-	}
-	
+
 	protected void set(Runnable run){
 		Runnable[] tmp = {run};
 		works = Optional.of(tmp);
@@ -124,6 +112,17 @@ public abstract class Stepper extends HBox {
 		result.set(HOLD);
 	}
 	
+	
+	public abstract Node getContent();//{
+	//	Label txt = new Label("-DEFAULT-");
+	//	txt.setMaxWidth(Double.MAX_VALUE);
+	//	txt.getStyleClass().addAll("border");
+	//	return txt;
+	//}
+	
+	//let user pop a panel to edit parameter~~~
+	public abstract void eventEdit();
+
 	public abstract String flatten();
 	public abstract void expand(String txt);
 }

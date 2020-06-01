@@ -1,4 +1,4 @@
-package narl.itrc.nat;
+package narl.itrc.init;
 
 import java.io.File;
 import java.net.URL;

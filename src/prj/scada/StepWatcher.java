@@ -195,12 +195,12 @@ public class StepWatcher extends Stepper {
 	}
 	
 	@Override
-	protected Node getContent(){
+	public Node getContent(){
 		
 		msg1.setPrefWidth(150);
 		msg2.setPrefWidth(150);
 		for(TextField box:args){
-			box.setMaxWidth(90);
+			box.setMaxWidth(80);
 		}
 		
 		Button btn = new Button("選取參數");		
@@ -226,6 +226,9 @@ public class StepWatcher extends Stepper {
 		lay.add(btn, 5, 2, 1, 2);
 		
 		return lay;
+	}
+	@Override
+	public void eventEdit() {
 	}
 	
 	private static final String TAG0 = "density";

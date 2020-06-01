@@ -1,5 +1,7 @@
 package narl.itrc;
 
+import java.util.concurrent.TimeUnit;
+
 public class DevTTY extends DevBase {
 
 	public DevTTY(){
@@ -269,7 +271,12 @@ public class DevTTY extends DevBase {
 		final byte[] buf = txt.getBytes();
 		for(int i=0; i<buf.length; i++) {
 			implWrite(buf,i,1);
-			Misc.delay(millisecond);
+			try {
+				TimeUnit.MILLISECONDS.sleep(millisecond);
+			} catch (Exception e) {
+				//e.printStackTrace();
+				break;
+			}
 		}
 	}
 	//------------------------------------//

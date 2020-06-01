@@ -14,11 +14,11 @@ import narl.itrc.DevModbus;
 import narl.itrc.Misc;
 import narl.itrc.Stepper;
 
-public class StepGunHub extends Stepper {
+public class StepGunsHub extends Stepper {
 
 	private DevModbus coup;
 	
-	public StepGunHub(final DevModbus dev){
+	public StepGunsHub(final DevModbus dev){
 		coup = dev;
 		set(op_1,op_2,op_3);
 	}
@@ -72,7 +72,7 @@ public class StepGunHub extends Stepper {
 	};
 	
 	@Override
-	protected Node getContent(){
+	public Node getContent(){
 
 		msg1.setPrefWidth(150);
 		msg2.setPrefWidth(150);
@@ -98,7 +98,10 @@ public class StepGunHub extends Stepper {
 		lay.add(gun2, 5, 1);
 		return lay;
 	}
-
+	@Override
+	public void eventEdit() {
+	}
+	
 	private static final String TAG0 = "unipolar";
 	private static final String TAG1 = "gun-1";
 	private static final String TAG2 = "gun-2";

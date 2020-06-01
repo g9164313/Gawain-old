@@ -142,7 +142,7 @@ public abstract class DevBase implements Runnable {
 	 */
 	public DevBase asyncBreakIn(final Runnable work) {
 		if(task==null) {
-			work.run();
+			new Thread(work,"anonymous-breakin").start();
 			return this;
 		}
 		if(state.contains(STA_BREAK_IN)==true){

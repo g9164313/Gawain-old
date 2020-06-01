@@ -20,7 +20,6 @@ import narl.itrc.DevModbus;
 import narl.itrc.Gawain;
 import narl.itrc.Ladder;
 import narl.itrc.PanBase;
-import narl.itrc.StepReplay;
 import narl.itrc.StepSticker;
 
 public class PanMain1 extends PanBase {
@@ -39,17 +38,26 @@ public class PanMain1 extends PanBase {
 		stage().setOnShown(e->on_shown());
 		
 		//initial step-box for recipe
-		ladder.addStep("分隔線" ,StepSticker.class);
+		ladder.addStep("分隔線", StepSticker.class);
 		ladder.addStep("薄膜切換",StepSetFilm.class, sqm1);
-		ladder.addStep("電極切換",StepGunHub.class , coup);
+		ladder.addStep("電極切換",StepGunsHub.class, coup);
+		ladder.addStep("脈衝設定",StepImpulse.class, spik);
 		ladder.addStep("高壓控制",StepKindler.class, sqm1, dcg1, spik);
-		ladder.addStep("厚度監控",StepWatcher.class, sqm1, dcg1);		
-		ladder.addStep("迴圈次數",StepReplay.class);
+		ladder.addStep("厚度監控",StepWatcher.class, sqm1, dcg1);
 		ladder.addSack(
-			"<單層鍍膜>", 
+			"<單層鍍膜.4>", 
 			StepSticker.class,
 			StepSetFilm.class,
-			StepGunHub.class,
+			StepGunsHub.class,
+			StepKindler.class,
+			StepWatcher.class
+		);
+		ladder.addSack(
+			"<單層鍍膜.5>", 
+			StepSticker.class,
+			StepSetFilm.class,
+			StepGunsHub.class,
+			StepImpulse.class,
 			StepKindler.class,
 			StepWatcher.class
 		);

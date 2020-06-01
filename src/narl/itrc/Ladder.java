@@ -35,7 +35,7 @@ public class Ladder extends BorderPane {
 	
 	public Ladder(){
 		
-		final JFXButton[] btn = new JFXButton[5];
+		final JFXButton[] btn = new JFXButton[6];
 		for(int i=0; i<btn.length; i++) {
 			JFXButton obj = new JFXButton();
 			obj.setMaxWidth(Double.MAX_VALUE);
@@ -53,29 +53,35 @@ public class Ladder extends BorderPane {
 		btn[1].setGraphic(Misc.getIconView("database-export.png"));
 		btn[1].disableProperty().bind(is_climbing);
 		btn[1].setOnAction(e->export_step());
-		//Run all steps
-		btn[2].setText("執行");
-		btn[2].getStyleClass().add("btn-raised-2");
-		btn[2].setGraphic(Misc.getIconView("run.png"));
+		//clear all items
+		btn[2].setText("清除");
+		btn[2].getStyleClass().add("btn-raised-1");
+		btn[2].setGraphic(Misc.getIconView("trash-can.png"));
 		btn[2].disableProperty().bind(is_climbing);
-		btn[2].setOnAction(e->start_again());
-		//Pause the current step~~
-		btn[3].setText("暫停");
+		btn[2].setOnAction(e->recipe.getItems().clear());		
+		//Run all steps
+		btn[3].setText("執行");
 		btn[3].getStyleClass().add("btn-raised-2");
-		btn[3].setGraphic(Misc.getIconView("pause.png"));
-		btn[3].disableProperty().bind(is_climbing.not());
-		btn[3].setOnAction(e->abort_or_pause(false));
-		//Stop immediately
-		btn[4].setText("停止");
+		btn[3].setGraphic(Misc.getIconView("run.png"));
+		btn[3].disableProperty().bind(is_climbing);
+		btn[3].setOnAction(e->start_again());
+		//Pause the current step~~
+		btn[4].setText("暫停");
 		btn[4].getStyleClass().add("btn-raised-2");
-		btn[4].setGraphic(Misc.getIconView("pan_tool.png"));
+		btn[4].setGraphic(Misc.getIconView("pause.png"));
 		btn[4].disableProperty().bind(is_climbing.not());
-		btn[4].setOnAction(e->abort_or_pause(true));
+		btn[4].setOnAction(e->abort_or_pause(false));
+		//Stop immediately
+		btn[5].setText("停止");
+		btn[5].getStyleClass().add("btn-raised-2");
+		btn[5].setGraphic(Misc.getIconView("pan_tool.png"));
+		btn[5].disableProperty().bind(is_climbing.not());
+		btn[5].setOnAction(e->abort_or_pause(true));
 				
 		kits.getStyleClass().addAll("box-pad");
 		kits.getChildren().addAll(
-			btn[0],btn[1],
-			btn[2],btn[3],btn[4]			
+			btn[0],btn[1],btn[2],
+			btn[3],btn[4],btn[5]			
 		);
 		
 		final VBox lay3 = new VBox(btn);
@@ -94,9 +100,9 @@ public class Ladder extends BorderPane {
 	}
 	//--------------------------------//
 	
-	private final JFXListView<Stepper> recipe = new JFXListView<Stepper>();
+	private JFXListView<Stepper> recipe = new JFXListView<Stepper>();
 	
-	private final VBox kits = new VBox();
+	private VBox kits = new VBox();
 	
 	private class StepTyp {
 		String name;

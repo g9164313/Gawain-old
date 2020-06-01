@@ -42,7 +42,7 @@ public class StepReplay extends Stepper {
 	}
 	
 	@Override
-	protected Node getContent(){
+	public Node getContent(){
 		arg1.setPrefWidth(90);
 		arg2.setPrefWidth(90);
 		update_msg();
@@ -54,7 +54,7 @@ public class StepReplay extends Stepper {
 	}
 	
 	@Override
-	protected void eventEdit(){
+	public void eventEdit(){
 		/*PadTouch pad = new PadTouch("重複次數:",'N');
 		Optional<String> opt = pad.showAndWait();
 		if(opt.isPresent()==false) {

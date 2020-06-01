@@ -28,6 +28,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import narl.itrc.init.LogStream;
 
 public abstract class PanBase {
 	
@@ -92,6 +93,7 @@ public abstract class PanBase {
 				stage.setFullScreen(stage.fullScreenProperty().not().get());
 			}else if(cc==KeyCode.F3){
 				//show console ???
+				LogStream.getInstance().showConsole();
 			}else if(hotkey_console.match(event)==true){
 			}
 		});//capture some short-key

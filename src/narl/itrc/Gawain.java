@@ -2,7 +2,6 @@ package narl.itrc;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -10,8 +9,6 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.PrintStream;
 import java.io.RandomAccessFile;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URISyntaxException;
@@ -23,7 +20,6 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Properties;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.jar.JarFile;
 
@@ -34,14 +30,14 @@ import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+import narl.itrc.init.Loader;
+import narl.itrc.init.LogStream;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.SecretKeySpec;
-
-import narl.itrc.nat.Loader;
 
 public class Gawain extends Application {
 	
@@ -142,100 +138,6 @@ public class Gawain extends Application {
 	}
 	//--------------------------------------------//
 	
-	public static class LogText {
-		public long tick;
-		public char type = 0;		
-		public String text = "";
-		public LogText(String txt){
-			tick = System.currentTimeMillis();
-			if(txt.length()==0){
-				return;
-			}
-			type = txt.charAt(0);
-			if(type==17 || type==18 || type==19){
-				text = txt.substring(1);
-			}
-		}
-		@Override
-		public String toString(){
-			return String.format(
-				"[%tH:%tM:%tS.%tL]  %s",
-				tick,tick,tick,tick, text
-			);
-		}		
-	};
-	
-	private static FileWriter logFile = null;
-	
-	private static int MAX_LOG_SIZE = 500;
-	
-	public static final ArrayBlockingQueue<LogText> logQueue = new ArrayBlockingQueue<>(MAX_LOG_SIZE);
-		
-	private static class PipeStream extends OutputStream {
-		private ByteArrayOutputStream buf = new ByteArrayOutputStream();
-		private PrintStream tmp = new PrintStream(buf);
-		public PrintStream out;
-		public PipeStream(PrintStream stm){
-			out = stm;
-		}
-		@Override
-		public void write(int b) throws IOException {
-			tmp.write(b); 
-			out.write(b);		
-			if(b=='\n'){
-				try {
-					if(logQueue.size()>=MAX_LOG_SIZE){
-						logQueue.poll();
-					}
-					LogText msg = new LogText(buf.toString());					
-					logQueue.put(msg);
-					if(logFile!=null){
-						logFile.write(msg.toString());
-					}
-				} catch (InterruptedException e) {
-					//how to show message???
-				}
-				buf.reset();
-			}
-		}
-		@Override
-		public void flush() throws IOException {
-			buf.flush();
-			out.flush();
-			if(logFile!=null){ logFile.flush(); }
-		}
-		@Override
-		public void close() throws IOException {
-			buf.close();
-			out.close();			
-			try {
-				if(logFile!=null){ 
-					logFile.close();
-				}
-			} catch (IOException e) {
-				//how to show message???
-			} finally{
-				logFile = null;
-			}
-		}
-	};
-
-	private static void pipe_stdio(){
-		//Check whether we need logger file.
-		try {
-			String name = propCache.getProperty("logger","");
-			if(name.length()!=0){
-				logFile = new FileWriter("logger.txt",true);
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-			logFile = null;
-		}
-		System.setOut(new PrintStream(new PipeStream(System.out)));
-		System.setErr(new PrintStream(new PipeStream(System.err)));
-	}
-	//--------------------------------------------//
-
 	private static void liceWrite(byte[] dat){
 		if(jarName.length()==0){
 			return;//no!!! we don't have a jar file~~
@@ -419,7 +321,8 @@ public class Gawain extends Application {
 				//.newInstance(stg);
 			mainPanel.initLayout();
 			mainPanel.appear();
-			Misc.logv("Startup: %dms",System.currentTimeMillis()-tick);
+			tick = System.currentTimeMillis()-tick;			
+			Misc.logv("啟動時間: %dms",tick);
 		} catch (
 			InstantiationException | 
 			IllegalAccessException | 
@@ -431,6 +334,7 @@ public class Gawain extends Application {
 		) {
 			e.printStackTrace();
 			Misc.loge("啟動類別失敗");
+			mainPanel = LogStream.getInstance().showConsole();
 		}
 	}
 	
@@ -440,11 +344,12 @@ public class Gawain extends Application {
 	}
 	
 	public static void main(String[] argv) {
+		LogStream.getInstance();
 		propPrepare();
-		pipe_stdio();
 		//liceBind();//check dark license~~~
 		launch(argv);
 		propRestore();
+		LogStream.getInstance().close();
 	}
 	//--------------------------------------------//
 	//In this section, we initialize all global variables~~
