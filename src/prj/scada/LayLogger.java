@@ -51,12 +51,12 @@ public class LayLogger extends VBox {
 		
 		final JFXRadioButton[] rad = {
 			new JFXRadioButton(" 1 秒"),
+			new JFXRadioButton(" 5 秒"),
 			new JFXRadioButton("10 秒"),
-			new JFXRadioButton("30 秒"),
 		};
 		rad[0].setUserData(Duration.seconds(1.));
-		rad[1].setUserData(Duration.seconds(10.));
-		rad[2].setUserData(Duration.seconds(30.));
+		rad[1].setUserData(Duration.seconds(5.));
+		rad[2].setUserData(Duration.seconds(10.));
 		for(int i=0; i<rad.length; i++) {
 			rad[i].setToggleGroup(period);
 		}
@@ -97,7 +97,7 @@ public class LayLogger extends VBox {
 		getChildren().addAll(table,lay0);
 	}
 	
-	public DevPoster poster = null;
+	//public DevPoster poster = null;
 	
 	@SuppressWarnings("unused")
 	private void simulation(){
@@ -115,9 +115,6 @@ public class LayLogger extends VBox {
 		ObservableList<Record> obv = table.getItems();		
 		if(obv.size()>=3600){
 			obv.remove(0, 1800);
-		}
-		if(poster!=null){
-			poster.queue.offer(itm.toJSON());
 		}
 		obv.add(itm);
 		table.scrollTo(itm);
@@ -137,7 +134,6 @@ public class LayLogger extends VBox {
 		obj.setCycleCount(Animation.INDEFINITE);
 		obj.play();
 		time = Optional.of(obj);
-		//time.getKeyFrames().get(0).getOnFinished().handle(null);
 
 		starter.setSelected(true);
 	});}
@@ -181,7 +177,7 @@ public class LayLogger extends VBox {
 		col5.prefWidthProperty().bind(col_w);
 		col6.prefWidthProperty().bind(col_w);
 		
-		final TableColumn<Record,String> colA = new TableColumn<>("總輸出");		
+		final TableColumn<Record,String> colA = new TableColumn<>("輸出");		
 		final TableColumn<Record,String> colB = new TableColumn<>("薄膜");
 		colA.getColumns().addAll(col1,col2,col3);
 		colB.getColumns().addAll(col5,col6);
@@ -197,29 +193,6 @@ public class LayLogger extends VBox {
 	public void bindProperty(final FloatProperty... values) {
 		vals = values;
 	}	
-	/*public void bindProperty(
-		final DevModbus coup,
-		final DevSQM160 sqm1
-	) {
-		vals = new FloatProperty[6];
-		vals[0] = new SimpleFloatProperty();
-		vals[1] = new SimpleFloatProperty();
-		vals[2] = new SimpleFloatProperty();
-		vals[3] = new SimpleFloatProperty();
-
-		IntegerProperty prop;
-		prop = coup.register(8001);
-		if(prop!=null) {
-			vals[0].bind(prop.multiply(0.20f));
-		}
-		prop = coup.register(8002);
-		if(prop!=null) {
-			vals[2].bind(prop.multiply(1.06f));
-		}
-		vals[1].bind(vals[2].divide(vals[0].add(Float.MIN_VALUE)));
-		vals[4] = sqm1.rate[0];
-		vals[5] = sqm1.high[0];
-	}*/
 	
 	public Task<?> dumpRecord(final File fid) {
 		
@@ -253,7 +226,6 @@ public class LayLogger extends VBox {
 					row.createCell(5).setCellValue(itm.getValue(5));
 					row.createCell(6).setCellValue(itm.getValue(6));
 				}
-				
 				try {
 					updateMessage("匯出檔案中...");
 		            workbook.write(new FileOutputStream(fid));

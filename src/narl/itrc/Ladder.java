@@ -34,7 +34,7 @@ import javafx.util.Duration;
 public class Ladder extends BorderPane {
 	
 	public Ladder(){
-		
+
 		final JFXButton[] btn = new JFXButton[6];
 		for(int i=0; i<btn.length; i++) {
 			JFXButton obj = new JFXButton();
@@ -77,19 +77,15 @@ public class Ladder extends BorderPane {
 		btn[5].setGraphic(Misc.getIconView("pan_tool.png"));
 		btn[5].disableProperty().bind(is_climbing.not());
 		btn[5].setOnAction(e->abort_or_pause(true));
-				
-		kits.getStyleClass().addAll("box-pad");
-		kits.getChildren().addAll(
-			btn[0],btn[1],btn[2],
-			btn[3],btn[4],btn[5]			
-		);
 		
-		final VBox lay3 = new VBox(btn);
-		lay3.getStyleClass().addAll("box-pad");
+		main_kits.getStyleClass().addAll("box-pad");
+		main_kits.getChildren().addAll(btn);
+		
+		step_kits.getStyleClass().addAll("box-pad");
 		
 		final TitledPane[] lay2 = {
-			new TitledPane("操作",lay3),
-			new TitledPane("步驟",kits),
+			new TitledPane("操作",main_kits),
+			new TitledPane("步驟",step_kits),
 		};
 		final Accordion accr = new Accordion(lay2);
 		accr.setExpandedPane(lay2[0]);
@@ -100,15 +96,20 @@ public class Ladder extends BorderPane {
 	}
 	//--------------------------------//
 	
-	private JFXListView<Stepper> recipe = new JFXListView<Stepper>();
+	protected VBox main_kits = new VBox();
+	protected VBox step_kits = new VBox();	
+	protected JFXListView<Stepper> recipe = new JFXListView<Stepper>();
 	
-	private VBox kits = new VBox();
-	
-	private class StepTyp {
+	/**
+	 * the container of stepper.<p>
+	 * @author qq
+	 *
+	 */
+	private class StepPack {
 		String name;
 		Class<?> clzz;
 		Object[] args;
-		StepTyp(
+		StepPack(
 			String title,
 			Class<?> class_type, 
 			Object... argument
@@ -144,19 +145,19 @@ public class Ladder extends BorderPane {
 			return obj;
 		}
 	};
-	private ArrayList<StepTyp> steps = new ArrayList<StepTyp>();
+	private ArrayList<StepPack> steps = new ArrayList<StepPack>();
 	
-	private StepTyp getType(final Stepper src){
+	private StepPack getPack(final Stepper src){
 		final Class<?> s_clzz = src.getClass();
-		for(StepTyp dst:steps){
+		for(StepPack dst:steps){
 			if(dst.clzz==s_clzz){
 				return dst;
 			}
 		}
 		return null;
 	}
-	private StepTyp getType(final String src){
-		for(StepTyp obj:steps){
+	private StepPack getPack(final String src){
+		for(StepPack obj:steps){
 			String dst = obj.clzz.getName();
 			if(dst.equals(src)==true){
 				return obj;
@@ -164,13 +165,16 @@ public class Ladder extends BorderPane {
 		}
 		return null;
 	}
-	private StepTyp getType(final Class<?> src){
-		for(StepTyp obj:steps){			
+	private StepPack getPack(final Class<?> src){
+		for(StepPack obj:steps){			
 			if(src==obj.clzz){
 				return obj;
 			}
 		}
 		return null;
+	}
+	public Stepper genStep(final Class<?> clzz){
+		return getPack(clzz).instance();		
 	}
 	
 	public Ladder addStep(
@@ -178,17 +182,16 @@ public class Ladder extends BorderPane {
 		final Class<?> clazz,
 		final Object... argument
 	){
-		final StepTyp obj = new StepTyp(title,clazz,argument);
+		final StepPack obj = new StepPack(title,clazz,argument);
 		steps.add(obj);
 		final JFXButton btn = new JFXButton(title);
 		btn.getStyleClass().add("btn-raised-3");
 		btn.setMaxWidth(Double.MAX_VALUE);
 		btn.disableProperty().bind(is_climbing);
 		btn.setOnAction(e->obj.instance());
-		kits.getChildren().add(btn);
+		step_kits.getChildren().add(btn);
 		return this;
 	}
-	
 	public Ladder addSack(
 		final String title,
 		final Class<?>... sack
@@ -199,10 +202,10 @@ public class Ladder extends BorderPane {
 		btn.disableProperty().bind(is_climbing);
 		btn.setOnAction(e->{
 			for(Class<?> clzz:sack){
-				getType(clzz).instance();
+				getPack(clzz).instance();
 			}
 		});
-		kits.getChildren().add(btn);
+		step_kits.getChildren().add(btn);
 		return this;
 	}	
 	//--------------------------------//
@@ -214,8 +217,9 @@ public class Ladder extends BorderPane {
 		end_step.work = run;
 	}
 	
-	private void import_step(){
-		final PanBase pan = (PanBase)getScene().getUserData();
+		
+	protected void import_step(){
+		final PanBase pan = PanBase.self(this);
 		final File fid = pan.loadFrom();
 		if(fid==null){
 			return;
@@ -234,7 +238,7 @@ public class Ladder extends BorderPane {
 						continue;
 					}
 					final String[] arg = txt.split("[>]|[@]");
-					final StepTyp typ = getType(arg[2].trim());
+					final StepPack typ = getPack(arg[2].trim());
 					if(typ==null){
 						Misc.loge("[Ladder] 找不到 class - %s",arg[2]);
 						continue;
@@ -249,8 +253,8 @@ public class Ladder extends BorderPane {
 		pan.notifyTask(tsk);
 	}
 	
-	private void export_step(){
-		final PanBase pan = (PanBase)getScene().getUserData();
+	protected void export_step(){
+		final PanBase pan = PanBase.self(this);
 		final File fid = pan.saveAs("recipe.txt");
 		if(fid==null){
 			return;
@@ -266,7 +270,7 @@ public class Ladder extends BorderPane {
 						i+1, lst.size()
 					));
 					final Stepper stp = lst.get(i);
-					final StepTyp typ = getType(stp);
+					final StepPack typ = getPack(stp);
 					if(typ==null){
 						Misc.loge("[Ladder] 找不到 class - %s",stp.toString());
 						continue;

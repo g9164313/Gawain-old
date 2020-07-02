@@ -45,18 +45,21 @@ public abstract class DevBase implements Runnable {
 	public void run() {
 		//main looper
 		do {
+			if(isExist.get()==true){
+				break;
+			}
 			//go through state-flow
 			String name = get_next_state_name();
 			if(name.length()==0) {
 				//if name is empty, it means idle....
-				synchronized(task) {
+				synchronized(taskFlow) {
 					try {
-						task.wait();
+						taskFlow.wait();
 					} catch (InterruptedException e) {
 					}
 				}
 				continue;
-			}				
+			}
 			Runnable work = state.get(name);
 			if(work==null) {
 				Misc.loge("[%s] invalid state - %s", TAG,name);
@@ -79,17 +82,18 @@ public abstract class DevBase implements Runnable {
 					}
 				}
 			}
-		}while(Gawain.isExit()==false && isExist.get()==false);
+		}while(Gawain.isExist.get()==false);
+		//Misc.logv("%s --> close", TAG);
 		close();
 	}
 
-	private Thread task = null;
+	private Thread taskFlow = null;
 	
 	public boolean isFlowing() {
-		if(task==null){
+		if(taskFlow==null){
 			return false;
 		}
-		return task.isAlive();
+		return taskFlow.isAlive();
 	}
 	
 	public boolean isBreaking(){
@@ -105,44 +109,46 @@ public abstract class DevBase implements Runnable {
 	}
 	
 	public void playFlow(final String init_state) {
-		if(task!=null) {
+		if(taskFlow!=null) {
 			return;
 		}
 		next_state_name.set(init_state);
 		isExist.set(false);
-		task = new Thread(this,TAG);
-		task.setDaemon(true);
-		task.start();
+		taskFlow = new Thread(this,TAG);
+		taskFlow.setDaemon(true);
+		taskFlow.start();
 	}
 	
 	public void stopFlow() {
 		isExist.set(true);
 		try {
-			task.join();
-			task = null;//reset this flag~~~
+			taskFlow.join();
+			taskFlow = null;//reset this flag~~~
 		} catch (InterruptedException e) {
 		}
 	}
 	
 	public void nextState(final String name) {
 		next_state_name.set(name);
-		if(task.getState()==Thread.State.WAITING) {
-			synchronized(task) {
-				task.notify();
+		if(taskFlow.getState()==Thread.State.WAITING) {
+			synchronized(taskFlow) {
+				taskFlow.notify();
 			}
-		}else if(task.getState()==Thread.State.TIMED_WAITING) {
-			task.interrupt();
+		}else if(taskFlow.getState()==Thread.State.TIMED_WAITING) {
+			taskFlow.interrupt();
 		}
 	}
 	
+	private Thread orph_break_in = null;//independent break-in task
 	/**
 	 * Caller won't be blocked.
 	 * @param work - runnable code
 	 * @return self
 	 */
 	public DevBase asyncBreakIn(final Runnable work) {
-		if(task==null) {
-			new Thread(work,"anonymous-breakin").start();
+		if(taskFlow==null) {
+			orph_break_in = new Thread(work,TAG+"-breakin");
+			orph_break_in.start();
 			return this;
 		}
 		if(state.contains(STA_BREAK_IN)==true){
@@ -152,6 +158,15 @@ public abstract class DevBase implements Runnable {
 		nextState(STA_BREAK_IN);
 		return this;
 	}
+	public boolean isAsyncDone(){
+		if(orph_break_in!=null){
+			return !orph_break_in.isAlive();
+		}
+		if(taskFlow!=null){
+			return state.contains(STA_BREAK_IN);
+		}
+		return true;
+	}
 	
 	/**
 	 * Device will wait for caller.
@@ -159,7 +174,7 @@ public abstract class DevBase implements Runnable {
 	 * @return self
 	 */
 	public DevBase syncBreakIn(final Runnable work) {
-		if(task==null) {
+		if(taskFlow==null) {
 			work.run();
 			return this;
 		}
@@ -175,7 +190,7 @@ public abstract class DevBase implements Runnable {
 				Thread.sleep(1);
 			} catch (InterruptedException e) {
 			}
-		}while(task.getState()!=Thread.State.WAITING);
+		}while(taskFlow.getState()!=Thread.State.WAITING);
 	}
 }
 

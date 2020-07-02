@@ -8,8 +8,11 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXToggleButton;
 
 import javafx.animation.Animation;
@@ -31,7 +34,11 @@ public class LogStream {
 
 	private static final SimpleDateFormat F_STAMP = new SimpleDateFormat("MM/dd  HH:mm:ss.SSS");
 	
-	public static class Mesg {		
+	public interface Hooker {
+		void callback(long tick, char level, String text);
+	};
+	
+	public class Mesg {		
 		final Timestamp stm;
 		final char tkn;
 		final ByteArrayOutputStream txt = new ByteArrayOutputStream();	
@@ -52,7 +59,7 @@ public class LogStream {
 		}
 	};
 	
-	class Pipe extends OutputStream {
+	private class Pipe extends OutputStream {
 		Optional<Mesg> box = Optional.empty();
 		FileOutputStream fid;
 		PrintStream p_in;
@@ -78,7 +85,7 @@ public class LogStream {
 		public void write(int b) throws IOException {
 			switch(b){
 			case 020://end of log message
-				bundle_message(box.get());
+				commit(box.get());
 				box = Optional.empty();
 				break;
 			case 021://verbose message token
@@ -139,7 +146,30 @@ public class LogStream {
 	
 	private ObservableList<Mesg> logger = FXCollections.observableArrayList();
 	
-	private void bundle_message(final Mesg msg){
+	private AtomicBoolean usePool = new AtomicBoolean(false);
+	private ArrayList<Mesg> pooler = null;
+	private AtomicBoolean useHook = new AtomicBoolean(false);
+	private Hooker hooker = null;
+	
+	public void setPool(){
+		pooler = new ArrayList<Mesg>();
+		usePool.set(true);
+	}
+	public ArrayList<Mesg> getPool(){
+		usePool.set(false);
+		return pooler;
+	}
+	public void setHook(final Hooker event){
+		if(event==null){
+			hooker = null;
+			useHook.set(false);
+		}else{
+			hooker = event;
+			useHook.set(true);
+		}
+	}
+	
+	private synchronized void commit(final Mesg msg){
 		//upload message~~~
 		//1.logger always need it
 		if(logger.size()>=200){
@@ -148,8 +178,17 @@ public class LogStream {
 			logger.add(msg);
 		}
 		//2.Should we put it in pool?
-		
-		//reset for next turn~~~~
+		if(usePool.get()==true){
+			pooler.add(msg);
+		}
+		//3.check hooker
+		if(useHook.get()==true){
+			hooker.callback(
+				msg.getTick(), 
+				msg.tkn, 
+				msg.getText()
+			);
+		}
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -176,31 +215,34 @@ public class LogStream {
 		));
 		timer.setCycleCount(Animation.INDEFINITE);
 		
-
-		final JFXToggleButton btnAutoScroll = new JFXToggleButton();
-		btnAutoScroll.setSelected(true);
-		btnAutoScroll.setOnAction(e->{
-			if(btnAutoScroll.isSelected()==true){
+		final JFXToggleButton btnScroll = new JFXToggleButton();
+		btnScroll.setSelected(true);
+		btnScroll.setOnAction(e->{
+			if(btnScroll.isSelected()==true){
 				timer.play();
 			}else{
 				timer.pause();
 			}
 		});
-		btnAutoScroll.getOnAction().handle(null);
+		btnScroll.getOnAction().handle(null);
 		
-		//JFXButton btn2 = new JFXButton("test");
-		//btn2.getStyleClass().add("btn-raised-1");
-		//btn2.setOnAction(e->{
-		//	Misc.logv("test-1");
-		//});
+		final JFXButton btnClear = new JFXButton("清除");
+		btnClear.getStyleClass().add("btn-raised-1");
+		btnClear.setMaxWidth(Double.MAX_VALUE);
+		btnClear.setOnAction(e->tbl.getItems().clear());
+				
+		final JFXButton btnSave = new JFXButton("保存");
+		btnSave.getStyleClass().add("btn-raised-1");
+		btnSave.setMaxWidth(Double.MAX_VALUE);
 		
-		VBox lay1 = new VBox();
-		lay1.getStyleClass().addAll("box-pad");
-		lay1.getChildren().addAll(
-			btnAutoScroll
+		final VBox lay1 = new VBox(
+			btnScroll,
+			btnClear,
+			btnSave	
 		);
+		lay1.getStyleClass().addAll("box-pad");
 		
-		BorderPane lay0 = new BorderPane();
+		final BorderPane lay0 = new BorderPane();
 		lay0.setCenter(tbl);
 		lay0.setLeft(lay1);
 		

@@ -19,16 +19,14 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
-import narl.itrc.init.LogStream;
 
 public abstract class PanBase {
 	
@@ -65,6 +63,11 @@ public abstract class PanBase {
 	//txt.setAlignment(Pos.CENTER);
 	//face1 = txt;
 	
+	/**
+	 * special short-key for popping stdio panel.
+	 */
+	//private static KeyCombination hotkey_console = KeyCombination.keyCombination("Ctrl+Alt+C");
+
 	public void initLayout() {
 		final Pane face = eventLayout(this);
 		StackPane.setAlignment(face, Pos.BOTTOM_LEFT);
@@ -80,7 +83,7 @@ public abstract class PanBase {
 		scene.setUserData(this);//keep self-pointer
 		scene.setFill(Color.WHITE);
 		scene.getStylesheets().add(Gawain.sheet);//load a default style...		
-		scene.setOnKeyPressed(event->{
+		/*scene.setOnKeyPressed(event->{
 			KeyCode cc = event.getCode();
 			if(cc==KeyCode.F1){
 				if(Gawain.mainPanel.equals(PanBase.this)==true){
@@ -96,7 +99,7 @@ public abstract class PanBase {
 				LogStream.getInstance().showConsole();
 			}else if(hotkey_console.match(event)==true){
 			}
-		});//capture some short-key
+		});*///capture some short-key
 	}
 	
 	private void prepare(){
@@ -140,12 +143,7 @@ public abstract class PanBase {
 	 * @return
 	 */
 	public abstract Pane eventLayout(PanBase self);
-	//----------------------------------------------//
-	
-	/**
-	 * special short-key for popping stdio panel.
-	 */
-	private static KeyCombination hotkey_console = KeyCombination.keyCombination("Ctrl+Alt+C");
+
 	//----------------------------------------------//
 		
 	public static class Spinner extends JFXDialog {
@@ -193,6 +191,7 @@ public abstract class PanBase {
 	 * @param task - a working thread.<p>
 	 */
 	public void notifyTask(
+		final String name,
 		final Task<?> task
 	) {
 		Spinner dlg = new Spinner();
@@ -206,9 +205,16 @@ public abstract class PanBase {
 			dlg.close();
 		});
 		task.setOnCancelled(e->dlg.close());
-		dlg.setOnDialogOpened(e->new Thread(task).start());
+		dlg.setOnDialogOpened(e->{
+			new Thread(task,name).start();
+		});
 		dlg.setOnDialogClosed(e->task.cancel());
 		dlg.show((StackPane)root());
+	}
+	public void notifyTask(
+		final Task<?> task
+	) {
+		notifyTask("--task--",task);
 	}
 	//----------------------------------------------//
 	
@@ -304,6 +310,21 @@ public abstract class PanBase {
 		dia.setInitialFileName(default_name);
 		dia.setInitialDirectory(Gawain.dirHome);
 		return dia.showSaveDialog(stage);
-	}	
+	}
+	//----------------------------------------------//
+	
+	public static Node border(
+		final String title,
+		final Node obj
+	){
+		Label txt = new Label(title);
+		txt.getStyleClass().add("font-size7");
+		
+		obj.getStyleClass().add("box-border");
+		
+		VBox lay = new VBox(txt,obj);
+		lay.getStyleClass().add("box-pad-group");		
+		return lay;
+	}
 }
 

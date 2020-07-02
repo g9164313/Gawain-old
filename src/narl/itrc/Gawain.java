@@ -298,14 +298,11 @@ public class Gawain extends Application {
 	}
 	//--------------------------------------------//
 	
-	private static final AtomicBoolean flagExit = new AtomicBoolean(false);
+	public static final AtomicBoolean isExist = new AtomicBoolean(false);
 	
-	public static boolean isExit() {
-		return flagExit.get();
-	}
 	@Override
 	public void stop() throws Exception {
-		flagExit.set(true);
+		isExist.set(true);
 	}
 	
 	public static PanBase mainPanel = null;
@@ -333,7 +330,7 @@ public class Gawain extends Application {
 			ClassNotFoundException e
 		) {
 			e.printStackTrace();
-			Misc.loge("啟動類別失敗");
+			Misc.loge("啟動失敗!!");
 			mainPanel = LogStream.getInstance().showConsole();
 		}
 	}
@@ -349,6 +346,15 @@ public class Gawain extends Application {
 		//liceBind();//check dark license~~~
 		launch(argv);
 		propRestore();
+		if(jarName.length()!=0){
+			//we are jar file, it is a release version.
+			try {
+				//let daemon thread have chance to escape its loop.<p>
+				Misc.logv("waiting to shutdown...");
+				Thread.sleep(3000);
+			}catch(InterruptedException e) { 
+			}
+		}
 		LogStream.getInstance().close();
 	}
 	//--------------------------------------------//
@@ -366,9 +372,9 @@ public class Gawain extends Application {
 	public static final String pathHome;//User home directory.
 	public static final String pathSock;//Data or setting directory.
 		
-	public static final File dirRoot;
-	public static final File dirHome;
-	public static final File dirSock;
+	public static final File dirRoot;//Working directory.
+	public static final File dirHome;//User home directory.
+	public static final File dirSock;//Data or setting directory.
 	
 	static {
 		

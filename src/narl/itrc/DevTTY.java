@@ -83,7 +83,7 @@ public class DevTTY extends DevBase {
 		if(attr[1].matches("^\\d+$")==false) {
 			return;
 		}
-		if(attr[2].matches("^[78][noems][12]")==false) {
+		if(attr[2].matches("^[5678][noems][12]")==false) {
 			return;
 		}
 		char[] vals = attr[2].toCharArray();
@@ -99,9 +99,9 @@ public class DevTTY extends DevBase {
 	 * close tty device.<p>
 	 */
 	@Override
-	public void close() {
+	public void close() {		
+		beforeClose();
 		implClose();
-		afterClose();
 		stopFlow();
 	}
 	@Override
@@ -113,7 +113,7 @@ public class DevTTY extends DevBase {
 	}
 	
 	protected void afterOpen() {}
-	protected void afterClose() {}	
+	protected void beforeClose() {}	
 	//-----------------------//
 
 	/**
@@ -162,15 +162,13 @@ public class DevTTY extends DevBase {
 	
 	/**
 	 * block-reading, thread will be trapped in this function.<p>
-	 * In win7, it will stop after 5 second.<p>
-	 * In unix, forever???
-	 * @return
+	 * @return - got text from TTY. 
 	 */
 	public String readTxt() {
 		return readTxt(500);
 	}
 	
-	private static final int TXT_BUF_SIZE = 64;
+	private static final int TXT_BUF_SIZE = 256;
 	
 	/**
 	 * block-reading, and try to read until TTY timeout.<p>
@@ -203,11 +201,12 @@ public class DevTTY extends DevBase {
 		String txt = "";
 		do {
 			int cnt = implRead(buf,0,-1);
-			if(cnt>0) {
-				txt = txt + new String(buf,0,cnt);
-				if(txt.matches(regx)==true) {
-					break;
-				}
+			if(cnt<=0){				
+				continue;//TTY timeout!!!
+			}
+			txt = txt + new String(buf,0,cnt);
+			if(txt.matches(regx)==true) {
+				break;
 			}
 		}while(isLive()==true);
 		return txt;

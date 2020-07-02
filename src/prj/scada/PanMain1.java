@@ -21,10 +21,11 @@ import narl.itrc.Gawain;
 import narl.itrc.Ladder;
 import narl.itrc.PanBase;
 import narl.itrc.StepSticker;
+import narl.itrc.init.LogStream;
 
 public class PanMain1 extends PanBase {
 	
-	final DevModbus coup = new DevModbus().mapRegister("h8000-8004");
+	final DevModbus coup = new DevModbus().mapAddress("h8000-8004");
 	final DevDCG100 dcg1 = new DevDCG100();	
 	final DevSPIK2k spik = new DevSPIK2k();
 	final DevSQM160 sqm1 = new DevSQM160();
@@ -35,34 +36,8 @@ public class PanMain1 extends PanBase {
 	
 	public PanMain1() {
 		super();
+		init();
 		stage().setOnShown(e->on_shown());
-		
-		//initial step-box for recipe
-		ladder.addStep("分隔線", StepSticker.class);
-		ladder.addStep("薄膜切換",StepSetFilm.class, sqm1);
-		ladder.addStep("電極切換",StepGunsHub.class, coup);
-		ladder.addStep("脈衝設定",StepImpulse.class, spik);
-		ladder.addStep("高壓控制",StepKindler.class, sqm1, dcg1, spik);
-		ladder.addStep("厚度監控",StepWatcher.class, sqm1, dcg1);
-		ladder.addSack(
-			"<單層鍍膜.4>", 
-			StepSticker.class,
-			StepSetFilm.class,
-			StepGunsHub.class,
-			StepKindler.class,
-			StepWatcher.class
-		);
-		ladder.addSack(
-			"<單層鍍膜.5>", 
-			StepSticker.class,
-			StepSetFilm.class,
-			StepGunsHub.class,
-			StepImpulse.class,
-			StepKindler.class,
-			StepWatcher.class
-		);
-		ladder.setPrelogue(()->{});
-		ladder.setEpilogue(()->{});
 	}
 	
 	private void on_shown(){
@@ -86,16 +61,40 @@ public class PanMain1 extends PanBase {
 			gauges.bindProperty(sqm1);
 			sqm1.open(arg);
 		}
-		arg = Gawain.prop().getProperty("http_poster", "");
-		if(arg.length()>0) {
-			logger.poster = new DevPoster(arg);
-			logger.poster.open();
-		}
 		logger.bindProperty(
 			dcg1.volt, dcg1.amps, 
 			dcg1.watt, dcg1.joul,
 			sqm1.rate[0], sqm1.thick[0]
 		);
+	}
+	
+	private void init(){
+		//initial step-box for recipe
+		ladder.addStep("分隔線", StepSticker.class);
+		ladder.addStep("薄膜選取",StepSetFilm.class, sqm1);
+		ladder.addStep("電極切換",StepGunsHub.class, coup);
+		ladder.addStep("脈衝設定",StepImpulse.class, spik);
+		ladder.addStep("高壓控制",StepKindler.class, sqm1, dcg1, spik);
+		ladder.addStep("厚度監控",StepWatcher.class, sqm1, dcg1);
+		ladder.addSack(
+			"<單層鍍膜.4>", 
+			StepSticker.class,
+			StepSetFilm.class,
+			StepGunsHub.class,
+			StepKindler.class,
+			StepWatcher.class
+		);
+		ladder.addSack(
+			"<單層鍍膜.5>", 
+			StepSticker.class,
+			StepSetFilm.class,
+			StepGunsHub.class,
+			StepImpulse.class,
+			StepKindler.class,
+			StepWatcher.class
+		);
+		ladder.setPrelogue(()->LogStream.getInstance().setPool());
+		ladder.setEpilogue(()->LogStream.getInstance().getPool());
 	}
 	
 	@Override

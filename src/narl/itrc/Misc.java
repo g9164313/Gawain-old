@@ -360,22 +360,6 @@ public class Misc {
 	}
 	//----------------------------------------//
 	
-	public static String[] trim2phy(String txt){
-		final String[] res = {null,null};
-		res[0] = "";
-		res[1] = "";
-		txt = txt.replaceAll("\\s","");//trim space!!!
-		char[] list = txt.toCharArray();
-		for(char cc:list){
-			if( (('0'<=cc&&cc<='9')||cc=='.'||cc=='+'||cc=='-')==false){
-				res[1] = res[1] + cc;
-			}else{
-				res[0] = res[0] + cc;
-			}
-		}
-		return res;
-	}
-	
 	private static final String REX_LOCA="[(]\\p{Digit}+[,]\\p{Digit}+[)]";
 	private static final String REX_SIZE="\\p{Digit}+[x]\\p{Digit}+";
 	/**
@@ -508,16 +492,24 @@ public class Misc {
 	 * @return
 	 */
 	public static String exec(String... cmd){
+		
+		File working_path;
+		if(cmd[0].contains(File.separator)==true){
+			working_path = Gawain.dirRoot;
+		}else{
+			cmd[0] = Gawain.dirSock + cmd[0];
+			working_path = Gawain.dirSock;
+		}
+		ProcessBuilder pb = new ProcessBuilder(cmd);
+		pb.redirectOutput();//How to use this??
+		pb.redirectError();//How to use this??
+		pb.directory(working_path);
+		
 		String txt = "";
-		try {
-			ProcessBuilder pb = new ProcessBuilder(cmd);
-			pb.redirectOutput();
-			pb.redirectError();
-			pb.directory(Gawain.dirRoot);
-			
+		try {	
 			Process pc = pb.start();
 			pc.waitFor();
-			byte[] buf = new byte[2048];
+			/*byte[] buf = new byte[2048];
 			pc.getInputStream().read(buf);
 			for(byte bb:buf){			
 				if(bb==0){
@@ -534,13 +526,11 @@ public class Misc {
 					}
 					txt = txt + (char)bb;
 				}
-			}
+			}*/
 			pc.destroy();
-		} catch (IOException e) {
+		} catch (InterruptedException | IOException e) {
 			e.printStackTrace();
-			txt = "[ERROR]: "+e.getMessage();
-		} catch (InterruptedException e) {
-			txt = "[ERROR]: "+e.getMessage();
+			Misc.loge("[EXEC]>>", e.getMessage());
 		}		
 		return txt;
 	}

@@ -40,6 +40,10 @@ public class StepSticker extends Stepper {
 		   msg.setText(res.get());
 		}
 	}
+	public StepSticker editValue(final String txt){
+		msg.setText(txt);
+		return this;
+	}
 	
 	@Override
 	public String flatten() {

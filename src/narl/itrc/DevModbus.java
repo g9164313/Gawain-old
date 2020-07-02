@@ -18,6 +18,7 @@ public class DevModbus extends DevBase {
 	 * @param name - device name and connection attributes
 	 */
 	public DevModbus(final String name){
+		this();
 		devPath = name;
 	}
 	
@@ -42,6 +43,7 @@ public class DevModbus extends DevBase {
 	
 	private short slave= 0;//MODBUS_BROADCAST_ADDRESS
 
+	private final static String STG_IGNITE = "ignite";
 	private final static String STG_LOOPER = "looper";
 	
 	@Override
@@ -79,12 +81,14 @@ public class DevModbus extends DevBase {
 		}else {
 			handle = 0L;
 		}
-		if(mems.size()!=0 && isLive()==true) {
-			playFlow(STG_LOOPER);
+		if(mems.size()!=0) {
+			addState(STG_IGNITE,()->ignite());
+			addState(STG_LOOPER,()->looper());
+			playFlow(STG_IGNITE);
 		}
 	}
 	public void open(final String name) {
-		devPath = name;
+		devPath = name.split(";|@")[0];
 		open();
 	}
 	
@@ -131,6 +135,9 @@ public class DevModbus extends DevBase {
 			}
 			switch(type) {
 			//coils ??? support ???
+			case 'C':
+				break;
+			case 'R':
 			case 'I':
 				//input register
 				implReadR(address,values);
@@ -155,6 +162,12 @@ public class DevModbus extends DevBase {
 	
 	private ArrayList<RCell> mems = new ArrayList<>();
 	
+	protected void ignite() {
+		//user can override this to prepare something.
+		//Remember this is not called by GUI-thread.
+		nextState(STG_LOOPER);
+	}
+	
 	private void looper() {
 		try {
 			Thread.sleep(100);
@@ -176,11 +189,25 @@ public class DevModbus extends DevBase {
 			}
 		});
 	}
-	
-	public DevModbus mapRegister(final String... address) {
+	/**
+	 * mapping register address.<p>
+	 * first character is register type, it can be C, H, I.<p>
+	 * C - coil register
+	 * H - holding register
+	 * I/R - input register
+	 * @param radix - address value radix
+	 * @param address - register address, ex:H303, I12A 
+	 * @return
+	 */
+	public DevModbus mapAddress(
+		final int radix, 
+		final String... address
+	) {
 		for(String txt:address) {
 			txt = txt.toUpperCase();
-			if(txt.matches("[CHI]\\d{4}[-]?(\\d{4})?")==false) {
+			if(txt.matches("[CHIR]\\d+([-]\\d+)?")==false) {
+				continue;
+			}else if(txt.length()==0){
 				continue;
 			}
 			char typ = txt.toUpperCase().charAt(0);
@@ -188,24 +215,47 @@ public class DevModbus extends DevBase {
 			int cnt = 1;
 			String[] col = txt.substring(1).split("-");
 			if(col.length>=1) {
-				off = Integer.valueOf(col[0]);
+				off = Integer.valueOf(col[0],radix);
 			}
 			if(col.length>=2) {
-				cnt = Integer.valueOf(col[1]) - off + 1;
+				cnt = Integer.valueOf(col[1],radix) - off + 1;
 				if(cnt<=0) {
 					return this;
 				}
 			}
 			mems.add(new RCell(typ,off,cnt));
-		}		
-		addState(STG_LOOPER,()->looper());
+		}
 		return this;
 	}
-	public DevModbus mapRegister16(final String... hexAddr) {
-		ArrayList<String> lst = new ArrayList<String>();
-		
-		return mapRegister(lst.toArray(new String[0]));
-	}	
+	/**
+	 * convenience function for 'mapAddress(radix,address)'.<p>
+	 * address base is decimal.<p>
+	 * mapping register address.<p>
+	 * first character is register type, it can be C, H, I.<p>
+	 * C - coil register
+	 * H - holding register
+	 * I/R - input register
+	 * @param address
+	 * @return
+	 */
+	public DevModbus mapAddress(final String... address) {
+		return mapAddress(10,address);
+	}
+	/**
+	 * convenience function for 'mapAddress(radix,address)'.<p>
+	 * address base is decimal.<p>
+	 * mapping register address.<p>
+	 * first character is register type, it can be C, H, I.<p>
+	 * C - coil register
+	 * H - holding register
+	 * I/R - input register
+	 * @param address
+	 * @return
+	 */
+	public DevModbus mapAddress16(final String... address) {
+		return mapAddress(16,address);
+	}
+	
 	private IntegerProperty register(final char type, final int addr) {
 		for(RCell reg:mems) {
 			int beg = reg.address;
@@ -224,7 +274,7 @@ public class DevModbus extends DevBase {
 		return register('H',address);
 	}
 	public IntegerProperty inputRegister(final int address) {
-		return register('I',address);
+		return register('R',address);
 	}
 	
 	public void asyncWriteVal(int addr,int val) {asyncBreakIn(()->writeVal(addr,val));}
@@ -269,10 +319,10 @@ public class DevModbus extends DevBase {
 		implWrite(addr,buff);
 	}
 		
-	private native void implOpenRtu();	
-	private native void implOpenTcp();
-	private native void implReadH(int addr,short buff[]);//holding register
-	private native void implReadR(int addr,short buff[]);//input register
-	private native void implWrite(int addr,short buff[]);//write register
-	private native void implClose();
+	protected native void implOpenRtu();	
+	protected native void implOpenTcp();
+	protected native void implReadH(int addr,short buff[]);//holding register
+	protected native void implReadR(int addr,short buff[]);//input register
+	protected native void implWrite(int addr,short buff[]);//write register
+	protected native void implClose();
 }

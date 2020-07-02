@@ -92,30 +92,47 @@ public class UtilPhysical {
 		return 0.;//??? what is going on ???
 	}
 
-	public static String[] split_value_unit(String txt){
-		txt = txt.replaceAll("\\s+", "");		
-		int i = 0;
-		for(i=0; i<txt.length(); i++){
-			char cc = txt.charAt(i);
-			if( !(('0'<=cc && cc<='9') || cc=='.') ){
+	/**
+	 * Split physical number into value and unit part.<p>
+	 * @param txt - physical number (value and unit)
+	 * @return
+	 */
+	public static String[] split(String txt){
+		String[] col = {
+			"0",//the value of physical number
+			""  //the unit of physical number
+		};		
+		txt = txt.replaceAll("\\s+", "");
+		if(txt.matches("[+|-]?\\d+([.]\\d*)?\\D+")==false){
+			return col;
+		}
+		int idx = 0;
+		int cnt = txt.length();
+		for(idx=cnt-1; idx>0; --idx){
+			char cc = txt.charAt(idx);
+			if( ('0'<=cc && cc<='9') || cc=='.' ){
+				idx+=1;
 				break;
 			}
 		}
-		String[] arg = new String[2];
-		arg[0] = txt.substring(0, i);
-		arg[1] = txt.substring(i);
-		return arg;
+		if(idx>=1 && idx<(txt.length()-1)){
+			//there must be one decimal.
+			//and Unit have one character at least.
+			col[0] = txt.substring(0,idx);
+			col[1] = txt.substring(idx);
+		}
+		return col;
 	}
 	
 	public static double convert(
-		double srcVal,
+		double srcValue,
 		String srcUnit,
 		String dstUnit
 	) throws NumberFormatException {
 		srcUnit = srcUnit.trim();//for safety~~~
 		dstUnit = dstUnit.trim();
 		if(srcUnit.equals(dstUnit)==true){
-			return srcVal;//we don't need convert value~~~~
+			return srcValue;//we don't need convert value~~~~
 		}
 		double srcScale = findScale(srcUnit);
 		if(srcScale!=1.){
@@ -127,17 +144,29 @@ public class UtilPhysical {
 		}
 		double scale = (srcScale/dstScale);		
 		double ratio = findRatio(srcUnit,dstUnit); 
-		return srcVal*scale*ratio;
+		return srcValue*scale*ratio;
 	}
-	
 	public static double convert(
-		String srcValUnit,
+		String srcValue,
+		String srcUnit,
 		String dstUnit
 	) throws NumberFormatException {
-		double srcVal=0.;
-		String[] srcTxt = split_value_unit(srcValUnit);
-		srcVal = Double.valueOf(srcTxt[0]);
-		return convert(srcVal,srcTxt[1],dstUnit);
+		return convert(
+			Double.valueOf(srcValue),
+			srcUnit,
+			dstUnit
+		);
+	}	
+	public static double convert(
+		String srcValueUnit,
+		String dstUnit
+	) throws NumberFormatException {
+		String[] srcTxt = split(srcValueUnit);
+		return convert(
+			srcTxt[0],
+			srcTxt[1],
+			dstUnit
+		);
 	}
 	
 	public static String num2scale(double number){
@@ -159,37 +188,43 @@ public class UtilPhysical {
 		return txt.substring(0,pos)+si_scale[idx];
 	}	
 	
-	public static String num2prefix(double number){
-		return num2prefix(number,0);
+	
+	private static final char[] p_prefix = {' ','k','M','G','T','P','E'};		
+	private static final char[] n_prefix = {' ','m','μ','n','p','f','a'};
+	private static final double[] p_scale = {1., 1e-3, 1e-6, 1e-9, 1e-12, 1e-15, 1e-18};
+	private static final double[] n_scale = {1., 1e3, 1e6, 1e9, 1e12, 1e15, 1e18};
+	
+	/**
+	 * Add prefix notation to value.<p>
+	 * @param number - value
+	 * @return
+	 */
+	public static String addPrefix(final double number){
+		return num2prefix(number,3);
 	}
-	public static String num2prefix(double number,int power){
-		
+	public static String num2prefix(
+		final double number, 
+		final int dots
+	){		
 		String[] txt = String.format("%E",number).split("E");
-		
-		double val = Double.valueOf(txt[0]);
-		
 		int prx = Integer.valueOf(txt[1]);
-		
-		int cnt = Math.abs(prx);
-		
-		if(cnt==0){			
-			return String.format("%."+power+"f",val);//special case~~~
+		int mtx = Math.abs(prx)/3;
+		if(mtx>=p_prefix.length){
+			return String.format("%E",number);//no change~~~
 		}
-
-		final char[] p_prefix = {' ','k','M','G','T','P','E'};	
-		final char[] n_prefix = {' ','m','μ','n','p','f','a'};
-		char mtrx = ' ';
+		char[] prefix;
+		double[] scale;
 		if(prx>=0){
-			mtrx = p_prefix[cnt/3];
-			val = val * Math.pow(10.,(cnt%3));
+			prefix= p_prefix;
+			scale = p_scale;
 		}else{
-			int scale = 1+(cnt-1)/3;
-			mtrx = n_prefix[scale];
-			val = number * Math.pow(10.,scale*3);
+			prefix= n_prefix;
+			scale = n_scale;
 		}
-		if(mtrx!=' '){
-			return String.format("%."+power+"f%c",val,mtrx);
-		}
-		return String.format("%."+power+"f",val);
+		return String.format(
+			"%."+dots+"f%c", 
+			number * scale[mtx],
+			prefix[mtx]
+		);
 	}
 }

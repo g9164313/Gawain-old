@@ -6,19 +6,19 @@
 .btn-raised-1{
 	-fx-button-type: RAISED;
 	-fx-font-size: 1.4em;
-	-fx-background-color: #26a69a;
+	-fx-background-color: #aed581;
 	-fx-text-fill: black;
 }
 .btn-raised-2 {
 	-fx-button-type: RAISED;
 	-fx-font-size: 1.4em; 
-	-fx-background-color: #81d4fa;
+	-fx-background-color: #4db6ac;
 	-fx-text-fill: black;
 }
 .btn-raised-3 {
 	-fx-button-type: RAISED;
 	-fx-font-size: 1.4em;
-	-fx-background-color: #c5e1a5;
+	-fx-background-color: #64b5f6;
 	-fx-text-fill: black;
 }
 
@@ -44,18 +44,29 @@
   -fx-hgap: 7;
 	-fx-vgap: 7; 
 }
+.box-pad-group {
+	-fx-padding:  13, 0,  7, 0; 
+}
 .box-border {
 	-fx-border-color: black;
 	-fx-border-width: 1.7px;
 	-fx-border-radius: 10px;
-  -fx-spacing: 13;
-  -fx-padding: 7;
-  -fx-hgap: 7;
-	-fx-vgap: 7;
+  -fx-background-radius: 10px;
 }
-.big-font {
-	-fx-font-size: 1.9em;
+
+.font-size3 {
+	-fx-font-size: 1.3em;
 }
+.font-size5 {
+	-fx-font-size: 1.7em;
+}
+.font-size7 {
+	-fx-font-size: 1.7em;
+}
+.font-console {
+	-fx-font-family: 'Consolas';
+}
+
 
 .titled-pane > .title {
   -fx-pref-height: 43px;
@@ -74,16 +85,16 @@
 /**********************/
 
 .icons-badge .badge-pane {
-    -fx-background-color: #ff4081;
-    -fx-background-radius: 23;
-    -fx-pref-width: 23;
-    -fx-pref-height: 23;
-    -fx-alignment: center;
+  -fx-background-color: #ff4081;
+  -fx-background-radius: 23;
+  -fx-pref-width: 23;
+  -fx-pref-height: 23;
+  -fx-alignment: center;
 }
 .icons-badge Label {
-    -fx-font-weight: BOLD;
-    -fx-font-size: 12px;
-    -fx-text-fill: WHITE;
+  -fx-font-weight: BOLD;
+  -fx-font-size: 12px;
+  -fx-text-fill: WHITE;
 }
 
 /**********************/

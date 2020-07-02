@@ -29,8 +29,8 @@ public class StepKindler extends Stepper {
 		spk = dev3;
 		set(op_1,op_2,
 			op_3,
-			op_4,op_5,
-			op_6
+			op_4,
+			op_5,op_6
 		);
 	}
 	
@@ -150,7 +150,6 @@ public class StepKindler extends Stepper {
 	public void eventEdit() {
 	}
 	
-
 	private static final String TAG0 = "power";
 	private static final String TAG1 = "clean";
 	@Override
