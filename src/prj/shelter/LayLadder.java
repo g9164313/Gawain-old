@@ -17,7 +17,6 @@ import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import narl.itrc.Ladder;
 import narl.itrc.PanBase;
-import narl.itrc.StepSticker;
 import narl.itrc.Stepper;
 
 public class LayLadder extends Ladder {
@@ -27,7 +26,7 @@ public class LayLadder extends Ladder {
 		final DevAT5350 dev2,
 		final DevCDR06 dev3
 	){
-		addStep("分隔線", StepSticker.class);
+		addStep("分隔線", Stepper.Sticker.class);
 		addStep("核種。原點。補償", StepArrange.class, dev1,dev2);
 		addStep("校正刻度", StepGraduate.class, dev1,dev2,dev3);
 		addStep("照射劑量", StepRadiate.class , dev1);
@@ -131,7 +130,7 @@ public class LayLadder extends Ladder {
 			updateMessage("從 "+name+" 收集標定點");
 			
 			Application.invokeAndWait(()->{
-				((StepSticker)genStep(StepSticker.class)).editValue(name);
+				((Stepper.Sticker)genStep(Stepper.Sticker.class)).editValue(name);
 				((StepArrange)genStep(StepArrange.class)).editValue(name,true,true);
 			});
 			//使用衰減過後的劑量跟距離當成初始值

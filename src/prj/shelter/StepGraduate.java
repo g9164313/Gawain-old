@@ -119,30 +119,30 @@ public class StepGraduate extends Stepper {
 		//upper boundary
 		cur_pin = pts[0];
 		msg1.setText("上邊界");
-		result.set(NEXT);
+		next.set(LEAD);
 	};
 	Runnable op_low_a = ()->{
 		//lower boundary
 		cur_pin = pts[1];
 		msg1.setText("下邊界");
-		result.set(NEXT);
+		next.set(LEAD);
 	};
 	
 	//moving and measure dose rate
 	Runnable op_mov1 = ()->{
 		String pos = cur_pin.loca.textProperty().get().trim();
 		hustio.moveToAbs(pos+"cm");
-		result.set(NEXT);
+		next.set(LEAD);
 	};
 	Runnable op_mov2 = ()->{
 		if(hustio.isMoving()==true){
 			msg1.setText("移動中");
-			result.set(HOLD);	
+			next.set(HOLD);	
 		}else{
 			msg1.setText("照射中");
 			hustio.isotope.set(ispt_name);
 			hustio.makeRadiation();
-			result.set(NEXT);
+			next.set(LEAD);
 		}		
 	};
 	Runnable op_mov3 = ()->{
@@ -169,22 +169,22 @@ public class StepGraduate extends Stepper {
 			msg1.setText("量測中");
 			//at5350.measure(temp,pres);
 		}		
-		result.set(NEXT);
+		next.set(1);
 	};
 	Runnable op_mea2 = ()->{
 		if(at5350.isAsyncDone()==false){
-			result.set(HOLD);
+			next.set(HOLD);
 			return;
 		}
-		result.set(NEXT);
+		next.set(LEAD);
 	};
 	
 	//decide boundary and test whether we need to continue~~~
 	Runnable op_upp_b = ()->{
-		result.set(NEXT);
+		next.set(LEAD);
 	};
 	Runnable op_low_b = ()->{
-		result.set(NEXT);
+		next.set(LEAD);
 	};
 	
 	@Override

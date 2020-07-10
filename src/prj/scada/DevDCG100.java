@@ -304,24 +304,13 @@ public class DevDCG100 extends DevTTY {
 		rad[5].setOnAction(e->dev.asyncExec("CHT=CJ"));
 		//-------------------------------------//
 		
+		final Label[] txt = new Label[6];
 		final JFXButton[] btn = new JFXButton[8];
+		
 		for(int i=0; i<btn.length; i++) {
 			btn[i] = new JFXButton(); 			
 			btn[i].setMaxWidth(Double.MAX_VALUE);
 		}
-		
-		final Label[] txt = new Label[6];
-		for(int i=0; i<txt.length; i++) {
-			txt[i] = new Label();
-			EventHandler<?> hh = btn[i].getOnAction();
-			txt[i].setOnMouseClicked(e->hh.handle(null));
-		}
-		txt[1].visibleProperty().bind(rad[0].selectedProperty());
-		txt[2].visibleProperty().bind(rad[1].selectedProperty());
-		txt[3].visibleProperty().bind(rad[2].selectedProperty());		
-		txt[4].visibleProperty().bind(rad[4].selectedProperty());
-		txt[5].visibleProperty().bind(rad[5].selectedProperty());
-		
 		btn[0].setText("爬升時間");
 		btn[0].setOnAction(e->{
 			dev.v_spr = set_millisec(dev,dev.v_spr,"SPR");
@@ -370,6 +359,17 @@ public class DevDCG100 extends DevTTY {
 		btn[7].setText("OFF");		
 		btn[7].getStyleClass().add("btn-raised-2");
 		btn[7].setOnAction(e->dev.asyncExec("OFF"));
+				
+		for(int i=0; i<txt.length; i++) {
+			txt[i] = new Label();
+			EventHandler<?> hh = btn[i].getOnAction();
+			txt[i].setOnMouseClicked(e->hh.handle(null));
+		}
+		txt[1].visibleProperty().bind(rad[0].selectedProperty());
+		txt[2].visibleProperty().bind(rad[1].selectedProperty());
+		txt[3].visibleProperty().bind(rad[2].selectedProperty());		
+		txt[4].visibleProperty().bind(rad[4].selectedProperty());
+		txt[5].visibleProperty().bind(rad[5].selectedProperty());
 		//-------------------------------------//
 		
 		dev.isRemote.addListener((obv,oldVal,newVal)->{

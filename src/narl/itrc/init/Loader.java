@@ -21,10 +21,16 @@ public class Loader extends Task<Integer> {
 
 	@Override
 	protected Integer call() throws Exception {
+		long t1 = System.currentTimeMillis();
 		prepare_resource();
 		loading_library();
 		updateProgress(-1.,-1.);//let progress-bar waiting~~~
-		updateMessage("等待主畫面... ");	
+		updateMessage("等待主畫面... ");
+		long dxx = System.currentTimeMillis() - t1;
+		if(dxx<1000) {
+			dxx = 1000;
+		}
+		Thread.sleep(dxx);
 		return 0;
 	}
 	
@@ -130,13 +136,11 @@ public class Loader extends Task<Integer> {
 		return lay0;
 	}
 	
-	public void launch(final Stage stg){
-		
-		setOnSucceeded(e->{
+	public void launch(final Stage stg){		
+		setOnSucceeded(e->{			
 			Gawain.mainPanel();
 			stg.close();
-		});
-		
+		});		
 		final Scene scn = new Scene(layout(stg));
 		scn.getStylesheets().add(Gawain.sheet);
 		stg.setScene(scn);

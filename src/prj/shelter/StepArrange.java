@@ -37,7 +37,7 @@ public class StepArrange extends Stepper {
 	
 	Runnable op_1 = ()->{
 		hustio.isotope.set(act1.getSelectionModel().getSelectedItem());
-		result.set(NEXT);
+		next.set(1);
 	};
 	
 	Runnable op_2 = ()->{
@@ -47,16 +47,16 @@ public class StepArrange extends Stepper {
 			msg1.setText("開始回歸");
 			hustio.moveToAbs("");
 		}
-		result.set(NEXT);
+		next.set(LEAD);
 	};
 	
 	Runnable op_3 = ()->{				
 		if(hustio.isMoving()==true){
 			msg1.setText("移動中");
-			result.set(HOLD);
+			next.set(HOLD);
 		}else{
 			msg1.setText("");
-			result.set(NEXT);
+			next.set(LEAD);
 		}
 	};
 	
@@ -67,22 +67,17 @@ public class StepArrange extends Stepper {
 			msg1.setText("開始補償");
 			at5350.compensate();
 		}
-		result.set(NEXT);		
+		next.set(LEAD);		
 	};
 	
 	Runnable op_5 = ()->{
 		if(act3.isSelected()==false){
-			result.set(NEXT);
-			return;
-		}
-		long tt = waiting(3*60*1000);
-		if(tt>=10){
+			next.set(LEAD);			
+		}else {
 			msg1.setText(String.format(
-				"%s",
-				Misc.tick2time(tt,true)
+				"等待 %s",
+				Misc.tick2time(waiting(3*60*1000),true)
 			));
-		}else{
-			msg1.setText("");
 		}
 	};
 

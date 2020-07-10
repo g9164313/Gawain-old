@@ -2,9 +2,12 @@ package narl.itrc;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 
 import com.sun.glass.ui.Application;
@@ -474,6 +477,58 @@ public class Misc {
 		return txt.substring(beg,end);
 	}	
 	//--------------------------//
+	
+	public static void asynSerialize2file(
+		final String file_name,
+		final Object source
+	) {
+		new Thread(
+			()->serialize2file(file_name,source),
+			"serial2file"
+		).start();
+	}	
+	public static void serialize2file(
+		final String file_name,
+		final Object source
+	) {
+		if(file_name.length()==0) {
+			return;
+		}
+		try {
+			FileOutputStream fid = new FileOutputStream(file_name);
+			ObjectOutputStream stm = new ObjectOutputStream(fid);
+			stm.writeObject(source);
+			stm.close();
+			fid.close();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} 
+	}
+	public static Object deserializeFile(
+		final String file_name
+	) {
+		if(file_name.length()==0) {
+			return null;
+		}
+		Object obj = null;
+		try {
+			FileInputStream fid = new FileInputStream(file_name);
+			ObjectInputStream stm = new ObjectInputStream(fid);
+			obj = stm.readObject();
+			stm.close();
+			fid.close();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		}
+		return obj;
+	}
+	
 	
 	/**
 	 * a wrap for GUI-thread application.

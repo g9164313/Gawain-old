@@ -29,8 +29,8 @@ public class StepKindler extends Stepper {
 		spk = dev3;
 		set(op_1,op_2,
 			op_3,
-			op_4,
-			op_5,op_6
+			op_4,op_5,
+			op_6,op_7
 		);
 	}
 	
@@ -40,30 +40,30 @@ public class StepKindler extends Stepper {
 	private Label msg2 = new Label();
 
 	private TextField[] args = {
-		new TextField("100"),//DCG power
-		new TextField("5:00"),//clean time
+		new TextField("180"),//DCG power
+		new TextField("10"),//clean time
 	};
 	
 	final Runnable op_1 = ()->{
 		//close shutter~~~
 		msg1.setText("關閉擋板");
 		msg2.setText("");
-		result.set(NEXT);
+		Misc.logv("關閉擋板");
 		waiting_async();
-		  sqm.asyncBreakIn(()->{
+		sqm.asyncBreakIn(()->{
 			if(sqm.exec("U0").charAt(0)=='A') {
-				result.set(NEXT);
+				next.set(LEAD);
 			}else{
-				result.set(ABORT);
+				next.set(ABORT);
 				Application.invokeLater(()->PanBase.notifyError("失敗", "無法控制擋板!!"));
 			}
 		});
 	};
 	final Runnable op_2 = ()->{
-		msg1.setText("等待中");
+		msg1.setText("等待檔板");
 		msg2.setText(String.format(
 			"%s",
-			Misc.tick2time(waiting(3000),true)
+			Misc.tick2time(waiting(5000),true)
 		));
 	};
 
@@ -73,7 +73,7 @@ public class StepKindler extends Stepper {
 		waiting_async();
 		spk.asyncBreakIn(()->{
 			spk.set_register(1, 2);//high-pin
-			result.set(NEXT);
+			next.set(LEAD);
 		});
 	};
 	
@@ -82,47 +82,46 @@ public class StepKindler extends Stepper {
 		msg1.setText("設定功率");
 		msg2.setText("");
 		waiting_async();
-		final int w1 = Integer.valueOf(args[4].getText().trim());		
+		final int w1 = Integer.valueOf(args[0].getText().trim());		
 		dcg.asyncBreakIn(()->{
 			if(dcg.exec("SPW="+w1).endsWith("*")==false) {
-				result.set(ABORT);
+				next.set(ABORT);
 				Application.invokeLater(()->PanBase.notifyError("失敗", "無法設定功率!!"));
 				return;
 			}
 			if(dcg.exec("TRG").endsWith("*")==false) {
-				result.set(ABORT);
+				next.set(ABORT);
 				Application.invokeLater(()->PanBase.notifyError("失敗", "無法點燃!!"));
 				return;
 			}
-			result.set(NEXT);
+			next.set(1);
 		});
 	};
 	final Runnable op_5 = ()->{		
 		//Check power reach the goal
-		final int w1 = Integer.valueOf(args[4].getText().trim());
+		final int w1 = Integer.valueOf(args[0].getText().trim());
 		final int w2 = (int)dcg.watt.get();
 		msg1.setText("輸出中 ");
 		msg2.setText(String.format("%3d Watt",w2));
 		if(Math.abs(w1-w2)>2){
-			result.set(HOLD);
+			next.set(HOLD);
 		}else{
-			result.set(NEXT);
+			next.set(LEAD);
 		}	
 	};
 	
 	final Runnable op_6 = ()->{
 		//wait for clean shutter
-		long tt = waiting(args[5].getText());
-		if(tt>=10){
-			msg1.setText("清洗中");
-			msg2.setText(String.format(
-				"%s",
-				Misc.tick2time(tt,true)
-			));
-		}else{
-			msg1.setText(init_text);
-			msg2.setText("");
-		}		
+		msg1.setText("清洗中");
+		msg2.setText(String.format(
+			"%s",
+			Misc.tick2time(waiting(args[1].getText()),true)
+		));
+	};
+	final Runnable op_7 = ()->{
+		msg1.setText(init_text);
+		msg2.setText("");
+		next.set(LEAD);
 	};
 	
 	@Override

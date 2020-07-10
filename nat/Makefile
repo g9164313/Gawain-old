@@ -1,5 +1,5 @@
 
-DIR_JNI=/home/qq/.local/jdk/include
+DIR_JNI=/home/qq/labor/tools/jdk8/include
 
 TARGET_EXE = gawain
 
@@ -50,11 +50,11 @@ LIB_PYLON :=  -L$(ROOT_PYLON)/lib64 \
 CC = g++ -DENABLE_LOG -O0 -std=c++11 -g -I. -I$(DIR_JNI) -I$(DIR_JNI)/linux
 
 CC_FLAG += $(shell pkg-config --cflags opencv)
-CC_FLAG += $(shell pkg-config --cflags libusb-1.0) 
+CC_FLAG += $(shell pkg-config --cflags libusb) 
 CC_FLAG += $(shell pkg-config --cflags libmodbus)
 
 LD_LIBS += $(shell pkg-config --libs opencv)
-LD_LIBS += $(shell pkg-config --libs libusb-1.0) 
+LD_LIBS += $(shell pkg-config --libs libusb) 
 LD_LIBS += $(shell pkg-config --libs libmodbus)
 
 ####################################################
@@ -102,14 +102,15 @@ VISION_FILE += ./vision/CapVidcap.cpp
 $(VISION_SO): $(VISION_FILE)
 	$(BUILD_WORK) 
 
-#####[peripheral device]######
+#####[bridge device]######
 
-PERIPHERAL_SO = libdevice.so
-PERIPHERAL_FILE+= ./device/DevTTY.cpp
-PERIPHERAL_FILE+= ./device/DevUSB.cpp
-PERIPHERAL_FILE+= ./device/DevModbus.cpp
+BRIDGE_SO = libbridge.so
+BRIDGE_FILE+= ./device/DevTTY.cpp
+#TODO: we need to support Libusb again!!!
+#BRIDGE_FILE+= ./device/DevUSB.cpp
+BRIDGE_FILE+= ./device/DevModbus.cpp
 
-$(PERIPHERAL_SO): $(PERIPHERAL_FILE)
+$(BRIDGE_SO): $(BRIDGE_FILE)
 	$(BUILD_WORK)
 
 ####################################################
@@ -128,7 +129,8 @@ $(TARGET_EXE): $(TARGET_FILE)
 
 #all: $(TARGET_EXE) $(CORE_SO) $(VISION_SO) $(PERIPHERAL_SO) 
 #all: $(TARGET_EXE)
-all: $(PERIPHERAL_SO) $(VISION_SO) $(CORE_SO)
+#all: $(PERIPHERAL_SO) $(VISION_SO) $(CORE_SO)
+all: $(BRIDGE_SO)
 
 clean:
 	rm -rf $(TARGET_EXE) $(TARGET_SO) $(DIR_SRC)/*.o ./*.o

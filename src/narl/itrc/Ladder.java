@@ -91,6 +91,7 @@ public class Ladder extends BorderPane {
 		accr.setExpandedPane(lay2[0]);
 		
 		recipe.getStyleClass().addAll("box-pad","ss1","ss2");
+		
 		setLeft(accr);
 		setCenter(recipe);
 	}
@@ -99,7 +100,7 @@ public class Ladder extends BorderPane {
 	protected VBox main_kits = new VBox();
 	protected VBox step_kits = new VBox();	
 	protected JFXListView<Stepper> recipe = new JFXListView<Stepper>();
-	
+
 	/**
 	 * the container of stepper.<p>
 	 * @author qq
@@ -109,6 +110,7 @@ public class Ladder extends BorderPane {
 		String name;
 		Class<?> clzz;
 		Object[] args;
+		
 		StepPack(
 			String title,
 			Class<?> class_type, 
@@ -117,7 +119,8 @@ public class Ladder extends BorderPane {
 			name = title;
 			clzz = class_type;
 			args = argument;
-		}		
+		}	
+		
 		Stepper instance(){
 			Stepper obj = null;
 			try {				
@@ -145,11 +148,11 @@ public class Ladder extends BorderPane {
 			return obj;
 		}
 	};
-	private ArrayList<StepPack> steps = new ArrayList<StepPack>();
+	private ArrayList<StepPack> stpk = new ArrayList<StepPack>();
 	
 	private StepPack getPack(final Stepper src){
 		final Class<?> s_clzz = src.getClass();
-		for(StepPack dst:steps){
+		for(StepPack dst:stpk){
 			if(dst.clzz==s_clzz){
 				return dst;
 			}
@@ -157,7 +160,7 @@ public class Ladder extends BorderPane {
 		return null;
 	}
 	private StepPack getPack(final String src){
-		for(StepPack obj:steps){
+		for(StepPack obj:stpk){
 			String dst = obj.clzz.getName();
 			if(dst.equals(src)==true){
 				return obj;
@@ -166,7 +169,7 @@ public class Ladder extends BorderPane {
 		return null;
 	}
 	private StepPack getPack(final Class<?> src){
-		for(StepPack obj:steps){			
+		for(StepPack obj:stpk){			
 			if(src==obj.clzz){
 				return obj;
 			}
@@ -183,7 +186,7 @@ public class Ladder extends BorderPane {
 		final Object... argument
 	){
 		final StepPack obj = new StepPack(title,clazz,argument);
-		steps.add(obj);
+		stpk.add(obj);
 		final JFXButton btn = new JFXButton(title);
 		btn.getStyleClass().add("btn-raised-3");
 		btn.setMaxWidth(Double.MAX_VALUE);
@@ -210,20 +213,13 @@ public class Ladder extends BorderPane {
 	}	
 	//--------------------------------//
 	
-	public void setPrelogue(final Runnable run){
-		beg_step.work = run;
-	}
-	public void setEpilogue(final Runnable run){
-		end_step.work = run;
-	}
-	
-		
 	protected void import_step(){
 		final PanBase pan = PanBase.self(this);
 		final File fid = pan.loadFrom();
 		if(fid==null){
 			return;
 		}
+		//TODO: clear all or append~~~
 		recipe.getItems().clear();
 		final Task<?> tsk = new Task<Integer>(){
 			@Override
@@ -294,7 +290,10 @@ public class Ladder extends BorderPane {
 	private BooleanProperty is_climbing = new SimpleBooleanProperty(false);
 	
 	private Optional<Timeline> timer = Optional.empty();
-		
+	
+	public Runnable prelogue = null;
+	public Runnable epilogue = null;
+	
 	private void start_again(){
 		is_climbing.set(true);
 		if(timer.isPresent()==false) {
@@ -327,27 +326,24 @@ public class Ladder extends BorderPane {
 		Stepper  step;
 		Runnable work;
 		Footstep(Stepper stp, Runnable wrk){
-			stp.result.set(Stepper.NEXT);
 			step = stp;			
 			work = wrk;
 		}
 		Footstep(){
+			//this is special footstep for head and tail
 			step = null;
 			work = null;
 		}
-		void indicator(boolean flag){
-			if(step!=null){
-				step.indicator(flag);
-			}
+		void indicate(final boolean flag) {
+			if(step==null) {return;}
+			step.indicator(flag);
 		}
-		void make(){
-			if(work!=null){
-				work.run();
-			}
+		void running() {
+			if(work==null) {return;}
+			work.run();
 		}
 	};	
-	private static final Footstep beg_step = new Footstep();
-	private static final Footstep end_step = new Footstep();
+	private final Footstep ending = new Footstep();
 	
 	private LinkedList<Footstep> queue = new LinkedList<Footstep>();
 	
@@ -355,6 +351,7 @@ public class Ladder extends BorderPane {
 		//flatten all runnable works~~~
 		queue.clear();
 		ObservableList<Stepper> lst = recipe.getItems();
+		//flatten running works in all steps
 		for(Stepper stp:lst){
 			stp.prepare();
 			if(stp.works.isPresent()==false){
@@ -364,10 +361,12 @@ public class Ladder extends BorderPane {
 				queue.addLast(new Footstep(stp,wrk));
 			}
 		}
-		//put a special stepper for ending queue~~
-		queue.addFirst(beg_step);
-		queue.addLast(end_step);
-		
+		//let timer know the working is ending
+		queue.addLast(ending);
+		//let user prepare something
+		if(prelogue!=null) {
+			prelogue.run();
+		}
 		//setup timer to repeat all works~~~
 		KeyFrame key = new KeyFrame(
 			Duration.seconds(1.),
@@ -380,57 +379,84 @@ public class Ladder extends BorderPane {
 	}
 	
 	private void climbing(){
-		//check the tail, because it is the previous step~~~
 		Footstep cur = queue.getFirst();
 		Footstep prv = queue.getLast();
-		//check whether it is the special step.
-		if(cur.equals(beg_step)==true){
-			cur.make();
-			queue.pollFirst();//remove the first one~~~
-			return;
-		}else if(cur.equals(end_step)==true){
-			cur.make();
+		//check the tail, because it is the previous step~~~
+		if(cur.equals(ending)==true){
 			abort_or_pause(true);
+			if(epilogue!=null) {
+				epilogue.run();
+			}
 			return;
 		}
 		//update indicator icon in every stepper.
 		//TODO: when backward, how to indicate step?
 		recipe.getSelectionModel().select(cur.step);
 		if(cur.step!=prv.step){
-			cur.indicator(true);
-			prv.indicator(false);
+			cur.indicate(true);;
+			prv.indicate(false);
 		}
 		if(cur.step.waiting_async==false){
-			//working, working....		
-			cur.make();		
+			cur.running();	//working, working....	
 		}else{
-			if(cur.step.result.get()!=Stepper.HOLD){
+			//Asynchronous case, other thread will change flag
+			if(cur.step.next.get()!=Stepper.HOLD){
 				cur.step.waiting_async = false;
 			}
 		}
 		//decide forward, backward or camp.
-		jumping(cur.step.result.get());
+		int stp = cur.step.next.get();
+		int cnt = Math.abs(stp);
+		boolean dir = (stp>=0)?(true):(false);		
+		if(cnt>=Stepper.SPEC_JUMP) {
+			if(stp==Stepper.ABORT) {
+				abort_or_pause(true);
+			}else if(stp==Stepper.PAUSE) {
+				abort_or_pause(false);
+			}else {
+				major_jump(cnt-Stepper.SPEC_JUMP,dir);
+			}
+		}else if(stp!=Stepper.HOLD) {
+			minor_jump(cnt,dir);
+		}
+	}	
+	private void major_jump(final int cnt, final boolean flag) {
+		for(int i=0; i<cnt; i++) {
+			drawn_foot(flag);
+		}
 	}
-	
-	private void jumping(final int count){
-		switch(count){
-		case Stepper.HOLD: 
-			return;
-		case Stepper.PAUSE: 
-			abort_or_pause(false);
-			return;
-		case Stepper.ABORT:
-			abort_or_pause(true);
+	private void drawn_foot(final boolean flag) {
+		Stepper aaa = (flag==true)?(
+			queue.getFirst().step
+		):(
+			queue.getLast().step
+		);
+		if(aaa==null) {
 			return;
 		}
-		for(int i=0; i<Math.abs(count); i++){
-			if(count>0){
-				//forward steps...
+		for(;;){
+			Stepper bbb = (flag==true)?(
+				queue.getFirst().step
+			):(
+				queue.getLast().step
+			);
+			if(bbb!=aaa) {
+				break;
+			}
+			if(flag==true) {
 				queue.addLast(queue.pollFirst());
-			}else{
-				//backward steps...
+			}else {
+				queue.addFirst(queue.pollLast());
+			}			
+		}
+	}
+	private void minor_jump(final int cnt, final boolean flag) {
+		for(int i=0; i<cnt; i++) {
+			if(flag==true) {
+				queue.addLast(queue.pollFirst());
+			}else {
 				queue.addFirst(queue.pollLast());
 			}
 		}
-	}
+	}	
 }

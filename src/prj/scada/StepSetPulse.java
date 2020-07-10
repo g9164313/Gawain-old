@@ -9,11 +9,11 @@ import javafx.scene.layout.GridPane;
 import narl.itrc.Misc;
 import narl.itrc.Stepper;
 
-public class StepImpulse extends Stepper {
+public class StepSetPulse extends Stepper {
 
 	private DevSPIK2k spk;
 	
-	public StepImpulse(
+	public StepSetPulse(
 		final DevSPIK2k dev1
 	){
 		spk = dev1;
@@ -46,7 +46,7 @@ public class StepImpulse extends Stepper {
 	final Runnable op_5 = ()->{
 		msg1.setText(init_text);
 		msg2.setText("");
-		result.set(NEXT);
+		next.set(LEAD);
 	};
 	
 	private void operation(
@@ -62,12 +62,12 @@ public class StepImpulse extends Stepper {
 			waiting_async();			
 			spk.asyncBreakIn(()->{
 				spk.set_register(addr, value);
-				result.set(NEXT);
+				next.set(LEAD);
 			});	
 		}catch(NumberFormatException e){
 			msg1.setText("忽略 "+name);
 			msg2.setText("");
-			result.set(NEXT);
+			next.set(LEAD);
 		}
 	}
 	

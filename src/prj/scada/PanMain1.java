@@ -20,7 +20,7 @@ import narl.itrc.DevModbus;
 import narl.itrc.Gawain;
 import narl.itrc.Ladder;
 import narl.itrc.PanBase;
-import narl.itrc.StepSticker;
+import narl.itrc.Stepper;
 import narl.itrc.init.LogStream;
 
 public class PanMain1 extends PanBase {
@@ -70,15 +70,23 @@ public class PanMain1 extends PanBase {
 	
 	private void init(){
 		//initial step-box for recipe
-		ladder.addStep("分隔線", StepSticker.class);
+		ladder.addStep("分隔線", Stepper.Sticker.class);
+		ladder.addStep("迴圈", Stepper.Replay.class);
 		ladder.addStep("薄膜選取",StepSetFilm.class, sqm1);
 		ladder.addStep("電極切換",StepGunsHub.class, coup);
-		ladder.addStep("脈衝設定",StepImpulse.class, spik);
+		ladder.addStep("脈衝設定",StepSetPulse.class, spik);
 		ladder.addStep("高壓控制",StepKindler.class, sqm1, dcg1, spik);
 		ladder.addStep("厚度監控",StepWatcher.class, sqm1, dcg1);
 		ladder.addSack(
+			"<單層鍍膜.3>", 
+			Stepper.Sticker.class,
+			StepSetFilm.class,
+			StepKindler.class,
+			StepWatcher.class
+		);
+		ladder.addSack(
 			"<單層鍍膜.4>", 
-			StepSticker.class,
+			Stepper.Sticker.class,
 			StepSetFilm.class,
 			StepGunsHub.class,
 			StepKindler.class,
@@ -86,15 +94,17 @@ public class PanMain1 extends PanBase {
 		);
 		ladder.addSack(
 			"<單層鍍膜.5>", 
-			StepSticker.class,
+			Stepper.Sticker.class,
 			StepSetFilm.class,
-			StepGunsHub.class,
-			StepImpulse.class,
+			StepSetPulse.class,
+			StepGunsHub.class,			
 			StepKindler.class,
 			StepWatcher.class
 		);
-		ladder.setPrelogue(()->LogStream.getInstance().setPool());
-		ladder.setEpilogue(()->LogStream.getInstance().getPool());
+		ladder.prelogue = ()->LogStream.getInstance().setPool();
+		ladder.epilogue = ()->{
+			LogStream.getInstance().getPool("ggyy.obj");			
+		};
 	}
 	
 	@Override
@@ -158,6 +168,7 @@ public class PanMain1 extends PanBase {
 		btn[0].getStyleClass().add("btn-raised-1");
 		btn[0].setText("擋片-ON");
 		btn[0].setOnAction(e->sqm1.shutter_on_zeros());
+		
 		btn[1].getStyleClass().add("btn-raised-2");
 		btn[1].setText("擋片-OFF");
 		btn[1].setOnAction(e->sqm1.shutter(false));

@@ -53,7 +53,7 @@ public class StepGunsHub extends Stepper {
 				}
 			}
 			coup.writeVal(8005, v);
-			result.set(NEXT);
+			next.set(LEAD);
 		});
 	};
 	

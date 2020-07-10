@@ -32,7 +32,7 @@ public class DevSQM160 extends DevTTY {
 
 	public DevSQM160() {
 		TAG = "SQM-160";
-		readTimeout = 30;
+		readTimeout = 250;
 	}
 	public DevSQM160(String path_name) {
 		this();
@@ -107,31 +107,13 @@ public class DevSQM160 extends DevTTY {
 				highRange[1].set(Float.valueOf(c_value[5]));
 			}
 			shutter.set(u_value);
-			/*shutter.addListener((obv,v1,v2)->{
-				if(v1.booleanValue()==false && 
-					v2.booleanValue()==true
-				){
-					//shutter closed change to open
-					tick_shutter_on = System.currentTimeMillis();
-					shutterCycle.set(DEF_DASH);					
-				}else if(
-					v1.booleanValue()==true && 
-					v2.booleanValue()==false
-				){
-					//shutter open change to closed
-					shutterCycle.set(Misc.tick2time(
-						System.currentTimeMillis() - tick_shutter_on,
-						true
-					));					
-				}
-			});*/
 		});
 		nextState(STG_MONT);
 		//nextState("");
 	}
 	private void state_monitor() {
 		try {
-			Thread.sleep(500);
+			Thread.sleep(250);
 		} catch (InterruptedException e) {
 			return;
 		}
@@ -181,14 +163,20 @@ public class DevSQM160 extends DevTTY {
 	}
 	
 	public String[] parse_a_value(String res) {
+		if(res.length()==0){
+			return null;
+		}
 		a_value = new String[8];
 		for(int i=0; i<a_value.length; i++) {
 			a_value[i] = "???";
 		}
 		if(res.charAt(0)!='A') {
-			return a_value;
+			return null;
 		}
 		res = res.substring(1).trim();
+		if(res.length()<8){
+			return null;
+		}
 		a_value[0] = res.substring(0,8);
 		String[] cols = res.substring(8).trim().split("\\s+");
 		for(int i=1; i<a_value.length; i++) {
@@ -236,19 +224,14 @@ public class DevSQM160 extends DevTTY {
 		
 		//Response package (SQM-160 to Host Message)
 		do{
-			//sync character!!
 			buf[0] = readByte();
-		}while(buf[0]==0);
-		if(buf[0]!='!') {
-			Misc.loge("[%s] no sync character...", TAG);
-			readByte(buf,0,50);//purge data~~~			
-			return "E";//what is going on?
-		}
+			//Misc.loge("[%s] no sync character...", TAG);
+		}while(buf[0]!='!');
+		
 		buf[0] = readByte();//package length, it must be ASCII code
 		len = (buf[0]&0xFF)-35;
 		if(buf[0]<0x20 || 0x7E<buf[0] || len<=0) {
 			Misc.loge("[%s] wrong package length...", TAG);
-			readByte(buf,0,50);//purge data~~~	
 			return "E";//what is going on?
 		}
 		readByte(buf,0,len+2);//include CRC
@@ -487,8 +470,7 @@ public class DevSQM160 extends DevTTY {
 				dev.parse_a_value(res);
 				Application.invokeAndWait(()->{
 					for(int i=0; i<dev.a_value.length; i++) {
-						dev.a_value[i] = dev.a_value[i].trim();
-						dev.filmData[i].set(dev.a_value[i]);
+						dev.filmData[i].set(dev.a_value[i].trim());
 					}
 				});
 			}

@@ -6,6 +6,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.io.Serializable;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -28,6 +29,7 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 import narl.itrc.Gawain;
+import narl.itrc.Misc;
 import narl.itrc.PanBase;
 
 public class LogStream {
@@ -38,32 +40,39 @@ public class LogStream {
 		void callback(long tick, char level, String text);
 	};
 	
-	public class Mesg {		
+	public static class Mesg implements Serializable {		
+
+		private static final long serialVersionUID = 3532735768645537118L;
+		
 		final Timestamp stm;
 		final char tkn;
-		final ByteArrayOutputStream txt = new ByteArrayOutputStream();	
+		String txt;
+
 		public Mesg(final char level){
 			stm = new Timestamp(System.currentTimeMillis());
 			tkn = level;
 		}
 		public String getCol0() { return F_STAMP.format(stm); }
 		public String getCol1() { return ""+tkn; }
-		public String getCol2() { return txt.toString(); }
+		public String getCol2() { return txt; }		
 		public long   getTick() { return stm.getTime(); }
-		public String getText() { return txt.toString(); }
-		
-		private void write(int b){
-			//character may be UTF-8 word.
-			//Keep them all, then convert all to one string.
-			txt.write(b);
+		public String getText() { return txt; }
+		public Mesg   setText(final String text) { txt = text; return this; }
+		public void callback(Hooker hook) {
+			hook.callback(stm.getTime(), tkn, txt);
 		}
+		/*@Override
+		public String toString() {
+			return String.format("[%s][%c] %s",getCol0(),tkn,txt);
+		}*/
 	};
 	
 	private class Pipe extends OutputStream {
-		Optional<Mesg> box = Optional.empty();
+		Optional<Mesg> msg = Optional.empty();
 		FileOutputStream fid;
 		PrintStream p_in;
-		PrintStream p_out;
+		PrintStream p_out;		
+		ByteArrayOutputStream buf = new ByteArrayOutputStream(128);
 		
 		Pipe(final PrintStream stm){
 			p_in = new PrintStream(this);
@@ -85,25 +94,47 @@ public class LogStream {
 		public void write(int b) throws IOException {
 			switch(b){
 			case 020://end of log message
-				commit(box.get());
-				box = Optional.empty();
+				//upload message~~~
+				if(msg.isPresent()==false) {
+					return;
+				}
+				Mesg mm = msg.get().setText(buf.toString());				
+				//1.logger always need it
+				if(logger.size()>=200){
+					logger.remove(0, 100);
+				}else{
+					logger.add(mm);
+				}
+				//2.Should we put it in pool?
+				if(usePool.get()==true){
+					pooler.add(mm);
+				}
+				//3.check hooker
+				if(useHook.get()==true){
+					mm.callback(hooker);
+				}
+				//4.clear buffer for next turn
+				msg = Optional.empty();
+				buf.reset();
 				break;
 			case 021://verbose message token
-				box = Optional.of(new Mesg('V'));
+				msg = Optional.of(new Mesg('V'));
 				break;
 			case 022://warning message token
-				box = Optional.of(new Mesg('W'));
+				msg = Optional.of(new Mesg('W'));
 				break;
 			case 023://error message token
-				box = Optional.of(new Mesg('E'));		
+				msg = Optional.of(new Mesg('E'));		
 				break;
 			default:
-				p_out.write(b);
-				if(fid!=null){ fid.write(b); }
+				p_out.write(b);//pipe to the origin stream
+				if(fid!=null){ 
+					fid.write(b);
+				}
+				if(msg.isPresent()==true) {
+					buf.write(b);
+				}
 				break;
-			}
-			if(box.isPresent()==true){
-				box.get().write(b);
 			}
 		}
 		@Override
@@ -145,20 +176,33 @@ public class LogStream {
 	}
 	
 	private ObservableList<Mesg> logger = FXCollections.observableArrayList();
-	
 	private AtomicBoolean usePool = new AtomicBoolean(false);
 	private ArrayList<Mesg> pooler = null;
-	private AtomicBoolean useHook = new AtomicBoolean(false);
+	
+	private AtomicBoolean useHook = new AtomicBoolean(false);		
 	private Hooker hooker = null;
 	
 	public void setPool(){
 		pooler = new ArrayList<Mesg>();
 		usePool.set(true);
 	}
-	public ArrayList<Mesg> getPool(){
+	public Mesg[] getPool(final String file_name){
 		usePool.set(false);
-		return pooler;
+		Misc.asynSerialize2file(file_name, pooler);
+		return pooler.toArray(new Mesg[0]);
 	}
+	public Mesg[] getPool(){
+		return getPool("");
+	}	
+	@SuppressWarnings("unchecked")
+	public static Mesg[] getPoolFromFile(final String file_name) {
+		Object obj = Misc.deserializeFile(file_name);
+		if(obj!=null) {
+			return ((ArrayList<Mesg>)obj).toArray(new Mesg[0]);
+		}
+		return null;		
+	} 
+	
 	public void setHook(final Hooker event){
 		if(event==null){
 			hooker = null;
@@ -166,28 +210,6 @@ public class LogStream {
 		}else{
 			hooker = event;
 			useHook.set(true);
-		}
-	}
-	
-	private synchronized void commit(final Mesg msg){
-		//upload message~~~
-		//1.logger always need it
-		if(logger.size()>=200){
-			logger.remove(0, 100);
-		}else{
-			logger.add(msg);
-		}
-		//2.Should we put it in pool?
-		if(usePool.get()==true){
-			pooler.add(msg);
-		}
-		//3.check hooker
-		if(useHook.get()==true){
-			hooker.callback(
-				msg.getTick(), 
-				msg.tkn, 
-				msg.getText()
-			);
 		}
 	}
 	
@@ -266,7 +288,7 @@ public class LogStream {
 		pane = Optional.of(obj.appear());
 		return obj;
 	}
-	
+
 	public static LogStream getInstance() {
 		if(self.isPresent()==false){
 			self = Optional.of(new LogStream());

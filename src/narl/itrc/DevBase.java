@@ -83,8 +83,7 @@ public abstract class DevBase implements Runnable {
 				}
 			}
 		}while(Gawain.isExist.get()==false);
-		//Misc.logv("%s --> close", TAG);
-		close();
+		Misc.logv("%s --> close", TAG);
 	}
 
 	private Thread taskFlow = null;
@@ -121,11 +120,13 @@ public abstract class DevBase implements Runnable {
 	
 	public void stopFlow() {
 		isExist.set(true);
-		try {
-			taskFlow.join();
-			taskFlow = null;//reset this flag~~~
-		} catch (InterruptedException e) {
+		if(Application.isEventThread()!=true){
+			try {
+				taskFlow.join();
+			} catch (InterruptedException e) {
+			}
 		}
+		taskFlow = null;//reset this flag~~~
 	}
 	
 	public void nextState(final String name) {

@@ -101,8 +101,8 @@ public class DevTTY extends DevBase {
 	@Override
 	public void close() {		
 		beforeClose();
-		implClose();
 		stopFlow();
+		implClose();		
 	}
 	@Override
 	public boolean isLive(){
