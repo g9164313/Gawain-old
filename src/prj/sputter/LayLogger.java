@@ -1,4 +1,4 @@
-package prj.scada;
+package prj.sputter;
 
 import java.io.File;
 import java.io.FileNotFoundException;

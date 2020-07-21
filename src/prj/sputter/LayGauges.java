@@ -1,11 +1,11 @@
-package prj.scada;
+package prj.sputter;
+
+import java.util.Optional;
 
 import eu.hansolo.tilesfx.Tile;
 import eu.hansolo.tilesfx.TileBuilder;
 import eu.hansolo.tilesfx.Tile.SkinType;
 import javafx.beans.binding.FloatBinding;
-import javafx.beans.binding.NumberBinding;
-import javafx.beans.property.FloatProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.scene.layout.FlowPane;
 import narl.itrc.DevModbus;
@@ -13,12 +13,11 @@ import narl.itrc.DevModbus;
 public class LayGauges extends FlowPane {
 
 	public final Tile gag[] = new Tile[6];
-		
+	
 	public LayGauges() {
-
 		//gauge for DCG-100
 		gag[0] = TileBuilder.create()
-			.skinType(SkinType.GAUGE)
+			.skinType(SkinType.SPARK_LINE)
 			.title("電壓")
 			.unit("Volt")
 			.maxValue(1000)			
@@ -27,7 +26,7 @@ public class LayGauges extends FlowPane {
 		gag[0].setId("v_volt");
 				
 		gag[1] = TileBuilder.create()
-			.skinType(SkinType.GAUGE)
+			.skinType(SkinType.SPARK_LINE)
 			.title("電流")			
 			.unit("Amp")
 			.maxValue(10)
@@ -36,7 +35,7 @@ public class LayGauges extends FlowPane {
 		gag[1].setId("g_amps");
 			
 		gag[2] = TileBuilder.create()
-			.skinType(SkinType.GAUGE)
+			.skinType(SkinType.SPARK_LINE)
 			.title("功率")			
 			.unit("Watt")
 			.maxValue(5000)				
@@ -44,7 +43,7 @@ public class LayGauges extends FlowPane {
 		gag[2].setId("g_watt");
 			
 		gag[3] = TileBuilder.create()
-			.skinType(SkinType.GAUGE)
+			.skinType(SkinType.SPARK_LINE)
 			.title("焦耳")			
 			.unit("Joules")
 			.maxValue(5000)			
@@ -103,17 +102,53 @@ public class LayGauges extends FlowPane {
 		
 		gag[4].valueProperty().bind(dev.rate[0]);
 		gag[4].setMinValue(dev.rateRange[0].doubleValue());
-		gag[4].setMaxValue(dev.rateRange[1].doubleValue());
+		set_max_limit(
+			gag[4],
+			dev.rateRange[1].doubleValue()
+		);
 		gag[4].setUnit(dev.unitRate.get());
-
+		
 		gag[5].valueProperty().bind(dev.thick[0]);
-		gag[5].setMinValue(dev.highRange[0].doubleValue());
-		gag[5].setMaxValue(dev.highRange[1].doubleValue());
+		gag[5].setMinValue(dev.thickRange[0].doubleValue());
+		set_max_limit(
+			gag[5],
+			dev.thickRange[1].doubleValue()
+		);
 		gag[5].setUnit(dev.unitThick.get());
 		return this;
 	}
+	private void set_max_limit(
+		final Tile obj,
+		final double val
+	) {
+		obj.setMaxValue(val);
+		obj.setThreshold(val-0.7);
+	}
 	
-	public LayGauges bindProperty(
+	private static Optional<LayGauges> self = Optional.empty();
+	
+	public static LayGauges getInstance() {
+		if(self.isPresent()==false){
+			self = Optional.of(new LayGauges());
+		}
+		return self.get();
+	}
+	public static void setRateMax(final double val) {
+		if(self.isPresent()==false){
+			return;
+		}
+		LayGauges inst = self.get();
+		inst.set_max_limit(inst.gag[4],val);
+	}
+	public static void setThickMax(final double val) {
+		if(self.isPresent()==false){
+			return;
+		}
+		LayGauges inst = self.get();
+		inst.set_max_limit(inst.gag[5],val);
+	}
+	
+	/*public LayGauges bindProperty(
 		final DevSQM160 dev1,
 		final DevModbus dev2
 	) {			
@@ -146,6 +181,5 @@ public class LayGauges extends FlowPane {
 		gag[5].valueProperty().bind(high);
 		
 		return this;
-	}
-	
+	}*/
 }

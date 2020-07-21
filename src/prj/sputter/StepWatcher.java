@@ -1,4 +1,4 @@
-package prj.scada;
+package prj.sputter;
 
 import com.sun.glass.ui.Application;
 
@@ -79,7 +79,7 @@ public class StepWatcher extends Stepper {
 		msg1.setText("等待檔板");
 		msg2.setText(String.format(
 			"%s",
-			Misc.tick2time(waiting(5000),true)
+			Misc.tick2time(waiting_time(5000),true)
 		));
 	};
 	final Runnable op_3 = ()->{
@@ -113,11 +113,12 @@ public class StepWatcher extends Stepper {
 		waiting_async();
 		dcg.asyncBreakIn(()->{
 			if(dcg.exec("OFF").endsWith("*")==false) {
-				next.set(ABORT);
+				next_abort();
 				Application.invokeLater(()->PanBase.notifyError("失敗", "無法點燃!!"));
 				return;
+			}else {
+				next_work();
 			}
-			next.set(LEAD);
 		});
 	};
 	

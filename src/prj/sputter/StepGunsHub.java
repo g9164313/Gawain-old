@@ -1,4 +1,4 @@
-package prj.scada;
+package prj.sputter;
 
 import com.jfoenix.controls.JFXCheckBox;
 import com.jfoenix.controls.JFXRadioButton;
@@ -62,7 +62,7 @@ public class StepGunsHub extends Stepper {
 		msg1.setText("等待中");
 		msg2.setText(String.format(
 			"剩餘  %s",
-			Misc.tick2time(waiting(3000),true)
+			Misc.tick2time(waiting_time(3000),true)
 		));
 	};
 	

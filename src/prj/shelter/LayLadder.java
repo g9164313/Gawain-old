@@ -66,10 +66,9 @@ public class LayLadder extends Ladder {
 		return res;
 	}
 	
-	private static void setCellText(
+	private static Cell get_cell(
 		final Sheet sheet,
-		final String address,
-		final String context
+		final String address
 	){
 		CellReference ref = new CellReference(address);
 		int yy = ref.getRow();
@@ -82,26 +81,7 @@ public class LayLadder extends Ladder {
 		if(cc==null){
 			cc = rr.createCell(xx);
 		}
-		cc.setCellValue(context);
-	}
-	
-	private static void setCellValue(
-		final Sheet sheet,
-		final String address,
-		final double context
-	){
-		CellReference ref = new CellReference(address);
-		int yy = ref.getRow();
-		int xx = ref.getCol();
-		Row rr = sheet.getRow(yy);
-		if(rr==null){
-			rr = sheet.createRow(yy);			
-		}
-		Cell cc = rr.getCell(xx);
-		if(cc==null){
-			cc = rr.createCell(xx);
-		}
-		cc.setCellValue(context);
+		return cc;
 	}
 	
 	private File mark_src = null;//template and data 
@@ -225,7 +205,7 @@ public class LayLadder extends Ladder {
 			};
 			for(char cc:lst){
 				for(int rr=13; rr<33; rr++){
-					setCellText(sh,""+cc+rr,"");			
+					get_cell(sh,""+cc+rr).setCellValue("");			
 				}
 			}
 		}		
@@ -246,8 +226,9 @@ public class LayLadder extends Ladder {
 				sh.getSheetName(), pts.col_name
 			));
 			
-			setCellValue(sh,
-				""+pts.col_name+"7",
+			get_cell(sh,
+				""+pts.col_name+"7"
+			).setCellValue(
 				pts.pin_loca
 			);//distance
 			
@@ -260,8 +241,9 @@ public class LayLadder extends Ladder {
 				if(ii>=val.length){
 					break;
 				}
-				setCellValue(sh,
-					""+pts.col_name+rr,
+				get_cell(sh,
+					""+pts.col_name+rr
+				).setCellValue(
 					val[ii]
 				);
 			}
@@ -274,19 +256,19 @@ public class LayLadder extends Ladder {
 				wb.getSheetAt(2),//0.05Ci
 			};
 			Sheet pin = wb.createSheet("標定表");
-			setCellText(pin,"A1","3Ci");
-			setCellText(pin,"A2","距離(cm)");
-			setCellText(pin,"B2","劑量(μSv/hr)");
+			get_cell(pin,"A1").setCellValue("3Ci");
+			get_cell(pin,"A2").setCellValue("距離(cm)");
+			get_cell(pin,"B2").setCellValue("劑量(μSv/hr)");
 			tranpose_mark(mrk[0],pin,'A','B');
 			
-			setCellText(pin,"C1","0.5Ci");
-			setCellText(pin,"C2","距離(cm)");
-			setCellText(pin,"D2","劑量(μSv/hr)");
+			get_cell(pin,"C1").setCellValue("0.5Ci");
+			get_cell(pin,"C2").setCellValue("距離(cm)");
+			get_cell(pin,"D2").setCellValue("劑量(μSv/hr)");
 			tranpose_mark(mrk[1],pin,'C','D');
 			
-			setCellText(pin,"E1","0.05Ci");
-			setCellText(pin,"E2","距離(cm)");
-			setCellText(pin,"F2","劑量(μSv/hr)");
+			get_cell(pin,"E1").setCellValue("0.05Ci");
+			get_cell(pin,"E2").setCellValue("距離(cm)");
+			get_cell(pin,"F2").setCellValue("劑量(μSv/hr)");
 			tranpose_mark(mrk[2],pin,'E','F');
 		}
 		private void tranpose_mark(
@@ -311,8 +293,8 @@ public class LayLadder extends Ladder {
 					val[0] = String.format("%.2f", loc);
 				}catch(NumberFormatException e){					
 				}
-				setCellText(dst,""+dst_col1+""+dst_row_idx, val[0]);
-				setCellText(dst,""+dst_col2+""+dst_row_idx, val[1]);
+				get_cell(dst,""+dst_col1+""+dst_row_idx).setCellValue(val[0]);
+				get_cell(dst,""+dst_col2+""+dst_row_idx).setCellValue(val[1]);
 				dst_row_idx+=1;
 			}
 		}

@@ -6,6 +6,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import com.jfoenix.controls.JFXButton;
 
 import javafx.collections.ObservableList;
+import javafx.concurrent.Task;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -82,28 +83,45 @@ public abstract class Stepper extends HBox {
 	}
 	//-----------------------------------//
 	
-	public static final int SPEC_JUMP = 10000;
-
-	public static final int FORWARD= 1 + SPEC_JUMP;
-	public static final int ABORT=  SPEC_JUMP;
+	public static final int SPEC_JUMP = 0x100000;
+	
 	public static final int LEAD =  1;
 	public static final int HOLD =  0;
 	public static final int BACK = -1;
-	public static final int PAUSE= -SPEC_JUMP;
-	public static final int BACKWARD= -1 - SPEC_JUMP;
 	
-	protected final AtomicInteger next = new AtomicInteger(1);	
-	//-----------------------------------//
+	public static final int FORWARD = SPEC_JUMP+1;	
+	public static final int ABORT   = SPEC_JUMP*1;
+	public static final int PAUSE   =-SPEC_JUMP*1;
+	public static final int BACKWARD=-SPEC_JUMP-1;
 	
-	public boolean waiting_async = false;
-	
-	protected void waiting_async(){
-		waiting_async = true;
-		next.set(HOLD);
+	public boolean isAsync = false;
+	public final AtomicInteger next = new AtomicInteger(LEAD);
+		
+	protected void next_hold() { next.set(HOLD); }
+	protected void next_abort(){ next.set(ABORT);}
+	protected void next_pause(){ next.set(PAUSE);}	
+	protected void next_jump(final int cnt) {
+		next.set((cnt>0)?(SPEC_JUMP):(-SPEC_JUMP)+cnt); 
+	}
+	protected void next_work() { next.set(LEAD);}
+	protected void next_work(final int cnt) {
+		if(Math.abs(cnt)<SPEC_JUMP) {
+			next.set(cnt);
+		}
 	}
 	
+	protected void waiting_async(){
+		isAsync = true;
+		next.set(HOLD);
+	}
+	protected Task<?> waiting_async(final Task<?> tsk) {
+		waiting_async();
+		new Thread(tsk,"step-async").start();		
+		return tsk;
+	}
+		
 	private long tick = -1L;	
-	protected long waiting(long period){
+	protected long waiting_time(long period){
 		if(tick<=0L){
 			tick = System.currentTimeMillis();
 		}
@@ -117,8 +135,8 @@ public abstract class Stepper extends HBox {
 		long rem = period - pass;
 		return (rem>0)?(rem):(0);
 	}
-	protected long waiting(final String time){
-		return waiting(Misc.time2tick(time));
+	protected long waiting_time(final String time){
+		return waiting_time(Misc.time2tick(time));
 	}
 	
 	protected void prepare(){
@@ -223,13 +241,13 @@ public abstract class Stepper extends HBox {
 		final Label msg = new Label();
 		@Override
 		public Node getContent(){
-			set(()->{
+			/*set(()->{
 				Misc.logv(":%s.1", msg.getText()); next.set(LEAD);
 			},()->{
 				Misc.logv(":%s.2", msg.getText()); next.set(LEAD);
 			},()->{
 				Misc.logv(":%s.3", msg.getText()); next.set(LEAD);
-			});//~~test~~
+			});*///~~test~~
 			Separator ss1 = new Separator();
 			Separator ss2 = new Separator();
 			HBox.setHgrow(ss1, Priority.ALWAYS);

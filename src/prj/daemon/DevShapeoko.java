@@ -27,7 +27,7 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import narl.itrc.DevTTY;
 import narl.itrc.Misc;
-import prj.scada.DevDCG100;
+import prj.sputter.DevDCG100;
 
 @SuppressWarnings("unused")
 public class DevShapeoko extends DevTTY {

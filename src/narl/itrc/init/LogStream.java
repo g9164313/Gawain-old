@@ -29,7 +29,6 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 import narl.itrc.Gawain;
-import narl.itrc.Misc;
 import narl.itrc.PanBase;
 
 public class LogStream {
@@ -39,6 +38,8 @@ public class LogStream {
 	public interface Hooker {
 		void callback(long tick, char level, String text);
 	};
+	
+	private static final SimpleDateFormat DEF_TICK_FORMAT = new SimpleDateFormat("HH:mm:ss.SSS");
 	
 	public static class Mesg implements Serializable {		
 
@@ -56,6 +57,14 @@ public class LogStream {
 		public String getCol1() { return ""+tkn; }
 		public String getCol2() { return txt; }		
 		public long   getTick() { return stm.getTime(); }
+		public String getTickText(final String format) {
+			SimpleDateFormat fmt = (format.length()==0)?(
+				DEF_TICK_FORMAT
+			):(
+				new SimpleDateFormat(format)
+			);
+			return fmt.format(stm);
+		}
 		public String getText() { return txt; }
 		public Mesg   setText(final String text) { txt = text; return this; }
 		public void callback(Hooker hook) {
@@ -176,32 +185,45 @@ public class LogStream {
 	}
 	
 	private ObservableList<Mesg> logger = FXCollections.observableArrayList();
-	private AtomicBoolean usePool = new AtomicBoolean(false);
-	private ArrayList<Mesg> pooler = null;
+	private final AtomicBoolean usePool = new AtomicBoolean(false);
+	private final ArrayList<Mesg> pooler = new ArrayList<Mesg>();
 	
 	private AtomicBoolean useHook = new AtomicBoolean(false);		
 	private Hooker hooker = null;
 	
-	public void setPool(){
-		pooler = new ArrayList<Mesg>();
+	public void formPool(){
+		pooler.clear();
 		usePool.set(true);
+	}
+	public Mesg[] flushPool() {
+		Mesg[] lst = pooler.toArray(new Mesg[0]);
+		pooler.clear();
+		System.gc();
+		return lst;
+	}
+	public Mesg[] getPool(){
+		return pooler.toArray(new Mesg[0]);
+	}
+	public Mesg[] razePool() {
+		usePool.set(false);
+		return flushPool();
+	}	
+	/*public Mesg[] savePoolWithDate(){
+		return getPool(Gawain.pathHome+Misc.getDateName()+".obj");
 	}
 	public Mesg[] getPool(final String file_name){
 		usePool.set(false);
 		Misc.asynSerialize2file(file_name, pooler);
 		return pooler.toArray(new Mesg[0]);
 	}
-	public Mesg[] getPool(){
-		return getPool("");
-	}	
 	@SuppressWarnings("unchecked")
-	public static Mesg[] getPoolFromFile(final String file_name) {
+	public static Mesg[] loadPool(final String file_name) {
 		Object obj = Misc.deserializeFile(file_name);
 		if(obj!=null) {
 			return ((ArrayList<Mesg>)obj).toArray(new Mesg[0]);
 		}
 		return null;		
-	} 
+	}*/
 	
 	public void setHook(final Hooker event){
 		if(event==null){

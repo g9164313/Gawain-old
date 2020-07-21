@@ -1,4 +1,4 @@
-package prj.scada;
+package prj.sputter;
 
 import java.util.Optional;
 
@@ -103,8 +103,8 @@ public class DevSQM160 extends DevTTY {
 				freqRange[1].set(Float.valueOf(c_value[1]));
 				rateRange[0].set(Float.valueOf(c_value[2]));
 				rateRange[1].set(Float.valueOf(c_value[3]));
-				highRange[0].set(Float.valueOf(c_value[4]));
-				highRange[1].set(Float.valueOf(c_value[5]));
+				thickRange[0].set(Float.valueOf(c_value[4]));
+				thickRange[1].set(Float.valueOf(c_value[5]));
 			}
 			shutter.set(u_value);
 		});
@@ -309,7 +309,7 @@ public class DevSQM160 extends DevTTY {
 		new SimpleFloatProperty(-99f ),
 		new SimpleFloatProperty( 999f)
 	};//min and max value
-	public final FloatProperty[] highRange = {
+	public final FloatProperty[] thickRange = {
 		new SimpleFloatProperty(0f   ),
 		new SimpleFloatProperty(9999f)
 	};//min and max value

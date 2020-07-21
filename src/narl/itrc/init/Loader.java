@@ -1,7 +1,9 @@
 package narl.itrc.init;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.LinkedList;
 
@@ -20,48 +22,55 @@ import narl.itrc.Misc;
 public class Loader extends Task<Integer> {
 
 	@Override
-	protected Integer call() throws Exception {
-		long t1 = System.currentTimeMillis();
-		prepare_resource();
-		loading_library();
-		updateProgress(-1.,-1.);//let progress-bar waiting~~~
+	protected Integer call() throws Exception {				
+		//long t1 = System.currentTimeMillis();
+		prepare_socket_dir();
+		loading_dependency();		
 		updateMessage("等待主畫面... ");
-		long dxx = System.currentTimeMillis() - t1;
-		if(dxx<1000) {
-			dxx = 1000;
-		}
-		Thread.sleep(dxx);
+		updateProgress(-1.,-1.);//let progress-bar waiting~~~
+		//long dxx = System.currentTimeMillis() - t1;
+		//if(dxx<1000) {
+		//	Thread.sleep(1000-dxx);
+		//}		
 		return 0;
 	}
 	
-	private void prepare_resource() {
-		//File fs = new File(Gawain.pathSock);
-		//step.1: scan resource files in package
-		ArrayList<File> lstRes = new ArrayList<File>();
-		URL url = Loader.class.getResource(".");
-		if(url==null) {
-			return;
+	private void prepare_socket_dir() {
+		updateMessage("準備資源... ");
+		final File fs = new File(Gawain.pathSock);
+		if(fs.exists()==false) {
+			//In fact, logger will create this directory
+			if(fs.mkdirs()==false) {
+				Misc.loge("致命錯誤，無法產生 socket！！");
+				System.exit(-1);
+			}
 		}
+		
+		//step.1: scan resource files in package
+		final String appx = "^.class;.css";
+		final URL url = Loader.class.getResource("/narl/itrc/res");
+		if(url==null) {
+			Misc.loge("致命內部URL錯誤！！");
+			System.exit(-2);
+		}
+		ArrayList<File> lstRes = new ArrayList<File>();
 		Misc.listFiles(
-			new File(url.getPath()), 
-			"^.class", 
-			lstRes
+			new File(url.getPath()),false, 
+			appx, lstRes
 		);
 		//step.2: list files in sock directory
 		ArrayList<File> lstSock = new ArrayList<File>();
 		Misc.listFiles(
-			Gawain.dirSock, 
-			"", 
-			lstSock
+			Gawain.dirSock,false,
+			appx, lstSock
 		);
 		//step.3: check whether we need to copy it
-		updateProgress(0, lstRes.size());
 		for(int i=0; i<lstRes.size(); i++) {
+			updateProgress(i+1, lstRes.size());
 			File rr = lstRes.get(i);
-			File ss = null;
 			boolean found = false;
 			for(int j=0; j<lstSock.size(); j++) {
-				ss = lstSock.get(j);
+				File ss = lstSock.get(j);
 				if(rr.getName().equals(ss.getName())==true) {
 					found = true;
 					lstSock.remove(j);
@@ -70,15 +79,20 @@ public class Loader extends Task<Integer> {
 			}
 			if(found==false) {
 				//How to create directory structure??
-				Misc.copyFile(
-					rr, 
-					new File(Gawain.pathSock+File.separatorChar+rr.getName())
-				);
+				//How to the compression file???
+				try {
+					Files.copy(
+						rr.toPath(), 
+						new File(Gawain.pathSock+rr.getName()).toPath()
+					);
+				} catch (IOException e) {					
+					e.printStackTrace();
+				}
 			}
 		}
 	}
 	
-	private void loading_library(){
+	private void loading_dependency(){
 		
 		LinkedList<LibFile> lst = new LinkedList<LibFile>();
 		
@@ -101,19 +115,19 @@ public class Loader extends Task<Integer> {
 				System.loadLibrary(fs.getLibName());
 				String name = fs.getName();
 				Misc.logv("load "+name);
-				updateMessage("載入 "+name);
+				updateMessage("載入依賴："+name);
 				updateProgress(barCur, barMax);
 				barCur+=1L;
 			} catch (UnsatisfiedLinkError e1) {
 				fs.fail+=1;
 				if(fs.fail>(barMax-barCur)){
 					//we can't solve the dependency problem, so drop it out.
-					updateMessage("拋棄 "+fs.getAbsolutePath());
+					updateMessage("拋棄："+fs.getAbsolutePath());
 					break;
 				}else{
 					//this file have the dependency problem, deal with it later.
 					lst.addLast(fs);
-					updateMessage("重排 "+fs.getName());
+					updateMessage("重排："+fs.getName());
 				}				
 			}			
 		}

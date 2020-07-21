@@ -170,7 +170,7 @@ public class DevModbus extends DevBase {
 	
 	private void looper() {
 		try {
-			Thread.sleep(100);
+			Thread.sleep(50);
 		} catch (InterruptedException e) {
 			return;
 		}

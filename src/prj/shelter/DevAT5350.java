@@ -1,20 +1,14 @@
 package prj.shelter;
 
 import java.util.ArrayList;
-import java.util.Optional;
-
 import org.apache.commons.math3.stat.StatUtils;
 
 import com.jfoenix.controls.JFXButton;
-import com.jfoenix.controls.JFXCheckBox;
 import com.jfoenix.controls.JFXComboBox;
-import com.jfoenix.controls.JFXRadioButton;
 import com.jfoenix.controls.JFXTextField;
 import com.jfoenix.controls.JFXToggleButton;
 import com.sun.glass.ui.Application;
 
-import javafx.beans.property.IntegerProperty;
-import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.concurrent.Task;
@@ -23,16 +17,13 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleButton;
-import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.util.StringConverter;
 import narl.itrc.DevTTY;
 import narl.itrc.Misc;
-import narl.itrc.PadTouch;
 import narl.itrc.PanBase;
 import narl.itrc.UtilPhysical;
 
@@ -183,8 +174,12 @@ public class DevAT5350 extends DevTTY {
 		}
 		return false;
 	}
-	private String wxr(final String cmd){
-		write_with_delay(cmd);
+	private String wxr(String cmd){
+		//write_with_delay(cmd);
+		if(cmd.endsWith("\n")==false){
+			cmd = cmd + "\n";
+		}
+		writeTxtDelay(25,cmd);
 		String res = readTxt(600).trim();
 		if(verbose==true){
 			Misc.logv("[%s] %s --> %s",TAG,cmd,res);
@@ -195,7 +190,7 @@ public class DevAT5350 extends DevTTY {
 		}
 		return res;	
 	}
-	private void write_with_delay(String cmd){
+	/*private void write_with_delay(String cmd){
 		if(cmd.endsWith("\n")==false){
 			cmd = cmd + "\n";
 		}
@@ -207,7 +202,7 @@ public class DevAT5350 extends DevTTY {
 				e.printStackTrace();
 			}
 		}
-	}
+	}*/
 	
 	private String[] split_txt(String txt){
 		ArrayList<String> vals = new ArrayList<String>(10);

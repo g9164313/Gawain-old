@@ -1,4 +1,4 @@
-package prj.scada;
+package prj.sputter;
 
 import java.util.Optional;
 
@@ -117,7 +117,8 @@ public class DevDCG100 extends DevTTY {
 		if(txt.endsWith("\r")==false) {
 			txt = txt + "\r";
 		}
-		writeTxt(txt);
+		//writeTxt(txt);
+		writeTxtDelay(10,txt);
 		
 		txt = ""; //clear command~~~
 		int ans = 0;

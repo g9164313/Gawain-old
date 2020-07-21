@@ -1,4 +1,4 @@
-package prj.scada;
+package prj.sputter;
 
 import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXCheckBox;
@@ -23,18 +23,18 @@ import narl.itrc.PanBase;
 import narl.itrc.Stepper;
 import narl.itrc.init.LogStream;
 
-public class PanMain1 extends PanBase {
+public class PanMain extends PanBase {
 	
 	final DevModbus coup = new DevModbus().mapAddress("h8000-8004");
 	final DevDCG100 dcg1 = new DevDCG100();	
 	final DevSPIK2k spik = new DevSPIK2k();
 	final DevSQM160 sqm1 = new DevSQM160();
 
-	final LayGauges gauges = new LayGauges();
-	final LayLogger logger = new LayLogger();
+	final LayGauges gauges = LayGauges.getInstance();
+	//final LayLogger logger = new LayLogger();
 	final Ladder ladder = new Ladder();
-	
-	public PanMain1() {
+
+	public PanMain() {
 		super();
 		init();
 		stage().setOnShown(e->on_shown());
@@ -61,22 +61,17 @@ public class PanMain1 extends PanBase {
 			gauges.bindProperty(sqm1);
 			sqm1.open(arg);
 		}
-		logger.bindProperty(
-			dcg1.volt, dcg1.amps, 
-			dcg1.watt, dcg1.joul,
-			sqm1.rate[0], sqm1.thick[0]
-		);
 	}
 	
 	private void init(){
 		//initial step-box for recipe
 		ladder.addStep("分隔線", Stepper.Sticker.class);
-		ladder.addStep("迴圈", Stepper.Replay.class);
 		ladder.addStep("薄膜選取",StepSetFilm.class, sqm1);
 		ladder.addStep("電極切換",StepGunsHub.class, coup);
 		ladder.addStep("脈衝設定",StepSetPulse.class, spik);
 		ladder.addStep("高壓控制",StepKindler.class, sqm1, dcg1, spik);
 		ladder.addStep("厚度監控",StepWatcher.class, sqm1, dcg1);
+		ladder.addStep("[實驗用]",StepCollect.class, sqm1, dcg1, spik);
 		ladder.addSack(
 			"<單層鍍膜.3>", 
 			Stepper.Sticker.class,
@@ -101,10 +96,8 @@ public class PanMain1 extends PanBase {
 			StepKindler.class,
 			StepWatcher.class
 		);
-		ladder.prelogue = ()->LogStream.getInstance().setPool();
-		ladder.epilogue = ()->{
-			LogStream.getInstance().getPool("ggyy.obj");			
-		};
+		ladder.prelogue = ()->LogStream.getInstance().formPool();
+		ladder.epilogue = ()->LogStream.getInstance().razePool();
 	}
 	
 	@Override
@@ -127,7 +120,7 @@ public class PanMain1 extends PanBase {
 			new Tab("管路"),
 			new Tab("監測",gauges),
 			new Tab("製程",ladder),
-			new Tab("紀錄",logger),			
+			//new Tab("紀錄",logger),			
 			new Tab("裝置",lay2)
 		);
 		lay3.getSelectionModel().select(2);
@@ -183,7 +176,7 @@ public class PanMain1 extends PanBase {
 					dcg1.exec("SPW="+val);
 					dcg1.exec("TRG");
 				});
-				logger.startRecord();
+				//logger.startRecord();
 			}catch(NumberFormatException exp) {
 			}
 		});
@@ -191,7 +184,7 @@ public class PanMain1 extends PanBase {
 		btn[3].setText("電漿-OFF");
 		btn[3].setOnAction(e->{
 			dcg1.asyncExec("OFF");
-			logger.stopRecord();
+			//logger.stopRecord();
 		});
 		
 		final Label[] txt = new Label[6];

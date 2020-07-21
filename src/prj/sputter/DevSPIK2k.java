@@ -1,4 +1,4 @@
-package prj.scada;
+package prj.sputter;
 
 
 import java.util.Optional;

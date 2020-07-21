@@ -1,4 +1,4 @@
-package prj.scada;
+package prj.sputter;
 
 import java.util.Optional;
 
@@ -89,9 +89,12 @@ public class StepSetFilm extends Stepper {
 		});
 	};
 	
-	
 	final Runnable op_3 = ()->{
 		msg1.setText(init_txt);
+		double val = Double.valueOf(args[3].getText().trim());//final thickness
+		val = val + 0.01;
+		LayGauges.setRateMax(val/2.);
+		LayGauges.setThickMax(val);
 	};
 	
 	private void select_film(){

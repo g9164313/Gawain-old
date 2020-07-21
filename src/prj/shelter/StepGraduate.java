@@ -146,7 +146,7 @@ public class StepGraduate extends Stepper {
 		}		
 	};
 	Runnable op_mov3 = ()->{
-		long tt = waiting(10*1000);
+		long tt = waiting_time(10*1000);
 		if(tt>=10){
 			msg2.setText(String.format(
 				"%s",

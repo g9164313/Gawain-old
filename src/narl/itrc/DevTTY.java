@@ -266,14 +266,13 @@ public class DevTTY extends DevBase {
 	 * @param delay - milliseconds
 	 * @param txt
 	 */
-	public void writeDelay(final int millisecond, final String txt) {
+	public void writeTxtDelay(final int millisecond, final String txt) {
 		final byte[] buf = txt.getBytes();
-		for(int i=0; i<buf.length; i++) {
-			implWrite(buf,i,1);
+		for(byte vv:buf) {
+			writeByte(vv);
 			try {
 				TimeUnit.MILLISECONDS.sleep(millisecond);
 			} catch (Exception e) {
-				//e.printStackTrace();
 				break;
 			}
 		}

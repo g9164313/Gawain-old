@@ -20,6 +20,7 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.scene.control.Accordion;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.TitledPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
@@ -219,8 +220,12 @@ public class Ladder extends BorderPane {
 		if(fid==null){
 			return;
 		}
-		//TODO: clear all or append~~~
-		recipe.getItems().clear();
+		if(recipe.getItems().size()!=0) {
+			ButtonType btn = PanBase.notifyConfirm("", "清除舊步驟？");
+			if(btn==ButtonType.OK) {
+				recipe.getItems().clear();
+			}
+		}
 		final Task<?> tsk = new Task<Integer>(){
 			@Override
 			protected Integer call() throws Exception {
@@ -338,7 +343,7 @@ public class Ladder extends BorderPane {
 			if(step==null) {return;}
 			step.indicator(flag);
 		}
-		void running() {
+		void working() {
 			if(work==null) {return;}
 			work.run();
 		}
@@ -396,15 +401,17 @@ public class Ladder extends BorderPane {
 			cur.indicate(true);;
 			prv.indicate(false);
 		}
-		if(cur.step.waiting_async==false){
-			cur.running();	//working, working....	
+		//working!! After work is done, check asynchronous state.
+		if(cur.step.isAsync==false){
+			cur.working();	
 		}else{
-			//Asynchronous case, other thread will change flag
+			//Asynchronous case, other thread will change flag again.
 			if(cur.step.next.get()!=Stepper.HOLD){
-				cur.step.waiting_async = false;
+				cur.step.isAsync = false;//rest for next turn~~~~
 			}
 		}
 		//decide forward, backward or camp.
+		//it means running sequence will be reordered.
 		int stp = cur.step.next.get();
 		int cnt = Math.abs(stp);
 		boolean dir = (stp>=0)?(true):(false);		

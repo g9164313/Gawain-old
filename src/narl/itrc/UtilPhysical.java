@@ -115,7 +115,7 @@ public class UtilPhysical {
 				break;
 			}
 		}
-		if(idx>=1 && idx<(txt.length()-1)){
+		if(idx>=1 && idx<txt.length()){
 			//there must be one decimal.
 			//and Unit have one character at least.
 			col[0] = txt.substring(0,idx);

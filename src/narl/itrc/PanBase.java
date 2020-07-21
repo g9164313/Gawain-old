@@ -190,7 +190,7 @@ public abstract class PanBase {
 	 * show a spinner, let user know we are working.<p>
 	 * @param task - a working thread.<p>
 	 */
-	public void notifyTask(
+	public Task<?> notifyTask(
 		final String name,
 		final Task<?> task
 	) {
@@ -210,11 +210,12 @@ public abstract class PanBase {
 		});
 		dlg.setOnDialogClosed(e->task.cancel());
 		dlg.show((StackPane)root());
+		return task;
 	}
-	public void notifyTask(
+	public Task<?> notifyTask(
 		final Task<?> task
 	) {
-		notifyTask("--task--",task);
+		return notifyTask("--task--",task);
 	}
 	//----------------------------------------------//
 	

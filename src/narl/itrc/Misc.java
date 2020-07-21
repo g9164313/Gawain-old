@@ -8,6 +8,8 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 
 import com.sun.glass.ui.Application;
@@ -20,7 +22,7 @@ import javafx.scene.image.ImageView;
 import javafx.stage.Window;
 
 public class Misc {
-
+	
 	/**
 	 * just show messages, it is like 'stdout'
 	 * @param fmt - pass to 'String.printf()' 
@@ -45,7 +47,7 @@ public class Misc {
 	public static void loge(String fmt,Object... arg){
 		System.out.print(String.format('\23'+fmt+"\20\r\n", arg));
 	}	
-	//--------------------------//
+	//----------------------------------------//
 
 	/*public static final KeyCombination shortcut_save = KeyCombination.keyCombination("Ctrl+S");
 	public static final KeyCombination shortcut_load = KeyCombination.keyCombination("Ctrl+L");
@@ -64,14 +66,25 @@ public class Misc {
 		box.getSelectionModel().select(cnt);
 	}*/
 
+	private static final SimpleDateFormat date_name = new SimpleDateFormat("yyyyMMdd_HHmm");
+	/**
+	 * Use this function to generate file name.<p>
+	 * @return - the string type of file name.<p>
+	 */
+	public static String getDateName() {
+		return date_name.format(new Timestamp(System.currentTimeMillis())); 
+	}
+	
 	/**
 	 * list all files(include sub-directory).<p>
 	 * @param path - directory node
+	 * @param travel - try to travel sub-directory
 	 * @param allAppx - appendix or extension (ex:.jpg;.dll;.png...)
 	 * @param allList - the result of list, output value
 	 */
 	public static void listFiles(
 		final File path,
+		final boolean travel,
 		final String allAppx,
 		final ArrayList<File> allList
 	) {
@@ -85,8 +98,8 @@ public class Misc {
 			return;
 		}
 		for(File fs:lst){			
-			if(fs.isDirectory()==true) {
-				listFiles(fs,allAppx,allList);
+			if(fs.isDirectory()==true && travel==true) {
+				listFiles(fs,travel,allAppx,allList);
 			}else if(fs.isFile()==true) {
 				allList.add(fs);
 			}
@@ -115,21 +128,7 @@ public class Misc {
 			return (excu==true)?(true):(false);
 		}
 	};
-	public static void copyFile(final File src, final File dst) {
-		try {
-			int len;
-			byte[] buf = new byte[1024*512];
-			FileInputStream ss = new FileInputStream(src);
-			FileOutputStream dd = new FileOutputStream(dst);
-			while((len=ss.read(buf))>0){
-				dd.write(buf, 0, len);
-			}
-			dd.close();
-			ss.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
+	//----------------------------------------//
 	
 	public static ImageView getIconView(String name){
 		return getResView("/narl/itrc/res/icon",name);
@@ -475,8 +474,51 @@ public class Misc {
 			end = txt.length();
 		}
 		return txt.substring(beg,end);
-	}	
-	//--------------------------//
+	}
+	
+	public static int[] list2int(final ArrayList<Integer> src) {
+		int cnt = src.size();
+		int[] dst = new int[cnt];
+		for(int i=0; i<cnt; i++) {
+			dst[i] = src.get(i).intValue();
+		}
+		return dst;
+	}
+	@SuppressWarnings("unchecked")
+	public static float[] list2float(final ArrayList<?> src, final Class<?> lst_type) {		
+		int cnt = src.size();
+		float[] dst = new float[cnt];
+		if(lst_type==Float.TYPE) {			
+			ArrayList<Float> _src = (ArrayList<Float>) src;
+			for(int i=0; i<cnt; i++) {				
+				dst[i] = _src.get(i).floatValue();
+			}
+		}else if(lst_type==Double.TYPE){
+			ArrayList<Double> _src = (ArrayList<Double>) src;
+			for(int i=0; i<cnt; i++) {				
+				dst[i] = _src.get(i).floatValue();
+			}
+		}		
+		return dst;
+	}
+	@SuppressWarnings("unchecked")
+	public static double[] list2double(final ArrayList<?> src, final Class<?> lst_type) {		
+		int cnt = src.size();
+		double[] dst = new double[cnt];
+		if(lst_type==Float.TYPE) {			
+			ArrayList<Float> _src = (ArrayList<Float>) src;
+			for(int i=0; i<cnt; i++) {				
+				dst[i] = _src.get(i).doubleValue();
+			}
+		}else if(lst_type==Double.TYPE){
+			ArrayList<Double> _src = (ArrayList<Double>) src;
+			for(int i=0; i<cnt; i++) {				
+				dst[i] = _src.get(i).doubleValue();
+			}
+		}		
+		return dst;
+	}
+	//----------------------------------------//
 	
 	public static void asynSerialize2file(
 		final String file_name,
