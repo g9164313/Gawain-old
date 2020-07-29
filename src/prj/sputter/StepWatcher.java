@@ -37,32 +37,11 @@ public class StepWatcher extends Stepper {
 	
 	final Runnable op_1 = ()->{
 		//open shutter
-		waiting_async();
 		msg1.setText("歸零");
 		msg2.setText("");
+		waiting_async();
 		sqm.asyncBreakIn(()->{
 			//reset film data, include its tooling and final thick
-			/*while(sqm.exec("U1").charAt(0)!='A'){
-				Misc.logw("[SQM160] 無法開啟擋板.");
-				try {
-					Thread.sleep(100);
-				} catch (InterruptedException e) {
-				}
-			}
-			while(sqm.exec("S").charAt(0)!='A'){
-				Misc.logw("[SQM160] 無法重設厚度，速率.");
-				try {
-					Thread.sleep(100);
-				} catch (InterruptedException e) {
-				}
-			}
-			while(sqm.exec("T").charAt(0)!='A'){
-				Misc.logw("[SQM160] 無法重設時間.");
-				try {
-					Thread.sleep(100);
-				} catch (InterruptedException e) {
-				}
-			}*/
 			try {
 				sqm.exec("S");
 				Thread.sleep(250);

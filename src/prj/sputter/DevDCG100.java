@@ -1,6 +1,7 @@
 package prj.sputter;
 
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
 
 import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXRadioButton;
@@ -8,8 +9,10 @@ import com.sun.glass.ui.Application;
 
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.FloatProperty;
+import javafx.beans.property.LongProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleFloatProperty;
+import javafx.beans.property.SimpleLongProperty;
 import javafx.event.EventHandler;
 import javafx.geometry.Orientation;
 import javafx.scene.control.Alert;
@@ -85,17 +88,39 @@ public class DevDCG100 extends DevTTY {
 		}
 		measurement();
 	}
+	
+	public final BooleanProperty isRemote = new SimpleBooleanProperty(false);
+	
+	public final FloatProperty volt = new SimpleFloatProperty(0.f);
+	public final FloatProperty amps = new SimpleFloatProperty(0.f);
+	public final FloatProperty watt = new SimpleFloatProperty(0.f);
+	public final FloatProperty joul = new SimpleFloatProperty(0.f);	
+
 	private void measurement() {
 		final String[] val = {"","","",""};
 		val[0] = cook(exec("MVV"),"");
 		val[1] = cook(exec("MVA"),"");
 		val[2] = cook(exec("MVW"),"");
 		val[3] = cook(exec("MVJ"),"");
+		//output on-time
+		//format is hhhhhhh.mm.ss
+		/*long v_sec = -1L;
+		String txt = cook(exec("ROT="),"");
+		if(txt.matches("\\d{1,}[.]\\d{2}[.]\\d{2}")==true){
+			String[] _v = txt.split("[.]");
+			long hh = Long.valueOf(_v[0])*60*60;
+			long mm = Long.valueOf(_v[1])*60;
+			long ss = Long.valueOf(_v[2]);
+			v_sec = hh+mm+ss;
+		}
+		final long on_time = v_sec;*/
+		
 		Application.invokeLater(()->{
 			txt2prop(val[0], volt);
 			txt2prop(val[1], amps);
 			txt2prop(val[2], watt);
-			txt2prop(val[3], joul);
+			txt2prop(val[3], joul);		
+			//onTime.set(val[4]);
 		});
 		//Misc.logv("V=%s A=%s W=%s J=%s", 
 		//	val[0], val[1], val[2], val[3]);
@@ -106,13 +131,6 @@ public class DevDCG100 extends DevTTY {
 		playFlow(STG_INIT);
 	}
 	
-	public final BooleanProperty isRemote = new SimpleBooleanProperty(false);
-	
-	public final FloatProperty volt = new SimpleFloatProperty(0.f);
-	public final FloatProperty amps = new SimpleFloatProperty(0.f);
-	public final FloatProperty watt = new SimpleFloatProperty(0.f);
-	public final FloatProperty joul = new SimpleFloatProperty(0.f);
-		
 	public String exec(String txt) {
 		if(txt.endsWith("\r")==false) {
 			txt = txt + "\r";

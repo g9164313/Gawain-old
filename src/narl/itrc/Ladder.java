@@ -368,10 +368,9 @@ public class Ladder extends BorderPane {
 		}
 		//let timer know the working is ending
 		queue.addLast(ending);
+		ending.work = epilogue;
 		//let user prepare something
-		if(prelogue!=null) {
-			prelogue.run();
-		}
+		if(prelogue!=null) { prelogue.run(); }
 		//setup timer to repeat all works~~~
 		KeyFrame key = new KeyFrame(
 			Duration.seconds(1.),
@@ -389,18 +388,14 @@ public class Ladder extends BorderPane {
 		//check the tail, because it is the previous step~~~
 		if(cur.equals(ending)==true){
 			abort_or_pause(true);
-			if(epilogue!=null) {
-				epilogue.run();
-			}
+			if(epilogue!=null) { epilogue.run(); }
 			return;
 		}
 		//update indicator icon in every stepper.
 		//TODO: when backward, how to indicate step?
 		recipe.getSelectionModel().select(cur.step);
-		if(cur.step!=prv.step){
-			cur.indicate(true);;
-			prv.indicate(false);
-		}
+		cur.indicate(true);;
+		prv.indicate(false);
 		//working!! After work is done, check asynchronous state.
 		if(cur.step.isAsync==false){
 			cur.working();	
@@ -427,36 +422,41 @@ public class Ladder extends BorderPane {
 			minor_jump(cnt,dir);
 		}
 	}	
-	private void major_jump(final int cnt, final boolean flag) {
+	private void major_jump(final int cnt, final boolean direction) {
+		aligment_foot();
 		for(int i=0; i<cnt; i++) {
-			drawn_foot(flag);
+			drawn_foot(direction);
+		}
+	}
+	private void aligment_foot() {
+		Stepper head = queue.getFirst().step;
+		Stepper tail = queue.getLast().step;
+		for(;head==tail;){
+			queue.addFirst(queue.pollLast());
+			tail = queue.getLast().step;		
 		}
 	}
 	private void drawn_foot(final boolean flag) {
-		Stepper aaa = (flag==true)?(
+		Stepper aa = (flag==true)?(
 			queue.getFirst().step
 		):(
 			queue.getLast().step
 		);
-		if(aaa==null) {
-			return;
-		}
-		for(;;){
-			Stepper bbb = (flag==true)?(
-				queue.getFirst().step
-			):(
-				queue.getLast().step
-			);
-			if(bbb!=aaa) {
-				break;
-			}
+		Stepper bb;
+		do{
 			if(flag==true) {
 				queue.addLast(queue.pollFirst());
+				bb = queue.getFirst().step;
 			}else {
 				queue.addFirst(queue.pollLast());
-			}			
-		}
+				bb = queue.getLast().step;
+			}
+			if(bb==null) {
+				return;
+			}
+		}while(aa==bb);
 	}
+	
 	private void minor_jump(final int cnt, final boolean flag) {
 		for(int i=0; i<cnt; i++) {
 			if(flag==true) {

@@ -47,6 +47,8 @@ public class StepSetFilm extends Stepper {
 		new TextField(),//sensor number
 	};
 	
+	public final TextField boxZFactor = args[2]; 
+	
 	final Runnable op_1 = ()->{
 		//set film data and final thickness		
 		waiting_async();

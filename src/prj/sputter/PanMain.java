@@ -69,9 +69,9 @@ public class PanMain extends PanBase {
 		ladder.addStep("薄膜選取",StepSetFilm.class, sqm1);
 		ladder.addStep("電極切換",StepGunsHub.class, coup);
 		ladder.addStep("脈衝設定",StepSetPulse.class, spik);
-		ladder.addStep("高壓控制",StepKindler.class, sqm1, dcg1, spik);
+		ladder.addStep("高壓設定",StepKindler.class, sqm1, dcg1, spik);
 		ladder.addStep("厚度監控",StepWatcher.class, sqm1, dcg1);
-		ladder.addStep("[實驗用]",StepCollect.class, sqm1, dcg1, spik);
+		ladder.addStep("[實驗用]",StepCollect.class);
 		ladder.addSack(
 			"<單層鍍膜.3>", 
 			Stepper.Sticker.class,
@@ -252,8 +252,12 @@ public class PanMain extends PanBase {
 		lay3.getStyleClass().addAll("box-pad-inner");
 		lay3.addColumn(0, rad);
 		
+		//final Label _test_ = new Label();
+		//_test_.textProperty().bind(dcg1.onTime);
+		
 		final VBox lay0 = new VBox();
 		lay0.getStyleClass().addAll("box-pad","border");
+		//lay0.getChildren().addAll(_test_,new Label(),box[0]);
 		lay0.getChildren().addAll(new Label(),box[0]);
 		lay0.getChildren().add(lay2);
 		lay0.getChildren().add(new Separator());

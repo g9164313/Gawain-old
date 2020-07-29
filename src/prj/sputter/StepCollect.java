@@ -3,7 +3,6 @@ package prj.sputter;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
 
 import org.apache.poi.EncryptedDocumentException;
 import org.apache.poi.ss.usermodel.Cell;
@@ -24,6 +23,7 @@ import javafx.scene.control.Separator;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
 import narl.itrc.Misc;
+import narl.itrc.PanBase;
 import narl.itrc.Stepper;
 import narl.itrc.UtilPhysical;
 import narl.itrc.init.LogStream;
@@ -31,18 +31,7 @@ import narl.itrc.init.LogStream.Mesg;
 
 public class StepCollect extends Stepper {
 
-	private DevSQM160 sqm;
-	private DevDCG100 dcg;
-	private DevSPIK2k spk;
-	
-	public StepCollect(
-		final DevSQM160 dev1,
-		final DevDCG100 dev2, 
-		final DevSPIK2k dev3
-	) {
-		sqm = dev1;
-		dcg = dev2;
-		spk = dev3;
+	public StepCollect() {
 		set(op0,op1,op2,end);
 	}
 	
@@ -55,11 +44,80 @@ public class StepCollect extends Stepper {
 	private TextField beg_watt = new TextField("80");//Watt begin
 	private TextField end_watt = new TextField("160");//Watt end
 	
+	private final File fs_temp = new File("temp.xlsx");
 	private File fs_book = null;//template and data 
-	private char col_indx = 'A';
+	private char col_idx = 'A';
 	
 	private float cur_zfac = -1f;
 	private int   cur_watt = -1;
+	
+	private Runnable op0 = ()->{
+		Task<?> tsk = waiting_async(new TskStoreData());		
+		msg1.setText("儲存數據");	
+		msg2.textProperty().bind(tsk.progressProperty().asString("%.1f%%"));
+	};
+	private Runnable op1 = ()->{
+		int beg = Integer.valueOf(beg_watt.getText().trim());
+		int end = Integer.valueOf(end_watt.getText().trim());
+		int dff = Math.abs(end - beg) / 5;
+		
+		msg1.setText("調整功率");
+		if(cur_watt<0) {
+			msg2.setText("init...");
+			cur_watt = beg;
+			next_jump(-1);
+		}else if(cur_watt<end){
+			msg2.setText("step...");
+			cur_watt+= dff;
+			next_jump(-1);
+		}else {
+			msg2.setText("final...");
+			next_work();
+		}
+		Stepper stp = get(-1);
+		if(stp instanceof StepKindler) {
+			((StepKindler)stp).boxValue.setText(""+cur_watt);
+		}else {
+			PanBase.notifyWarning("", "不合法的執行規則！！");
+			next_abort();
+		}
+	};
+	private Runnable op2 = ()->{
+		float beg = Float.valueOf(beg_zfac.getText().trim());
+		float end = Float.valueOf(end_zfac.getText().trim());
+		float dff = Math.abs(end - beg) / 5f;
+		
+		msg1.setText("調整 Z-Fac");
+		cur_watt = -1;		
+		if(cur_zfac<0f) {
+			msg2.setText("init...");
+			cur_zfac = beg;
+			next_jump(-2);
+		}else if(cur_zfac<end){
+			msg2.setText("step...");
+			cur_zfac+= dff;
+			next_jump(-2);
+		}else {
+			msg2.setText("final...");
+			next_work();
+		}
+		Stepper stp = get(-2);
+		if(stp instanceof StepSetFilm) {
+			((StepSetFilm)stp).boxZFactor.setText(""+cur_zfac);
+		}else {
+			PanBase.notifyWarning("", "不合法的執行規則！！");
+			next_abort();
+		}
+	};
+	private Runnable end = ()->{
+		msg1.setText(init_txt);
+		msg2.setText("");
+		next.set(ABORT);
+		//for next turn~~~~
+		fs_book = null;
+		col_idx = 'A';
+		cur_zfac= -1f;
+	};
 	
 	private class TskStoreData extends Task<Integer> {
 		
@@ -68,22 +126,23 @@ public class StepCollect extends Stepper {
 		
 		private void prepare_book() throws EncryptedDocumentException, IOException {
 			if(fs_book==null) {
-				col_indx = 'A';
+				col_idx = 'A';
+				fs_book = new File(Misc.getDateName()+".xlsx");
 				wb = new XSSFWorkbook();
 				wb.createSheet("values");
 			}else {
-				wb = WorkbookFactory.create(fs_book);
+				wb = WorkbookFactory.create(fs_temp);
 			}
 			fmt = wb.createDataFormat();
 		}
-		final String TAG1 = "清洗中";
+		final String TAG1 = StepKindler.TAG_FIRE;
 		
 		private void writing_book(final Mesg[] lst) {			
 			updateProgress(0, lst.length);
 			
 			Sheet sh = wb.getSheetAt(0);
-			
-			char col = col_indx;
+	
+			char col = col_idx;
 			int row = 1;
 			
 			get_cell(sh,
@@ -133,7 +192,7 @@ public class StepCollect extends Stepper {
 			
 			//for next turn~~
 			//we will use 3 column for data present
-			col_indx = (char)((int)col+3);
+			col_idx = (char)((int)col+3);
 		}
 		Cell get_cell(
 			final Sheet sheet,
@@ -153,20 +212,21 @@ public class StepCollect extends Stepper {
 			return cc;
 		}
 		private void close_book() throws IOException {
-			if(fs_book==null) {
-				fs_book = new File(Misc.getDateName()+".xlsx");
-			}
-			FileOutputStream dst = new FileOutputStream(fs_book);
-			wb.write(dst);
+			FileOutputStream dst;
+			dst = new FileOutputStream(fs_book);			
+			wb.write(dst);			
+			dst.close();
+			dst = new FileOutputStream(fs_temp);
+			wb.write(dst);			
 			dst.close();
 			wb.close();
 		}
 		@Override
 		protected Integer call() throws Exception {
 			//dummy for debug~~~~
-			Mesg[] msg = LogStream.getInstance().flushPool();
-			//ArrayList<Mesg> lst = (ArrayList<Mesg>) Misc.deserializeFile("20200716_1455.obj");
+			//ArrayList<Mesg> lst = (ArrayList<Mesg>) Misc.deserializeFile("dummy-log1.obj");
 			//Mesg[] msg = lst.toArray(new Mesg[0]);
+			Mesg[] msg = LogStream.getInstance().flushPool();
 			
 			prepare_book();
 			writing_book(msg);
@@ -176,60 +236,7 @@ public class StepCollect extends Stepper {
 			return 0;
 		}
 	};
-	
-	private Runnable op0 = ()->{
-		Task<?> tsk = waiting_async(new TskStoreData());		
-		msg1.setText("儲存數據");		
-		msg2.textProperty().bind(tsk.progressProperty().asString("%.1f%%"));
-	};
-	private Runnable op1 = ()->{
-		int beg = Integer.valueOf(beg_watt.getText().trim());
-		int end = Integer.valueOf(end_watt.getText().trim());
-		int dxx = Math.abs(end - beg) / 5;
-		
-		msg1.setText("功率");
-		if(cur_watt<0) {
-			msg2.setText("init...");
-			cur_watt = beg;
-			next_jump(-1);
-		}else if(cur_watt<end){
-			msg2.setText("step...");
-			cur_watt+= dxx;
-			next_jump(-1);
-		}else {
-			msg2.setText("final...");
-			next_work();
-		}
-	};
-	private Runnable op2 = ()->{
-		float beg = Float.valueOf(beg_zfac.getText().trim());
-		float end = Float.valueOf(end_zfac.getText().trim());
-		float dxx = Math.abs(end - beg) / 10f;
-		
-		msg1.setText("Z-Fac");
-		cur_watt = -1;		
-		if(cur_zfac<0f) {
-			msg2.setText("init...");
-			cur_zfac = beg;
-			next_jump(-2);
-		}else if(cur_zfac<end){
-			msg2.setText("step...");
-			cur_zfac+= dxx;
-			next_jump(-2);
-		}else {
-			msg2.setText("final...");
-			next_work();
-		}
-	};
-	private Runnable end = ()->{
-		msg1.setText(init_txt);
-		msg2.setText("");
-		next.set(ABORT);
-		//for next turn~~~~
-		fs_book = null;
-		col_indx= 'A';
-		cur_zfac= -1f;
-	};
+	//-------------------------------//
 	
 	@Override
 	public Node getContent() {

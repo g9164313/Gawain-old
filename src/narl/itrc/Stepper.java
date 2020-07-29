@@ -81,6 +81,18 @@ public abstract class Stepper extends HBox {
 	protected void set(Runnable... runs){
 		works = Optional.of(runs);
 	}
+	
+	protected Stepper get(final int cnt) {		
+		if(items.isPresent()==false) {
+			return null;
+		}
+		ObservableList<Stepper> lst = items.get();
+		int idx = lst.indexOf(this) + cnt;
+		if(idx<0 || lst.size()<idx) {
+			return null;
+		}
+		return lst.get(idx);
+	}	
 	//-----------------------------------//
 	
 	public static final int SPEC_JUMP = 0x100000;
@@ -128,9 +140,9 @@ public abstract class Stepper extends HBox {
 		long pass = System.currentTimeMillis() - tick;
 		if(pass>=period){
 			tick = -1L;//reset for next turn~~~
-			next.set(LEAD);
+			next_work();
 		}else{
-			next.set(HOLD);
+			next_hold();
 		}
 		long rem = period - pass;
 		return (rem>0)?(rem):(0);
@@ -141,7 +153,7 @@ public abstract class Stepper extends HBox {
 	
 	protected void prepare(){
 		indicator(false);
-		next.set(HOLD);
+		next_hold();
 	}
 	
 	public abstract Node getContent();//{
