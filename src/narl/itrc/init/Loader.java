@@ -23,15 +23,16 @@ public class Loader extends Task<Integer> {
 
 	@Override
 	protected Integer call() throws Exception {				
-		//long t1 = System.currentTimeMillis();
+		long t1 = System.currentTimeMillis();
 		prepare_socket_dir();
 		loading_dependency();		
 		updateMessage("等待主畫面... ");
 		updateProgress(-1.,-1.);//let progress-bar waiting~~~
-		//long dxx = System.currentTimeMillis() - t1;
-		//if(dxx<1000) {
-		//	Thread.sleep(1000-dxx);
-		//}		
+		long tx = System.currentTimeMillis() - t1;
+		final long MAX_DELAY = 3000L;
+		if(tx<MAX_DELAY && Gawain.propFlag("SPLASH_DELAY")==true) {
+			Thread.sleep(MAX_DELAY-tx);
+		}
 		return 0;
 	}
 	

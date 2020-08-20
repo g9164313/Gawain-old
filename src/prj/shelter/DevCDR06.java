@@ -20,7 +20,7 @@ public class DevCDR06 extends DevModbus {
 	
 	public DevCDR06(){
 		TAG = "CDR06";
-		mapAddress16("H300000-300006");
+		mapAddress16("i300000-300006");
 	}
 	
 	private IntegerProperty[] channel = new SimpleIntegerProperty[8];
@@ -95,7 +95,7 @@ public class DevCDR06 extends DevModbus {
 			0,0,
 			1,1,1,1,1,1,1,1
 		};
-		implReadR(0x300000,reg);
+		implReadH(0x300000,reg);
 		
 		channel[0] = holdingRegister(0x300000);
 		channel[1] = holdingRegister(0x300001);

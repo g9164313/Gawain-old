@@ -111,40 +111,52 @@ public class DevModbus extends DevBase {
 	
 	//register cell
 	private class RCell {
-		char    type;
+		int     slaveId;//MODBUS_BROADCAST_ADDRESS=0
+		char    func_id;		
 		int     address;
 		short[] values;
-		IntegerProperty[] _values;
-		
-		//public RCell(final char typ, final int addr) {
-		//	this(typ,addr,1);
-		//}
-		public RCell(final char typ, final int addr, final int size) {
-			type = typ;
-			address= addr;
+		IntegerProperty[] v_prop;
+			
+		public RCell(
+			final int sid,
+			final char fid,
+			final int addr,
+			final int size
+		) {			
+			slaveId= sid;
+			func_id = Character.toUpperCase(fid);
+			if(func_id=='R') {
+				func_id = 'I';
+			}
+			address= addr;			
 			values = new short[size];
-			_values= new IntegerProperty[size];
+			v_prop = new IntegerProperty[size];
 			for(int i=0; i<size; i++) {
-				_values[i] = new SimpleIntegerProperty();
+				v_prop[i] = new SimpleIntegerProperty();
 			}
 		}
-		
 		void fecth() {
 			if(values==null) {
 				return;
 			}
-			switch(type) {
-			//coils ??? support ???
+			implSlaveID(slaveId);
+			switch(func_id) {
 			case 'C':
+				//coils, function code = 1
+				implReadC(address,values);
 				break;
-			case 'R':
-			case 'I':
-				//input register
-				implReadR(address,values);
+			case 'S':
+				//input status, function code = 2
+				implReadS(address,values);
 				break;
 			case 'H':
-				//holding register
+				//holding register, function code = 3
 				implReadH(address,values);
+				break;
+			case 'I':
+			case 'R':
+				//input register, function code = 4
+				implReadI(address,values);
 				break;
 			}
 		}
@@ -155,7 +167,7 @@ public class DevModbus extends DevBase {
 			for(int i=0; i<values.length; i++) {
 				int v = values[i];
 				v = v & 0xFFFF;
-				_values[i].set(v);
+				v_prop[i].set(v);
 			}
 		}
 	};
@@ -168,11 +180,15 @@ public class DevModbus extends DevBase {
 		nextState(STG_LOOPER);
 	}
 	
+	protected int looperDelay = 50;
+	
 	private void looper() {
-		try {
-			Thread.sleep(50);
-		} catch (InterruptedException e) {
-			return;
+		if(looperDelay>0) {
+			try {
+				Thread.sleep(looperDelay);
+			} catch (InterruptedException e) {
+				return;
+			}
 		}
 		if(isLive()==false) {
 			return;
@@ -200,33 +216,41 @@ public class DevModbus extends DevBase {
 	 * @return
 	 */
 	public DevModbus mapAddress(
-		final int radix, 
+		final int radix,
+		final int sid,
 		final String... address
 	) {
+		String pattn;
+		if(radix==16) {
+			pattn = "[CSHIR][0123456789ABCDEF]+([-][0123456789ABCDEF]+)?";
+		}else {
+			pattn = "[CSHIR]\\d+([-]\\d+)?";
+		}		
 		for(String txt:address) {
 			txt = txt.toUpperCase();
-			if(txt.matches("[CHIR]\\d+([-]\\d+)?")==false) {
+			if(txt.matches(pattn)==false) {
 				continue;
 			}else if(txt.length()==0){
 				continue;
 			}
-			char typ = txt.toUpperCase().charAt(0);
-			int off = 0;
-			int cnt = 1;
+			char fid = txt.toUpperCase().charAt(0);
+			int addr = 0;
+			int size = 1;
 			String[] col = txt.substring(1).split("-");
 			if(col.length>=1) {
-				off = Integer.valueOf(col[0],radix);
+				addr = Integer.valueOf(col[0],radix);
 			}
 			if(col.length>=2) {
-				cnt = Integer.valueOf(col[1],radix) - off + 1;
-				if(cnt<=0) {
+				size = Integer.valueOf(col[1],radix) - addr + 1;
+				if(size<=0) {
 					return this;
 				}
 			}
-			mems.add(new RCell(typ,off,cnt));
+			mems.add(new RCell(sid,fid,addr,size));
 		}
 		return this;
 	}
+
 	/**
 	 * convenience function for 'mapAddress(radix,address)'.<p>
 	 * address base is decimal.<p>
@@ -239,7 +263,16 @@ public class DevModbus extends DevBase {
 	 * @return
 	 */
 	public DevModbus mapAddress(final String... address) {
-		return mapAddress(10,address);
+		return mapAddress(10,0,address);
+	}
+	public DevModbus mapAddress10(final String... address) {
+		return mapAddress(address);
+	}
+	public DevModbus mapAddress(final int sid,final String... address) {
+		return mapAddress(10,sid,address);
+	}
+	public DevModbus mapAddress10(final int sid,final String... address) {
+		return mapAddress(sid,address);
 	}
 	/**
 	 * convenience function for 'mapAddress(radix,address)'.<p>
@@ -253,30 +286,135 @@ public class DevModbus extends DevBase {
 	 * @return
 	 */
 	public DevModbus mapAddress16(final String... address) {
-		return mapAddress(16,address);
+		return mapAddress(16,0,address);
+	}
+	public DevModbus mapAddress16(final int sid,final String... address) {
+		return mapAddress(16,sid,address);
 	}
 	
-	private IntegerProperty register(final char type, final int addr) {
+	private IntegerProperty get_register(
+		final int sid,
+		final char fid, 
+		final int addr
+	) {
 		for(RCell reg:mems) {
 			int beg = reg.address;
 			int end = reg.address + reg.values.length - 1;
-			if(beg<=addr && addr<=end && reg.type==type) {				
+			if(
+				beg<=addr && 
+				addr<=end &&
+				reg.slaveId==sid &&
+				reg.func_id==fid 
+			) {				
 				int off = addr - beg;
-				return reg._values[off];
+				return reg.v_prop[off];
 			}
 		}
 		return null;
 	}
-	public IntegerProperty coilRegister(final int address) {
-		return register('C',address); 
+	public IntegerProperty coilStatus(final int address) {
+		return get_register(0,'C',address); 
+	}
+	public IntegerProperty inputStatus(final int address) {
+		return get_register(0,'S',address); 
 	}
 	public IntegerProperty holdingRegister(final int address) {
-		return register('H',address);
+		return get_register(0,'H',address);
 	}
 	public IntegerProperty inputRegister(final int address) {
-		return register('R',address);
+		return get_register(0,'I',address);
+	}
+	public IntegerProperty coilStatus(final int slaveId,final int address) {
+		return get_register(slaveId,'C',address); 
+	}
+	public IntegerProperty inputStatus(final int slaveId,final int address) {
+		return get_register(slaveId,'S',address); 
+	}
+	public IntegerProperty holdingRegister(final int slaveId,final int address) {
+		return get_register(slaveId,'H',address);
+	}
+	public IntegerProperty inputRegister(final int slaveId,final int address) {
+		return get_register(slaveId,'I',address);
 	}
 	
+	//writing with slave_id~~~
+	public void writeVal(final int s_id,final int addr,final int... val) {
+		implSlaveID(s_id);
+		writeVal(addr,val);
+	}
+	public void writeVal(final int s_id,final int addr,final int val) {
+		implSlaveID(s_id);
+		writeVal(addr,val);
+	}
+	public void write_OR(final int s_id,final int addr,final int val) {
+		implSlaveID(s_id);
+		write_OR(addr,val);
+	}
+	public void writeAND(final int s_id,final int addr,final int val) {
+		implSlaveID(s_id);
+		writeAND(addr,val);
+	}
+	public void writeXOR(final int s_id,final int addr,final int val) {
+		implSlaveID(s_id);
+		writeXOR(addr,val);
+	}
+	public void writeBit0(final int s_id,final int addr,final int bit) {
+		implSlaveID(s_id);
+		writeBit0(addr,bit);
+	}
+	public void writeBit1(final int s_id,final int addr,final int bit) {
+		implSlaveID(s_id);
+		writeBit1(addr,bit);
+	}
+	public void asyncWriteVal(final int s_id,final int addr,final int val) {asyncBreakIn(()->writeVal(s_id,addr,val));}
+	public void asyncWrite_OR(final int s_id,final int addr,final int val) {asyncBreakIn(()->write_OR(s_id,addr,val));}
+	public void asyncWriteAND(final int s_id,final int addr,final int val) {asyncBreakIn(()->writeAND(s_id,addr,val));}
+	public void asyncWriteXOR(final int s_id,final int addr,final int val) {asyncBreakIn(()->writeXOR(s_id,addr,val));}
+	public void asyncWriteBit0(final int s_id,final int addr,final int bit) {asyncBreakIn(()->writeBit0(s_id,addr,bit));}
+	public void asyncWriteBit1(final int s_id,final int addr,final int bit) {asyncBreakIn(()->writeBit1(s_id,addr,bit));}
+	
+	//writing without slave_id~~~
+	public void writeVal(final int addr,final int... val) {
+		short[] buff = new short[val.length];
+		for(int i=0; i<val.length; i++) {
+			buff[i] = (short)(val[i]&0xFFFF);
+		}
+		implWrite(addr,buff);
+	}
+	public void writeVal(final int addr,final int val) {
+		short[] buff = { (short)(val&0xFFFF) };
+		implWrite(addr,buff);
+	}
+	public void write_OR(final int addr,final int val) {
+		short[] buff = {0};
+		implReadI(addr,buff);
+		buff[0] = (short)((buff[0] | val) & 0xFFFF);
+		implWrite(addr,buff);
+	}
+	public void writeAND(final int addr,final int val) {
+		short[] buff = {0};
+		implReadI(addr,buff);
+		buff[0] = (short)((buff[0] & val) & 0xFFFF);
+		implWrite(addr,buff);
+	}
+	public void writeXOR(final int addr,final int val) {
+		short[] buff = {0};
+		implReadI(addr,buff);
+		buff[0] = (short)((buff[0] ^ val) & 0xFFFF);
+		implWrite(addr,buff);
+	}
+	public void writeBit0(final int addr,final int bit) {
+		short[] buff = {0};
+		implReadI(addr,buff);
+		buff[0] = (short)((buff[0] & ~(1<<bit)) & 0xFFFF);
+		implWrite(addr,buff);
+	}
+	public void writeBit1(final int addr,final int bit) {
+		short[] buff = {0};
+		implReadI(addr,buff);
+		buff[0] = (short)((buff[0] |  (1<<bit)) & 0xFFFF);
+		implWrite(addr,buff);
+	}
 	public void asyncWriteVal(int addr,int val) {asyncBreakIn(()->writeVal(addr,val));}
 	public void asyncWrite_OR(int addr,int val) {asyncBreakIn(()->write_OR(addr,val));}
 	public void asyncWriteAND(int addr,int val) {asyncBreakIn(()->writeAND(addr,val));}
@@ -284,45 +422,14 @@ public class DevModbus extends DevBase {
 	public void asyncWriteBit0(int addr,int bit) {asyncBreakIn(()->writeBit0(addr,bit));}
 	public void asyncWriteBit1(int addr,int bit) {asyncBreakIn(()->writeBit1(addr,bit));}
 	
-	public void writeVal(int addr,int val) {
-		short[] buff = { (short)(val&0xFFFF) };
-		implWrite(addr,buff);
-	}
-	public void write_OR(int addr,int val) {
-		short[] buff = {0};
-		implReadR(addr,buff);
-		buff[0] = (short)((buff[0] | val) & 0xFFFF);
-		implWrite(addr,buff);
-	}
-	public void writeAND(int addr,int val) {
-		short[] buff = {0};
-		implReadR(addr,buff);
-		buff[0] = (short)((buff[0] & val) & 0xFFFF);
-		implWrite(addr,buff);
-	}
-	public void writeXOR(int addr,int val) {
-		short[] buff = {0};
-		implReadR(addr,buff);
-		buff[0] = (short)((buff[0] ^ val) & 0xFFFF);
-		implWrite(addr,buff);
-	}
-	public void writeBit0(int addr,int bit) {
-		short[] buff = {0};
-		implReadR(addr,buff);
-		buff[0] = (short)((buff[0] & ~(1<<bit)) & 0xFFFF);
-		implWrite(addr,buff);
-	}
-	public void writeBit1(int addr,int bit) {
-		short[] buff = {0};
-		implReadR(addr,buff);
-		buff[0] = (short)((buff[0] |  (1<<bit)) & 0xFFFF);
-		implWrite(addr,buff);
-	}
-		
+	
 	protected native void implOpenRtu();	
 	protected native void implOpenTcp();
+	protected native void implSlaveID(int slave_id);
+	protected native void implReadC(int addr,short buff[]);//coils status(FC=1)
+	protected native void implReadS(int addr,short buff[]);//input status(FC=2)	
 	protected native void implReadH(int addr,short buff[]);//holding register
-	protected native void implReadR(int addr,short buff[]);//input register
-	protected native void implWrite(int addr,short buff[]);//write register
+	protected native void implReadI(int addr,short buff[]);//input register
+	protected native void implWrite(int addr,short buff[]);
 	protected native void implClose();
 }

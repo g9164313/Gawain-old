@@ -1,7 +1,6 @@
 package prj.sputter;
 
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicLong;
 
 import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXRadioButton;
@@ -9,10 +8,8 @@ import com.sun.glass.ui.Application;
 
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.FloatProperty;
-import javafx.beans.property.LongProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleFloatProperty;
-import javafx.beans.property.SimpleLongProperty;
 import javafx.event.EventHandler;
 import javafx.geometry.Orientation;
 import javafx.scene.control.Alert;
@@ -43,7 +40,7 @@ public class DevDCG100 extends DevTTY {
 	
 	public DevDCG100(){
 		TAG = "DCG-100";
-		readTimeout = 100;
+		readTimeout = 500;
 	}
 
 	public DevDCG100(String path_name){
@@ -135,8 +132,8 @@ public class DevDCG100 extends DevTTY {
 		if(txt.endsWith("\r")==false) {
 			txt = txt + "\r";
 		}
-		//writeTxt(txt);
-		writeTxtDelay(10,txt);
+		writeTxt(txt);
+		//writeTxtDelay(5, txt);
 		
 		txt = ""; //clear command~~~
 		int ans = 0;
@@ -246,7 +243,7 @@ public class DevDCG100 extends DevTTY {
 		final String fmt,
 		final float scale
 	) {
-		PadTouch pad = new PadTouch(title,value,'f');
+		PadTouch pad = new PadTouch('f',title,value);
 		Optional<String> val = pad.showAndWait();
 		if(val.isPresent()==false) {
 			return value;
@@ -265,7 +262,7 @@ public class DevDCG100 extends DevTTY {
 		final String value,
 		final String cmd
 	) {
-		PadTouch pad = new PadTouch(title,value,'n');
+		PadTouch pad = new PadTouch('n',title,value);
 		Optional<String> val = pad.showAndWait();
 		if(val.isPresent()==false) {
 			return value;
@@ -279,7 +276,7 @@ public class DevDCG100 extends DevTTY {
 		final String value,
 		final String cmd
 	) {
-		PadTouch pad = new PadTouch("時間(mm:ss)",'c');
+		PadTouch pad = new PadTouch('c',"時間(mm:ss)");
 		Optional<String> val = pad.showAndWait();
 		if(val.isPresent()==false) {
 			return value;

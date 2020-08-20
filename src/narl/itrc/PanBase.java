@@ -80,9 +80,9 @@ public abstract class PanBase {
 		}else {
 			scene = new Scene(root);
 		}
-		scene.setUserData(this);//keep self-pointer
+		scene.setUserData(this);//keep self-pointer		
+		scene.getStylesheets().add(Gawain.sheet);//load a default style...
 		scene.setFill(Color.WHITE);
-		scene.getStylesheets().add(Gawain.sheet);//load a default style...		
 		/*scene.setOnKeyPressed(event->{
 			KeyCode cc = event.getCode();
 			if(cc==KeyCode.F1){
@@ -107,12 +107,16 @@ public abstract class PanBase {
 			initLayout();
 		}		
 		stage.setScene(scene);
-		if(
-			Gawain.propFlag("FULL_SCREEN")==true && 
-			Gawain.mainPanel==this
-		) {
-			stage.setFullScreen(true);
-		}else{			
+		if(Gawain.mainPanel==this) {
+			if(Gawain.propFlag("FULL_PANEL")==true) {
+				stage.setFullScreen(true);
+			}else if(Gawain.propFlag("MAX_PANEL")==true) {
+				stage.setMaximized(true);
+			}else {
+				stage.sizeToScene();
+				stage.centerOnScreen();
+			}
+		}else {
 			stage.sizeToScene();
 			stage.centerOnScreen();
 		}

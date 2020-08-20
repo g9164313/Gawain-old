@@ -58,9 +58,9 @@ public class StepKindler extends Stepper {
 		new Label(TXT_CLEAN),
 	};
 	private final TextField[] arg = {
-		new TextField("3"),
+		new TextField("5"),
 		new TextField("100"),		
-		new TextField("60"),
+		new TextField("5:00"),
 	};	
 	private Label msg1 = new Label(init_text);
 	private Label msg2 = new Label();
@@ -164,7 +164,7 @@ public class StepKindler extends Stepper {
 		waiting_async();			
 		dcg.asyncBreakIn(()->{
 			for(String cmd:lst_cmd) {
-				if(setting(cmd)==false) {return; }
+				if(setting(cmd)==false) { return; }
 			}
 			Misc.logv("！！Fire！！");			
 			next_work();

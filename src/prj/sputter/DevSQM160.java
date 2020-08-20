@@ -32,7 +32,7 @@ public class DevSQM160 extends DevTTY {
 
 	public DevSQM160() {
 		TAG = "SQM-160";
-		readTimeout = 250;
+		readTimeout = 500;
 	}
 	public DevSQM160(String path_name) {
 		this();
@@ -413,7 +413,7 @@ public class DevSQM160 extends DevTTY {
 		btn[1].getStyleClass().add("btn-raised-2");
 		btn[1].setText("選取薄膜");
 		btn[1].setOnAction(e->{
-			PadTouch pad = new PadTouch("薄膜編號:",'N');
+			PadTouch pad = new PadTouch('N',"薄膜編號:");
 			Optional<String> opt = pad.showAndWait();
 			if(opt.isPresent()==true) {
 				int idx = Integer.valueOf(opt.get());

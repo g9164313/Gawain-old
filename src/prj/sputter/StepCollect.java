@@ -12,7 +12,6 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
-import org.apache.poi.ss.util.CellReference;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import javafx.concurrent.Task;
@@ -46,15 +45,21 @@ public class StepCollect extends Stepper {
 	
 	private final File fs_temp = new File("temp.xlsx");
 	private File fs_book = null;//template and data 
-	private char col_idx = 'A';
+	private int  col_idx = 0;
 	
-	private float cur_zfac = -1f;
+	private boolean init_watt = false;
+	private boolean init_zfac = false;
 	private int   cur_watt = -1;
+	private float cur_zfac = -1f;
 	
 	private Runnable op0 = ()->{
+		read_watt();
+		read_zfac();
 		Task<?> tsk = waiting_async(new TskStoreData());		
 		msg1.setText("儲存數據");	
-		msg2.textProperty().bind(tsk.progressProperty().asString("%.1f%%"));
+		msg2.textProperty().bind(tsk.progressProperty()
+			.multiply(100f).asString("%.0f%%")
+		);
 	};
 	private Runnable op1 = ()->{
 		int beg = Integer.valueOf(beg_watt.getText().trim());
@@ -62,18 +67,22 @@ public class StepCollect extends Stepper {
 		int dff = Math.abs(end - beg) / 5;
 		
 		msg1.setText("調整功率");
-		if(cur_watt<0) {
+		if(init_watt==false) {
 			msg2.setText("init...");
 			cur_watt = beg;
+			init_watt= true;
 			next_jump(-1);
-		}else if(cur_watt<end){
-			msg2.setText("step...");
-			cur_watt+= dff;
-			next_jump(-1);
-		}else {
-			msg2.setText("final...");
-			next_work();
-		}
+		}else{
+			if(cur_watt<end){
+				msg2.setText("step...");
+				cur_watt+= dff;
+				next_jump(-1);
+			}else {
+				msg2.setText("final...");
+				init_watt= false;
+				next_work();
+			}
+		} 
 		Stepper stp = get(-1);
 		if(stp instanceof StepKindler) {
 			((StepKindler)stp).boxValue.setText(""+cur_watt);
@@ -89,17 +98,21 @@ public class StepCollect extends Stepper {
 		
 		msg1.setText("調整 Z-Fac");
 		cur_watt = -1;		
-		if(cur_zfac<0f) {
+		if(init_zfac==false) {
 			msg2.setText("init...");
 			cur_zfac = beg;
+			init_zfac= true;
 			next_jump(-2);
-		}else if(cur_zfac<end){
-			msg2.setText("step...");
-			cur_zfac+= dff;
-			next_jump(-2);
-		}else {
-			msg2.setText("final...");
-			next_work();
+		}else{
+			 if(cur_zfac<end){
+				msg2.setText("step...");
+				cur_zfac+= dff;
+				next_jump(-2);
+			}else {
+				msg2.setText("final...");
+				init_zfac= false;
+				next_work();
+			}
 		}
 		Stepper stp = get(-2);
 		if(stp instanceof StepSetFilm) {
@@ -115,9 +128,24 @@ public class StepCollect extends Stepper {
 		next.set(ABORT);
 		//for next turn~~~~
 		fs_book = null;
-		col_idx = 'A';
-		cur_zfac= -1f;
+		init_watt= false;
+		init_zfac= false;		
 	};
+		
+	private void read_watt(){
+		Stepper obj = get(-1);
+		if(obj instanceof StepKindler) {
+			StepKindler stp = (StepKindler)obj;
+			cur_watt = Integer.valueOf(stp.boxValue.getText());
+		}
+	}
+	private void read_zfac(){
+		Stepper obj = get(-2);
+		if(obj instanceof StepSetFilm) {
+			StepSetFilm stp = (StepSetFilm)obj;
+			cur_zfac = Float.valueOf(stp.boxZFactor.getText());
+		}
+	}
 	
 	private class TskStoreData extends Task<Integer> {
 		
@@ -126,7 +154,7 @@ public class StepCollect extends Stepper {
 		
 		private void prepare_book() throws EncryptedDocumentException, IOException {
 			if(fs_book==null) {
-				col_idx = 'A';
+				col_idx = 0;
 				fs_book = new File(Misc.getDateName()+".xlsx");
 				wb = new XSSFWorkbook();
 				wb.createSheet("values");
@@ -142,23 +170,19 @@ public class StepCollect extends Stepper {
 			
 			Sheet sh = wb.getSheetAt(0);
 	
-			char col = col_idx;
+			int col = col_idx;
 			int row = 1;
 			
-			get_cell(sh,
-				String.format("%C%d", col, row)
-			).setCellValue(
+			get_cell(sh, col, row).setCellValue(
 				String.format("Z-Fac=%.2f", cur_zfac)
 			);
-			get_cell(sh,
-				String.format("%C%d", (char)((int)col+1), row)
-			).setCellValue(
+			get_cell(sh,col+1, row).setCellValue(
 				String.format("Watt=%d", cur_watt)
 			);
 			row+=1;
 			
-			get_cell(sh,String.format("%C%d", col, row)).setCellValue("時間");
-			get_cell(sh,String.format("%C%d", (char)((int)col+1), row)).setCellValue("速率");
+			get_cell(sh,col  , row).setCellValue("時間");
+			get_cell(sh,col+1, row).setCellValue("速率");
 			row+=1;
 			
 			CellStyle styl = wb.createCellStyle();
@@ -172,35 +196,28 @@ public class StepCollect extends Stepper {
 					continue;
 				}
 								
-				get_cell(sh,
-					String.format("%C%d", col, row)
-				).setCellValue(msg.getTickText(""));
+				get_cell(sh, col, row).setCellValue(msg.getTickText(""));
 				
 				txt = txt.substring(txt.indexOf(":")+1);
 				String[] vals = txt.split(",");
 				String[] nota;
 				nota = UtilPhysical.split(vals[3]);
 				
-				Cell cc = get_cell(sh,
-					String.format("%C%d", (char)((int)col+1), row)
-				);
+				Cell cc = get_cell(sh, col+1, row);
 				cc.setCellStyle(styl);
 				cc.setCellValue(Double.valueOf(nota[0]));
 				
 				row+=1;
 			}
-			
 			//for next turn~~
 			//we will use 3 column for data present
-			col_idx = (char)((int)col+3);
+			col_idx = col+3;
 		}
 		Cell get_cell(
 			final Sheet sheet,
-			final String mark
+			final int xx,
+			final int yy
 		){
-			CellReference ref = new CellReference(mark);
-			int yy = ref.getRow();
-			int xx = ref.getCol();
 			Row rr = sheet.getRow(yy);
 			if(rr==null){
 				rr = sheet.createRow(yy);			

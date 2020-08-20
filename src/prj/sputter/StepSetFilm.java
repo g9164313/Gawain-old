@@ -2,15 +2,16 @@ package prj.sputter;
 
 import java.util.Optional;
 
+import com.jfoenix.controls.JFXButton;
 import com.sun.glass.ui.Application;
 
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
-import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
+import narl.itrc.Gawain;
 import narl.itrc.PadTouch;
 import narl.itrc.PanBase;
 import narl.itrc.Stepper;
@@ -100,12 +101,29 @@ public class StepSetFilm extends Stepper {
 	};
 	
 	private void select_film(){
-		PadTouch pad = new PadTouch("薄膜編號:",'N');
-		Optional<String> opt = pad.showAndWait();
+		PadTouch pad;
+		Optional<String> opt;
+		String combo = Gawain.prop().getProperty("FILM", "");
+		if(combo.length()==0) {
+			//select by ID
+			pad = new PadTouch('N',"薄膜編號:");
+			opt = pad.showAndWait();
+		}else {
+			//select by readable name
+			pad = new PadTouch(combo+",ID編號:id");
+			opt = pad.showAndWait();
+			if(opt.get().equals("id")==true) {
+				pad = new PadTouch('N',"薄膜編號:");
+				opt = pad.showAndWait();
+			}
+		}
 		if(opt.isPresent()==false) {
 			return;
-		}
-		final char id = (char)(48+Integer.valueOf(opt.get()));
+		}		
+		active_film(Integer.valueOf(opt.get()));
+	}
+	private void active_film(final int ID) {
+		final char id = (char)(48+ID);
 		sqm.asyncBreakIn(()->{
 			String txt = sqm.exec(String.format("A%c?", id));
 			if(txt.charAt(0)=='A'){
@@ -124,7 +142,7 @@ public class StepSetFilm extends Stepper {
 			}				
 		});
 	}
-	
+		
 	@Override
 	public Node getContent(){
 		msg1.setPrefWidth(150);
@@ -132,9 +150,10 @@ public class StepSetFilm extends Stepper {
 			box.setMaxWidth(80);
 		}
 		
-		Button btn = new Button("選取");		
+		JFXButton btn = new JFXButton("選取");		
 		btn.setMaxSize(80, Double.MAX_VALUE);
 		btn.setOnAction(e->select_film());
+		btn.getStyleClass().add("btn-raised-1");
 		//GridPane.setHgrow(btn, Priority.ALWAYS);
 		//GridPane.setVgrow(btn, Priority.ALWAYS);
 		

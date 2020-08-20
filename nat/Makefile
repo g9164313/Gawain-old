@@ -70,8 +70,8 @@ TEST_PID := $(shell pgrep -f Gawain)
 define BUILD_WORK =
 	$(CC) -fPIC -shared -o $@ $^ $(LD_LIBS) $(CC_FLAG)
 	@echo TEST_PID=$(TEST_PID)
-	#cp -rf $@ ../src/narl/itrc/nat	
-	cp -rf $@ ~/.gawain/$@
+	#cp -rf $@ ~/.gawain/$@
+	mv $@ ~/.gawain/$@
 	@echo 'Target --> '$@', done!!'
 	@echo
 endef

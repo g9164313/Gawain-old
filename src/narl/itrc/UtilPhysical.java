@@ -124,6 +124,26 @@ public class UtilPhysical {
 		return col;
 	}
 	
+	public static double getDouble(final String txt){
+		try {
+			return Double.valueOf(split(txt)[0]);
+		}catch(NumberFormatException e) {
+			Misc.loge("Wrong physcial value --> %s", txt);			
+		}
+		return 0.;
+	}
+	public static int getInteger(final String txt){
+		try {
+			return Integer.valueOf(split(txt)[0]);
+		}catch(NumberFormatException e) {
+			Misc.loge("Wrong physcial value --> %s", txt);			
+		}
+		return 0;
+	}
+	public static String getUnit(final String txt){
+		return split(txt)[1];
+	}
+	
 	public static double convert(
 		double srcValue,
 		String srcUnit,

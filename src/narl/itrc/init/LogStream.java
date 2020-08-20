@@ -29,6 +29,7 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 import narl.itrc.Gawain;
+import narl.itrc.Misc;
 import narl.itrc.PanBase;
 
 public class LogStream {
@@ -203,6 +204,9 @@ public class LogStream {
 	}
 	public Mesg[] getPool(){
 		return pooler.toArray(new Mesg[0]);
+	}
+	public void serializePooler(final String name){
+		Misc.serialize2file(name, pooler);
 	}
 	public Mesg[] razePool() {
 		usePool.set(false);

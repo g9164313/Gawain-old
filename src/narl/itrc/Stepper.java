@@ -253,13 +253,14 @@ public abstract class Stepper extends HBox {
 		final Label msg = new Label();
 		@Override
 		public Node getContent(){
-			/*set(()->{
-				Misc.logv(":%s.1", msg.getText()); next.set(LEAD);
-			},()->{
-				Misc.logv(":%s.2", msg.getText()); next.set(LEAD);
-			},()->{
-				Misc.logv(":%s.3", msg.getText()); next.set(LEAD);
-			});*///~~test~~
+			set(()->{
+				String txt = msg.getText();
+				if(txt.length()==0){
+					txt = "STICKER";
+				}
+				Misc.logv(">> %s <<", txt); 
+				next.set(LEAD);
+			});
 			Separator ss1 = new Separator();
 			Separator ss2 = new Separator();
 			HBox.setHgrow(ss1, Priority.ALWAYS);

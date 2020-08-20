@@ -3,70 +3,130 @@
    -fx-background-color: WHITE;
 }
 
+.btn-raised-0 {
+	-fx-button-type: RAISED;
+	-fx-font-size: 1.4em;
+	-fx-background-color: #c2185b;
+	-fx-text-fill: WHITE;
+}
 .btn-raised-1{
 	-fx-button-type: RAISED;
 	-fx-font-size: 1.4em;
 	-fx-background-color: #aed581;
-	-fx-text-fill: black;
+	-fx-text-fill: BLACK;
 }
 .btn-raised-2 {
-	-fx-button-type: RAISED;
-	-fx-font-size: 1.4em; 
-	-fx-background-color: #4db6ac;
-	-fx-text-fill: black;
+  -fx-button-type: RAISED;
+  -fx-font-size: 1.4em; 
+  -fx-background-color: #4db6ac;
+  -fx-text-fill: BLACK;
 }
 .btn-raised-3 {
-	-fx-button-type: RAISED;
-	-fx-font-size: 1.4em;
-	-fx-background-color: #64b5f6;
-	-fx-text-fill: black;
+  -fx-button-type: RAISED;
+  -fx-font-size: 1.4em;
+  -fx-background-color: #64b5f6;
+  -fx-text-fill: BLACK;
 }
 
 .jfx-decorator .jfx-decorator-buttons-container {
-    -fx-background-color: #1e88e5;
+  -fx-background-color: #1e88e5;
 }
 .jfx-decorator .resize-border {
-    -fx-border-color:  #1e88e5;
-    -fx-border-width: 0 7 7 7;
+  -fx-border-color:  #1e88e5;
+  -fx-border-width: 0 7 7 7;
+}
+
+.mark-check {
+  -fx-shape: "M384 690l452-452 60 60-512 512-238-238 60-60z";
+  -fx-min-width: 24;
+  -fx-max-width: 24;
+  -fx-min-height: 24;
+  -fx-max-height: 24;
+  -fx-background-color: #0F9D58;
+  -fx-background-radius: 2;
+  -fx-border-width: 0;
+  -fx-border-radius: 2;
+}
+.mark-cross {
+  -fx-shape: "M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z";
+  -fx-min-width: 24;
+  -fx-max-width: 24;
+  -fx-min-height: 24;
+  -fx-max-height: 24;
+  -fx-background-color: #c62828;
+  -fx-background-radius: 2;
+  -fx-border-width: 0;
+  -fx-border-radius: 2;
+}
+.mark-box {
+  -fx-min-width: 24;
+  -fx-max-width: 24;
+  -fx-min-height: 24;
+  -fx-max-height: 24;
+  -fx-background-color: TRANSPARENT;
+  -fx-background-radius: 2;
+  -fx-border-color: #5A5A5A;
+  -fx-border-style: solid;
+  -fx-border-radius: 2;
+  -fx-border-width: 2;
+}
+.mark-cycle {
+  -fx-shape: "M 400 100 L 400 100 A 50 50 0 1 1 400 250 A 50 50 0 1 1 400 100 ";
+  -fx-padding: 10;
+  -fx-min-width: 24;
+  -fx-max-width: 24;
+  -fx-min-height: 24;
+  -fx-max-height: 24;
+  -fx-background-color: TRANSPARENT;
+  -fx-background-radius: 2;
+  -fx-border-color: #5A5A5A;
+  -fx-border-style: solid;
+  -fx-border-radius: 2;
+  -fx-border-width: 2;
 }
 
 .box-pad {
-	-fx-font-size: 1.4em;
+  -fx-font-size: 1.4em;
   -fx-spacing: 13;
   -fx-padding: 7;
   -fx-hgap: 7;
-	-fx-vgap: 7;    
+  -fx-vgap: 7;    
 }
 .box-pad-inner {
-	-fx-font-size: 1.4em;
+  -fx-font-size: 1.4em;
   -fx-spacing: 13, 0, 13, 0;
   -fx-padding:  7, 0,  7, 0;
   -fx-hgap: 7;
-	-fx-vgap: 7; 
+  -fx-vgap: 7; 
 }
 .box-pad-group {
-	-fx-padding:  13, 0,  7, 0; 
+  -fx-padding:  13, 0,  7, 0; 
 }
 .box-border {
-	-fx-border-color: black;
-	-fx-border-width: 1.7px;
-	-fx-border-radius: 10px;
+  -fx-border-color: black;
+  -fx-border-width: 1.7px;
+  -fx-border-radius: 10px;
   -fx-background-radius: 10px;
 }
 
-.font-size3 {
-	-fx-font-size: 1.3em;
+.font-size4 {
+  -fx-font-size: 1.4em;
 }
 .font-size5 {
-	-fx-font-size: 1.7em;
+  -fx-font-size: 1.5em;
 }
 .font-size7 {
-	-fx-font-size: 1.7em;
+  -fx-font-size: 1.7em;
+}
+.font-size9 {
+  -fx-font-size: 1.9em;
 }
 .font-console {
-	-fx-font-family: 'Consolas';
+  -fx-font-family: 'Consolas';
 }
-
+.font-red {
+  -fx-text-fill: #c62828;
+}
 
 .titled-pane > .title {
   -fx-pref-height: 43px;

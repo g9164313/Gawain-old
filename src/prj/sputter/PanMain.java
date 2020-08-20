@@ -25,7 +25,7 @@ import narl.itrc.init.LogStream;
 
 public class PanMain extends PanBase {
 	
-	final DevModbus coup = new DevModbus().mapAddress("h8000-8004");
+	final DevModbus coup = new DevModbus().mapAddress("i8000-8004");
 	final DevDCG100 dcg1 = new DevDCG100();	
 	final DevSPIK2k spik = new DevSPIK2k();
 	final DevSQM160 sqm1 = new DevSQM160();

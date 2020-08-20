@@ -1,5 +1,7 @@
 package narl.itrc;
 
+import java.util.Optional;
+
 import com.jfoenix.controls.JFXButton;
 
 import javafx.geometry.Pos;
@@ -22,57 +24,90 @@ import javafx.scene.layout.VBox;
 public class PadTouch extends Dialog<String> {
 
 	public PadTouch(
-		final String item_name,
-		final String item_value,
-		final char layout_style
+		final char numeric_pad_style,
+		final String numeric_name,
+		final String numeric_value			
 	) {
-		setHeaderText(null);
-
-		Node lay = create_layout(
-			item_name,
-			item_value,
-			layout_style
+		final Node layout = layout_numeric_keypad(
+			numeric_pad_style,
+			numeric_name,
+			numeric_value						
 		);
-
-		getDialogPane().setContent(lay);
+		setHeaderText(null);
+		getDialogPane().setContent(layout);
 		getDialogPane().getStylesheets().add(Gawain.sheet);
 		getDialogPane().getStyleClass().addAll("background");
-		getDialogPane().getButtonTypes().addAll(
-			ButtonType.CANCEL, ButtonType.OK
-		);
+		getDialogPane().getButtonTypes().addAll(ButtonType.CANCEL, ButtonType.OK);
 	}
-	
 	public PadTouch(
-		final String item_name,
-		final char layout_style
+		final char numeric_pad_style,
+		final String item_name
 	) {
-		this(item_name, "", layout_style);
+		this(numeric_pad_style,item_name,"");
 	}
-	
-	public PadTouch(
-		final char layout_style
-	) {
-		this("輸入", "", layout_style);
+	public PadTouch(final char numeric_pad_style) {
+		this(numeric_pad_style,"輸入","");
 	}
-	
 	public PadTouch() {
-		this("輸入", "", 't');
+		this('i',"輸入","");
 	}
 	
-	private static final int BTN_SIZE = 42;
+	public PadTouch(final String combo_value) {
+		String[] lst = combo_value.split(",");
+		String[][] cmb = new String[lst.length][2];
+		for(int i=0; i<lst.length; i++) {
+			String[] val = lst[i].split(":");
+			cmb[i][0] = val[0].trim();
+			cmb[i][1] = val[1].trim();
+		}
+		final Node layout = layout_combo_pad(cmb);
+		getDialogPane().setContent(layout);
+		getDialogPane().getStylesheets().add(Gawain.sheet);
+		getDialogPane().getStyleClass().addAll("background");
+		getDialogPane().getButtonTypes().clear();
+	}
 	
-	private Node create_layout(
-		final String item_name,
-		final String item_value,
-		final char style
+	private Node layout_combo_pad(
+		final String[][] combo
+	) {
+		final Button[] lst = new Button[combo.length];
+		for(int i=0; i<lst.length; i++) {
+			lst[i] = new JFXButton();
+			lst[i].getStyleClass().addAll(
+				"btn-raised-1",
+				"font-size5"
+			);
+			lst[i].setMaxWidth(Double.MAX_VALUE);
+			lst[i].setMinWidth(200.);
+			lst[i].setMinHeight(64.);
+			lst[i].setText(combo[i][0]);
+			lst[i].setUserData(combo[i][1]);
+			lst[i].setOnAction(e->{
+				Button btn = (Button)e.getSource();
+				String val = (String)btn.getUserData();
+				setResult(val);
+			});
+		}
+		final VBox lay0 = new VBox();
+		lay0.getStyleClass().addAll("box-pad-inner");
+		lay0.getChildren().addAll(lst);		
+		return lay0;
+	}
+
+	private static final int BTN_SIZE = 46;
+	
+	private Node layout_numeric_keypad(
+		final char style,
+		final String name,
+		final String value		
 	) {
 		final Label[] txt = {
-			new Label(item_name), 
-			new Label(item_value)
+			new Label(name), 
+			new Label(value)
 		};
-		txt[1].setMinWidth(73.);
+		txt[1].setMinWidth(BTN_SIZE*3);
 		txt[1].setAlignment(Pos.CENTER_RIGHT);
-		
+
 		setResultConverter(dia->{
 			ButtonData btn = (dia==null)?(null):(dia.getButtonData());
 			if(btn!=ButtonData.OK_DONE) {
@@ -99,12 +134,12 @@ public class PadTouch extends Dialog<String> {
 		});
 		
 		final Button btnCls = new JFXButton("C");//special button - clear
-		btnCls.getStyleClass().add("btn-raised-1");
+		btnCls.getStyleClass().addAll("btn-raised-2","font-console");
 		btnCls.setPrefSize(BTN_SIZE, BTN_SIZE);
 		btnCls.setOnAction(e->txt[1].setText(""));
 		
-		final Button btnDel = new JFXButton("⇦");//special button - delete one character
-		btnDel.getStyleClass().add("btn-raised-1");
+		final Button btnDel = new JFXButton("Del");//special button - delete one character
+		btnDel.getStyleClass().addAll("btn-raised-2","font-console");
 		btnDel.setPrefSize(BTN_SIZE, BTN_SIZE);
 		btnDel.setOnAction(e->{
 			String v = txt[1].getText();
@@ -116,17 +151,17 @@ public class PadTouch extends Dialog<String> {
 		});
 		
 		final Button btnDot = new JFXButton(".");//special button - dot
-		btnDot.getStyleClass().add("btn-raised-1");
+		btnDot.getStyleClass().addAll("btn-raised-1","font-console");
 		btnDot.setPrefSize(BTN_SIZE, BTN_SIZE);
 		btnDot.setOnAction(e->appear_once(btnDot,txt[1]));
 		
 		final Button btnSign = new JFXButton("-");//special button - sign
-		btnSign.getStyleClass().add("btn-raised-1");
+		btnSign.getStyleClass().addAll("btn-raised-1","font-console");
 		btnSign.setPrefSize(BTN_SIZE, BTN_SIZE);
 		btnSign.setOnAction(e->prefix_once(btnSign,txt[1]));
 		
 		final Button btnColon = new JFXButton(":");//special button - sign
-		btnColon.getStyleClass().add("btn-raised-1");
+		btnColon.getStyleClass().addAll("btn-raised-1","font-console");
 		btnColon.setPrefSize(BTN_SIZE, BTN_SIZE);
 		btnColon.setOnAction(e->append(btnColon,txt[1]));
 		
@@ -149,22 +184,19 @@ public class PadTouch extends Dialog<String> {
 		case 'Q':
 			lay1 = gen_number_pad(txt[1],btnCls,btnDel,btnSign,btnDot);
 			break;
-		//clock (hh:mm:ss)
+		//clock or time (hh:mm:ss)
 		case 'c':		
 		case 'C':
-			lay1 = gen_number_pad(txt[1],btnCls,btnDel,btnColon);
-			break;
-		//plain text~~~
-		default:
 		case 't':
 		case 'T':
+			lay1 = gen_number_pad(txt[1],btnCls,btnDel,btnColon);
 			break;
 		}
 		
 		final HBox lay2 = new HBox();
 		lay2.getStyleClass().addAll("box-pad","border");
 		lay2.getChildren().addAll(txt);
-
+		
 		final VBox lay0 = new VBox();
 		lay0.getStyleClass().addAll("box-pad-inner");
 		lay0.getChildren().addAll(lay2, lay1);		
@@ -178,7 +210,7 @@ public class PadTouch extends Dialog<String> {
 		Button[] btn = new JFXButton[10];
 		for(int i=0; i<btn.length; i++) {
 			final JFXButton obj = new JFXButton(""+i);
-			obj.getStyleClass().add("btn-raised-1");
+			obj.getStyleClass().addAll("btn-raised-1","font-console");
 			obj.setPrefSize(BTN_SIZE, BTN_SIZE);
 			obj.setOnAction(e->append(obj,display));
 			btn[i] = obj;			
@@ -230,9 +262,27 @@ public class PadTouch extends Dialog<String> {
 	public static String toSecond(final String txt) {
 		return clock_to_value(txt,1);
 	}
+	public static String toSecond(final Optional<String> opt) {
+		return toSecond(opt.get());
+	}
+	public static long toSecondValue(final String txt) {
+		return Long.valueOf(toSecond(txt)).longValue();
+	}
+	public static long toSecondValue(final Optional<String> opt) {
+		return toSecondValue(opt.get());
+	}
 	public static String toMillsec(final String txt) {
 		return clock_to_value(txt,1000);
 	}
+	public static String toMillsec(final Optional<String> opt) {
+		return toMillsec(opt.get());
+	}
+	public static long toMillsecValue(final String txt) {
+		return Long.valueOf(toMillsec(txt)).longValue();
+	}
+	public static long toMillsecValue(final Optional<String> opt) {
+		return toMillsecValue(opt.get());
+	}	
 	public static String clock_to_value(final String txt, final int scale) {
 		String[] col;
 		if(txt.matches("[\\d]+")==true) {

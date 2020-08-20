@@ -76,7 +76,7 @@ inline void setJDouble(JNIEnv *env, jobject thiz, const char* name, double val){
 inline double getJDouble(JNIEnv *env, jobject thiz, const char* name){
 	_get_jvalue("D",Double);
 }
-inline jdoubleArray& getJDoubleArray(JNIEnv* env, jobject thiz, const char* name) {
+inline jdoubleArray getJDoubleArray(JNIEnv* env, jobject thiz, const char* name) {
 	_get_jarray("[D", double);
 }
 
@@ -86,7 +86,7 @@ inline void setJFloat(JNIEnv *env, jobject thiz, const char* name, float val){
 inline float getJFloat(JNIEnv *env, jobject thiz, const char* name){
 	_get_jvalue("F",Float);
 }
-inline jfloatArray& getJFloatArray(JNIEnv* env, jobject thiz, const char* name) {
+inline jfloatArray getJFloatArray(JNIEnv* env, jobject thiz, const char* name) {
 	_get_jarray("[F", float);
 }
 
@@ -96,7 +96,7 @@ inline void setJLong(JNIEnv *env, jobject thiz, const char* name, long val){
 inline long getJLong(JNIEnv *env, jobject thiz, const char* name){
 	_get_jvalue("J",Long);
 }
-inline jlongArray& getJLongArray(JNIEnv* env, jobject thiz, const char* name) {
+inline jlongArray getJLongArray(JNIEnv* env, jobject thiz, const char* name) {
 	_get_jarray("[J", long);
 }
 
@@ -116,7 +116,7 @@ inline void setJShort(JNIEnv *env, jobject thiz, const char* name, int16_t val){
 inline jshort getJShort(JNIEnv *env, jobject thiz, const char* name){
 	_get_jvalue("S",Short);
 }
-inline jshortArray& getJShortArray(JNIEnv* env, jobject thiz, const char* name) {
+inline jshortArray getJShortArray(JNIEnv* env, jobject thiz, const char* name) {
 	_get_jarray("[S", short);
 }
 
@@ -126,7 +126,7 @@ inline void setJChar(JNIEnv *env, jobject thiz, const char* name, uint16_t val){
 inline uint16_t getJChar(JNIEnv *env, jobject thiz, const char* name){
 	_get_jvalue("C",Char);
 }
-inline jcharArray& getJCharArray(JNIEnv* env, jobject thiz, const char* name) {
+inline jcharArray getJCharArray(JNIEnv* env, jobject thiz, const char* name) {
 	_get_jarray("[C", char);	
 }
 
@@ -136,7 +136,7 @@ inline void setJByte(JNIEnv *env, jobject thiz, const char* name, uint8_t val){
 inline uint8_t getJByte(JNIEnv *env, jobject thiz, const char* name){
 	_get_jvalue("B",Byte);
 }
-inline jbyteArray& getJByteArray(JNIEnv* env, jobject thiz, const char* name) {
+inline jbyteArray getJByteArray(JNIEnv* env, jobject thiz, const char* name) {
 	_get_jarray("[B", byte);
 }
 
