@@ -163,7 +163,8 @@ public class StepCollect extends Stepper {
 			}
 			fmt = wb.createDataFormat();
 		}
-		final String TAG1 = StepKindler.TAG_FIRE;
+		
+		final String TAG1 = StepWatcher.TAG_WATCH;
 		
 		private void writing_book(final Mesg[] lst) {			
 			updateProgress(0, lst.length);
@@ -189,6 +190,7 @@ public class StepCollect extends Stepper {
 			styl.setDataFormat(fmt.getFormat("0.000"));
 			
 			for(int i=0; i<lst.length; i++) {
+				
 				updateProgress(i+1, lst.length);
 				final Mesg msg = lst[i];
 				String txt = msg.getText();
@@ -244,7 +246,6 @@ public class StepCollect extends Stepper {
 			//ArrayList<Mesg> lst = (ArrayList<Mesg>) Misc.deserializeFile("dummy-log1.obj");
 			//Mesg[] msg = lst.toArray(new Mesg[0]);
 			Mesg[] msg = LogStream.getInstance().flushPool();
-			
 			prepare_book();
 			writing_book(msg);
 			close_book();

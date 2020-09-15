@@ -297,14 +297,7 @@ public class Gawain extends Application {
 		}
 	}
 	//--------------------------------------------//
-	
-	public static final AtomicBoolean isExist = new AtomicBoolean(false);
-	
-	@Override
-	public void stop() throws Exception {
-		isExist.set(true);
-	}
-	
+		
 	public static PanBase mainPanel = null;
 	
 	public static void mainPanel() {
@@ -318,8 +311,6 @@ public class Gawain extends Application {
 				//.newInstance(stg);
 			mainPanel.initLayout();
 			mainPanel.appear();
-			tick = System.currentTimeMillis()-tick;			
-			Misc.logv("啟動時間: %dms",tick);
 		} catch (
 			InstantiationException | 
 			IllegalAccessException | 
@@ -333,11 +324,18 @@ public class Gawain extends Application {
 			Misc.loge("啟動失敗!!");
 			mainPanel = LogStream.getInstance().showConsole();
 		}
+		tick = System.currentTimeMillis()-tick;			
+		Misc.logv("啟動時間: %dms",tick);
 	}
 	
+	public static final AtomicBoolean isKill = new AtomicBoolean(false);
 	@Override
 	public void start(Stage stg) throws Exception {
 		new Loader().launch(stg);
+	}	
+	@Override
+	public void stop() throws Exception {
+		isKill.set(true);
 	}
 	
 	public static void main(String[] argv) {
@@ -345,11 +343,13 @@ public class Gawain extends Application {
 		propPrepare();
 		//liceBind();//check dark license~~~
 		launch(argv);
+		//End of Application
+		//store property and 
 		propRestore();
 		if(jarName.length()!=0){
-			//we are jar file, it is a release version.
+			//This is the jar file, try to wait release resource.
 			try {
-				//let daemon thread have chance to escape its loop.<p>
+				//let daemon thread have chance to escape its loop.
 				Misc.logv("waiting to shutdown...");
 				Thread.sleep(3000);
 			}catch(InterruptedException e) { 
@@ -360,14 +360,13 @@ public class Gawain extends Application {
 	//--------------------------------------------//
 	//In this section, we initialize all global variables~~
 	
+	private static final String jarName; 
+	
 	public static final String sheet = Gawain.class.
 		getResource("res/styles.css").
 		toExternalForm() ;
-	
-	private static final String jarName; 
-	
+		
 	public static final boolean isPOSIX;
-	
 	public static final String pathRoot;//Working directory.
 	public static final String pathHome;//User home directory.
 	public static final String pathSock;//Data or setting directory.

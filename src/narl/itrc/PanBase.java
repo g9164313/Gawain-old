@@ -19,6 +19,7 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
+import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
@@ -27,6 +28,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import narl.itrc.init.LogStream;
 
 public abstract class PanBase {
 	
@@ -62,12 +64,9 @@ public abstract class PanBase {
 	//txt.setPrefSize(200, 200);
 	//txt.setAlignment(Pos.CENTER);
 	//face1 = txt;
+	private static final KeyCombination kb_quit = KeyCombination.keyCombination("Ctrl+ESC");
+	private static final KeyCombination kb_console = KeyCombination.keyCombination("Ctrl+F1");
 	
-	/**
-	 * special short-key for popping stdio panel.
-	 */
-	//private static KeyCombination hotkey_console = KeyCombination.keyCombination("Ctrl+Alt+C");
-
 	public void initLayout() {
 		final Pane face = eventLayout(this);
 		StackPane.setAlignment(face, Pos.BOTTOM_LEFT);
@@ -83,23 +82,18 @@ public abstract class PanBase {
 		scene.setUserData(this);//keep self-pointer		
 		scene.getStylesheets().add(Gawain.sheet);//load a default style...
 		scene.setFill(Color.WHITE);
-		/*scene.setOnKeyPressed(event->{
-			KeyCode cc = event.getCode();
-			if(cc==KeyCode.F1){
-				if(Gawain.mainPanel.equals(PanBase.this)==true){
-					if(notifyConfirm("！！注意！！","確認離開主程式？")==ButtonType.CANCEL){
-						return;
-					}			
-				}
-				stage.close();
-			}else if(cc==KeyCode.F2){				
-				stage.setFullScreen(stage.fullScreenProperty().not().get());
-			}else if(cc==KeyCode.F3){
-				//show console ???
+		scene.setOnKeyPressed(event->{
+			if(kb_console.match(event)==true) {
 				LogStream.getInstance().showConsole();
-			}else if(hotkey_console.match(event)==true){
+			}else if(
+				kb_quit.match(event)==true &&
+				Gawain.mainPanel.equals(PanBase.this)==true
+			) {
+				if(notifyConfirm("！！注意！！","確認離開主程式？")==ButtonType.OK){
+					stage.close();
+				}
 			}
-		});*///capture some short-key
+		});//capture some short-key
 	}
 	
 	private void prepare(){
@@ -108,9 +102,9 @@ public abstract class PanBase {
 		}		
 		stage.setScene(scene);
 		if(Gawain.mainPanel==this) {
-			if(Gawain.propFlag("FULL_PANEL")==true) {
+			if(Gawain.propFlag("PANEL_FULL")==true) {
 				stage.setFullScreen(true);
-			}else if(Gawain.propFlag("MAX_PANEL")==true) {
+			}else if(Gawain.propFlag("PANEL_MAX")==true) {
 				stage.setMaximized(true);
 			}else {
 				stage.sizeToScene();
@@ -151,22 +145,30 @@ public abstract class PanBase {
 	//----------------------------------------------//
 		
 	public static class Spinner extends JFXDialog {
+		
 		JFXSpinner icon;
-		Label mesg;
+		Label[] mesg = {new Label(), new Label()};
+		
 		public Spinner(){
+			
 			icon = new JFXSpinner();
-			mesg = new Label();
-			mesg.setMinWidth(100);
-			mesg.setFont(Font.font("Arial", 26));
-			mesg.setAlignment(Pos.CENTER);
-			final HBox lay = new HBox(icon,mesg);
+
+			mesg[0].setMinWidth(100);
+			mesg[0].setFont(Font.font("Arial", 26));
+			mesg[0].setAlignment(Pos.BASELINE_LEFT);
+			
+			mesg[1].setMinWidth(50);
+			mesg[1].setFont(Font.font("Arial", 26));
+			mesg[1].setAlignment(Pos.BASELINE_RIGHT);
+			
+			final HBox lay = new HBox(icon,mesg[0], mesg[1]);
 			lay.getStyleClass().addAll("box-pad");
 			lay.setAlignment(Pos.CENTER_LEFT);	
 			setContent(lay);
 		}
 		public Spinner(final String text){
 			this();
-			mesg.setText(text);
+			mesg[0].setText(text);
 		}
 		public static Spinner getSelf(JFXDialogEvent e){
 			return (Spinner)(e.getSource());
@@ -199,7 +201,9 @@ public abstract class PanBase {
 		final Task<?> task
 	) {
 		Spinner dlg = new Spinner();
-		dlg.mesg.textProperty().bind(task.messageProperty());
+		dlg.mesg[0].textProperty().bind(task.messageProperty());
+		dlg.mesg[1].visibleProperty().bind(task.progressProperty().greaterThan(0.f));
+		dlg.mesg[1].textProperty().bind(task.progressProperty().multiply(100.f).asString("%.0f％"));
 		//override old handler~~~
 		final EventHandler<WorkerStateEvent> hook = task.getOnSucceeded();
 		task.setOnSucceeded(e->{

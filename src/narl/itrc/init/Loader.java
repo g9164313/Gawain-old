@@ -7,6 +7,8 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.LinkedList;
 
+import com.sun.glass.ui.Application;
+
 import javafx.concurrent.Task;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -22,21 +24,19 @@ import narl.itrc.Misc;
 public class Loader extends Task<Integer> {
 
 	@Override
-	protected Integer call() throws Exception {				
-		long t1 = System.currentTimeMillis();
-		prepare_socket_dir();
-		loading_dependency();		
+	protected Integer call() throws Exception {
+		//check dependency~~~
+		check_socket_dir();
+		check_dependency();
+		//awaken_terminal();
+		//progress-bar waiting~~~
 		updateMessage("等待主畫面... ");
-		updateProgress(-1.,-1.);//let progress-bar waiting~~~
-		long tx = System.currentTimeMillis() - t1;
-		final long MAX_DELAY = 3000L;
-		if(tx<MAX_DELAY && Gawain.propFlag("SPLASH_DELAY")==true) {
-			Thread.sleep(MAX_DELAY-tx);
-		}
+		updateProgress(-1.,-1.);
+		Application.invokeAndWait(()->Gawain.mainPanel());
 		return 0;
 	}
-	
-	private void prepare_socket_dir() {
+
+	private void check_socket_dir() {
 		updateMessage("準備資源... ");
 		final File fs = new File(Gawain.pathSock);
 		if(fs.exists()==false) {
@@ -93,7 +93,7 @@ public class Loader extends Task<Integer> {
 		}
 	}
 	
-	private void loading_dependency(){
+	private void check_dependency(){
 		
 		LinkedList<LibFile> lst = new LinkedList<LibFile>();
 		
@@ -134,6 +134,23 @@ public class Loader extends Task<Integer> {
 		}
 	}
 	
+	/*private void awaken_terminal() {
+		updateMessage("確認外部命令");	
+		updateProgress(-1.,-1.);
+		for(Entry<Object, Object> e : Gawain.prop().entrySet()){
+			final String key = e.getKey().toString();
+			if(key.matches("^TERM_\\p{Alnum}+")==false) {
+				continue;
+			}
+			final String tag = key.split("_")[1];
+			final String val = e.getValue().toString();
+			updateMessage("載入："+tag);	
+			Terminal.getInstance().exec(tag,val);
+		}
+		//test~~~
+		Misc.logv(">>"+Terminal.getInstance().exec("/usr/bin/python3","-c","print(4+4)"));
+	}*/
+	
 	private Parent layout(Stage stg){
 		
 		ImageView img = Misc.getIconView("logo.jpg");
@@ -152,10 +169,7 @@ public class Loader extends Task<Integer> {
 	}
 	
 	public void launch(final Stage stg){		
-		setOnSucceeded(e->{			
-			Gawain.mainPanel();
-			stg.close();
-		});		
+		setOnSucceeded(e->stg.close());		
 		final Scene scn = new Scene(layout(stg));
 		scn.getStylesheets().add(Gawain.sheet);
 		stg.setScene(scn);

@@ -5,25 +5,25 @@
 
 .btn-raised-0 {
 	-fx-button-type: RAISED;
-	-fx-font-size: 1.4em;
+	-fx-font-size: 1.5em;
 	-fx-background-color: #c2185b;
 	-fx-text-fill: WHITE;
 }
 .btn-raised-1{
 	-fx-button-type: RAISED;
-	-fx-font-size: 1.4em;
+	-fx-font-size: 1.5em;
 	-fx-background-color: #aed581;
 	-fx-text-fill: BLACK;
 }
 .btn-raised-2 {
   -fx-button-type: RAISED;
-  -fx-font-size: 1.4em; 
+  -fx-font-size: 1.5em; 
   -fx-background-color: #4db6ac;
   -fx-text-fill: BLACK;
 }
 .btn-raised-3 {
   -fx-button-type: RAISED;
-  -fx-font-size: 1.4em;
+  -fx-font-size: 1.5em;
   -fx-background-color: #64b5f6;
   -fx-text-fill: BLACK;
 }

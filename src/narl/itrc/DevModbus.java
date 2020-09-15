@@ -51,7 +51,7 @@ public class DevModbus extends DevBase {
 		if(isLive()==true) {
 			return;
 		}
-		if(devPath.matches("^[rR][tT][uU]:\\w+,\\d+,[78][noems][12]")==true) {
+		if(devPath.matches("^[rR][tT][uU]:\\w+,\\d+,[78][neoNEO][12]")==true) {		
 			
 			String[] col = devPath.substring(4).split(",");	
 			if(col.length>=1) {
@@ -62,12 +62,13 @@ public class DevModbus extends DevBase {
 			}
 			if(col.length>=3) {
 				rtuData = (byte)col[2].charAt(0);
-				rtuMask = (byte)col[2].charAt(1);
+				//LibModbus use upper-case mask sign!!!
+				rtuMask = (byte)Character.toUpperCase(col[2].charAt(1));
 				rtuStop = (byte)col[2].charAt(2);
 			}
 			implOpenRtu();
 			
-		}else if(devPath.matches("^[tT][cC][pP]:\\d{1,3}.\\d{1,3}.\\d{1,3}.\\d{1,3}[#]?[\\d]*")==true) {
+		}else if(devPath.matches("^[tT][cC][pP]:\\d{1,3}.\\d{1,3}.\\d{1,3}.\\d{1,3}[#]?[\\d]*")==true) {		
 			
 			String[] col = devPath.substring(4).split("#");
 			if(col.length>=1) {
@@ -81,7 +82,7 @@ public class DevModbus extends DevBase {
 		}else {
 			handle = 0L;
 		}
-		if(mems.size()!=0) {
+		if(mems.size()!=0 && handle>0L) {
 			addState(STG_IGNITE,()->ignite());
 			addState(STG_LOOPER,()->looper());
 			playFlow(STG_IGNITE);
@@ -111,7 +112,7 @@ public class DevModbus extends DevBase {
 	
 	//register cell
 	private class RCell {
-		int     slaveId;//MODBUS_BROADCAST_ADDRESS=0
+		int     slaveId;//MODBUS_BROADCAST_ADDRESS=0, default=-1
 		char    func_id;		
 		int     address;
 		short[] values;
@@ -139,7 +140,9 @@ public class DevModbus extends DevBase {
 			if(values==null) {
 				return;
 			}
-			implSlaveID(slaveId);
+			if(slaveId>=0) {
+				implSlaveID(slaveId);
+			}
 			switch(func_id) {
 			case 'C':
 				//coils, function code = 1
@@ -263,13 +266,13 @@ public class DevModbus extends DevBase {
 	 * @return
 	 */
 	public DevModbus mapAddress(final String... address) {
-		return mapAddress(10,0,address);
-	}
-	public DevModbus mapAddress10(final String... address) {
-		return mapAddress(address);
+		return mapAddress(10, -1,address);
 	}
 	public DevModbus mapAddress(final int sid,final String... address) {
 		return mapAddress(10,sid,address);
+	}
+	public DevModbus mapAddress10(final String... address) {
+		return mapAddress(address);
 	}
 	public DevModbus mapAddress10(final int sid,final String... address) {
 		return mapAddress(sid,address);
@@ -286,7 +289,7 @@ public class DevModbus extends DevBase {
 	 * @return
 	 */
 	public DevModbus mapAddress16(final String... address) {
-		return mapAddress(16,0,address);
+		return mapAddress(16, -1,address);
 	}
 	public DevModbus mapAddress16(final int sid,final String... address) {
 		return mapAddress(16,sid,address);
@@ -303,9 +306,9 @@ public class DevModbus extends DevBase {
 			if(
 				beg<=addr && 
 				addr<=end &&
-				reg.slaveId==sid &&
+				reg.slaveId!=sid &&
 				reg.func_id==fid 
-			) {				
+			) {	
 				int off = addr - beg;
 				return reg.v_prop[off];
 			}
@@ -313,16 +316,16 @@ public class DevModbus extends DevBase {
 		return null;
 	}
 	public IntegerProperty coilStatus(final int address) {
-		return get_register(0,'C',address); 
+		return get_register(-1,'C',address); 
 	}
 	public IntegerProperty inputStatus(final int address) {
-		return get_register(0,'S',address); 
+		return get_register(-1,'S',address); 
 	}
 	public IntegerProperty holdingRegister(final int address) {
-		return get_register(0,'H',address);
+		return get_register(-1,'H',address);
 	}
 	public IntegerProperty inputRegister(final int address) {
-		return get_register(0,'I',address);
+		return get_register(-1,'I',address);
 	}
 	public IntegerProperty coilStatus(final int slaveId,final int address) {
 		return get_register(slaveId,'C',address); 

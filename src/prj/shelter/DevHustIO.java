@@ -135,7 +135,7 @@ public class DevHustIO extends DevTTY {
 				}
 			}
 			if(radition_flag==true){
-				remain_t.setValue(Misc.tick2time(
+				remain_t.setValue(Misc.tick2text(
 					 System.currentTimeMillis() - radition_tick
 				));
 			}

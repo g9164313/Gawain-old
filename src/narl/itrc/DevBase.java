@@ -45,7 +45,10 @@ public abstract class DevBase implements Runnable {
 	public void run() {
 		//main looper
 		do {
-			if(isExist.get()==true){
+			if(
+				isExist.get()==true ||
+				Gawain.isKill.get()==true
+			){
 				break;
 			}
 			//go through state-flow
@@ -82,7 +85,7 @@ public abstract class DevBase implements Runnable {
 					}
 				}
 			}
-		}while(Gawain.isExist.get()==false);
+		}while(true);
 		Misc.logv("%s --> close", TAG);
 	}
 

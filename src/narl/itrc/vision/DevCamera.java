@@ -63,9 +63,9 @@ public class DevCamera extends ImgPane {
 		ImgFilm film = cap.getFilm();
 		film.setSnapCount(count);
 		do {
-			if(Gawain.isExist.get()==true) {
-				return;
-			}				
+			//if(Gawain.isExist.get()==true) {
+			//	return;
+			//}				
 			film.refMask = maskBrush;
 			film.setMark(this);
 			cap.fetch(film);
@@ -164,7 +164,7 @@ public class DevCamera extends ImgPane {
 	@SuppressWarnings("unused")
 	private boolean isTaskDone() {
 		//this function is called by native code!!!
-		return tskProc.isDone() || tskLoop.isDone() || Gawain.isExist.get(); 
+		return tskProc.isDone() || tskLoop.isDone(); 
 	}
 	//-------------------------------------//
 	

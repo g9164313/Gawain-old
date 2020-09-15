@@ -6,6 +6,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Scanner;
 
@@ -65,19 +66,19 @@ public class Ladder extends BorderPane {
 		btn[3].getStyleClass().add("btn-raised-2");
 		btn[3].setGraphic(Misc.getIconView("run.png"));
 		btn[3].disableProperty().bind(is_climbing);
-		btn[3].setOnAction(e->start_again());
+		btn[3].setOnAction(e->starter());
 		//Pause the current step~~
 		btn[4].setText("暫停");
 		btn[4].getStyleClass().add("btn-raised-2");
 		btn[4].setGraphic(Misc.getIconView("pause.png"));
 		btn[4].disableProperty().bind(is_climbing.not());
-		btn[4].setOnAction(e->abort_or_pause(false));
+		btn[4].setOnAction(e->pause());
 		//Stop immediately
 		btn[5].setText("停止");
 		btn[5].getStyleClass().add("btn-raised-2");
 		btn[5].setGraphic(Misc.getIconView("pan_tool.png"));
 		btn[5].disableProperty().bind(is_climbing.not());
-		btn[5].setOnAction(e->abort_or_pause(true));
+		btn[5].setOnAction(e->abort());
 		
 		main_kits.getStyleClass().addAll("box-pad");
 		main_kits.getChildren().addAll(btn);
@@ -136,6 +137,7 @@ public class Ladder extends BorderPane {
 					}
 				}
 				obj.items = Optional.of(recipe.getItems());
+				obj.ladder= Ladder.this;
 				obj = obj.doLayout();
 				recipe.getItems().add(obj);
 				recipe.scrollTo(obj);
@@ -298,33 +300,42 @@ public class Ladder extends BorderPane {
 	
 	public Runnable prelogue = null;
 	public Runnable epilogue = null;
+	private String uuid_text = "";
+	public String uuid() {
+		return uuid_text;
+	} 
+	private void prelogue() {
+		uuid_text = UtilRandom.uuid(6,16);
+		if(prelogue!=null) { prelogue.run(); }
+	}
+	private void epilogue() {
+		if(epilogue!=null) { epilogue.run(); }
+		uuid_text = "";
+	}
 	
-	private void start_again(){
+	private void starter(){
 		is_climbing.set(true);
 		if(timer.isPresent()==false) {
 			timer = Optional.of(prepare_footstep());
-			if(timer.isPresent()==false){
-				return;
-			}
 			timer.get().playFromStart();
-			//recipe.setDisable(true);
 		}else{
 			timer.get().play();
 		}
 	}
-	
-	private void abort_or_pause(boolean abort){
-		if(timer.isPresent()==false) {
-			return;
-		}		
-		if(abort){
+	private void abort(){
+		try {
 			timer.get().stop();
+			is_climbing.set(false);
 			timer = Optional.empty();
-			//recipe.setDisable(false);
-		}else{
-			timer.get().pause();
+		}catch(NoSuchElementException e) {
 		}
-		is_climbing.set(false);
+	}
+	private void pause() {
+		try {
+			timer.get().pause();
+			is_climbing.set(false);
+		}catch(NoSuchElementException e) {
+		}
 	}
 	
 	private static class Footstep {
@@ -368,9 +379,8 @@ public class Ladder extends BorderPane {
 		}
 		//let timer know the working is ending
 		queue.addLast(ending);
-		ending.work = epilogue;
 		//let user prepare something
-		if(prelogue!=null) { prelogue.run(); }
+		prelogue();
 		//setup timer to repeat all works~~~
 		KeyFrame key = new KeyFrame(
 			Duration.seconds(1.),
@@ -385,10 +395,10 @@ public class Ladder extends BorderPane {
 	private void climbing(){
 		Footstep cur = queue.getFirst();
 		Footstep prv = queue.getLast();
-		//check the tail, because it is the previous step~~~
+		//check the tail, because it may be the previous step~~~
 		if(cur.equals(ending)==true){
-			abort_or_pause(true);
-			if(epilogue!=null) { epilogue.run(); }
+			abort();
+			epilogue();
 			return;
 		}
 		//update indicator icon in every stepper.
@@ -412,9 +422,9 @@ public class Ladder extends BorderPane {
 		boolean dir = (stp>=0)?(true):(false);		
 		if(cnt>=Stepper.SPEC_JUMP) {
 			if(stp==Stepper.ABORT) {
-				abort_or_pause(true);
+				abort();
 			}else if(stp==Stepper.PAUSE) {
-				abort_or_pause(false);
+				pause();
 			}else {
 				major_jump(cnt-Stepper.SPEC_JUMP,dir);
 			}
@@ -456,7 +466,6 @@ public class Ladder extends BorderPane {
 			}
 		}while(aa==bb);
 	}
-	
 	private void minor_jump(final int cnt, final boolean flag) {
 		for(int i=0; i<cnt; i++) {
 			if(flag==true) {

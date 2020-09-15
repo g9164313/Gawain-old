@@ -1,8 +1,10 @@
 package narl.itrc.init;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
@@ -78,8 +80,10 @@ public class LogStream {
 	};
 	
 	private class Pipe extends OutputStream {
+		
 		Optional<Mesg> msg = Optional.empty();
 		FileOutputStream fid;
+		int fid_size = 0;
 		PrintStream p_in;
 		PrintStream p_out;		
 		ByteArrayOutputStream buf = new ByteArrayOutputStream(128);
@@ -140,6 +144,12 @@ public class LogStream {
 				p_out.write(b);//pipe to the origin stream
 				if(fid!=null){ 
 					fid.write(b);
+					if(fid_size%(4096)==0) {
+						fid.flush();
+						fid_size =0;
+					}else {
+						fid_size+=1;
+					}
 				}
 				if(msg.isPresent()==true) {
 					buf.write(b);
@@ -167,11 +177,20 @@ public class LogStream {
 	};
 	
 	private static Optional<LogStream> self = Optional.empty();
-	private static Optional<PanBase> pane = Optional.empty();
+	private static Optional<PanBase> console = Optional.empty();
 	
 	private LogStream(){
-		pip[0].setFile(Gawain.pathSock+"stdout.txt");
-		pip[1].setFile(Gawain.pathSock+"stderr.txt");
+		String[] name = {null,null};
+		if(Gawain.propFlag("LOG_KEEP")==true) {
+			String postfix = Misc.getDateName();
+			name[0] = Gawain.pathSock+"stdout-"+postfix+".txt";
+			name[1] = Gawain.pathSock+"stderr-"+postfix+".txt";
+		}else {
+			name[0] = Gawain.pathSock+"stdout"+".txt";
+			name[1] = Gawain.pathSock+"stderr"+".txt";
+		}
+		pip[0].setFile(name[0]);
+		pip[1].setFile(name[1]);
 		System.setOut(pip[0].getNode());
 		System.setErr(pip[1].getNode());
 	}
@@ -192,43 +211,30 @@ public class LogStream {
 	private AtomicBoolean useHook = new AtomicBoolean(false);		
 	private Hooker hooker = null;
 	
-	public void formPool(){
-		pooler.clear();
-		usePool.set(true);
+	public void usePool(final boolean enable){
+		if(enable==true) {
+			pooler.clear();
+		}
+		usePool.set(enable);
+	}
+	public Mesg[] fetchPool(){
+		return pooler.toArray(new Mesg[0]);
 	}
 	public Mesg[] flushPool() {
-		Mesg[] lst = pooler.toArray(new Mesg[0]);
+		Mesg[] lst = fetchPool();
 		pooler.clear();
 		System.gc();
 		return lst;
 	}
-	public Mesg[] getPool(){
-		return pooler.toArray(new Mesg[0]);
+	/**
+	 * High-level function to dump data in pool.<p>
+	 * Log message will be serialized to the file.<p>
+	 * @param name
+	 */
+	public void serializePool(final String name){
+		Misc.serialize2file(name, flushPool());
 	}
-	public void serializePooler(final String name){
-		Misc.serialize2file(name, pooler);
-	}
-	public Mesg[] razePool() {
-		usePool.set(false);
-		return flushPool();
-	}	
-	/*public Mesg[] savePoolWithDate(){
-		return getPool(Gawain.pathHome+Misc.getDateName()+".obj");
-	}
-	public Mesg[] getPool(final String file_name){
-		usePool.set(false);
-		Misc.asynSerialize2file(file_name, pooler);
-		return pooler.toArray(new Mesg[0]);
-	}
-	@SuppressWarnings("unchecked")
-	public static Mesg[] loadPool(final String file_name) {
-		Object obj = Misc.deserializeFile(file_name);
-		if(obj!=null) {
-			return ((ArrayList<Mesg>)obj).toArray(new Mesg[0]);
-		}
-		return null;		
-	}*/
-	
+
 	public void setHook(final Hooker event){
 		if(event==null){
 			hooker = null;
@@ -295,15 +301,15 @@ public class LogStream {
 		lay0.setLeft(lay1);
 		
 		self.stage().setOnCloseRequest(e->{
-			pane=Optional.empty();
+			console = Optional.empty();
 			timer.stop();
 		});
 		return lay0;
 	}
 	
 	public PanBase showConsole(){
-		if(pane.isPresent()==true){
-			return pane.get();
+		if(console.isPresent()==true){
+			return console.get();
 		}
 		PanBase obj = new PanBase(){
 			@Override
@@ -311,7 +317,7 @@ public class LogStream {
 				return layout_console(self);
 			}
 		};
-		pane = Optional.of(obj.appear());
+		console = Optional.of(obj.appear());
 		return obj;
 	}
 
@@ -321,4 +327,49 @@ public class LogStream {
 		}
 		return self.get();
 	}
+	
+	/**
+	 * convenience method for reading message object.<p>
+	 * @param name - file name of serialized object.
+	 * @return
+	 */
+	public static Mesg[] read(final String name){
+		return read(new File(name));
+	}
+	/**
+	 * convenience method for reading message object.<p>
+	 * @param fs - file of serialized object.
+	 * @return
+	 */
+	public static Mesg[] read(final File fs) {
+		Object obj = Misc.deserializeFile(fs);
+		if(obj!=null) {
+			return (Mesg[])obj;
+		}
+		return null;
+	}
+	
+	public static void dump(
+		final String name,
+		final Mesg[] mesg
+	){
+		if(name.endsWith(".obj")==true){
+			Misc.serialize2file(name, mesg);
+			return;
+		}
+		//flatten data~~~
+		try {
+			FileWriter fs = new FileWriter(name);
+			for(Mesg m:mesg){
+				fs.write(String.format(
+					"%s    %s\r\n",
+					m.getTickText(""),
+					m.getText()
+				));				
+			}
+			fs.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}	
 }

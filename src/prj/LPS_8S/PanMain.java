@@ -23,46 +23,41 @@ import narl.itrc.PadTouch;
 import narl.itrc.PanBase;
 
 public class PanMain extends PanBase {
-
-	private ModServo servo = new ModServo();
+	
+	private static final String TXT_AXIS_MAIN = "主軸";
+	private static final String TXT_AXIS_PRESS = "加壓軸";
+	private static final String TXT_AXIS_SWING = "擺動軸";
+	private static final String TXT_CYLI_1 = "氣壓缸（進）";
+	private static final String TXT_CYLI_2 = "氣壓缸（出）";
+	
+	private ModInfoBus infobus = new ModInfoBus();
+	private ModCoupler coupler = new ModCoupler();
 	
 	public PanMain() {
 		init_gauge();
 		stage().setOnShown(e->on_shown());
 	}
-	private void on_shown() {
+	private void on_shown() {		
 		String arg;
-		arg = Gawain.prop().getProperty("SERVO", "");
+		arg = Gawain.prop().getProperty("INFOBUS", "");
 		if(arg.length()!=0) {
-			servo.open(arg);		
+			//TODO:binding data~~~~~
+			//gag[6].titleProperty().set("ggyy");
+			infobus.open(arg);	
+		}
+		arg = Gawain.prop().getProperty("COUPLER", "");
+		if(arg.length()!=0) {
+			coupler.open(arg);
 		}
 	}
 
-	private final XMark[] mrk = {
-		new XMark("待機中","運轉中"),
-		new XMark("待機中","運轉中"),
-		new XMark("待機中","運轉中"),
-		new XMark("夾模","拆模"),
-		new XMark("止水","噴水"),
-		new XMark("失壓","加壓中"),
-		new XMark("失壓","加壓中"),
-	};
+	//計時, 
+	//（研磨液）電導, 流量, 溫度,
+	//主軸轉速-1, 加壓轉速-2, 推動轉速-3,
+	//（加壓氣缸）電控比例閥-1, 電控比例閥-2,
+	private final Tile[] gag = new Tile[9];
 	
-	//計時, 電導度, 研磨液流量, 溫度, 
-	//轉速-1, 轉速-2, 轉速-3,
-	private final Tile[] gag = new Tile[7];
-	
-	//比例閥-1, 比例閥-2,
-	//轉速-1, 轉速-2, 轉速-3,
-	/*private final XSlider[] bar = {
-		new XSlider("比例閥-1"),
-		new XSlider("比例閥-2"),
-		new XSlider("轉速-1"),
-		new XSlider("轉速-2"),
-		new XSlider("轉速-3"),
-	};*/
-	
-	private void on_counting_done(final AlarmEvent EVENT) {
+	private void on_timer_alarm(final AlarmEvent EVENT) {
 		gag[0].setTitle("計時");//restore title~~~
 	}
 	
@@ -86,60 +81,42 @@ public class PanMain extends PanBase {
 			new JFXToggleButton(),
 			new JFXToggleButton(),
 			new JFXToggleButton(),
-			new JFXToggleButton()
+			new JFXToggleButton(),
 		};
-		tgl[0].setText("噴水");
-		tgl[1].setText("拆模");
-		tgl[2].setText("馬達-1");
-		tgl[2].setOnAction(e->{
-			JFXToggleButton obj = (JFXToggleButton)e.getSource();
-			boolean flg = obj.isSelected();
-			Misc.logv("moto start="+flg);
-			servo.SDA_motor(flg);
-		});
-		tgl[3].setText("馬達-2");
-		tgl[4].setText("馬達-3");
+		tgl[0].setText("氣壓缸");
+		tgl[1].setText("研磨液");
+		tgl[2].setText("主軸");
+		tgl[3].setText("加壓軸");
+		tgl[4].setText("推動軸");
 		tglPumpSlurry = tgl[0];
 		
 		JFXButton[] btn = {
+			new	JFXButton("裝模"),			
+			new	JFXButton("拆模"),
 			new	JFXButton("加工"),
-			new	JFXButton("停止"),
+			new	JFXButton("停止"),			
 		};
 		for(JFXButton obj:btn) {
 			obj.setMinSize(100., 57.);
 			obj.setMaxWidth(Double.MAX_VALUE);
 		}
 		btn[0].getStyleClass().add("btn-raised-2");
-		btn[0].setOnAction(e->on_working());
-		btn[1].getStyleClass().add("btn-raised-0");
-		btn[1].setOnAction(e->on_stopping());
-				
-		final VBox lay_info = new VBox(
-			new Label("馬達"),
-			mrk[0], mrk[1], mrk[2],
-			new Separator(),
-			new Label("燈號"),
-			mrk[3], mrk[4], mrk[5], mrk[6],
-			new Separator()
-		);
-		lay_info.getStyleClass().add("box-pad");
-		
-		/*final GridPane lay_bars = new GridPane();
-		//lay2.setGridLinesVisible(true);
-		lay_bars.getStyleClass().addAll("box-pad");		
-		lay_bars.addRow(0,bar[2],bar[3],bar[4]);
-		lay_bars.addRow(1,bar[0],bar[1]);
-		for(XSlider obj:bar) {
-			GridPane.setHgrow(obj,Priority.ALWAYS);
-			GridPane.setVgrow(obj,Priority.ALWAYS);
-		}*/
+		//btn[0].setOnAction(e->on_working());
+		btn[1].getStyleClass().add("btn-raised-2");
+		btn[1].setOnAction(e->on_working());
+		btn[2].getStyleClass().add("btn-raised-2");
+		btn[2].setOnAction(e->on_stopping());
+		btn[3].getStyleClass().add("btn-raised-0");
+		//btn[3].setOnAction(e->on_stopping());
 		
 		final VBox lay_tgl = new VBox(tgl);
 		lay_tgl.getStyleClass().add("box-pad");
-		
-		final VBox lay_btn = new VBox(btn);
+		final VBox lay_btn = new VBox(
+			btn[0],btn[1],
+			new Separator(),
+			btn[2],btn[3]
+		);
 		lay_btn.getStyleClass().add("box-pad");
-		
 		final BorderPane lay_ctrl = new BorderPane(
 			lay_tgl,
 			null,null,
@@ -148,25 +125,24 @@ public class PanMain extends PanBase {
 								
 		final GridPane lay_gagu = new GridPane();
 		lay_gagu.getStyleClass().add("box-pad");
-		lay_gagu.addColumn(0, gag[4], gag[5], gag[6]);
-		lay_gagu.addColumn(1, gag[1], gag[2], gag[3]);
+		lay_gagu.addColumn(0, gag[1], gag[2], gag[3]);
+		lay_gagu.addColumn(1, gag[4], gag[5], gag[6]);
+		lay_gagu.addColumn(2, gag[0], gag[7], gag[8]);
 		
 		return new BorderPane(
-			null,
+			lay_gagu,
 			null,lay_ctrl,
-			null,lay_gagu				
+			null,null				
 		);
 	}
-
-	private 
-	
+ 
 	void init_gauge() {
 		gag[0] = TileBuilder.create()
 			.skinType(SkinType.COUNTDOWN_TIMER)
 			.title("計時")
 			.textSize(TextSize.BIGGER)
 			.timePeriod(Duration.ofSeconds(-1L))
-			.onAlarm(e->on_counting_done(e))
+			.onAlarm(e->on_timer_alarm(e))
 			.build();
 		gag[0].setOnMouseClicked(e->{
 			PadTouch pad = new PadTouch('T',"時：分：秒");
@@ -181,7 +157,7 @@ public class PanMain extends PanBase {
 		});
 		gag[1] = TileBuilder.create()
 			.skinType(SkinType.SPARK_LINE)
-			.title("電導度")
+			.title("電導")
 			.textSize(TextSize.BIGGER)
 			.unit("PH")
 			.maxValue(1000)			
@@ -201,11 +177,12 @@ public class PanMain extends PanBase {
 			.maxValue(1000)			
 			.build();
 		gag[4] = TileBuilder.create()
-			.skinType(SkinType.SPARK_LINE)
-			.title("馬達-1")
+			.skinType(SkinType.GAUGE)
+			.title("主軸轉速")
 			.textSize(TextSize.BIGGER)
 			.unit("RPM")
-			.maxValue(3000)			
+			.maxValue(3000)	
+			.decimals(0)
 			.build();
 		gag[4].setOnMouseClicked(e->{
 			PadTouch pad = new PadTouch('N',"RPM");
@@ -214,14 +191,15 @@ public class PanMain extends PanBase {
 				return;
 			}
 			int rpm = Integer.valueOf(opt.get());
-			servo.SDA_speed(rpm);
+			//infobus.SDA_speed(rpm);
 		});
 		gag[5] = TileBuilder.create()
-			.skinType(SkinType.SPARK_LINE)
-			.title("馬達-2")
+			.skinType(SkinType.GAUGE)
+			.title("加壓軸轉速")
 			.textSize(TextSize.BIGGER)
 			.unit("RPM")
-			.maxValue(3000)			
+			.maxValue(3000)
+			.decimals(0)
 			.build();
 		gag[5].setOnMouseClicked(e->{
 			PadTouch pad = new PadTouch('N',"RPM");
@@ -230,15 +208,16 @@ public class PanMain extends PanBase {
 				return;
 			}
 			int rpm = Integer.valueOf(opt.get());
-			servo.SDA_speed(rpm);
+			//infobus.SDA_speed(rpm);
 		});
 		gag[6] = TileBuilder.create()
-			.skinType(SkinType.SPARK_LINE)
-			.title("馬達-3")
+			.skinType(SkinType.GAUGE)
+			.title("推動軸轉速")
 			.textSize(TextSize.BIGGER)
 			.unit("RPM")
-			.maxValue(3000)			
-			.build();
+			.maxValue(3000)	
+			.decimals(0)
+			.build();		
 		gag[6].setOnMouseClicked(e->{
 			PadTouch pad = new PadTouch('N',"RPM");
 			Optional<String> opt = pad.showAndWait();			
@@ -246,7 +225,21 @@ public class PanMain extends PanBase {
 				return;
 			}
 			int rpm = Integer.valueOf(opt.get());
-			servo.SDA_speed(rpm);
+			//servo.SDA_speed(rpm);
 		});
+		gag[7] = TileBuilder.create()
+			.skinType(SkinType.GAUGE2)
+			.title("加壓（進）")
+			.textSize(TextSize.BIGGER)
+			.unit("Torr")
+			.maxValue(100)			
+			.build();
+		gag[8] = TileBuilder.create()
+			.skinType(SkinType.GAUGE2)
+			.title("加壓（出）")
+			.textSize(TextSize.BIGGER)
+			.unit("Torr")
+			.maxValue(100)			
+			.build();
 	}
 }

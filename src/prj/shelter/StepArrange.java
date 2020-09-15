@@ -76,7 +76,7 @@ public class StepArrange extends Stepper {
 		}else {
 			msg1.setText(String.format(
 				"等待 %s",
-				Misc.tick2time(waiting_time(3*60*1000),true)
+				Misc.tick2text(waiting_time(3*60*1000),true)
 			));
 		}
 	};

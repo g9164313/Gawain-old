@@ -33,8 +33,9 @@ public abstract class Stepper extends HBox {
 	private JFXButton btnEdit = new JFXButton();
 	private JFXButton btnDrop = new JFXButton();
 	
-	public Optional<Runnable[]> works = Optional.empty();
-	public Optional<ObservableList<Stepper>> items = Optional.empty();//we can see other stepper
+	protected Optional<Runnable[]> works = Optional.empty();
+	protected Optional<ObservableList<Stepper>> items = Optional.empty();//we can see other stepper	
+	protected Ladder ladder;
 	
 	public Stepper(){
 		imgSign.setImage(v_empty);
@@ -147,8 +148,18 @@ public abstract class Stepper extends HBox {
 		long rem = period - pass;
 		return (rem>0)?(rem):(0);
 	}
-	protected long waiting_time(final String time){
+	protected long waiting_tick(final String time){
 		return waiting_time(Misc.time2tick(time));
+	}
+	protected long remain_tick(final boolean stop){
+		if(stop==true) {
+			tick = -1L;//reset for next turn~~~
+			next_work();
+			return System.currentTimeMillis();
+		}
+		tick = System.currentTimeMillis();
+		next_hold();
+		return tick;
 	}
 	
 	protected void prepare(){
@@ -249,6 +260,8 @@ public abstract class Stepper extends HBox {
 		}
 	};
 	
+	private static String def_stick_text = "";
+	
 	public static class Sticker extends Stepper {
 		final Label msg = new Label();
 		@Override
@@ -271,17 +284,22 @@ public abstract class Stepper extends HBox {
 		}
 		@Override
 		public void eventEdit(){
-			TextInputDialog dia = new TextInputDialog();
+			String init_text = msg.getText();
+			if(init_text.length()==0) {
+				init_text = def_stick_text;
+			}
+			TextInputDialog dia = new TextInputDialog(init_text);
 			//dia.setTitle("Text Input Dialog");
 			//dia.setHeaderText("Look, a Text Input Dialog");
 			dia.setContentText("內容:");
 			Optional<String> res = dia.showAndWait();
 			if (res.isPresent()){
-			   msg.setText(res.get());
+				def_stick_text = res.get();
+				msg.setText(def_stick_text);			   
 			}
 		}
 		public Sticker editValue(final String txt){
-			msg.setText(txt);
+			msg.setText(txt);	
 			return this;
 		}
 		@Override

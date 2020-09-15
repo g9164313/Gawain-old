@@ -19,6 +19,7 @@ import javafx.scene.layout.VBox;
 import narl.itrc.DevModbus;
 import narl.itrc.Gawain;
 import narl.itrc.Ladder;
+import narl.itrc.Misc;
 import narl.itrc.PanBase;
 import narl.itrc.Stepper;
 import narl.itrc.init.LogStream;
@@ -40,7 +41,8 @@ public class PanMain extends PanBase {
 		stage().setOnShown(e->on_shown());
 	}
 	
-	private void on_shown(){
+	private void on_shown(){		
+		//notifyTask(StepAnalysis.task_dump("64BF97"));//debug		
 		String arg;
 		arg = Gawain.prop().getProperty("modbus", "");
 		if(arg.length()!=0) {
@@ -66,7 +68,7 @@ public class PanMain extends PanBase {
 	private void init(){
 		//initial step-box for recipe
 		ladder.addStep("分隔線", Stepper.Sticker.class);
-		ladder.addStep("薄膜選取",StepSetFilm.class, sqm1);
+		ladder.addStep("薄膜設定",StepSetFilm.class, sqm1);
 		ladder.addStep("電極切換",StepGunsHub.class, coup);
 		ladder.addStep("脈衝設定",StepSetPulse.class, spik);
 		ladder.addStep("高壓設定",StepKindler.class, sqm1, dcg1, spik);
@@ -96,8 +98,13 @@ public class PanMain extends PanBase {
 			StepKindler.class,
 			StepWatcher.class
 		);
-		ladder.prelogue = ()->LogStream.getInstance().formPool();
-		ladder.epilogue = ()->LogStream.getInstance().razePool();
+		ladder.prelogue = ()->{
+			LogStream.getInstance().usePool(true);
+		};
+		ladder.epilogue = ()->{
+			LogStream.getInstance().usePool(false);
+			notifyTask(StepAnalysis.task_dump(ladder.uuid()));
+		};
 	}
 	
 	@Override
@@ -183,6 +190,7 @@ public class PanMain extends PanBase {
 		btn[3].getStyleClass().add("btn-raised-2");
 		btn[3].setText("電漿-OFF");
 		btn[3].setOnAction(e->{
+			Misc.logw("關閉高壓電");
 			dcg1.asyncExec("OFF");
 			//logger.stopRecord();
 		});

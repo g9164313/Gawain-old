@@ -13,12 +13,9 @@ import javafx.scene.layout.GridPane;
 
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
-import narl.itrc.Stepper;
 
-public class StepKindler extends Stepper {
-
-	private DevSQM160 sqm;
-	private DevDCG100 dcg;
+public class StepKindler extends StepAnalysis {
+	
 	private DevSPIK2k spk;
 	
 	public StepKindler(
@@ -29,20 +26,21 @@ public class StepKindler extends Stepper {
 		sqm = dev1;
 		dcg = dev2;
 		spk = dev3;
+		log_text[0] = msg1;
+		log_text[1] = msg2;
 		set(op_1,op_2,
 			op_3,
-			op_4,op_5,op_6
+			op_4,op_5,
+			op_6,op_save,op_7
 		);
 	}
 	
 	private final static String init_text = "高壓設定";
 	
 	public final static String TAG_RAMP = "爬升";
-	public final static String TAG_FIRE = "輸出";
-	
-	private final static String TXT_CLEAN = "清洗";
-	private final static String TXT_TIMER = "計時";
-	private final static String TXT_JOULE = "焦耳";
+	public final static String TAG_CLEAN = "清洗";
+	public final static String TAG_TIMER = "計時";
+	public final static String TAG_JOULE = "焦耳";
 	
 	final JFXRadioButton[] rad = {
 		new JFXRadioButton ("定額"),
@@ -55,7 +53,7 @@ public class StepKindler extends Stepper {
 	private final Label[] txt = {
 		new Label("爬升"), 
 		new Label("輸出"),  
-		new Label(TXT_CLEAN),
+		new Label(TAG_CLEAN),
 	};
 	private final TextField[] arg = {
 		new TextField("5"),
@@ -69,6 +67,7 @@ public class StepKindler extends Stepper {
 	
 	final Runnable op_1 = ()->{
 		//close shutter~~~
+		log_indx = 0;
 		final String _txt = "關閉擋板";
 		msg1.setText(_txt);
 		msg2.setText("");
@@ -97,7 +96,7 @@ public class StepKindler extends Stepper {
 		msg1.setText("等待檔板");
 		msg2.setText(String.format(
 			"%s",
-			Misc.tick2time(waiting_time(2000),true)
+			Misc.tick2text(waiting_time(2000),true)
 		));
 	};
 
@@ -169,65 +168,44 @@ public class StepKindler extends Stepper {
 			Misc.logv("！！Fire！！");			
 			next_work();
 		});
+		//rad[0].setDisable(true);
+		//rad[0].setStyle("-fx-opacity: 1");
 	};
-	final Runnable op_5 = ()->{		
-		final long period = waiting_time(arg[0].getText());
+	final Runnable op_5 = ()->{
 		msg1.setText(TAG_RAMP);
 		msg2.setText(String.format(
 			"%s",
-			Misc.tick2time(period)
+			Misc.tick2text(waiting_tick(arg[0].getText()),true)
 		));
-		print_info(TAG_RAMP);		
+		record_info(TAG_RAMP);		
 	};
 	final Runnable op_6 = ()->{
-		
-		final long period = waiting_time(arg[2].getText());
-
 		String _txt = "";
-		
-		boolean is_period = false;
+		String _inf = "";
 		if(rad[0].isSelected()==true) {
 			//constant-output mode			
-			_txt = TXT_CLEAN;
-			is_period = true;
+			_txt = TAG_CLEAN;
+			_inf = Misc.tick2text(waiting_tick(arg[2].getText()),true);
 		}else if(rad[1].isSelected()==true) {
 			//run-time shutdown mode
-			_txt = TXT_TIMER;
-			is_period = true;
+			_txt = TAG_TIMER;
+			_inf = Misc.tick2text(waiting_tick(arg[2].getText()),true);
 		}else if(rad[2].isSelected()==true) {
-			_txt = TXT_JOULE;
+			//Joule mode
+			_txt = TAG_JOULE;
+			//TODO:check how much Joule has been generated.
+			//_inf = Misc.tick2text(remain_tick(true),true);
 		}		
-		if(is_period==true){
-			msg1.setText(_txt);
-			msg2.setText(String.format(
-				"%s",
-				Misc.tick2time(period)
-			));
-			print_info(TAG_FIRE);
-		}else{
-			msg1.setText(init_text);
-			msg2.setText("");
-			Misc.logv(init_text+"結束");
-			next_work();
-		}
+		msg1.setText(_txt);
+		msg2.setText(String.format("%s",_inf));
+		record_info(_txt);
 	};
-		
-	private void print_info(final String TAG) {
-		final float volt = dcg.volt.get();
-		final float amps = dcg.amps.get();		
-		final int watt = (int)dcg.watt.get();
-		final float rate = sqm.rate[0].get();
-		final String unit_rate = sqm.unitRate.get();
-		final float high = sqm.thick[0].get();
-		final String unit_high = sqm.unitThick.get();
-		Misc.logv(
-			"%s: %.2f V, %.2f A, %d W, %.3f %s, %.3f %s",
-			TAG, 
-			volt, amps, watt,
-			rate, unit_rate,
-			high, unit_high
-		);
-	}
+	final Runnable op_7 = ()->{
+		msg1.setText(init_text);
+		msg2.setText("");
+		Misc.logv(init_text+"結束");
+		next_work();
+	};
 	
 	private boolean setting(final String cmd) {
 		if(cmd==null) {
@@ -266,9 +244,9 @@ public class StepKindler extends Stepper {
 		rad[0].setSelected(true);
 		rad[3].setSelected(true);
 		
-		rad[0].setOnAction(e->txt[2].setText(TXT_CLEAN));
-		rad[1].setOnAction(e->txt[2].setText(TXT_TIMER));
-		rad[2].setOnAction(e->txt[2].setText(TXT_JOULE));
+		rad[0].setOnAction(e->txt[2].setText(TAG_CLEAN));
+		rad[1].setOnAction(e->txt[2].setText(TAG_TIMER));
+		rad[2].setOnAction(e->txt[2].setText(TAG_JOULE));
 		
 		GridPane lay = new GridPane();
 		lay.getStyleClass().addAll("box-pad");

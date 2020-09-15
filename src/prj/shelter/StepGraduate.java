@@ -150,7 +150,7 @@ public class StepGraduate extends Stepper {
 		if(tt>=10){
 			msg2.setText(String.format(
 				"%s",
-				Misc.tick2time(tt,true)
+				Misc.tick2text(tt,true)
 			));
 		}else{
 			msg2.setText("");

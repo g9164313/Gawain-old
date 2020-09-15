@@ -66,13 +66,18 @@ public class Misc {
 		box.getSelectionModel().select(cnt);
 	}*/
 
-	private static final SimpleDateFormat date_name = new SimpleDateFormat("yyyyMMdd_HHmm");
+	private static final SimpleDateFormat date_name = new SimpleDateFormat("yyyyMMdd-HHmm");
 	/**
 	 * Use this function to generate file name.<p>
 	 * @return - the string type of file name.<p>
 	 */
 	public static String getDateName() {
 		return date_name.format(new Timestamp(System.currentTimeMillis())); 
+	}
+	
+	private static final SimpleDateFormat day_name = new SimpleDateFormat("MMdd-HHmm");	
+	public static String getDayName() {
+		return day_name.format(new Timestamp(System.currentTimeMillis())); 
 	}
 	
 	/**
@@ -224,21 +229,20 @@ public class Misc {
 	/**
 	 * change tick(number value) to text.<p>
 	 * @param tick - unit is millisecond.
-	 * @param usePlainText
+	 * @param readable
 	 * @return stamp text (時:分:秒)
 	 */
-	public static String tick2time(final long tick, final boolean usePlainText){
+	public static String tick2text(final long tick, final boolean readable){
 		long sec = tick / 1000L;
 		long min = sec / 60; sec = sec % 60;
 		long hour= min / 60; min = min % 60;
 		String txt = "";
 		if(hour!=0){
-			if(usePlainText){
+			if(readable){
 				txt = String.format(
 					"%2d時 %2d分 %2d秒", 
 					hour, min, sec
 				);
-
 			}else{
 				txt = String.format(
 					"%2d:%2d:%2d", 
@@ -246,13 +250,13 @@ public class Misc {
 				);
 			}
 		}else if(min!=0){
-			if(usePlainText){
+			if(readable){
 				txt = String.format("%2d分 %2d秒", min, sec);
 			}else{
 				txt = String.format("%2d:%2d", min, sec);
 			}
 		}else{
-			if(usePlainText){
+			if(readable){
 				txt = String.format("%2d秒", sec);
 			}else{
 				txt = String.format("%2d", sec);
@@ -260,8 +264,8 @@ public class Misc {
 		}
 		return txt;
 	}
-	public static String tick2time(final long tick){
-		return tick2time(tick,false);
+	public static String tick2text(final long tick){
+		return tick2text(tick,false);
 	}
 	/**
 	 * change text to millisecond.<p>
@@ -528,35 +532,45 @@ public class Misc {
 			()->serialize2file(file_name,source),
 			"serial2file"
 		).start();
-	}	
+	}
+	
 	public static void serialize2file(
-		final String file_name,
-		final Object source
+		final String name,
+		final Object object
 	) {
-		if(file_name.length()==0) {
-			return;
-		}
+		serialize2file(new File(name),object);
+	}
+	public static Object deserializeFile(
+		final String name
+	) {
+		return deserializeFile(new File(name));
+	}
+
+	public static void serialize2file(
+		final File fs,
+		final Object obj
+	) {
 		try {
-			FileOutputStream fid = new FileOutputStream(file_name);
+			FileOutputStream fid = new FileOutputStream(fs);
 			ObjectOutputStream stm = new ObjectOutputStream(fid);
-			stm.writeObject(source);
+			stm.writeObject(obj);
 			stm.close();
 			fid.close();
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
-		} 
+		}
 	}
 	public static Object deserializeFile(
-		final String file_name
+		final File fs
 	) {
-		if(file_name.length()==0) {
-			return null;
-		}
 		Object obj = null;
+		if(fs.exists()==false || fs.isFile()==false) {
+			return obj;
+		}
 		try {
-			FileInputStream fid = new FileInputStream(file_name);
+			FileInputStream fid = new FileInputStream(fs);
 			ObjectInputStream stm = new ObjectInputStream(fid);
 			obj = stm.readObject();
 			stm.close();
@@ -570,6 +584,7 @@ public class Misc {
 		}
 		return obj;
 	}
+
 	
 	
 	/**
@@ -581,55 +596,6 @@ public class Misc {
 		}else {
 			Application.invokeAndWait(work);
 		}
-	}
-	
-	/**
-	 * execute a command. Remember this is 'blocking' function
-	 * @param cmd - command line and arguments
-	 * @return
-	 */
-	public static String exec(String... cmd){
-		
-		File working_path;
-		if(cmd[0].contains(File.separator)==true){
-			working_path = Gawain.dirRoot;
-		}else{
-			cmd[0] = Gawain.dirSock + cmd[0];
-			working_path = Gawain.dirSock;
-		}
-		ProcessBuilder pb = new ProcessBuilder(cmd);
-		pb.redirectOutput();//How to use this??
-		pb.redirectError();//How to use this??
-		pb.directory(working_path);
-		
-		String txt = "";
-		try {	
-			Process pc = pb.start();
-			pc.waitFor();
-			/*byte[] buf = new byte[2048];
-			pc.getInputStream().read(buf);
-			for(byte bb:buf){			
-				if(bb==0){
-					break;
-				}
-				txt = txt + (char)bb;
-			}
-			//try standard error stream~~~
-			if(txt.length()==0){				
-				pc.getErrorStream().read(buf);
-				for(byte bb:buf){							
-					if(bb==0){
-						break;
-					}
-					txt = txt + (char)bb;
-				}
-			}*/
-			pc.destroy();
-		} catch (InterruptedException | IOException e) {
-			e.printStackTrace();
-			Misc.loge("[EXEC]>>", e.getMessage());
-		}		
-		return txt;
 	}
 }
 

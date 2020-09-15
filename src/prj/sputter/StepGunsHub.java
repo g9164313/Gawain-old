@@ -62,7 +62,7 @@ public class StepGunsHub extends Stepper {
 		msg1.setText("等待中");
 		msg2.setText(String.format(
 			"剩餘  %s",
-			Misc.tick2time(waiting_time(3000),true)
+			Misc.tick2text(waiting_time(3000),true)
 		));
 	};
 	

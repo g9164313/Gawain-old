@@ -35,7 +35,7 @@ public class StepSetFilm extends Stepper {
 	private static final String TAG5 = "set-time";
 	private static final String TAG6 = "sensor-bit";
 	
-	private final static String init_txt = "設定薄膜";
+	private final static String init_txt = "薄膜設定";
 	private Label msg1 = new Label(init_txt);
 
 	private TextField[] args = {

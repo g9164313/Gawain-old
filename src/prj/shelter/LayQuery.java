@@ -260,7 +260,7 @@ public class LayQuery extends BorderPane {
 				if(arg3.length()!=0){
 					args = args+"@"+arg3;
 				}
-				Misc.exec("ggyy",args);
+				//TODO:execute scripter
 				return 0;
 			}
 		};

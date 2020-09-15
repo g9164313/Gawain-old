@@ -481,7 +481,7 @@ public class DevAT5350 extends DevTTY {
 				do{
 					Thread.sleep(1000);
 					sec-=1;
-					updateMessage("剩餘時間 "+Misc.tick2time(sec*1000));
+					updateMessage("剩餘時間 "+Misc.tick2text(sec*1000));
 				}while(sec>0);
 				return null;
 			}
