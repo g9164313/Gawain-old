@@ -30,8 +30,7 @@ abstract class StepAnalysis extends Stepper {
 	
 	protected DevSQM160 sqm;
 	protected DevDCG100 dcg;
-	
-	protected int log_indx = 0;
+
 	protected Label[] log_text = {null,null};
 
 	protected static final String pathLogStock= Gawain.pathSock+"監控紀錄"+File.separatorChar;
@@ -56,7 +55,6 @@ abstract class StepAnalysis extends Stepper {
 				):(
 					LogStream.getInstance().fetchPool()
 				);
-				int idx = Math.abs(++log_indx);
 				try {
 					FileWriter fs = new FileWriter(String.format(
 						"%s%s.txt",
@@ -77,8 +75,8 @@ abstract class StepAnalysis extends Stepper {
 				if(flush==true) {
 					updateMessage("快取中...");
 					Misc.serialize2file(String.format(
-						"%s%s-%03d.obj",
-						pathLogCache,ladder.uuid(),idx
+						"%s%s+%s.obj",
+						pathLogCache,ladder.uuid(),Misc.getTickName()
 					),mesg);
 				}
 				unbind_log_text();
@@ -140,7 +138,7 @@ abstract class StepAnalysis extends Stepper {
 					if(uuid.length()==0){
 						return false;
 					}
-					return name.contains(uuid);
+					return name.startsWith(uuid);
 				}
 			});
 			if(lstFs.length==0) {

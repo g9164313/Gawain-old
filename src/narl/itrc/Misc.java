@@ -79,6 +79,10 @@ public class Misc {
 	public static String getDayName() {
 		return day_name.format(new Timestamp(System.currentTimeMillis())); 
 	}
+	private static final SimpleDateFormat tick_name = new SimpleDateFormat("HHmmss");	
+	public static String getTickName() {
+		return tick_name.format(new Timestamp(System.currentTimeMillis())); 
+	}
 	
 	/**
 	 * list all files(include sub-directory).<p>
@@ -232,7 +236,11 @@ public class Misc {
 	 * @param readable
 	 * @return stamp text (時:分:秒)
 	 */
-	public static String tick2text(final long tick, final boolean readable){
+	public static String tick2text(
+		final long tick, 
+		final boolean readable,
+		final int columns
+	){
 		long sec = tick / 1000L;
 		long min = sec / 60; sec = sec % 60;
 		long hour= min / 60; min = min % 60;
@@ -240,7 +248,7 @@ public class Misc {
 		if(hour!=0){
 			if(readable){
 				txt = String.format(
-					"%2d時 %2d分 %2d秒", 
+					"%2d時%2d分%2d秒", 
 					hour, min, sec
 				);
 			}else{
@@ -251,21 +259,32 @@ public class Misc {
 			}
 		}else if(min!=0){
 			if(readable){
-				txt = String.format("%2d分 %2d秒", min, sec);
+				txt = String.format("%2d分%2d秒", min, sec);
 			}else{
-				txt = String.format("%2d:%2d", min, sec);
+				switch(columns) {
+				default:txt = String.format("%2d:%2d", min, sec); break;
+				case 2: txt = String.format("%2d:%2d", min, sec); break;
+				case 3: txt = String.format("00:%2d:%2d", min, sec); break;
+				}
 			}
 		}else{
 			if(readable){
 				txt = String.format("%2d秒", sec);
 			}else{
-				txt = String.format("%2d", sec);
+				switch(columns) {
+				default: txt= String.format("%2d", sec); break;
+				case 2: txt = String.format("00:%2d", sec); break;
+				case 3: txt = String.format("00:00:%2d", sec); break;
+				}
 			}
 		}
 		return txt;
 	}
 	public static String tick2text(final long tick){
-		return tick2text(tick,false);
+		return tick2text(tick,false,-1);
+	}
+	public static String tick2text(final long tick,final boolean readable){
+		return tick2text(tick,readable,-1);
 	}
 	/**
 	 * change text to millisecond.<p>

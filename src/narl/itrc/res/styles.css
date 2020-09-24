@@ -3,6 +3,27 @@
    -fx-background-color: WHITE;
 }
 
+
+.font-size4 {
+  -fx-font-size: 1.4em;
+}
+.font-size5 {
+  -fx-font-size: 1.5em;
+}
+.font-size7 {
+  -fx-font-size: 1.7em;
+}
+.font-size9 {
+  -fx-font-size: 1.9em;
+}
+.font-console {
+  -fx-font-family: 'Consolas';
+}
+.font-red {
+  -fx-text-fill: #c62828;
+}
+
+
 .btn-raised-0 {
 	-fx-button-type: RAISED;
 	-fx-font-size: 1.5em;
@@ -107,25 +128,6 @@
   -fx-border-width: 1.7px;
   -fx-border-radius: 10px;
   -fx-background-radius: 10px;
-}
-
-.font-size4 {
-  -fx-font-size: 1.4em;
-}
-.font-size5 {
-  -fx-font-size: 1.5em;
-}
-.font-size7 {
-  -fx-font-size: 1.7em;
-}
-.font-size9 {
-  -fx-font-size: 1.9em;
-}
-.font-console {
-  -fx-font-family: 'Consolas';
-}
-.font-red {
-  -fx-text-fill: #c62828;
 }
 
 .titled-pane > .title {

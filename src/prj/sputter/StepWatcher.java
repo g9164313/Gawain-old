@@ -30,7 +30,7 @@ public class StepWatcher extends StepAnalysis {
 	}
 	
 	private final static String init_txt = "厚度監控";
-	public final static String TAG_WATCH = "監控中";
+	public final static String TAG_WATCH = "監控";
 	
 	private Label msg1 = new Label(init_txt);
 	private Label msg2 = new Label("");
@@ -43,7 +43,6 @@ public class StepWatcher extends StepAnalysis {
 	
 	final Runnable op_1 = ()->{
 		//open shutter
-		log_indx = 0;
 		msg1.setText("歸零");
 		msg2.setText("");
 		waiting_async();

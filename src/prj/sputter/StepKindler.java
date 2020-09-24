@@ -67,7 +67,6 @@ public class StepKindler extends StepAnalysis {
 	
 	final Runnable op_1 = ()->{
 		//close shutter~~~
-		log_indx = 0;
 		final String _txt = "關閉擋板";
 		msg1.setText(_txt);
 		msg2.setText("");

@@ -6,11 +6,10 @@ import java.util.List;
 import com.jfoenix.controls.JFXDecorator;
 import com.jfoenix.controls.JFXDialog;
 import com.jfoenix.controls.JFXSpinner;
-import com.jfoenix.controls.events.JFXDialogEvent;
 
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.concurrent.Task;
-import javafx.concurrent.WorkerStateEvent;
-import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Parent;
@@ -28,6 +27,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 import narl.itrc.init.LogStream;
 
 public abstract class PanBase {
@@ -144,13 +144,10 @@ public abstract class PanBase {
 
 	//----------------------------------------------//
 		
-	public static class Spinner extends JFXDialog {
-		
+	private static class Spinner extends JFXDialog {		
 		JFXSpinner icon;
-		Label[] mesg = {new Label(), new Label()};
-		
-		public Spinner(){
-			
+		Label[] mesg = {new Label(), new Label()};		
+		public Spinner(){			
 			icon = new JFXSpinner();
 
 			mesg[0].setMinWidth(100);
@@ -161,37 +158,41 @@ public abstract class PanBase {
 			mesg[1].setFont(Font.font("Arial", 26));
 			mesg[1].setAlignment(Pos.BASELINE_RIGHT);
 			
-			final HBox lay = new HBox(icon,mesg[0], mesg[1]);
+			final HBox lay = new HBox(icon,mesg[0],mesg[1]);
 			lay.getStyleClass().addAll("box-pad");
 			lay.setAlignment(Pos.CENTER_LEFT);	
 			setContent(lay);
 		}
-		public Spinner(final String text){
-			this();
-			mesg[0].setText(text);
-		}
-		public static Spinner getSelf(JFXDialogEvent e){
-			return (Spinner)(e.getSource());
-		}
 	};
+	
+	protected static interface NotifyEvent {
+		void action(Timeline ladder,Label[] message);
+	};
+	
 	/**
-	 * show a spinner, let user know we are working.<p>
-	 * @param event1 - After the dialog show...
-	 * @param event2 - After closing the dialog...
+	 * use 'Timeline' as stepper-ladder.<p>
+	 * For skipping backward visit keyframe, combine 'playFromStart' and 'jumpTo'.<p>
+	 * @param event - extend KeyFrame Interface.
 	 */
-	public void notifyEvent(
-		final String text,
-		final EventHandler<JFXDialogEvent> event1,
-		final EventHandler<JFXDialogEvent> event2
-	) {
-		JFXDialog dlg = new Spinner(text);		
-		dlg.setOnDialogOpened(event1);
-		dlg.setOnDialogClosed(event2);
+	public void notifyEvent(NotifyEvent... event) {
+		final Spinner dlg = new Spinner();
+		final Timeline ladder = new Timeline();		
+		ladder.setCycleCount(0);
+		ladder.setOnFinished(e->dlg.close());
+		for(int i=0; i<event.length; i++) {
+			final int idx = i;
+			ladder.getKeyFrames().add(new KeyFrame(
+				Duration.millis(idx*100.),
+				e->event[idx].action(ladder, dlg.mesg)
+			));
+		}
+		//ladder.playFromStart();
+		//ladder.jumpTo(Duration.seconds(1.));
+		dlg.setOnDialogOpened(e->ladder.playFromStart());
+		dlg.setOnDialogClosed(e->ladder.stop());
 		dlg.show((StackPane)root());
 	}
-	public void notifyEvent(final String text) {
-		notifyEvent(text);
-	}
+
 	/**
 	 * show a spinner, let user know we are working.<p>
 	 * @param task - a working thread.<p>
@@ -200,29 +201,24 @@ public abstract class PanBase {
 		final String name,
 		final Task<?> task
 	) {
-		Spinner dlg = new Spinner();
+		final Spinner dlg = new Spinner();
 		dlg.mesg[0].textProperty().bind(task.messageProperty());
 		dlg.mesg[1].visibleProperty().bind(task.progressProperty().greaterThan(0.f));
 		dlg.mesg[1].textProperty().bind(task.progressProperty().multiply(100.f).asString("%.0f％"));
 		//override old handler~~~
-		final EventHandler<WorkerStateEvent> hook = task.getOnSucceeded();
 		task.setOnSucceeded(e->{
-			if(hook!=null){
-				hook.handle(e);
+			if(task.getOnSucceeded()!=null){
+				task.getOnSucceeded().handle(e);
 			}
 			dlg.close();
 		});
 		task.setOnCancelled(e->dlg.close());
-		dlg.setOnDialogOpened(e->{
-			new Thread(task,name).start();
-		});
+		dlg.setOnDialogOpened(e->new Thread(task,name).start());
 		dlg.setOnDialogClosed(e->task.cancel());
 		dlg.show((StackPane)root());
 		return task;
 	}
-	public Task<?> notifyTask(
-		final Task<?> task
-	) {
+	public Task<?> notifyTask(final Task<?> task) {
 		return notifyTask("--task--",task);
 	}
 	//----------------------------------------------//

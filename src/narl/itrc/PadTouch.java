@@ -94,7 +94,7 @@ public class PadTouch extends Dialog<String> {
 		return lay0;
 	}
 
-	private static final int BTN_SIZE = 46;
+	private static final int BTN_SIZE = 64;
 	
 	private Node layout_numeric_keypad(
 		final char style,
@@ -105,9 +105,11 @@ public class PadTouch extends Dialog<String> {
 			new Label(name), 
 			new Label(value)
 		};
+		txt[0].getStyleClass().add("font-size7");
+		txt[1].getStyleClass().add("font-size7");
 		txt[1].setMinWidth(BTN_SIZE*3);
 		txt[1].setAlignment(Pos.CENTER_RIGHT);
-
+				
 		setResultConverter(dia->{
 			ButtonData btn = (dia==null)?(null):(dia.getButtonData());
 			if(btn!=ButtonData.OK_DONE) {

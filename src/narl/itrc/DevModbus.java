@@ -125,10 +125,7 @@ public class DevModbus extends DevBase {
 			final int size
 		) {			
 			slaveId= sid;
-			func_id = Character.toUpperCase(fid);
-			if(func_id=='R') {
-				func_id = 'I';
-			}
+			func_id= (fid=='R')?('I'):(fid);
 			address= addr;			
 			values = new short[size];
 			v_prop = new IntegerProperty[size];
@@ -157,7 +154,6 @@ public class DevModbus extends DevBase {
 				implReadH(address,values);
 				break;
 			case 'I':
-			case 'R':
 				//input register, function code = 4
 				implReadI(address,values);
 				break;
@@ -306,7 +302,7 @@ public class DevModbus extends DevBase {
 			if(
 				beg<=addr && 
 				addr<=end &&
-				reg.slaveId!=sid &&
+				reg.slaveId==sid &&
 				reg.func_id==fid 
 			) {	
 				int off = addr - beg;
