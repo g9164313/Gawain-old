@@ -144,7 +144,7 @@ public abstract class PanBase {
 
 	//----------------------------------------------//
 		
-	private static class Spinner extends JFXDialog {		
+	public static class Spinner extends JFXDialog {		
 		JFXSpinner icon;
 		Label[] mesg = {new Label(), new Label()};		
 		public Spinner(){			
@@ -166,8 +166,16 @@ public abstract class PanBase {
 	};
 	
 	protected static interface NotifyEvent {
-		void action(Timeline ladder,Label[] message);
+		void action(final Timeline ladder,final Spinner dialog);
 	};
+	
+	private final int LADDER_STEP = 100;
+	
+	protected void ladderJump(final Timeline ladder,final int step) {
+		int stp = step*LADDER_STEP - LADDER_STEP/2;
+		ladder.playFromStart();
+		ladder.jumpTo(Duration.millis(stp));
+	}
 	
 	/**
 	 * use 'Timeline' as stepper-ladder.<p>
@@ -175,22 +183,22 @@ public abstract class PanBase {
 	 * @param event - extend KeyFrame Interface.
 	 */
 	public void notifyEvent(NotifyEvent... event) {
-		final Spinner dlg = new Spinner();
+		final Spinner dialog = new Spinner();
 		final Timeline ladder = new Timeline();		
 		ladder.setCycleCount(0);
-		ladder.setOnFinished(e->dlg.close());
+		ladder.setOnFinished(e->dialog.close());
 		for(int i=0; i<event.length; i++) {
 			final int idx = i;
 			ladder.getKeyFrames().add(new KeyFrame(
-				Duration.millis(idx*100.),
-				e->event[idx].action(ladder, dlg.mesg)
+				Duration.millis((idx+1)*LADDER_STEP),
+				e->event[idx].action(ladder,dialog)
 			));
 		}
 		//ladder.playFromStart();
 		//ladder.jumpTo(Duration.seconds(1.));
-		dlg.setOnDialogOpened(e->ladder.playFromStart());
-		dlg.setOnDialogClosed(e->ladder.stop());
-		dlg.show((StackPane)root());
+		dialog.setOnDialogOpened(e->ladder.playFromStart());
+		dialog.setOnDialogClosed(e->ladder.stop());
+		dialog.show((StackPane)root());
 	}
 
 	/**
@@ -206,12 +214,7 @@ public abstract class PanBase {
 		dlg.mesg[1].visibleProperty().bind(task.progressProperty().greaterThan(0.f));
 		dlg.mesg[1].textProperty().bind(task.progressProperty().multiply(100.f).asString("%.0f％"));
 		//override old handler~~~
-		task.setOnSucceeded(e->{
-			if(task.getOnSucceeded()!=null){
-				task.getOnSucceeded().handle(e);
-			}
-			dlg.close();
-		});
+		task.setOnSucceeded(e->dlg.close());
 		task.setOnCancelled(e->dlg.close());
 		dlg.setOnDialogOpened(e->new Thread(task,name).start());
 		dlg.setOnDialogClosed(e->task.cancel());

@@ -24,20 +24,20 @@ import narl.itrc.PanBase;
 
 public class PanMain extends PanBase {
 	
-	private static final String TXT_AXIS_MAIN = "主軸";
+	private static final String TXT_AXIS_MAJOR = "主軸";
 	private static final String TXT_AXIS_PRESS = "加壓軸";
 	private static final String TXT_AXIS_SWING = "擺動軸";
-	private static final String TXT_CYLI_1 = "氣壓缸（進）";
-	private static final String TXT_CYLI_2 = "氣壓缸（出）";
+	private static final String TXT_CYLI_IN1 = "氣壓缸（進）";
+	private static final String TXT_CYLI_IN2 = "氣壓缸（出）";
 	
-	private ModInfoBus infobus = new ModInfoBus();
+	private ModInnerBus infobus = new ModInnerBus();
 	private ModCoupler coupler = new ModCoupler();
 	private LogHistory history = new LogHistory(infobus,coupler);
 	
 	private SignMotor[] sgm = {
-		new SignMotor("主軸"),
-		new SignMotor("加壓軸"),
-		new SignMotor("擺動軸"),
+		new SignMotor(TXT_AXIS_MAJOR),
+		new SignMotor(TXT_AXIS_PRESS),
+		new SignMotor(TXT_AXIS_SWING),
 	};
 	
 	public PanMain() {
@@ -49,21 +49,19 @@ public class PanMain extends PanBase {
 		arg = Gawain.prop().getProperty("INFOBUS", "");
 		if(arg.length()!=0) {
 			infobus.open(arg);
-
 		}		
 		arg = Gawain.prop().getProperty("COUPLER", "");
 		if(arg.length()!=0) {
 			coupler.open(arg);
 		}
-		sgm[0].attach(infobus, ModInfoBus.ID_MAIN);
-		sgm[1].attach(infobus, ModInfoBus.ID_PRESS);
-		sgm[2].attach(infobus, ModInfoBus.ID_SWING);
+		sgm[0].attach(infobus, ModInnerBus.ID_MAJOR);
+		sgm[1].attach(infobus, ModInnerBus.ID_PRESS);
+		sgm[2].attach(infobus, ModInnerBus.ID_SWING);
 	}
 	
-	private JFXToggleButton tglCylinder;
 	private JFXToggleButton tglPumpSlurry;
-	private JFXToggleButton tglMotorMain;
-	private JFXToggleButton tglMotorAuxit;
+	private JFXToggleButton tglMotorMajor;
+	private JFXToggleButton tglMotorAuxil;
 	
 	private void check_toggle(final ToggleButton tgl,final boolean val) {
 		if(tgl.isSelected()==val) {
@@ -74,36 +72,39 @@ public class PanMain extends PanBase {
 	}
 	
 	private final NotifyEvent[] e_working = {
-		(lad,msg)->{
+		(lad,dlg)->{
 			//prepare 
-			history.kick();
-			//lad.playFromStart();
-			//lad.jumpTo(Duration.seconds(1.));//back to self
+			//history.kick();			
 			Misc.logv("ggyy-1");
 		},
-		(lad,msg)->{
-			msg[0].setText("開始澆灌");
+		(lad,dlg)->{
+			//dlg.setText("開始澆灌");
 			check_toggle(tglPumpSlurry,true);
-		},
-		(lad,msg)->{
 			Misc.logv("ggyy-2");
 		},
-		(lad,msg)->{
-			msg[0].setText("開始旋轉");
-			check_toggle(tglMotorMain,true);
-			check_toggle(tglMotorAuxit,true);
+		(lad,dlg)->{
+			//waiting for signal
+			//lad.playFromStart();
+			//lad.jumpTo(Duration.seconds(1.));//back to self			
+			Misc.logv("ggyy-3");
+			ladderJump(lad,3);
+		},
+		(lad,dlg)->{
+			//dlg.setText("開始旋轉");
+			check_toggle(tglMotorMajor,true);
+			check_toggle(tglMotorAuxil,true);
 		},
 	};
 	private final NotifyEvent[] e_halting = {
-		(lad,msg)->{
-			msg[0].setText("停止旋轉");
-			check_toggle(tglMotorMain,false);
-			check_toggle(tglMotorAuxit,false);
+		(lad,dlg)->{
+			//msg[0].setText("停止旋轉");
+			check_toggle(tglMotorMajor,false);
+			check_toggle(tglMotorAuxil,false);
 		},
-		(lad,msg)->{
-			msg[0].setText("停止澆灌");
+		(lad,dlg)->{
+			//msg[0].setText("停止澆灌");
 			check_toggle(tglPumpSlurry,false);
-			history.stop();
+			//history.stop();
 		},
 	};
 	
@@ -127,38 +128,23 @@ public class PanMain extends PanBase {
 			new JFXToggleButton(),
 			new JFXToggleButton(),
 			new JFXToggleButton(),
-			new JFXToggleButton(),
-			//new JFXToggleButton(),
-			//new JFXToggleButton(),
 		};
-		tgl[0].setText("氣壓缸");
-		tgl[1].setText("研磨液");			
-		tgl[2].setText("旋轉軸");
-		tgl[3].setText("加壓軸");
-		//tgl[4].setText("顯示轉矩");
-		//tgl[5].setText("顯示紀錄");
-		
-		tglCylinder = tgl[0];
-		tglCylinder.setOnAction(e->{
-			Misc.logv("cylinder");
-		});
-		tglPumpSlurry = tgl[1];
+		tgl[0].setText("研磨液");			
+		tgl[1].setText("旋轉軸");
+		tgl[2].setText("研磨軸");
+
+		tglPumpSlurry = tgl[0];
 		tglPumpSlurry.setOnAction(e->{
 			Misc.logv("pump-slurry!!");
 		});
-		tglMotorMain = tgl[2];
-		tglMotorMain.setOnAction(e->{
-			Misc.logv("motor-main");
+		tglMotorMajor = tgl[1];
+		tglMotorMajor.setOnAction(e->{
+			Misc.logv("motor-major");
 		});
-		tglMotorAuxit= tgl[3];
-		tglMotorAuxit.setOnAction(e->{
-			Misc.logv("motor-auxity");
+		tglMotorAuxil= tgl[2];
+		tglMotorAuxil.setOnAction(e->{
+			Misc.logv("motor-auxiliary");
 		});
-		
-		/*BooleanBinding show_tor = tgl[4].selectedProperty().not();		
-		sgm[0].showRPM.bind(show_tor);
-		sgm[1].showRPM.bind(show_tor);
-		sgm[2].showRPM.bind(show_tor);*/
 		
 		final JFXButton[] btn = {
 			new	JFXButton("裝模"),			
@@ -198,16 +184,17 @@ public class PanMain extends PanBase {
 
 		final GridPane lay_gagu = new GridPane();
 		lay_gagu.getStyleClass().add("box-pad");
-		lay_gagu.addColumn(0, gag[1], gag[2], gag[3]);
-		lay_gagu.addColumn(1, sgm[0], sgm[1], sgm[2]);
-		lay_gagu.addColumn(2, gag[0], gag[4], gag[5]);
+		lay_gagu.addColumn(0, gag[0], gag[4], gag[5]);
+		lay_gagu.addColumn(1, gag[1], gag[2], gag[3]);
+		lay_gagu.addColumn(2, sgm[0], sgm[1], sgm[2]);
+		lay_gagu.addColumn(3, sgm[0].get_TOR_Tile(), sgm[1].get_TOR_Tile(), sgm[2].get_TOR_Tile());
 
 		final JFXTabPane lay_tabs = new JFXTabPane();
 		lay_tabs.getTabs().addAll(
 			new Tab("儀表",lay_gagu),
 			new Tab("監控",history)
 		);
-		lay_tabs.getSelectionModel().select(1);//select TABs
+		lay_tabs.getSelectionModel().select(0);//select TABs
 		
 		return new BorderPane(
 			lay_tabs,

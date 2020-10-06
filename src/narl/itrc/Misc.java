@@ -157,6 +157,10 @@ public class Misc {
 	public static Image getResImage(String pkg, String name){
 		return new Image(Gawain.class.getResourceAsStream(pkg+"/"+name));
 	}
+	public static Node addBorder(final Node obj) {
+		obj.getStyleClass().add("box-border");
+		return obj;
+	}
 	
 	/*public static FileChooser genChooseImage(){
 		final FileChooser.ExtensionFilter exts[] = {

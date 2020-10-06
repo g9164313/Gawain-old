@@ -11,18 +11,18 @@ import narl.itrc.DevModbus;
  * @author qq
  *
  */
-public class ModInfoBus extends DevModbus {
+public class ModInnerBus extends DevModbus {
 	
 	public final int DEFAULT_SPEED = 100;
 	
-	public static final int ID_MAIN = 3;//主軸
+	public static final int ID_MAJOR = 3;//主軸
 	public static final int ID_PRESS = 1;//加壓軸
 	public static final int ID_SWING = 2;//擺動軸
 	public static final int ID_AUXIT = (ID_PRESS<<8)+ID_SWING;//加壓軸+擺動軸
 	
-	public final IntegerProperty MAIN_RPM;
-	public final IntegerProperty MAIN_TOR;
-	public final IntegerProperty MAIN_ALM;
+	public final IntegerProperty MAJOR_RPM;
+	public final IntegerProperty MAJOR_TOR;
+	public final IntegerProperty MAJOR_ALM;
 	
 	public final IntegerProperty PRESS_RPM;
 	public final IntegerProperty PRESS_TOR;
@@ -37,12 +37,12 @@ public class ModInfoBus extends DevModbus {
 	public final IntegerProperty[] TOR = {null, null, null};
 	public final IntegerProperty[] ALM = {null, null, null};
 	public final StringProperty[] ALM_TXT = {
-		new SimpleStringProperty(""),
-		new SimpleStringProperty(""),
-		new SimpleStringProperty(""),
+		new SimpleStringProperty("--ERROR--"),
+		new SimpleStringProperty("--ERROR--"),
+		new SimpleStringProperty("--ERROR--"),
 	};
 	
-	public ModInfoBus() {
+	public ModInnerBus() {
 		looperDelay = 0;
 		
 		//SDE系列
@@ -50,10 +50,10 @@ public class ModInfoBus extends DevModbus {
 		//     - 瞬時轉速(RPM)- 0x0008 (2word)
 		//	   - 瞬時轉矩(%)  - 0x001A (2word) 
 		//	   - 異常警報     - 0x0100
-		mapAddress16(ID_MAIN, "r0009","r001B","r0100");
-		MAIN_RPM = inputRegister(ID_MAIN, 0x0009);
-		MAIN_TOR = inputRegister(ID_MAIN, 0x001B);
-		MAIN_ALM = inputRegister(ID_MAIN, 0x0100);
+		mapAddress16(ID_MAJOR, "i0009","i001B","i0100");
+		MAJOR_RPM = inputRegister(ID_MAJOR, 0x0009);
+		MAJOR_TOR = inputRegister(ID_MAJOR, 0x001B);
+		MAJOR_ALM = inputRegister(ID_MAJOR, 0x0100);
 
 		//SDA系列
 		//內部  - 註解        - Modbus地址
@@ -70,28 +70,34 @@ public class ModInfoBus extends DevModbus {
 		SWING_ALM = inputRegister(ID_SWING, 0x0100);
 		
 		//keep the main parameter~~~
-		RPM[0] = MAIN_RPM;
+		RPM[0] = MAJOR_RPM;
 		RPM[1] = PRESS_RPM;
 		RPM[2] = SWING_RPM;
 		
-		TOR[0] = MAIN_TOR;
+		TOR[0] = MAJOR_TOR;
 		TOR[1] = PRESS_TOR;
 		TOR[2] = SWING_TOR;
 		
-		ALM[0] = MAIN_ALM;
+		ALM[0] = MAJOR_ALM;
 		ALM[1] = PRESS_ALM;
 		ALM[2] = SWING_ALM;
 		
 		//change Alarm ID to readable text
-		ALM[0].addListener((obv,oldVal,newVal)->alarm_text(newVal.intValue(),ALM_TXT[0]));
-		ALM[1].addListener((obv,oldVal,newVal)->alarm_text(newVal.intValue(),ALM_TXT[1]));
-		ALM[2].addListener((obv,oldVal,newVal)->alarm_text(newVal.intValue(),ALM_TXT[2]));
+		if(ALM[0]!=null) {
+			ALM[0].addListener((obv,oldVal,newVal)->alarm_text(newVal.intValue(),ALM_TXT[0]));
+		}
+		if(ALM[1]!=null) {
+			ALM[1].addListener((obv,oldVal,newVal)->alarm_text(newVal.intValue(),ALM_TXT[1]));
+		}
+		if(ALM[2]!=null) {
+			ALM[2].addListener((obv,oldVal,newVal)->alarm_text(newVal.intValue(),ALM_TXT[2]));
+		}
 	}
 	
 	@Override
 	protected void ignite() {
 		//before looping, insure setting~~~
-		SDE_speed_mode(ID_MAIN);
+		SDE_speed_mode(ID_MAJOR);
 		SDA_speed_mode(ID_PRESS);
 		SDA_speed_mode(ID_SWING);
 		super.ignite();//goto next stage~~~~
@@ -241,26 +247,26 @@ public class ModInfoBus extends DevModbus {
 		// 0 - 0 - 0 - 0 | 0 - 1 - 1 - 0 | 1 - 1 - 0 - 1 --> 0x06D,速度1,停止, 
 		if(spin==true) {
 			if(clockwise==true) {
-				writeVal(ID_MAIN, 0x0630, 0x065);
+				writeVal(ID_MAJOR, 0x0630, 0x065);
 			}else {
-				writeVal(ID_MAIN, 0x0630, 0x069);
+				writeVal(ID_MAJOR, 0x0630, 0x069);
 			}
 		}else {
-			writeVal(ID_MAIN, 0x0630, 0x061);
+			writeVal(ID_MAJOR, 0x0630, 0x061);
 		}
 	}
 	private void SDE_speed(final int RPM) {
 		//內部  - 註解        - Modbus 地址
 		//PC05 - 速度1(RPM)  - 0x0508_0509 (-6000~+6000)
-		writeVal(ID_MAIN, 0x0508, (RPM>> 0));
-		writeVal(ID_MAIN, 0x0509, (RPM>>16));
+		writeVal(ID_MAJOR, 0x0508, (RPM>> 0));
+		writeVal(ID_MAJOR, 0x0509, (RPM>>16));
 	}
 	
 	//-------------------------------------------//
 	
 	public IntegerProperty getSpeed(final int ID) {
 		switch(ID) {
-		case ID_MAIN: return MAIN_RPM;
+		case ID_MAJOR: return MAJOR_RPM;
 		case ID_PRESS:return PRESS_RPM;
 		case ID_SWING:return SWING_RPM;
 		}
@@ -268,7 +274,7 @@ public class ModInfoBus extends DevModbus {
 	}
 	public IntegerProperty getTorr(final int ID) {
 		switch(ID) {
-		case ID_MAIN: return MAIN_TOR;
+		case ID_MAJOR: return MAJOR_TOR;
 		case ID_PRESS:return PRESS_TOR;
 		case ID_SWING:return SWING_TOR;
 		}
@@ -276,7 +282,7 @@ public class ModInfoBus extends DevModbus {
 	}
 	public IntegerProperty getAlarm(final int ID) {
 		switch(ID) {
-		case ID_MAIN: return MAIN_ALM;
+		case ID_MAJOR: return MAJOR_ALM;
 		case ID_PRESS:return PRESS_ALM;
 		case ID_SWING:return SWING_ALM;
 		}
@@ -284,7 +290,7 @@ public class ModInfoBus extends DevModbus {
 	}
 	public StringProperty getAlarmText(final int ID) {
 		switch(ID) {
-		case ID_MAIN: return ALM_TXT[0];
+		case ID_MAJOR: return ALM_TXT[0];
 		case ID_PRESS:return ALM_TXT[1];
 		case ID_SWING:return ALM_TXT[2];
 		}
@@ -296,7 +302,7 @@ public class ModInfoBus extends DevModbus {
 		final int RPM
 	) {
 		switch(ID) {
-		case ID_MAIN:
+		case ID_MAJOR:
 			asyncBreakIn(()->SDE_speed(RPM));
 			break;
 		case ID_PRESS:
@@ -312,7 +318,7 @@ public class ModInfoBus extends DevModbus {
 		final boolean CLOCKWISE
 	) {
 		switch(ID) {
-		case ID_MAIN:
+		case ID_MAJOR:
 			asyncBreakIn(()->SDE_kickoff(SPIN,CLOCKWISE));
 			break;
 		case ID_PRESS:

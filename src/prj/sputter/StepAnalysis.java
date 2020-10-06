@@ -11,6 +11,8 @@ import java.io.PrintWriter;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.DataFormat;
+import org.apache.poi.ss.usermodel.Font;
+import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -32,7 +34,9 @@ abstract class StepAnalysis extends Stepper {
 	protected DevDCG100 dcg;
 
 	protected Label[] log_text = {null,null};
-
+	
+	private static final File study_fs = new File(Gawain.pathSock+"temp.csv");
+	
 	protected static final String pathLogStock= Gawain.pathSock+"監控紀錄"+File.separatorChar;
 	protected static final String pathLogCache= pathLogStock+"cache"+File.separatorChar;
 	
@@ -61,7 +65,10 @@ abstract class StepAnalysis extends Stepper {
 						pathLogStock,Misc.getDateName()
 					));
 					for(int i=0; i<mesg.length; i++){
-						updateMessage(String.format("%3d/%3d", i,mesg.length));
+						updateMessage(String.format(
+							"%3d/%3d", 
+							i,mesg.length
+						));
 						fs.write(String.format(
 							"%s    %s\r\n",
 							mesg[i].getTickText(""),
@@ -125,9 +132,7 @@ abstract class StepAnalysis extends Stepper {
 			high, unit2
 		);
 	}
-	
-	private static final File tmp_fs = new File(Gawain.pathSock+"temp.csv");
-		
+
 	public static Task<?> task_dump(final String uuid){ return new Task<Integer>() {
 		@Override
 		protected Integer call() throws Exception {			
@@ -145,35 +150,32 @@ abstract class StepAnalysis extends Stepper {
 				updateMessage("無快取資料");
 				return -1;
 			}
-			
-			//debug~~~~
-			//File fs = new File(pathLogCache+"0BADEB-0001.obj");
-			//Mesg[] msg = LogStream.read(fs);
-			
-			//dump2temp("輸出",msg);
-			//study_temp();
-			
+			//dump data as Excel file~~~
 			prepare_book();			
 			for(File fs:lstFs) {
 				//list all cache files~~~
 				Object obj = Misc.deserializeFile(fs.getAbsolutePath());
-				Mesg[] msg = (Mesg[])obj;
+				Mesg[] msg = (Mesg[])obj;				
 				writing_book(msg);
 			}
 			export_book();
 			return lstFs.length;
 		}
-		private void study_temp() {
-			String res = Terminal.exec("/usr/bin/python3","bound.py");
-			Misc.logv(res);
-		}
-		private void dump2temp(
+		
+		private double[][] range;
+		
+		private void study_message(
 			final String tag,
 			final Mesg[] msg
 		) {
-			updateMessage("提取資料中");
+			String study_tool =  Gawain.prop().getProperty("USE_PYTHON","");
+			if(study_tool.length()==0) {
+				range = null;//clear
+				return;
+			}
+			updateMessage("分析數據");
 			try {
-				PrintWriter pw = new PrintWriter(new FileOutputStream(tmp_fs,false));
+				PrintWriter pw = new PrintWriter(new FileOutputStream(study_fs,false));
 				int row_idx = 0;
 				for(Mesg m:msg) {					
 					String txt = m.getText();
@@ -199,18 +201,37 @@ abstract class StepAnalysis extends Stepper {
 			} catch (FileNotFoundException e) {
 				e.printStackTrace();
 			}
+			String res = Terminal.exec(study_tool,"bound.py");
+			String[] col = res.replace("\r\n", "\n").split("\n");
+			range = new double[col.length][];
+			for(int i=0; i<col.length; i++) {
+				if(col[i].startsWith("range")==true) {
+					String[] val = col[i].split(":");
+					if(val.length<=3) {
+						range[i] = new double[2];
+						range[i][0] = Double.valueOf(val[1]);
+						range[i][1] = Double.valueOf(val[2]);
+						continue;
+					}
+				}
+				range[i] = null;
+			}
+			return;
 		}
 		
 		Workbook wb;
 		DataFormat fmt;
-		CellStyle styl;
+		CellStyle styl_norm, styl_upper, styl_lower;
 		
 		private void writing_book(final Mesg[] msg) {
 			Sheet sh = find_sheet(msg);
 			get_cell(sh, 0, 0).setCellValue("清洗過程");
 			get_cell(sh, 8, 0).setCellValue("鍍膜過程");
-			//dump_message(sh,0,"輸出",msg_k);//debug!!!
-			dump_message(sh,0,StepKindler.TAG_CLEAN,msg);			
+
+			study_message(StepKindler.TAG_CLEAN,msg);			
+			dump_message(sh,0,StepKindler.TAG_CLEAN,msg);
+			
+			study_message(StepWatcher.TAG_WATCH,msg);
 			dump_message(sh,8,StepWatcher.TAG_WATCH,msg);
 		}
 		private Sheet find_sheet(final Mesg[] msg) {
@@ -257,9 +278,20 @@ abstract class StepAnalysis extends Stepper {
 					.split(",");
 				for(int col=1; col<=5; col++) {
 					Cell cc = get_cell(sh, start_column+col, row);
-					cc.setCellStyle(styl);
-					double _val = UtilPhysical.getDouble(val[col-1]);
-					//TODO: check outline~~~
+					int v_idx = col - 1;
+					double _val = UtilPhysical.getDouble(val[v_idx]);
+					//check outline~~~
+					cc.setCellStyle(styl_norm);
+					if(range!=null && v_idx<range.length && v_idx!=4) {						
+						double[] outline = range[v_idx];
+						if(outline!=null) {							
+							if(_val<=outline[0]) {								
+								cc.setCellStyle(styl_lower);
+							}else if(outline[1]<=_val){
+								cc.setCellStyle(styl_upper);							
+							}						
+						}
+					}
 					cc.setCellValue(_val);
 				}
 				row+=1;
@@ -268,9 +300,30 @@ abstract class StepAnalysis extends Stepper {
 		private void prepare_book() throws IOException {
 			updateMessage("準備中");
 			wb = new XSSFWorkbook();
+			
 			fmt = wb.createDataFormat();
-			styl = wb.createCellStyle();
-			styl.setDataFormat(fmt.getFormat("0.000"));
+			short f_id = fmt.getFormat("0.000");
+			
+			styl_norm = wb.createCellStyle();
+			styl_norm.setDataFormat(f_id);
+			
+			Font fnt_red = wb.createFont();
+			fnt_red.setColor(IndexedColors.RED.getIndex());
+			
+			Font fnt_blue = wb.createFont();
+			fnt_blue.setColor(IndexedColors.BLUE.getIndex());
+			
+			styl_upper= wb.createCellStyle();
+			styl_upper.setDataFormat(f_id);
+			//styl_upper.setFillBackgroundColor(IndexedColors.RED.getIndex());
+			//styl_upper.setFillPattern(FillPatternType.NO_FILL);			
+			styl_upper.setFont(fnt_red);
+			
+			styl_lower= wb.createCellStyle();
+			styl_lower.setDataFormat(f_id);
+			//styl_lower.setFillBackgroundColor(IndexedColors.BLUE.getIndex());
+			//styl_lower.setFillPattern(FillPatternType.NO_FILL);
+			styl_lower.setFont(fnt_blue);
 		}
 		private void export_book() throws IOException {
 			updateMessage("匯出中");

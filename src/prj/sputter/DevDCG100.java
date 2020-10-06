@@ -55,7 +55,7 @@ public class DevDCG100 extends DevTTY {
 		String ans;
 		//ans = exec("REP");
 		//Misc.logv(ans);
-		v_spr = cook(exec("SPR"),"5.000");
+		v_spr = cook(exec("SPR"),"5");
 		v_spv = cook(exec("SPV"),"100.0V");
 		v_spa = cook(exec("SPA"),"0.01A");
 		v_spw = cook(exec("SPW"),"32W");
@@ -116,11 +116,8 @@ public class DevDCG100 extends DevTTY {
 			txt2prop(val[0], volt);
 			txt2prop(val[1], amps);
 			txt2prop(val[2], watt);
-			txt2prop(val[3], joul);		
-			//onTime.set(val[4]);
+			txt2prop(val[3], joul);
 		});
-		//Misc.logv("V=%s A=%s W=%s J=%s", 
-		//	val[0], val[1], val[2], val[3]);
 	}
 	protected void afterOpen() {
 		addState(STG_INIT, ()->state_init()).
@@ -327,7 +324,7 @@ public class DevDCG100 extends DevTTY {
 			btn[i] = new JFXButton(); 			
 			btn[i].setMaxWidth(Double.MAX_VALUE);
 		}
-		btn[0].setText("爬升時間");
+		btn[0].setText("爬升時間(S)");
 		btn[0].setOnAction(e->{
 			dev.v_spr = set_millisec(dev,dev.v_spr,"SPR");
 			txt[0].setText(dev.v_spr);
@@ -356,8 +353,8 @@ public class DevDCG100 extends DevTTY {
 
 		btn[4].setText("輸出時間");
 		btn[4].visibleProperty().bind(rad[4].selectedProperty());
-		btn[0].setOnAction(e->{
-			dev.v_spt = set_millisec(dev,dev.v_spr,"SPT");
+		btn[4].setOnAction(e->{
+			dev.v_spt = set_millisec(dev,dev.v_spt,"SPT");
 			txt[4].setText(dev.v_spt);
 		});
 
@@ -365,7 +362,7 @@ public class DevDCG100 extends DevTTY {
 		btn[5].visibleProperty().bind(rad[5].selectedProperty());
 		btn[5].setOnAction(e->{
 			dev.v_spj = set_value(dev,"輸出焦耳(J)",dev.v_spj,"SPJ");
-			txt[5].setText(dev.v_spt);
+			txt[5].setText(dev.v_spj);
 		});
 
 		btn[6].setText("ON");		

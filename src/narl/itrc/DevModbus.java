@@ -152,7 +152,7 @@ public class DevModbus extends DevBase {
 			case 'H':
 				//holding register, function code = 3
 				implReadH(address,values);
-				break;
+				break;				
 			case 'I':
 				//input register, function code = 4
 				implReadI(address,values);
@@ -206,10 +206,11 @@ public class DevModbus extends DevBase {
 	}
 	/**
 	 * mapping register address.<p>
-	 * first character is register type, it can be C, H, I.<p>
+	 * first character is register type, it can be C, S, I, H<p>
 	 * C - coil register
+	 * S - input status
 	 * H - holding register
-	 * I/R - input register
+	 * I - input register
 	 * @param radix - address value radix
 	 * @param address - register address, ex:H303, I12A 
 	 * @return
@@ -221,9 +222,9 @@ public class DevModbus extends DevBase {
 	) {
 		String pattn;
 		if(radix==16) {
-			pattn = "[CSHIR][0123456789ABCDEF]+([-][0123456789ABCDEF]+)?";
+			pattn = "[CSHI][0123456789ABCDEF]+([-][0123456789ABCDEF]+)?";
 		}else {
-			pattn = "[CSHIR]\\d+([-]\\d+)?";
+			pattn = "[CSHI]\\d+([-]\\d+)?";
 		}		
 		for(String txt:address) {
 			txt = txt.toUpperCase();
@@ -421,6 +422,43 @@ public class DevModbus extends DevBase {
 	public void asyncWriteBit0(int addr,int bit) {asyncBreakIn(()->writeBit0(addr,bit));}
 	public void asyncWriteBit1(int addr,int bit) {asyncBreakIn(()->writeBit1(addr,bit));}
 	
+	
+	public int read(		
+		final int addr,
+		final int sid,
+		final char fid		
+	) {
+		if(sid>=0) {
+			implSlaveID(sid);
+		}
+		short[] val = {0};
+		char id = Character.toUpperCase(fid);		
+		switch(id) {
+		case 'C':
+			//coils, function code = 1
+			implReadC(addr,val);
+			break;
+		case 'S':
+			//input status, function code = 2
+			implReadS(addr,val);
+			break;
+		case 'H':
+			//holding register, function code = 3
+			implReadH(addr,val);
+			break;				
+		case 'I':
+			//input register, function code = 4
+			implReadI(addr,val);
+			break;
+		}
+		return (int)val[0];
+	}
+	public int read(		
+		final int addr,
+		final char fid		
+	) {
+		return read(addr,-1,fid);
+	}
 	
 	protected native void implOpenRtu();	
 	protected native void implOpenTcp();

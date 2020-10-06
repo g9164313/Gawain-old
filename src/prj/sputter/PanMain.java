@@ -26,14 +26,20 @@ import narl.itrc.init.LogStream;
 
 public class PanMain extends PanBase {
 	
+	/**
+	 * i8000       - digital input
+	 * i8001~i8004 - analog  input
+	 * r8005       - digital output
+	 * r8006~r8009 - analog  output
+	 */
 	final DevModbus coup = new DevModbus().mapAddress("i8000-8004");
 	final DevDCG100 dcg1 = new DevDCG100();	
 	final DevSPIK2k spik = new DevSPIK2k();
 	final DevSQM160 sqm1 = new DevSQM160();
-
-	final LayGauges gauges = LayGauges.getInstance();
-	//final LayLogger logger = new LayLogger();
-	final Ladder ladder = new Ladder();
+	
+	final LayFlower flower = new LayFlower(coup);
+	final LayGauges gauges = LayGauges.getInstance();	
+	final Ladder    ladder = new Ladder();
 
 	public PanMain() {
 		super();
@@ -42,7 +48,7 @@ public class PanMain extends PanBase {
 	}
 	
 	private void on_shown(){		
-		//notifyTask(StepAnalysis.task_dump("64BF97"));//debug		
+		//notifyTask(StepAnalysis.task_dump("0FAE64"));//debug		
 		String arg;
 		arg = Gawain.prop().getProperty("modbus", "");
 		if(arg.length()!=0) {
@@ -110,30 +116,39 @@ public class PanMain extends PanBase {
 	@Override
 	public Pane eventLayout(PanBase self) {
 		
-		final HBox lay1 = new HBox();
-		lay1.getStyleClass().addAll("box-pad");
-		lay1.getChildren().addAll(
+		final VBox lay4 = new VBox();
+		lay4.getStyleClass().addAll("box-pad");
+		lay4.getChildren().addAll(
+			Misc.addBorder(flower.genMassFlowCtrl("O₂",1)),
+			Misc.addBorder(flower.genMassFlowCtrl("N₂",2)),
+			Misc.addBorder(flower.genMassFlowCtrl("Ar",3)),
+			Misc.addBorder(flower.genMassFlowCtrl("He",4))
+		);
+		
+		final HBox lay3 = new HBox();
+		lay3.getStyleClass().addAll("box-pad");
+		lay3.getChildren().addAll(
 			DevDCG100.genPanel(dcg1),
 			DevSPIK2k.genPanel(spik),
-			DevSQM160.genPanel(sqm1)
+			DevSQM160.genPanel(sqm1),
+			lay4
 		);
 
-		final ScrollPane lay2 = new ScrollPane(lay1);
+		final ScrollPane lay2 = new ScrollPane(lay3);
 		lay2.setPrefViewportWidth(800);
 		lay2.setMinViewportHeight(500);
 		
-		final JFXTabPane lay3 = new JFXTabPane();
-		lay3.getTabs().addAll(
+		final JFXTabPane lay1 = new JFXTabPane();
+		lay1.getTabs().addAll(
 			new Tab("管路"),
 			new Tab("監測",gauges),
-			new Tab("製程",ladder),
-			//new Tab("紀錄",logger),			
+			new Tab("製程",ladder),			
 			new Tab("裝置",lay2)
 		);
-		lay3.getSelectionModel().select(2);
+		lay1.getSelectionModel().select(3);
 
 		final BorderPane lay0 = new BorderPane();
-		lay0.setCenter(lay3);
+		lay0.setCenter(lay1);
 		lay0.setRight(lay_ctrl());
 		return lay0;
 	}
@@ -183,7 +198,6 @@ public class PanMain extends PanBase {
 					dcg1.exec("SPW="+val);
 					dcg1.exec("TRG");
 				});
-				//logger.startRecord();
 			}catch(NumberFormatException exp) {
 			}
 		});
@@ -192,7 +206,6 @@ public class PanMain extends PanBase {
 		btn[3].setOnAction(e->{
 			Misc.logw("關閉高壓電");
 			dcg1.asyncExec("OFF");
-			//logger.stopRecord();
 		});
 		
 		final Label[] txt = new Label[6];
@@ -323,12 +336,7 @@ public class PanMain extends PanBase {
  * Um - 24V
  * FE - Function Earth
  */
-/**
- * h8000       - digital input
- * h8001~h8004 - analog  input
- * r8005       - digital output
- * r8006~r8009 - analog  output
- */
+
 /**
  * DCG-100 analog control
  * pin.1 -->I1-2.1 (ch.B: out, DC on read-back

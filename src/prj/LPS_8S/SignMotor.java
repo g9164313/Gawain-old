@@ -7,6 +7,7 @@ import eu.hansolo.tilesfx.TileBuilder;
 import eu.hansolo.tilesfx.Tile.SkinType;
 import eu.hansolo.tilesfx.Tile.TextSize;
 import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
@@ -23,6 +24,10 @@ public class SignMotor extends StackPane {
 	};
 	
 	public final BooleanProperty showRPM = flg[0];
+	
+	public Tile get_TOR_Tile() {
+		return tor;
+	}
 	
 	public SignMotor(final String name) {
 		
@@ -56,14 +61,14 @@ public class SignMotor extends StackPane {
 		alm.setActiveColor(Color.RED);
 		
 		rpm.visibleProperty().bind(flg[0].and(flg[1]));
-		tor.visibleProperty().bind(flg[0].not().and(flg[1]));
+		//tor.visibleProperty().bind(flg[0].not().and(flg[1]));
 		alm.visibleProperty().bind(flg[1].not());
 
-		getChildren().addAll(rpm,tor,alm);
-		//getChildren().addAll(rpm,alm);
+		//getChildren().addAll(rpm,tor,alm);
+		getChildren().addAll(rpm,alm);
 	}
 	
-	public void attach(final ModInfoBus bus,final int ID) {
+	public void attach(final ModInnerBus bus,final int ID) {
 		
 		rpm.setOnMouseClicked(e->{
 			PadTouch pad = new PadTouch('N',"RPM");
@@ -73,10 +78,16 @@ public class SignMotor extends StackPane {
 			}
 		});
 		
-		rpm.valueProperty().bind(bus.getSpeed(ID));
-		tor.valueProperty().bind(bus.getTorr(ID));
+		IntegerProperty val;
+		val = bus.getSpeed(ID);
+		if(val!=null) { rpm.valueProperty().bind(val); }
+		val = bus.getTorr(ID);
+		if(val!=null) { tor.valueProperty().bind(val); }
 		
-		flg[1].bind(bus.getAlarm(ID).isEqualTo(0));
-		alm.textProperty().bind(bus.getAlarmText(ID));
+		val = bus.getAlarm(ID);
+		if(val!=null) {
+			flg[1].bind(val.isEqualTo(0));
+			alm.textProperty().bind(bus.getAlarmText(ID));
+		}
 	}
 }

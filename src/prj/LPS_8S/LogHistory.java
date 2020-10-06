@@ -74,18 +74,19 @@ public class LogHistory extends BorderPane {
 	};
 	
 	final VBox lay0 = new VBox(
-		chart[0],chart[1],new Separator(),
-		chart[2],chart[3],new Separator(),
-		chart[4],chart[5],new Separator()
+		chart[0],chart[1],chart[2],new Separator(),
+		chart[3],chart[4],new Separator(),
+		chart[5],chart[6],new Separator(),
+		chart[7],chart[8],new Separator()
 	);
 	
 	final ScrollPane lay1 = new ScrollPane(lay0);
 	
-	final ModInfoBus ibus;
+	final ModInnerBus ibus;
 	final ModCoupler cups;
 	
 	public LogHistory(
-		final ModInfoBus ibus,
+		final ModInnerBus ibus,
 		final ModCoupler cups
 	) {
 		this.ibus = ibus;
@@ -102,8 +103,8 @@ public class LogHistory extends BorderPane {
 	
 	@SuppressWarnings("unused")
 	private void record_data() {
-		chart[3].addData(ibus.MAIN_RPM.get());
-		chart[4].addData(ibus.MAIN_TOR.get());
+		chart[3].addData(ibus.MAJOR_RPM.get());
+		chart[4].addData(ibus.MAJOR_TOR.get());
 		chart[5].addData(ibus.PRESS_RPM.get());
 		chart[6].addData(ibus.PRESS_TOR.get());
 		chart[7].addData(ibus.SWING_RPM.get());
