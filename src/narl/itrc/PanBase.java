@@ -146,22 +146,26 @@ public abstract class PanBase {
 		
 	public static class Spinner extends JFXDialog {		
 		JFXSpinner icon;
-		Label[] mesg = {new Label(), new Label()};		
+		Label mesg = new Label();
+		Label prog = new Label();
 		public Spinner(){			
 			icon = new JFXSpinner();
 
-			mesg[0].setMinWidth(100);
-			mesg[0].setFont(Font.font("Arial", 26));
-			mesg[0].setAlignment(Pos.BASELINE_LEFT);
+			mesg.setMinWidth(100);
+			mesg.setFont(Font.font("Arial", 26));
+			mesg.setAlignment(Pos.BASELINE_LEFT);
 			
-			mesg[1].setMinWidth(50);
-			mesg[1].setFont(Font.font("Arial", 26));
-			mesg[1].setAlignment(Pos.BASELINE_RIGHT);
+			prog.setMinWidth(33);
+			prog.setFont(Font.font("Arial", 26));
+			prog.setAlignment(Pos.BASELINE_RIGHT);
 			
-			final HBox lay = new HBox(icon,mesg[0],mesg[1]);
+			final HBox lay = new HBox(icon,mesg,prog);
 			lay.getStyleClass().addAll("box-pad");
 			lay.setAlignment(Pos.CENTER_LEFT);	
 			setContent(lay);
+		}
+		public void setText(final String txt) {
+			mesg.setText(txt);
 		}
 	};
 	
@@ -169,11 +173,18 @@ public abstract class PanBase {
 		void action(final Timeline ladder,final Spinner dialog);
 	};
 	
-	private final int LADDER_STEP = 100;
+	private final int LADDER_STEP = 900;
 	
 	protected void ladderJump(final Timeline ladder,final int step) {
-		int stp = step*LADDER_STEP - LADDER_STEP/2;
 		ladder.playFromStart();
+		if(step==-1) {
+			ladder.jumpTo("end");
+			return;
+		}else if(step<=-2) {
+			ladder.jumpTo("start");
+			return;
+		}
+		int stp = step*LADDER_STEP - LADDER_STEP/2;
 		ladder.jumpTo(Duration.millis(stp));
 	}
 	
@@ -210,9 +221,9 @@ public abstract class PanBase {
 		final Task<?> task
 	) {
 		final Spinner dlg = new Spinner();
-		dlg.mesg[0].textProperty().bind(task.messageProperty());
-		dlg.mesg[1].visibleProperty().bind(task.progressProperty().greaterThan(0.f));
-		dlg.mesg[1].textProperty().bind(task.progressProperty().multiply(100.f).asString("%.0f％"));
+		dlg.mesg.textProperty().bind(task.messageProperty());
+		dlg.prog.visibleProperty().bind(task.progressProperty().greaterThan(0.f));
+		dlg.prog.textProperty().bind(task.progressProperty().multiply(100.f).asString("%.0f％"));
 		//override old handler~~~
 		task.setOnSucceeded(e->dlg.close());
 		task.setOnCancelled(e->dlg.close());

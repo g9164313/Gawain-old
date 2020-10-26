@@ -11,12 +11,12 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Separator;
 import javafx.scene.control.Tab;
+import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
-import narl.itrc.DevModbus;
 import narl.itrc.Gawain;
 import narl.itrc.Ladder;
 import narl.itrc.Misc;
@@ -26,13 +26,7 @@ import narl.itrc.init.LogStream;
 
 public class PanMain extends PanBase {
 	
-	/**
-	 * i8000       - digital input
-	 * i8001~i8004 - analog  input
-	 * r8005       - digital output
-	 * r8006~r8009 - analog  output
-	 */
-	final DevModbus coup = new DevModbus().mapAddress("i8000-8004");
+	final ModCouple coup = new ModCouple();
 	final DevDCG100 dcg1 = new DevDCG100();	
 	final DevSPIK2k spik = new DevSPIK2k();
 	final DevSQM160 sqm1 = new DevSQM160();
@@ -51,23 +45,23 @@ public class PanMain extends PanBase {
 		//notifyTask(StepAnalysis.task_dump("0FAE64"));//debug		
 		String arg;
 		arg = Gawain.prop().getProperty("modbus", "");
-		if(arg.length()!=0) {
+		if(arg.length()!=0) {			
+			coup.open(arg);
 			gauges.bindProperty(coup);
-			coup.open(arg);		
 		}
 		arg = Gawain.prop().getProperty("DCG100", "");
-		if(arg.length()>0) {
-			gauges.bindProperty(dcg1);
+		if(arg.length()>0) {			
 			dcg1.open(arg);
+			gauges.bindProperty(dcg1);
 		}
 		arg = Gawain.prop().getProperty("SPIK2k", "");
 		if(arg.length()>0) {
 			spik.open(arg);
 		}
 		arg = Gawain.prop().getProperty("SQM160", "");
-		if(arg.length()>0) {
-			gauges.bindProperty(sqm1);
+		if(arg.length()>0) {			
 			sqm1.open(arg);
+			gauges.bindProperty(sqm1);
 		}
 	}
 	
@@ -204,7 +198,7 @@ public class PanMain extends PanBase {
 		btn[3].getStyleClass().add("btn-raised-2");
 		btn[3].setText("電漿-OFF");
 		btn[3].setOnAction(e->{
-			Misc.logw("關閉高壓電");
+			//Misc.logw("關閉高壓電");
 			dcg1.asyncExec("OFF");
 		});
 		
@@ -240,6 +234,8 @@ public class PanMain extends PanBase {
 		rad[0].selectedProperty().bind(sqm1.shutter);
 		rad[0].setStyle("-fx-opacity: 1.0;");
 		
+		final ToggleGroup grp = new ToggleGroup();
+		
 		rad[1].setOnAction(e->{
 			//a mutex for checking I/O
 			if(rad[1].isSelected()){
@@ -264,8 +260,8 @@ public class PanMain extends PanBase {
 				coup.asyncWriteBit0(8005,1);
 			}
 		});
-		rad[3].setOnAction(e->select_io_pin(e,8005,2));
-		rad[4].setOnAction(e->select_io_pin(e,8005,3));
+		rad[3].setOnAction(e->coup.select_gun1(e));
+		rad[4].setOnAction(e->coup.select_gun2(e));
 		rad[3].visibleProperty().bind(rad[2].selectedProperty());
 		rad[4].visibleProperty().bind(rad[2].selectedProperty());
 		
@@ -287,55 +283,9 @@ public class PanMain extends PanBase {
 		lay0.getChildren().addAll(btn);
 		return lay0;
 	}
-	
-	private void select_io_pin(
-		final ActionEvent event,
-		final int address,
-		final int bitmask
-	){
-		final CheckBox chk = (CheckBox)event.getSource();
-		if(chk.isSelected()==true){
-			coup.asyncWriteBit1(address, bitmask);
-		}else{
-			coup.asyncWriteBit0(address, bitmask);
-		}
-	}
 }
 
-/**
- * PHOENIX CONTACT coupler:
- * 
- * ETH BK DIO8 DO4 2TX-PAC:
- * 1.1 OUT1  2.1 OUT2
- * 1.2 GND   2.2 GND
- * 1.3 FE    2.3 FE
- * 1.4 OUT3  2.4 OUT4
- * 
- * 1.1 IN1   2.1 IN2
- * 1.2 Um    2.1 Um
- * 1.3 GND   2.2 GND
- * 1.4 IN3   2.3 IN4
- * 
- * 1.1 IN5   2.1 IN6
- * 1.2 Um    2.1 Um
- * 1.3 GND   2.2 GND
- * 1.4 IN7   2.3 IN8
- * -----------------
- * IB IL AI 4-ECO
- * 1.1 IN1   2.1 GND
- * 1.2 IN2   2.1 GND
- * 1.3 IN3   2.2 GND
- * 1.4 IN4   2.3 GND 
- * -----------------
- * IB IL AO 4-ECO
- * 1.1 OUT1  2.1 OUT2
- * 1.2 GND   2.1 GND
- * 1.3 OUT3  2.2 OUT4
- * 1.4 GND   2.3 GND
- * -----------------
- * Um - 24V
- * FE - Function Earth
- */
+
 
 /**
  * DCG-100 analog control

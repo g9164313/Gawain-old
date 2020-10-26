@@ -28,7 +28,7 @@ public class SignMotor extends StackPane {
 	public Tile get_TOR_Tile() {
 		return tor;
 	}
-	
+
 	public SignMotor(final String name) {
 		
 		rpm = TileBuilder.create()
@@ -36,7 +36,7 @@ public class SignMotor extends StackPane {
 			.title(name)
 			.textSize(TextSize.BIGGER)
 			.unit("RPM")
-			.maxValue(3000)	
+			.maxValue(40)	
 			.decimals(0)
 			.build();
 		
@@ -68,7 +68,7 @@ public class SignMotor extends StackPane {
 		getChildren().addAll(rpm,alm);
 	}
 	
-	public void attach(final ModInnerBus bus,final int ID) {
+	public void attach(final ModInsider bus,final int ID) {
 		
 		rpm.setOnMouseClicked(e->{
 			PadTouch pad = new PadTouch('N',"RPM");
@@ -76,6 +76,11 @@ public class SignMotor extends StackPane {
 			if(opt.isPresent()==false) {
 				return;
 			}
+			int val = Integer.valueOf(opt.get());
+			if(val>=41) {
+				return;
+			}
+			bus.setSpeed(ID,val);
 		});
 		
 		IntegerProperty val;
@@ -86,7 +91,7 @@ public class SignMotor extends StackPane {
 		
 		val = bus.getAlarm(ID);
 		if(val!=null) {
-			flg[1].bind(val.isEqualTo(0));
+			flg[1].bind(val.isEqualTo(0).or(val.isEqualTo(255)));
 			alm.textProperty().bind(bus.getAlarmText(ID));
 		}
 	}

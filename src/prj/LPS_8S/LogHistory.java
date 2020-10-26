@@ -82,11 +82,11 @@ public class LogHistory extends BorderPane {
 	
 	final ScrollPane lay1 = new ScrollPane(lay0);
 	
-	final ModInnerBus ibus;
+	final ModInsider ibus;
 	final ModCoupler cups;
 	
 	public LogHistory(
-		final ModInnerBus ibus,
+		final ModInsider ibus,
 		final ModCoupler cups
 	) {
 		this.ibus = ibus;
@@ -103,12 +103,12 @@ public class LogHistory extends BorderPane {
 	
 	@SuppressWarnings("unused")
 	private void record_data() {
-		chart[3].addData(ibus.MAJOR_RPM.get());
+		/*chart[3].addData(ibus.PV_MAJOR_RPM.get());
 		chart[4].addData(ibus.MAJOR_TOR.get());
 		chart[5].addData(ibus.PRESS_RPM.get());
 		chart[6].addData(ibus.PRESS_TOR.get());
 		chart[7].addData(ibus.SWING_RPM.get());
-		chart[8].addData(ibus.SWING_TOR.get());
+		chart[8].addData(ibus.SWING_TOR.get());*/
 	}
 	
 	private final double simBias = 25.;

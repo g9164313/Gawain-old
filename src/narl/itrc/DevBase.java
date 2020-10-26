@@ -151,6 +151,12 @@ public abstract class DevBase implements Runnable {
 	 */
 	public DevBase asyncBreakIn(final Runnable work) {
 		if(taskFlow==null) {
+			if(orph_break_in!=null) {
+				if(orph_break_in.isAlive()==true) {
+					Misc.logw("%s is busy!!",TAG);
+					return this;
+				}
+			}
 			orph_break_in = new Thread(work,TAG+"-breakin");
 			orph_break_in.start();
 			return this;

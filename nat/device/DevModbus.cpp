@@ -14,16 +14,18 @@ extern "C" JNIEXPORT void JNICALL JNI_PREFIX_NAME(implOpenRtu)(
 	jbyte mask = getJByte(env, thiz, "rtuMask");
 	jbyte stop = getJByte(env, thiz, "rtuStop");
 
-	modbus_t *ctx = modbus_new_rtu(
+	modbus_t* ctx = modbus_new_rtu(
 		name,
 		baud,
 		mask, data-'0', stop-'0'
 	);
-	if( modbus_connect(ctx) != TRUE){
+	//modbus_set_debug(ctx, TRUE);
+	if (modbus_connect(ctx)<0){
 		modbus_free(ctx);
 		ctx = NULL;//reset it!!!
 		cout << "MODBUS FAIL:" << name << endl;
-	}else {
+	}else{
+		//modbus_set_response_timeout(ctx, 3, 0);
 		cout << "MODBUS RTU:" << name << endl;
 	}
 	setJLong(env, thiz, "handle", (long)ctx);
@@ -156,22 +158,25 @@ extern "C" JNIEXPORT void JNICALL JNI_PREFIX_NAME(implReadI)(
 	env->ReleaseShortArrayElements(jbuf,buf,0);
 }
 
-extern "C" JNIEXPORT void JNICALL JNI_PREFIX_NAME(implWrite)(
+extern "C" JNIEXPORT jint JNICALL JNI_PREFIX_NAME(implWrite)(
 	JNIEnv * env,
 	jobject thiz,
 	jint addr,
 	jshortArray jbuf
 ) {
+	jint res = -2;
 	modbus_t* ctx = (modbus_t*)getJLong(env, thiz, "handle");
 	if(ctx==NULL){
-		return;
+		return res;
 	}
 	jsize   len = env->GetArrayLength(jbuf);
 	jshort* buf = env->GetShortArrayElements(jbuf,NULL);
-	if (modbus_write_registers(ctx, addr, len, (uint16_t*)buf) < 0) {
-		cout << "MODBUS write fail!!" << endl;
+	res = modbus_write_registers(ctx, addr, len, (uint16_t*)buf);
+	if ( res< 0) {
+		cout << "Modbus write fail!!" << endl;
 	}
 	env->ReleaseShortArrayElements(jbuf,buf,0);
+	return res;
 }
 
 extern "C" JNIEXPORT void JNICALL JNI_PREFIX_NAME(implWriteBit)(

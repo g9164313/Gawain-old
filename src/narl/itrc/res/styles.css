@@ -118,7 +118,7 @@
   -fx-spacing: 13, 0, 13, 0;
   -fx-padding:  7, 0,  7, 0;
   -fx-hgap: 7;
-  -fx-vgap: 7; 
+  -fx-vgap: 7;	 
 }
 .box-pad-group {
   -fx-padding:  13, 0,  7, 0; 

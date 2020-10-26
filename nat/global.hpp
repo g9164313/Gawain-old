@@ -91,7 +91,7 @@ inline jfloatArray getJFloatArray(JNIEnv* env, jobject thiz, const char* name) {
 }
 
 inline void setJLong(JNIEnv *env, jobject thiz, const char* name, long val){
-	_set_jvalue("J",Int);
+	_set_jvalue("J",Long);
 }
 inline long getJLong(JNIEnv *env, jobject thiz, const char* name){
 	_get_jvalue("J",Long);

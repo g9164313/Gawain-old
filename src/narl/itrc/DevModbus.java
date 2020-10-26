@@ -51,7 +51,7 @@ public class DevModbus extends DevBase {
 		if(isLive()==true) {
 			return;
 		}
-		if(devPath.matches("^[rR][tT][uU]:\\w+,\\d+,[78][neoNEO][12]")==true) {		
+		if(devPath.matches("^[rR][tT][uU]:[\\/\\w]+,\\d+,[78][neoNEO][12]")==true) {		
 			
 			String[] col = devPath.substring(4).split(",");	
 			if(col.length>=1) {
@@ -83,11 +83,18 @@ public class DevModbus extends DevBase {
 			handle = 0L;
 		}
 		if(mems.size()!=0 && handle>0L) {
-			addState(STG_IGNITE,()->ignite());
-			addState(STG_LOOPER,()->looper());
-			playFlow(STG_IGNITE);
+			playLoop();
 		}
 	}
+	public void playLoop() {
+		if(isFlowing()==true) {
+			return;
+		}
+		addState(STG_IGNITE,()->ignite());
+		addState(STG_LOOPER,()->looper());
+		playFlow(STG_IGNITE);
+	}
+	
 	public void open(final String name) {
 		devPath = name.split(";|@")[0];
 		open();
@@ -164,8 +171,8 @@ public class DevModbus extends DevBase {
 				return;
 			}
 			for(int i=0; i<values.length; i++) {
-				int v = values[i];
-				v = v & 0xFFFF;
+				int v = (int)(values[i]);
+				//v = v & 0xFFFF;
 				v_prop[i].set(v);
 			}
 		}
@@ -173,9 +180,11 @@ public class DevModbus extends DevBase {
 	
 	private ArrayList<RCell> mems = new ArrayList<>();
 	
+	/**
+	 * 	User can override this to prepare something.<p>
+	 * 	Remember this is not called by GUI-thread.<p>
+	 */
 	protected void ignite() {
-		//user can override this to prepare something.
-		//Remember this is not called by GUI-thread.
 		nextState(STG_LOOPER);
 	}
 	
@@ -186,7 +195,6 @@ public class DevModbus extends DevBase {
 			try {
 				Thread.sleep(looperDelay);
 			} catch (InterruptedException e) {
-				return;
 			}
 		}
 		if(isLive()==false) {
@@ -194,11 +202,12 @@ public class DevModbus extends DevBase {
 		}
 		for(RCell reg:mems) {
 			reg.fecth();
+
+		}
+		if(mems.size()==0) {
+			return;
 		}
 		Application.invokeAndWait(()->{
-			if(mems.size()==0) {
-				return;
-			}
 			for(RCell reg:mems) {
 				reg.update_by_gui();
 			}
@@ -222,9 +231,9 @@ public class DevModbus extends DevBase {
 	) {
 		String pattn;
 		if(radix==16) {
-			pattn = "[CSHI][0123456789ABCDEF]+([-][0123456789ABCDEF]+)?";
+			pattn = "[CSHI][0123456789ABCDEF]+([-~][0123456789ABCDEF]+)?";
 		}else {
-			pattn = "[CSHI]\\d+([-]\\d+)?";
+			pattn = "[CSHI]\\d+([-~]\\d+)?";
 		}		
 		for(String txt:address) {
 			txt = txt.toUpperCase();
@@ -236,7 +245,7 @@ public class DevModbus extends DevBase {
 			char fid = txt.toUpperCase().charAt(0);
 			int addr = 0;
 			int size = 1;
-			String[] col = txt.substring(1).split("-");
+			String[] col = txt.substring(1).split("[-~]");
 			if(col.length>=1) {
 				addr = Integer.valueOf(col[0],radix);
 			}
@@ -310,7 +319,8 @@ public class DevModbus extends DevBase {
 				return reg.v_prop[off];
 			}
 		}
-		return null;
+		Misc.logw("Dummy mapping - 0x%X", addr);
+		return new SimpleIntegerProperty();
 	}
 	public IntegerProperty coilStatus(final int address) {
 		return get_register(-1,'C',address); 
@@ -383,7 +393,10 @@ public class DevModbus extends DevBase {
 	}
 	public void writeVal(final int addr,final int val) {
 		short[] buff = { (short)(val&0xFFFF) };
-		implWrite(addr,buff);
+		int res = 0;
+		do{
+			res = implWrite(addr,buff);
+		}while(res<0);
 	}
 	public void write_OR(final int addr,final int val) {
 		short[] buff = {0};
@@ -423,17 +436,17 @@ public class DevModbus extends DevBase {
 	public void asyncWriteBit1(int addr,int bit) {asyncBreakIn(()->writeBit1(addr,bit));}
 	
 	
-	public int read(		
-		final int addr,
-		final int sid,
-		final char fid		
+	public int readReg(
+		final int sid,			
+		final char fid,
+		final int addr
 	) {
 		if(sid>=0) {
 			implSlaveID(sid);
 		}
 		short[] val = {0};
-		char id = Character.toUpperCase(fid);		
-		switch(id) {
+		char _fid = Character.toUpperCase(fid);		
+		switch(_fid) {
 		case 'C':
 			//coils, function code = 1
 			implReadC(addr,val);
@@ -453,11 +466,11 @@ public class DevModbus extends DevBase {
 		}
 		return (int)val[0];
 	}
-	public int read(		
-		final int addr,
-		final char fid		
+	public int readReg(
+		final char fid,
+		final int addr
 	) {
-		return read(addr,-1,fid);
+		return readReg(-1,fid,addr);
 	}
 	
 	protected native void implOpenRtu();	
@@ -467,6 +480,6 @@ public class DevModbus extends DevBase {
 	protected native void implReadS(int addr,short buff[]);//input status(FC=2)	
 	protected native void implReadH(int addr,short buff[]);//holding register
 	protected native void implReadI(int addr,short buff[]);//input register
-	protected native void implWrite(int addr,short buff[]);
+	protected native int implWrite(int addr,short buff[]);
 	protected native void implClose();
 }
