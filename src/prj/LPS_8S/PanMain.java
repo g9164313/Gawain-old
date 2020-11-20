@@ -1,8 +1,11 @@
 package prj.LPS_8S;
 
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.jfoenix.controls.JFXButton;
+import com.jfoenix.controls.JFXCheckBox;
+import com.jfoenix.controls.JFXRadioButton;
 import com.jfoenix.controls.JFXTabPane;
 import com.jfoenix.controls.JFXToggleButton;
 
@@ -10,10 +13,21 @@ import eu.hansolo.tilesfx.Tile;
 import eu.hansolo.tilesfx.TileBuilder;
 import eu.hansolo.tilesfx.Tile.SkinType;
 import eu.hansolo.tilesfx.Tile.TextSize;
+import javafx.beans.binding.BooleanBinding;
+import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.SimpleIntegerProperty;
+import javafx.geometry.Orientation;
+import javafx.geometry.Pos;
+import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
 import javafx.scene.control.Tab;
+import javafx.scene.control.Toggle;
 import javafx.scene.control.ToggleButton;
+import javafx.scene.control.ToggleGroup;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
@@ -28,24 +42,38 @@ public class PanMain extends PanBase {
 	private static final String TXT_AXIS_MAJOR = "主軸";
 	private static final String TXT_AXIS_PRESS = "加壓軸";
 	private static final String TXT_AXIS_SWING = "擺動軸";
-	private static final String TXT_CYLI_UP = "氣壓缸（上提）";
-	private static final String TXT_CYLI_DW = "氣壓缸（下壓）";
+	private static final String TXT_CYLI_FORCE = "氣壓缸";
 	
 	private ModInsider ibus = new ModInsider();
 	private ModCoupler coup = new ModCoupler();
 	//private LogHistory hist = new LogHistory(ibus,coup);
 	
-	private SignMotor[] sgm = {
-		new SignMotor(TXT_AXIS_MAJOR),
-		new SignMotor(TXT_AXIS_PRESS),
-		new SignMotor(TXT_AXIS_SWING),
+	private SignMotor[] moto = {
+		new SignMotor(TXT_AXIS_MAJOR).binding(
+			ibus.MAJOR_RPM.negate().divide(40), 
+			ibus.MAJOR_TOR.negate().multiply(1), 
+			ibus.MAJOR_ALM.multiply(1)
+		).attach(ibus, ModInsider.ID_MAJOR),
+		new SignMotor(TXT_AXIS_PRESS).binding(
+			ibus.PRESS_RPM.divide(40), 
+			ibus.PRESS_TOR.multiply(1), 
+			ibus.PRESS_ALM.multiply(1)
+		).attach(ibus, ModInsider.ID_PRESS),
+		new SignMotor(TXT_AXIS_SWING,"CPM").binding(
+			ibus.SWING_RPM.divide(40), 
+			ibus.SWING_TOR.multiply(1), 
+			ibus.SWING_ALM.multiply(1)
+		).attach(ibus, ModInsider.ID_SWING),
 	};
 	
 	public PanMain() {
-		init_gauge();
+		moto[0].SV_RPM = ibus.MAJOR_RPM_SV;
+		moto[1].SV_RPM = ibus.PRESS_RPM_SV;
+		moto[2].SV_RPM = ibus.SWING_RPM_SV;
 		stage().setOnShown(e->on_shown());
 	}
-	private void on_shown() {		
+	private void on_shown() {
+		coup.ibus = ibus;
 		String arg;
 		arg = Gawain.prop().getProperty("INSIDER", "");
 		if(arg.length()!=0) {
@@ -70,9 +98,6 @@ public class PanMain extends PanBase {
 			};
 			coup.open(arg);
 		}
-		sgm[0].attach(ibus, ModInsider.ID_MAJOR);
-		sgm[1].attach(ibus, ModInsider.ID_PRESS);
-		sgm[2].attach(ibus, ModInsider.ID_SWING);
 	}
 
 	private void toggle_btn(
@@ -83,28 +108,23 @@ public class PanMain extends PanBase {
 		tgl.setSelected(val);
 		tgl.getOnAction().handle(null);
 	}
-	private void freeze_tgl(final ToggleButton tgl) {
-		if(tgl.isSelected()==false) { return; }
-		tgl.setSelected(false);
-		tgl.getOnAction().handle(null);
-	}
-	private void recover_tgl(final ToggleButton tgl) {
-		boolean val = (boolean) tgl.getUserData();
-		if(val==false) { return; }
-		tgl.setSelected(val);
-		tgl.getOnAction().handle(null);
-	}
 	
+	private static final String TXT_LOCK = "主軸鎖定";
+	private static final String TXT_UNLOCK = "主軸解鎖";
+	private static final ImageView ICON_LOCK = Misc.getIconView("lock-outline.png");
+	private static final ImageView ICON_UNLOCK = Misc.getIconView("lock-open-outline.png");
+	private static final ImageView ICON_SETTINGS = Misc.getIconView("settings.png");
+	
+	private Tile tileAlarm;	
 	private JFXToggleButton tglAlarm;
 	private JFXToggleButton tglSlurryHeat;
 	private JFXToggleButton tglSlurryPump;
 	private JFXToggleButton tglMotorMajor;
 	private JFXToggleButton tglMotorOther;
+	//private JFXButton btnMajorLock;
 	
-	//計時, 
-	//（研磨液）電導, 流量, 溫度,
-	//（加壓氣缸）電控比例閥-1, 電控比例閥-2,
-	private final Tile[] gag = new Tile[6];
+	//計時, （研磨液）電導, 流量, 溫度,
+	private final Tile[] tile = new Tile[6];
 	
 	private NotifyEvent[] e_working = {
 		(lad,dlg)->{
@@ -128,8 +148,8 @@ public class PanMain extends PanBase {
 		(lad,dlg)->{
 			dlg.setText("開始旋轉");
 			toggle_btn(tglMotorOther,true);
-			if(gag[0].getTimePeriod().getSeconds()>0L) {
-				gag[0].setRunning(true);
+			if(tileAlarm.getTimePeriod().getSeconds()>0L) {
+				tileAlarm.setRunning(true);
 			}
 		},
 	};
@@ -168,7 +188,6 @@ public class PanMain extends PanBase {
 		},
 	};
 	
-	
 	private final NotifyEvent[] e_unlock_master = {
 		(ldd,dlg)->{
 			dlg.setText("退出卡榫");
@@ -177,7 +196,7 @@ public class PanMain extends PanBase {
 	};
 	private final NotifyEvent[] e_lock_master = {
 		(ldd,dlg)->{
-			if(coup.flgMasterLock.get()==true) {
+			if(coup.flgMasterLocate.get()==true) {
 				ladderJump(ldd,-1);
 				return;
 			}
@@ -188,36 +207,141 @@ public class PanMain extends PanBase {
 			}
 			dlg.setText("準備拆模");
 			ibus.setSpeed(ModInsider.ID_MAJOR, 50);
-			
 		},
 		(ldd,dlg)->{
 			dlg.setText("等待卡榫位置");
-			if(coup.flgMasterLock.get()==true) {
+			if(coup.flgMasterLocate.get()==true) {
 				return;
 			}
 			ladderJump(ldd,2);
 		},
 		(ldd,dlg)->{
 			dlg.setText("推入卡榫");
-			coup.toggleLatch(true);
 		}
 	};
 	
-	/*private void on_timer_alarm(final AlarmEvent EVENT) {
-		gag[0].setTitle("計時");//restore title~~~
-	}
-	private void on_working() {
-		if(gag[0].getTimePeriod().getSeconds()>0L) {
-			gag[0].setRunning(true);
-		}
-	}
-	private void on_stopping() {
-		gag[0].setRunning(false);
-		//infobus.kickoff_all(false);
-	}*/
-	
 	@Override
 	public Pane eventLayout(PanBase self) {
+		
+		final JFXCheckBox chkTorView = new JFXCheckBox("檢視扭力");
+				
+		final VBox lay_btn = new VBox(
+			chkTorView,
+			new Separator()
+		);
+		lay_btn.getStyleClass().add("box-pad");
+		
+		final FlowPane lay_info = new FlowPane(Orientation.VERTICAL);
+		lay_info.getStyleClass().addAll("box-pad");
+		lay_info.getChildren().addAll(
+			gen_speed_setting(),
+			gen_stretch_option(),
+			gen_locate_setting(TXT_AXIS_PRESS,ModInsider.ID_PRESS),
+			gen_locate_setting(TXT_AXIS_SWING,ModInsider.ID_SWING)
+			//gen_starter_setting()
+		);
+		
+		final HBox lay1 = new HBox(
+			lay_info,
+			gen_panel_ctrl()
+		);
+		lay1.getStyleClass().add("box-pad");
+		
+		final BorderPane lay = new BorderPane();
+		lay.setCenter(gen_panel_gauge());
+		lay.setRight(lay1);
+		return lay;
+	}
+	
+		
+	private Pane gen_speed_setting() {		
+		final Label[] txt = { 
+			new Label(),
+			new Label(),
+			new Label(),
+		};
+		for(int i=0; i<txt.length; i++) {
+			final SignMotor obj = moto[i];
+			txt[i].textProperty().bind(obj.SV_RPM.asString("%2d RPM"));
+			txt[i].setOnMouseClicked(e->obj.event_set_speed());
+			txt[i].setMinWidth(87.);
+			txt[i].setAlignment(Pos.BASELINE_RIGHT);
+		}
+		
+		final GridPane lay = new GridPane();
+		lay.getStyleClass().addAll("box-pad","box-border");
+		lay.add(new Label("轉速設定"), 0, 0, 2, 1);
+		lay.addRow(1, new Label("主軸:"),txt[0]);
+		lay.addRow(2, new Label("加壓:"),txt[1]);
+		lay.addRow(3, new Label("擺動:"),txt[2]);
+		return lay;
+	}
+	
+	private Pane gen_stretch_option() {
+		
+		final ToggleGroup grp = new ToggleGroup();
+		final JFXRadioButton[] rad = {
+			new JFXRadioButton("高度-1"),
+			new JFXRadioButton("高度-2"),
+			new JFXRadioButton("高度-3"),
+		};
+		rad[0].setSelected(true);
+		rad[0].setToggleGroup(grp);
+		rad[1].setToggleGroup(grp);
+		rad[2].setToggleGroup(grp);
+		rad[0].setOnAction(e->coup.ArmDownDelay.set(500));
+		rad[1].setOnAction(e->coup.ArmDownDelay.set(700));
+		rad[2].setOnAction(e->coup.ArmDownDelay.set(800));
+		
+		final VBox lay = new VBox(new Label("汽缸設定"));
+		lay.getChildren().addAll(rad);
+		lay.getStyleClass().addAll("box-pad","box-border");
+		return lay;
+	}
+	
+	private Pane gen_locate_setting(
+		final String title,
+		final int dev_id
+	) {
+		final JFXButton btn = new JFXButton("");
+		btn.setPrefSize(64., 64.);
+		btn.getStyleClass().add("btn-raised-1");
+		btn.setOnMousePressed (e->coup.servoMove(dev_id, true ));
+		btn.setOnMouseReleased(e->coup.servoMove(dev_id, false));
+
+		final ToggleGroup grp = new ToggleGroup();
+		final JFXRadioButton[] rad = {
+			new JFXRadioButton("順時針"),
+			new JFXRadioButton("逆時針"),
+		};
+		rad[0].setSelected(true);
+		rad[0].setToggleGroup(grp);
+		rad[1].setToggleGroup(grp);
+		rad[0].setOnAction(e->ibus.setLocatePulse(dev_id,-2500));
+		rad[1].setOnAction(e->ibus.setLocatePulse(dev_id, 2500));
+		
+		final GridPane lay = new GridPane();
+		lay.getStyleClass().addAll("box-pad","box-border");
+		lay.add(new Label(title+"寸進"), 0, 0, 2, 1);
+		lay.addColumn(0, rad);
+		lay.add(btn, 1, 1, 2, 2);
+		return lay;
+	}
+
+	private Pane gen_starter_setting() {		
+		final JFXCheckBox[] chk = {
+			new JFXCheckBox("加熱器"),
+			new JFXCheckBox("研磨液"),
+			new JFXCheckBox("旋轉軸"),
+			new JFXCheckBox("加工軸")
+		};		
+		final VBox lay = new VBox(new Label("啟動設定"));
+		lay.getChildren().addAll(chk);
+		lay.getStyleClass().addAll("box-pad","box-border");
+		return lay; 
+	}
+	
+	private Pane gen_panel_ctrl() {
 		
 		final JFXToggleButton[] tgl = {
 			new JFXToggleButton(),
@@ -234,24 +358,21 @@ public class PanMain extends PanBase {
 		tgl[2].setText("研磨液");			
 		tgl[3].setText("旋轉軸");
 		tgl[4].setText("加工軸");
-		
+			
 		tglAlarm = tgl[0];
 		tglAlarm.setOnAction(e->{
-			boolean flg = tglAlarm.isSelected();
-			coup.toggleAlarm(flg);
+			coup.alarm(tglAlarm.isSelected());
 		});
 		tglSlurryHeat = tgl[1];
 		tglSlurryHeat.setOnAction(e->{
-			boolean flg = tglSlurryHeat.isSelected();
-			coup.toggleHeater(flg);
+			coup.heatSlurry(tglSlurryHeat.isSelected());
 		});
 		tglSlurryPump = tgl[2];
 		tglSlurryPump.setOnAction(e->{
-			boolean flg = tglSlurryPump.isSelected();
-			coup.toggleSlurry(flg);
+			coup.pumpSlurry(tglSlurryPump.isSelected());
 		});
 		tglMotorMajor = tgl[3];
-		tglMotorMajor.disableProperty().bind(coup.flgMasterUnLock.not());
+		//tglMotorMajor.disableProperty().bind(coup.flgMasterUnLock.not());
 		tglMotorMajor.setOnAction(e->{
 			if(tglMotorMajor.isDisable()==true) {
 				return;
@@ -260,72 +381,35 @@ public class PanMain extends PanBase {
 			ibus.kickoff(ModInsider.ID_MAJOR,flg);
 		});
 		tglMotorOther = tgl[4];
-		tglMotorOther.setOnAction(e->{
-			boolean flg = tglMotorOther.isSelected();
-			ibus.kickoff(ModInsider.ID_OTHER,flg);
-		});
+		tglMotorOther.setOnAction(e->coup.action_working(tglMotorOther));
 		
-		final JFXButton[] btn = {
-			new	JFXButton("裝模"),			
-			new	JFXButton("拆模"),			
-		};
-		for(JFXButton obj:btn) {
-			obj.setMinSize(100., 57.);
-			obj.setMaxWidth(Double.MAX_VALUE);
-		}
-		btn[0].getStyleClass().add("btn-raised-1");
-		btn[0].setOnAction(e->notifyEvent(e_unlock_master));
-		btn[1].getStyleClass().add("btn-raised-1");
-		btn[1].setOnAction(e->notifyEvent(e_lock_master));		
+		final JFXButton btn2 = new JFXButton();
+		btn2.setMaxWidth(Double.MAX_VALUE);
+		btn2.setMinHeight(72.);
+		btn2.getStyleClass().add("btn-raised-1");
+		btn2.setText("test");
+				
+		final VBox lay1 = new VBox(tgl);
+		AnchorPane.setTopAnchor  (lay1, 7.0);
+		AnchorPane.setLeftAnchor (lay1, 7.0);
+		AnchorPane.setRightAnchor(lay1, 7.0);
 		
-		final VBox lay_tgl = new VBox(tgl);
-		lay_tgl.getStyleClass().add("box-pad");
-		final VBox lay_btn = new VBox(
-			new Separator(),
-			btn[0],btn[1]
-		);
-		lay_btn.getStyleClass().add("box-pad");
-		final BorderPane lay_ctrl = new BorderPane(
-			lay_tgl,
-			null,null,
-			lay_btn, null
-		);
-
-		final GridPane lay_gagu = new GridPane();
-		lay_gagu.getStyleClass().add("box-pad");
-		lay_gagu.addColumn(0, gag[0], gag[4], gag[5]);
-		lay_gagu.addColumn(1, gag[1], gag[2], gag[3]);
-		lay_gagu.addColumn(2, sgm[0], sgm[1], sgm[2]);
-		lay_gagu.addColumn(3, 
-			sgm[0].get_TOR_Tile(), 
-			sgm[1].get_TOR_Tile(), 
-			sgm[2].get_TOR_Tile()
-		);
-		
-		final HBox lay_test = new HBox(
-			coup.gen_console(),
-			ibus.gen_console()
-		);
-		lay_test.getStyleClass().add("box-pad");
-		
-		final JFXTabPane lay_tabs = new JFXTabPane();
-		lay_tabs.getTabs().addAll(
-			new Tab("儀表",lay_gagu),
-			//new Tab("監控",hist),
-			new Tab("TEST-1",lay_test)			
-		);
-		lay_tabs.getSelectionModel().select(1);//select TABs
-		
-		return new BorderPane(
-			lay_tabs,
-			null,lay_ctrl,
-			null,null				
-		);
+		final VBox lay2 = new VBox(btn2); 
+		lay2.getStyleClass().add("box-pad");
+		AnchorPane.setBottomAnchor(lay2, 7.0);
+		AnchorPane.setLeftAnchor  (lay2, 7.0);
+		AnchorPane.setRightAnchor (lay2, 7.0);
+		return new AnchorPane(lay1,lay2);
 	}
-
-
-	void init_gauge() {
-		gag[0] = TileBuilder.create()
+	
+	private Pane gen_panel_gauge() {
+		
+		//final BooleanBinding flg = chkTorView.selectedProperty().not();
+		//sgm[0].showRPM.bind(flg);
+		//sgm[1].showRPM.bind(flg);
+		//sgm[2].showRPM.bind(flg);
+		
+		tile[0] = TileBuilder.create()
 			.skinType(SkinType.COUNTDOWN_TIMER)
 			.title("計時")
 			.textSize(TextSize.BIGGER)
@@ -334,7 +418,7 @@ public class PanMain extends PanBase {
 				notifyEvent(e_halting_alarm);
 			})
 			.build();
-		gag[0].setOnMouseClicked(e->{
+		tile[0].setOnMouseClicked(e->{
 			PadTouch pad = new PadTouch('T',"時：分：秒");
 			Optional<String> opt = pad.showAndWait();			
 			if(opt.isPresent()==false) {
@@ -342,88 +426,74 @@ public class PanMain extends PanBase {
 			}
 			String txt = opt.get();
 			long val = PadTouch.toSecondValue(txt);
-			gag[0].setTitle("計時"+Misc.tick2text(val*1000,true,3));
-			gag[0].setTimePeriod(java.time.Duration.ofSeconds(val));
+			tile[0].setTitle("計時"+Misc.tick2text(val*1000,true,3));
+			tile[0].setTimePeriod(java.time.Duration.ofSeconds(val));
 		});
-		
-		gag[1] = TileBuilder.create()
+		tileAlarm = tile[0];
+			
+		tile[1] = TileBuilder.create()
 			.skinType(SkinType.SPARK_LINE)
-			.title("電導")
 			.textSize(TextSize.BIGGER)
-			.unit("us/cm")
-			.maxValue(7)			
+			.title("電導")			
+			.unit("uS/cm")
+			.maxValue(1)			
 			.build();
-		gag[1].setDecimals(3);
-		gag[1].valueProperty().bind(ibus.PV_COND);
-		
-		gag[2] = TileBuilder.create()
+		tile[1].setDecimals(3);
+		tile[1].valueProperty().bind(ibus.PV_COND);
+			
+		tile[2] = TileBuilder.create()
 			.skinType(SkinType.SPARK_LINE)
-			.title("流量")
 			.textSize(TextSize.BIGGER)
-			.unit("Volt")
+			.title("流量")
+			.unit("L/min")
 			.maxValue(10)			
 			.build();
-		gag[2].setDecimals(2);
-		gag[2].valueProperty().bind(coup.FLUX_VAL.divide(1000.f));
-		
-		gag[3] = TileBuilder.create()
+		tile[2].setDecimals(2);
+		tile[2].valueProperty().bind(coup.FD_Q20C_AOUT.divide(1000f).multiply(6f));
+			
+		tile[3] = TileBuilder.create()
 			.skinType(SkinType.SPARK_LINE)
-			.title("溫度")
 			.textSize(TextSize.BIGGER)
-			.unit("C")
+			.title("溫度")
+			.unit("度C")
 			.maxValue(70)			
 			.build();
-		gag[3].setDecimals(1);
-		gag[3].valueProperty().bind(
-			ibus.PV_FA231.divide(10.)
+		tile[3].setDecimals(1);
+		tile[3].valueProperty().bind(
+			ibus.PV_FA231.divide(10f)
 		);
-		gag[3].setOnMouseClicked(e->{
-			PadTouch pad = new PadTouch('f',"Degree");
+		tile[3].setOnMouseClicked(e->{
+			PadTouch pad = new PadTouch('f',"度C");
 			Optional<String> opt = pad.showAndWait();			
 			if(opt.isPresent()==false) {
 				return;
 			}
 			ibus.set_FA231(Float.valueOf(opt.get()));
 		});
-		
-		gag[4] = TileBuilder.create()
-			.skinType(SkinType.GAUGE2)
-			.title(TXT_CYLI_UP)
+			
+		tile[4] = TileBuilder.create()
+			.skinType(SkinType.GAUGE)
 			.textSize(TextSize.BIGGER)
-			.unit("Volt")
-			.maxValue(5)			
+			.title(TXT_CYLI_FORCE)			
+			.unit("kgf/cm2")
+			.maxValue(5)
 			.build();
-		gag[4].setDecimals(3);
-		gag[4].valueProperty().bind(
-			coup.PRESS_UP.divide(1000.f)
-		);
-		gag[4].setOnMouseClicked(e->{
+		tile[4].setDecimals(2);
+		tile[4].valueProperty().bind(coup.ARM_PRESS_UP.multiply(10.2f));
+		tile[4].setOnMouseClicked(e->{
 			PadTouch pad = new PadTouch('f',"Volt");
 			Optional<String> opt = pad.showAndWait();			
 			if(opt.isPresent()==false) {
 				return;
 			}
-			coup.armPressUp(Float.valueOf(opt.get()));
+			coup.armForce(Float.valueOf(opt.get()));
 		});
 		
-		gag[5] = TileBuilder.create()
-			.skinType(SkinType.GAUGE2)
-			.title(TXT_CYLI_DW)
-			.textSize(TextSize.BIGGER)
-			.unit("Volt")
-			.maxValue(5)		
-			.build();
-		gag[5].setDecimals(3);
-		gag[5].valueProperty().bind(
-			coup.PRESS_DW.divide(1000.f)
-		);
-		gag[5].setOnMouseClicked(e->{
-			PadTouch pad = new PadTouch('f',"Volt");
-			Optional<String> opt = pad.showAndWait();			
-			if(opt.isPresent()==false) {
-				return;
-			}
-			coup.armPressDw(Float.valueOf(opt.get()));
-		});
+		final GridPane lay = new GridPane();
+		lay.getStyleClass().addAll("box-pad");
+		lay.addColumn(0,tile[0],tile[4]);
+		lay.addColumn(1,moto[0],moto[1],moto[2]);
+		lay.addColumn(2,tile[1],tile[2],tile[3]);		
+		return lay;
 	}
 }

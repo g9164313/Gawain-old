@@ -86,7 +86,7 @@ extern "C" JNIEXPORT void JNICALL JNI_PREFIX_NAME(implReadC)(
 	uint8_t* flg = new uint8_t[len];
 	//MODBUS_FC_READ_INPUT_REGISTERS = 4
 	if (modbus_read_bits(ctx, addr, len, flg) < 0) {
-		cout << "Modbus readC fail!!" << endl;
+		cout << "Modbus readC fail::" << addr << "-" << len << endl;
 	}
 	jshort* buf = env->GetShortArrayElements(jbuf,NULL);
 	for(jsize i=0; i<len; i++){
@@ -110,7 +110,7 @@ extern "C" JNIEXPORT void JNICALL JNI_PREFIX_NAME(implReadS)(
 	uint8_t* flg = new uint8_t[len];
 	//MODBUS_FC_READ_INPUT_REGISTERS = 4
 	if (modbus_read_input_bits(ctx, addr, len, flg) < 0) {
-		cout << "Modbus readC fail!!" << endl;
+		cout << "Modbus readS fail::" << addr << "-" << len << endl;
 	}
 	jshort* buf = env->GetShortArrayElements(jbuf,NULL);
 	for(jsize i=0; i<len; i++){
@@ -134,7 +134,7 @@ extern "C" JNIEXPORT void JNICALL JNI_PREFIX_NAME(implReadH)(
 	jshort* buf = env->GetShortArrayElements(jbuf,NULL);
 	//MODBUS_FC_READ_HOLDING_REGISTERS = 3
 	if (modbus_read_registers(ctx, addr, len, (uint16_t*)buf) < 0) {
-		cout << "Modbus readH fail!!" << endl;
+		cout << "Modbus readH fail::" << addr << "-" << len << endl;
 	}
 	env->ReleaseShortArrayElements(jbuf,buf,0);
 }
@@ -153,7 +153,7 @@ extern "C" JNIEXPORT void JNICALL JNI_PREFIX_NAME(implReadI)(
 	jshort* buf = env->GetShortArrayElements(jbuf,NULL);
 	//MODBUS_FC_READ_INPUT_REGISTERS = 4
 	if (modbus_read_input_registers(ctx, addr, len, (uint16_t*)buf) < 0) {
-		cout << "Modbus readI fail!!" << endl;
+		cout << "Modbus readI fail::"<<addr<<"-"<<len<<endl;
 	}
 	env->ReleaseShortArrayElements(jbuf,buf,0);
 }
@@ -173,7 +173,7 @@ extern "C" JNIEXPORT jint JNICALL JNI_PREFIX_NAME(implWrite)(
 	jshort* buf = env->GetShortArrayElements(jbuf,NULL);
 	res = modbus_write_registers(ctx, addr, len, (uint16_t*)buf);
 	if ( res< 0) {
-		cout << "Modbus write fail!!" << endl;
+		cout << "Modbus write fail::" << addr << "-" << len << endl;
 	}
 	env->ReleaseShortArrayElements(jbuf,buf,0);
 	return res;

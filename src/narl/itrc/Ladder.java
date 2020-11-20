@@ -298,6 +298,10 @@ public class Ladder extends BorderPane {
 	
 	private Optional<Timeline> timer = Optional.empty();
 	
+	public boolean isWorking() {
+		return timer.isPresent();
+	}
+	
 	public Runnable prelogue = null;
 	public Runnable epilogue = null;
 	private String uuid_text = "";

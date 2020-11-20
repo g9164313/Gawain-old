@@ -173,9 +173,18 @@ public abstract class DevBase implements Runnable {
 			return !orph_break_in.isAlive();
 		}
 		if(taskFlow!=null){
-			return state.contains(STA_BREAK_IN);
+			return !state.contains(STA_BREAK_IN);
 		}
 		return true;
+	}
+	public void asyncBlocking(){
+		while(isAsyncDone()==false) {
+			try {
+				Thread.sleep(25);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 	
 	/**

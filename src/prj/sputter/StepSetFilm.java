@@ -43,8 +43,8 @@ public class StepSetFilm extends Stepper {
 		new TextField(),//tooling
 		new TextField(),//z-factor
 		new TextField(),//final thickness
-		new TextField(),//thickness set-point
-		new TextField(),//Time set-point
+		new TextField("0.000"),//thickness set-point
+		new TextField("0"),//Time set-point
 		new TextField(),//sensor number
 	};
 	
@@ -68,7 +68,7 @@ public class StepSetFilm extends Stepper {
 				"A%C%s %s %s %s %s %s %s %s",
 				(char)(1+48), "__TEMP__", 
 				vals[0], vals[1], vals[2], vals[3], 
-				"0.000", "0", vals[6]
+				vals[4], vals[5], vals[6]
 			);
 			if(sqm.exec(cmd).charAt(0)!='A') {
 				next.set(ABORT);
@@ -195,13 +195,13 @@ public class StepSetFilm extends Stepper {
 	}
 	@Override
 	public void expand(String txt) {
-		if(txt.matches("([^:,\\s]+[:][^:,]+[,]?[\\s]*)+")==false){
+		if(txt.matches("([^:,\\p{Space}]+[:]\\p{ASCII}*[,\\s]?)+")==false){
 			return;
 		}
 		String[] arg = txt.split(":|,");
 		for(int i=0; i<arg.length; i+=2){
-			final String tag = arg[i+0].trim();
-			final String val = arg[i+1].trim();
+			String tag = arg[i+0].trim();
+			String val = arg[i+1].trim();
 			if(tag.equals(TAG0)==true){
 				args[0].setText(val);
 			}else if(tag.equals(TAG1)==true){
@@ -211,8 +211,10 @@ public class StepSetFilm extends Stepper {
 			}else if(tag.equals(TAG3)==true){
 				args[3].setText(val);
 			}else if(tag.equals(TAG4)==true){
+				if(val.length()==0) { val = "0.000"; }
 				args[4].setText(val);				
 			}else if(tag.equals(TAG5)==true){
+				if(val.length()==0) { val = "0"; }
 				args[5].setText(val);
 			}else if(tag.equals(TAG6)==true){
 				args[6].setText(val);

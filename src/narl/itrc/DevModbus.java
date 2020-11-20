@@ -1,11 +1,19 @@
 package narl.itrc;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.sun.glass.ui.Application;
 
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.FloatProperty;
 import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleFloatProperty;
 import javafx.beans.property.SimpleIntegerProperty;
+
 
 public class DevModbus extends DevBase {
 
@@ -82,7 +90,7 @@ public class DevModbus extends DevBase {
 		}else {
 			handle = 0L;
 		}
-		if(mems.size()!=0 && handle>0L) {
+		if(cells.size()!=0 && handle>0L) {
 			playLoop();
 		}
 	}
@@ -105,7 +113,7 @@ public class DevModbus extends DevBase {
 		if(handle==0L) {
 			return;
 		}
-		if(mems.size()!=0) {
+		if(cells.size()!=0) {
 			stopFlow();
 		}
 		implClose();
@@ -117,68 +125,135 @@ public class DevModbus extends DevBase {
 	}
 	//-----------------------
 	
-	//register cell
-	private class RCell {
-		int     slaveId;//MODBUS_BROADCAST_ADDRESS=0, default=-1
-		char    func_id;		
-		int     address;
-		short[] values;
-		IntegerProperty[] v_prop;
-			
-		public RCell(
+	private class MirrorCell {
+		final int    offset;
+		final char   t_type;
+		final Object target;
+		MirrorCell(
+			final int off,
+			final char typ,
+			final Object obj
+		) {
+			offset = off;
+			t_type = Character.toUpperCase(typ);
+			target = obj;
+		}
+		void update_number(final short[] blkdata) {
+			switch(t_type) {			
+			case 'B':
+			case 'b': 
+				update_boolean(blkdata); 
+				break;
+			case 'I':
+			case 'i': 
+				update_integer(blkdata);
+				break;
+			case 'S': 
+				update_short(blkdata);
+				break;
+			case 'F':
+				update_float(blkdata); 
+				break;
+			}
+		}
+		private void update_boolean(final short[] blkdata) {
+			int o1 = offset >>4;
+			int m1 = offset &0xF;//mask
+			int v1 = blkdata[o1];
+			if(o1>=blkdata.length) {
+				return;
+			}
+			v1 = v1 & (1<<m1);
+			if(t_type=='B') {
+				((BooleanProperty)target).set(v1!=0);
+			}else if(t_type=='b'){
+				((AtomicBoolean)target).set(v1!=0);
+			}			
+		}
+		private void update_integer(final short[] blkdata) {
+			if(offset>=blkdata.length) {
+				return;
+			}
+			int v = blkdata[offset];
+			if(t_type=='I') {
+				((IntegerProperty)target).set(v);
+			}else if(t_type=='i'){
+				((AtomicInteger)target).set(v);
+			}			
+		}
+		private void update_short(final short[] blkdata) {
+			if(offset>=blkdata.length) {
+				return;
+			}
+			int v2 = blkdata[offset];				
+			((IntegerProperty)target).set(v2&0x0000FFFF);		
+		}
+		private void update_float(final short[] blkdata) {
+			if((offset+1)>=blkdata.length) {
+				return;
+			}
+			byte[] bb = {
+				(byte)((blkdata[offset+1] & 0xFF00)>>8),
+				(byte)((blkdata[offset+1] & 0x00FF)>>0),
+				(byte)((blkdata[offset+0] & 0xFF00)>>8),
+				(byte)((blkdata[offset+0] & 0x00FF)>>0),
+			};
+			float v = ByteBuffer.wrap(bb).getFloat();
+			((FloatProperty)target).set(v);
+				
+		}
+	}	
+	private class RecallCell {
+		final int  slaveId;//MODBUS_BROADCAST_ADDRESS=0, default=-1
+		final char func_id;		
+		final int  address;
+		final short[] blkdata;  
+	
+		ArrayList<MirrorCell> prop = new ArrayList<>();
+		
+		RecallCell(
 			final int sid,
 			final char fid,
 			final int addr,
 			final int size
 		) {			
-			slaveId= sid;
-			func_id= (fid=='R')?('I'):(fid);
-			address= addr;			
-			values = new short[size];
-			v_prop = new IntegerProperty[size];
-			for(int i=0; i<size; i++) {
-				v_prop[i] = new SimpleIntegerProperty();
-			}
+			slaveId = sid;
+			func_id = fid;
+			address = addr;			
+			blkdata = new short[size];
 		}
-		void fecth() {
-			if(values==null) {
-				return;
-			}
+		void fecth_data() {
 			if(slaveId>=0) {
 				implSlaveID(slaveId);
 			}
 			switch(func_id) {
 			case 'C':
 				//coils, function code = 1
-				implReadC(address,values);
+				implReadC(address,blkdata);
 				break;
 			case 'S':
 				//input status, function code = 2
-				implReadS(address,values);
+				implReadS(address,blkdata);
 				break;
-			case 'H':
-				//holding register, function code = 3
-				implReadH(address,values);
-				break;				
+			case 'R':
 			case 'I':
 				//input register, function code = 4
-				implReadI(address,values);
+				implReadI(address,blkdata);
+				break;	
+			case 'H':
+				//holding register, function code = 3
+				implReadH(address,blkdata);
 				break;
 			}
 		}
-		void update_by_gui() {
-			if(values==null) {
-				return;
-			}
-			for(int i=0; i<values.length; i++) {
-				int v = (int)(values[i]);
-				//v = v & 0xFFFF;
-				v_prop[i].set(v);
+		void update_property() {
+			for(MirrorCell mc:prop) {
+				mc.update_number(blkdata);
 			}
 		}
 	};
 	
-	private ArrayList<RCell> mems = new ArrayList<>();
+	private ArrayList<RecallCell> cells = new ArrayList<>();
 	
 	/**
 	 * 	User can override this to prepare something.<p>
@@ -190,29 +265,31 @@ public class DevModbus extends DevBase {
 	
 	protected int looperDelay = 50;
 	
-	private void looper() {
-		if(looperDelay>0) {
-			try {
-				Thread.sleep(looperDelay);
-			} catch (InterruptedException e) {
+	protected void looper() {
+		if(isLive()==false || cells.size()==0) {
+			blocking_delay(500);
+			return;
+		}
+		for(RecallCell cc:cells) {
+			cc.fecth_data();
+			if(looperDelay>0) {
+				blocking_delay(looperDelay);
 			}
 		}
-		if(isLive()==false) {
-			return;
-		}
-		for(RCell reg:mems) {
-			reg.fecth();
-
-		}
-		if(mems.size()==0) {
-			return;
-		}
 		Application.invokeAndWait(()->{
-			for(RCell reg:mems) {
-				reg.update_by_gui();
+			for(RecallCell cc:cells) {
+				cc.update_property();
 			}
 		});
 	}
+	
+	private void blocking_delay(final int msec) {
+		try {
+			Thread.sleep(msec);
+		} catch (InterruptedException e) {
+		}
+	}
+	
 	/**
 	 * mapping register address.<p>
 	 * first character is register type, it can be C, S, I, H<p>
@@ -255,11 +332,10 @@ public class DevModbus extends DevBase {
 					return this;
 				}
 			}
-			mems.add(new RCell(sid,fid,addr,size));
+			cells.add(new RecallCell(sid,fid,addr,size));
 		}
 		return this;
 	}
-
 	/**
 	 * convenience function for 'mapAddress(radix,address)'.<p>
 	 * address base is decimal.<p>
@@ -301,139 +377,174 @@ public class DevModbus extends DevBase {
 		return mapAddress(16,sid,address);
 	}
 	
-	private IntegerProperty get_register(
-		final int sid,
-		final char fid, 
-		final int addr
+	public BooleanProperty mapBoolean(final int address,final int bit) {
+		return mapBoolean(-1,address,bit);
+	}
+	public IntegerProperty mapShort(final int address) {
+		return mapShort(01,address);
+	}
+	public IntegerProperty mapInteger(final int address) {
+		return mapInteger(-1,address);
+	}
+	public FloatProperty mapFloat(final int address) {		
+		return mapFloat(-1,address);
+	}
+	public BooleanProperty mapBoolean(final int slaveId,final int address,final int bit) {
+		BooleanProperty prop = new SimpleBooleanProperty();
+		add_mirror_cell(slaveId,address,bit,'B',prop);
+		return prop;
+	}
+	public IntegerProperty mapShort(final int slaveId,final int address) {
+		IntegerProperty prop = new SimpleIntegerProperty();
+		add_mirror_cell(slaveId,address,-1,'S',prop);
+		return prop;
+	}
+	public IntegerProperty mapInteger(final int slaveId,final int address) {
+		IntegerProperty prop = new SimpleIntegerProperty();
+		add_mirror_cell(slaveId,address,-1,'I',prop);
+		return prop;
+	}
+	public FloatProperty mapFloat(final int slaveId,final int address) {
+		FloatProperty prop = new SimpleFloatProperty();
+		add_mirror_cell(slaveId,address,-1,'F',prop);		
+		return prop;
+	}
+	/**
+	 * 
+	 * @param address
+	 * @param bit_pos: 0 to 15
+	 * @param prop_type
+	 * @param property
+	 */
+	private void add_mirror_cell(
+		final int slaveId,
+		final int address,
+		final int bit_pos,
+		final char prop_type,
+		final Object property
 	) {
-		for(RCell reg:mems) {
-			int beg = reg.address;
-			int end = reg.address + reg.values.length - 1;
-			if(
-				beg<=addr && 
-				addr<=end &&
-				reg.slaveId==sid &&
-				reg.func_id==fid 
-			) {	
-				int off = addr - beg;
-				return reg.v_prop[off];
+		for(RecallCell cc:cells) {
+			if(cc.slaveId!=slaveId) {
+				continue;
+			}
+			final int beg = cc.address;
+			final int end = cc.address + cc.blkdata.length;
+			if(beg<=address && address<end) {
+				int off = address - cc.address;
+				if(0<=bit_pos && bit_pos<=15) {
+					off = (off << 4) | (bit_pos & 0xF); 
+				}
+				cc.prop.add(new MirrorCell(
+					off,
+					prop_type,
+					property
+				));
+				return;
 			}
 		}
-		Misc.logw("Dummy mapping - 0x%X", addr);
-		return new SimpleIntegerProperty();
-	}
-	public IntegerProperty coilStatus(final int address) {
-		return get_register(-1,'C',address); 
-	}
-	public IntegerProperty inputStatus(final int address) {
-		return get_register(-1,'S',address); 
-	}
-	public IntegerProperty holdingRegister(final int address) {
-		return get_register(-1,'H',address);
-	}
-	public IntegerProperty inputRegister(final int address) {
-		return get_register(-1,'I',address);
-	}
-	public IntegerProperty coilStatus(final int slaveId,final int address) {
-		return get_register(slaveId,'C',address); 
-	}
-	public IntegerProperty inputStatus(final int slaveId,final int address) {
-		return get_register(slaveId,'S',address); 
-	}
-	public IntegerProperty holdingRegister(final int slaveId,final int address) {
-		return get_register(slaveId,'H',address);
-	}
-	public IntegerProperty inputRegister(final int slaveId,final int address) {
-		return get_register(slaveId,'I',address);
 	}
 	
-	//writing with slave_id~~~
-	public void writeVal(final int s_id,final int addr,final int... val) {
-		implSlaveID(s_id);
-		writeVal(addr,val);
-	}
-	public void writeVal(final int s_id,final int addr,final int val) {
-		implSlaveID(s_id);
-		writeVal(addr,val);
-	}
-	public void write_OR(final int s_id,final int addr,final int val) {
-		implSlaveID(s_id);
-		write_OR(addr,val);
-	}
-	public void writeAND(final int s_id,final int addr,final int val) {
-		implSlaveID(s_id);
-		writeAND(addr,val);
-	}
-	public void writeXOR(final int s_id,final int addr,final int val) {
-		implSlaveID(s_id);
-		writeXOR(addr,val);
-	}
-	public void writeBit0(final int s_id,final int addr,final int bit) {
-		implSlaveID(s_id);
-		writeBit0(addr,bit);
-	}
-	public void writeBit1(final int s_id,final int addr,final int bit) {
-		implSlaveID(s_id);
-		writeBit1(addr,bit);
-	}
-	public void asyncWriteVal(final int s_id,final int addr,final int val) {asyncBreakIn(()->writeVal(s_id,addr,val));}
-	public void asyncWrite_OR(final int s_id,final int addr,final int val) {asyncBreakIn(()->write_OR(s_id,addr,val));}
-	public void asyncWriteAND(final int s_id,final int addr,final int val) {asyncBreakIn(()->writeAND(s_id,addr,val));}
-	public void asyncWriteXOR(final int s_id,final int addr,final int val) {asyncBreakIn(()->writeXOR(s_id,addr,val));}
-	public void asyncWriteBit0(final int s_id,final int addr,final int bit) {asyncBreakIn(()->writeBit0(s_id,addr,bit));}
-	public void asyncWriteBit1(final int s_id,final int addr,final int bit) {asyncBreakIn(()->writeBit1(s_id,addr,bit));}
+	//-------------------------------------//
 	
-	//writing without slave_id~~~
-	public void writeVal(final int addr,final int... val) {
-		short[] buff = new short[val.length];
-		for(int i=0; i<val.length; i++) {
-			buff[i] = (short)(val[i]&0xFFFF);
-		}
-		implWrite(addr,buff);
-	}
-	public void writeVal(final int addr,final int val) {
+	/**
+	 * continue writing until it is successful.
+	 * @param s_id - slave identify
+	 * @param addr - address
+	 * @param val - value
+	 */
+	public void writeCont_sid(final int s_id,final int addr,final int val) {
+		implSlaveID(s_id);
 		short[] buff = { (short)(val&0xFFFF) };
 		int res = 0;
 		do{
 			res = implWrite(addr,buff);
-		}while(res<0);
+			if(res>0) {
+				break;
+			}
+			blocking_delay(50);
+		}while(true);
 	}
-	public void write_OR(final int addr,final int val) {
+	public void writeVals_sid(final int s_id,final int addr,final int... vals) {
+		implSlaveID(s_id);
+		final short[] buff = new short[vals.length];
+		for(int i=0; i<vals.length; i++) {
+			buff[i] = (short)(vals[i]&0xFFFF);
+		}
+		implWrite(addr,buff);
+	}
+	public void write_OR_sid(final int s_id,final int addr,final int val) {
+		implSlaveID(s_id);
 		short[] buff = {0};
 		implReadI(addr,buff);
 		buff[0] = (short)((buff[0] | val) & 0xFFFF);
 		implWrite(addr,buff);
 	}
-	public void writeAND(final int addr,final int val) {
+	public void writeAND_sid(final int s_id,final int addr,final int val) {
+		implSlaveID(s_id);
 		short[] buff = {0};
 		implReadI(addr,buff);
 		buff[0] = (short)((buff[0] & val) & 0xFFFF);
 		implWrite(addr,buff);
 	}
-	public void writeXOR(final int addr,final int val) {
+	public void writeXOR_sid(final int s_id,final int addr,final int val) {
+		implSlaveID(s_id);
 		short[] buff = {0};
 		implReadI(addr,buff);
 		buff[0] = (short)((buff[0] ^ val) & 0xFFFF);
 		implWrite(addr,buff);
 	}
-	public void writeBit0(final int addr,final int bit) {
+	public void writeCls_sid(final int s_id,final int addr,final int bit) {
+		implSlaveID(s_id);
 		short[] buff = {0};
 		implReadI(addr,buff);
 		buff[0] = (short)((buff[0] & ~(1<<bit)) & 0xFFFF);
 		implWrite(addr,buff);
 	}
-	public void writeBit1(final int addr,final int bit) {
+	public void writeSet_sid(final int s_id,final int addr,final int bit) {
+		implSlaveID(s_id);
 		short[] buff = {0};
 		implReadI(addr,buff);
 		buff[0] = (short)((buff[0] |  (1<<bit)) & 0xFFFF);
 		implWrite(addr,buff);
 	}
-	public void asyncWriteVal(int addr,int val) {asyncBreakIn(()->writeVal(addr,val));}
-	public void asyncWrite_OR(int addr,int val) {asyncBreakIn(()->write_OR(addr,val));}
-	public void asyncWriteAND(int addr,int val) {asyncBreakIn(()->writeAND(addr,val));}
-	public void asyncWriteXOR(int addr,int val) {asyncBreakIn(()->writeXOR(addr,val));}
-	public void asyncWriteBit0(int addr,int bit) {asyncBreakIn(()->writeBit0(addr,bit));}
-	public void asyncWriteBit1(int addr,int bit) {asyncBreakIn(()->writeBit1(addr,bit));}
+	
+	public void writeCont(final int addr,final int val) {
+		writeCont_sid(-1,addr,val);
+	}
+	public void writeVals(final int addr,final int... vals) {
+		writeVals_sid(-1,addr,vals);
+	}
+	public void write_OR(final int addr,final int val) {
+		write_OR_sid(-1,addr,val);
+	}
+	public void writeAND(final int addr,final int val) {
+		writeAND_sid(-1,addr,val);
+	}
+	public void writeXOR(final int addr,final int val) {
+		writeXOR_sid(-1,addr,val);
+	}
+	public void writeCls(final int addr,final int bit) {
+		writeCls_sid(-1,addr,bit);
+	}
+	public void writeSet(final int addr,final int bit) {
+		writeSet_sid(-1,addr,bit);
+	}
+	
+	public void asyncWriteCont_sid(final int s_id,final int addr,final int val) { asyncBreakIn(()->writeCont_sid(s_id,addr,val));}	
+	public void asyncWriteVals_sid(final int s_id,final int addr,final int... val) { asyncBreakIn(()->writeVals_sid(s_id,addr,val));}	
+	public void asyncWrite_OR_sid (final int s_id,final int addr,final int val) { asyncBreakIn(()->write_OR_sid (s_id,addr,val));}
+	public void asyncWriteAND_sid (final int s_id,final int addr,final int val) { asyncBreakIn(()->writeAND_sid (s_id,addr,val));}
+	public void asyncWriteXOR_sid (final int s_id,final int addr,final int val) { asyncBreakIn(()->writeXOR_sid (s_id,addr,val));}
+	public void asyncWriteCls_sid (final int s_id,final int addr,final int bit) { asyncBreakIn(()->writeCls_sid (s_id,addr,bit));}
+	public void asyncWriteSet_sid (final int s_id,final int addr,final int bit) { asyncBreakIn(()->writeSet_sid (s_id,addr,bit));}
+	
+	public void asyncWriteCont(final int addr,final int val) { asyncWriteCont_sid(-1,addr,val); }
+	public void asyncWriteVals(final int addr,final int... val) { asyncWriteVals_sid(-1,addr,val); }	
+	public void asyncWrite_OR (final int addr,final int val) { asyncWrite_OR_sid (-1,addr,val); }
+	public void asyncWriteAND (final int addr,final int val) { asyncWriteAND_sid (-1,addr,val); }
+	public void asyncWriteXOR (final int addr,final int val) { asyncWriteXOR_sid (-1,addr,val); }
+	public void asyncWriteCls (final int addr,final int bit) { asyncWriteCls_sid (-1,addr,bit); }
+	public void asyncWriteSet (final int addr,final int bit) { asyncWriteSet_sid (-1,addr,bit); }
 	
 	
 	public int readReg(

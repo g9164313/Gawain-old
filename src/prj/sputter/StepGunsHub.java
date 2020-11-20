@@ -28,7 +28,7 @@ public class StepGunsHub extends Stepper {
 	private Label msg2 = new Label("");
 	
 	private JFXRadioButton bipolar = new JFXRadioButton("Bipolar");
-	private JFXRadioButton unipolar = new JFXRadioButton("Unipolar");
+	private JFXRadioButton unipolar= new JFXRadioButton("Unipolar");
 	private JFXCheckBox gun1 = new JFXCheckBox("Gun-1");
 	private JFXCheckBox gun2 = new JFXCheckBox("Gun-2");
 	
@@ -52,7 +52,7 @@ public class StepGunsHub extends Stepper {
 					v = v | 0x8;
 				}
 			}
-			coup.writeVal(8005, v);
+			coup.writeVals(8007, v);
 			next.set(LEAD);
 		});
 	};
@@ -121,7 +121,7 @@ public class StepGunsHub extends Stepper {
 	}
 	@Override
 	public void expand(String txt) {
-		if(txt.matches("([^:,\\s]+[:][^:,]+[,]?[\\s]*)+")==false){
+		if(txt.matches("([^:,\\\\p{Space}]+[:]\\\\p{ASCII}*[,\\\\s]?)+")==false){
 			return;
 		}
 		String[] arg = txt.split(":|,");

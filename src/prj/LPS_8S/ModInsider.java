@@ -2,19 +2,18 @@ package prj.LPS_8S;
 
 import java.util.Optional;
 
-import com.jfoenix.controls.JFXButton;
+import com.jfoenix.controls.JFXCheckBox;
 import com.sun.glass.ui.Application;
 
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.FloatProperty;
 import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
-import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.property.StringProperty;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
-import javafx.scene.control.Separator;
 import javafx.scene.layout.GridPane;
 import narl.itrc.DevModbus;
-import narl.itrc.Misc;
 import narl.itrc.PadTouch;
 
 /**
@@ -38,228 +37,155 @@ public class ModInsider extends DevModbus {
 	public static final int ID_OTHER = (ID_PRESS<<8)+ID_SWING;//加壓軸+擺動軸
 	
 	public static final int ID_FA231 = 4;//溫度計
-	public static final int ID_FC4310= 5;//電導度
+	public static final int ID_EC4310= 5;//電導度
 	
 	//flatten information:
 	//主軸（main）的，RPM，TOR，ALM
 	//加壓軸（press）的，RPM，TOR，ALM
 	//擺動軸（swing）的，RPM，TOR，ALM
 
-	public final IntegerProperty PV_MAJOR_RPM;
+	public final IntegerProperty MAJOR_RPM;
 	public final IntegerProperty MAJOR_TOR;
 	public final IntegerProperty MAJOR_ALM;
-	
-	public final IntegerProperty PV_PRESS_RPM;
+
+	/*
+	 * PIN mapping in SDA servo:
+	 * B15-B14-B13-B12-B11-B10-B09-B08-
+	 * ALM-DO5-DO4-DO3-DO2-DO1-LSN-LSP-
+	 * 
+	 * B07-B06-B05-B04-B03-B02-B01-B00
+	 * DI8-DI7-DI6-DI5-DI4-DI3-DI2-DI1
+	 */
+	public final IntegerProperty PRESS_RPM;
 	public final IntegerProperty PRESS_TOR;
 	public final IntegerProperty PRESS_ALM;
-
-	public final IntegerProperty PV_SWING_RPM;
+	public final IntegerProperty PRESS_PIN;	
+	public final BooleanProperty PRESS_ZSP  = new SimpleBooleanProperty();
+	public final BooleanProperty PRESS_CMDOK= new SimpleBooleanProperty();
+	
+	public final IntegerProperty SWING_RPM;
 	public final IntegerProperty SWING_TOR;
 	public final IntegerProperty SWING_ALM;
+	public final IntegerProperty SWING_PIN;
+	public final BooleanProperty SWING_ZSP  = new SimpleBooleanProperty();
+	public final BooleanProperty SWING_CMDOK= new SimpleBooleanProperty();
+
+	public final BooleanProperty OTHER_ZSP  = new SimpleBooleanProperty();//零速度檢出
+	public final BooleanProperty OTHER_CMDOK= new SimpleBooleanProperty();//內部位置命令完成輸出
 
 	public final IntegerProperty PV_FA231;
-	public final IntegerProperty PV_COND;
-	
-	//欄位依序是：主軸（main），加壓軸（press），擺動軸（swing）
-	public final IntegerProperty[] RPM = {null, null, null};
-	public final IntegerProperty[] TOR = {null, null, null};
-	public final IntegerProperty[] ALM = {null, null, null};
-	
-	public final StringProperty[] ALM_TXT = {
-		new SimpleStringProperty("--ERROR--"),
-		new SimpleStringProperty("--ERROR--"),
-		new SimpleStringProperty("--ERROR--"),
-	};
-	
+	public final FloatProperty   PV_COND,PV_TEMP;	
+		
 	public ModInsider() {
 		
-		//looperDelay = 100;
+		looperDelay = 250;//good delay~~
 		
-		mapAddress16(ID_FA231,"i08A");
-		PV_FA231 = inputRegister(ID_FA231, 0x08A);
+		mapAddress16(ID_EC4310,"h031-038");
+		PV_COND = mapFloat(ID_EC4310, 0x035);
+		PV_TEMP = mapFloat(ID_EC4310, 0x037);
 		
-		//mapAddress16(ID_FC4310,"h035");
-		PV_COND = holdingRegister(ID_FC4310, 0x035);
+		mapAddress16(ID_FA231,"h08A");
+		PV_FA231 = mapInteger(ID_FA231, 0x08A);
 		
 		//SDA系列
 		//內部  - 註解        - Modbus地址
-		//     - 瞬時轉速(RPM)- 0x0006
-		//	   - 瞬時轉矩(%)  - 0x000F
-		//	   - 異常警報     - 0x0100
-		//mapAddress16(ID_PRESS,"i0006","i000F","i0100");
-		RPM[1] = PV_PRESS_RPM = inputRegister(ID_PRESS, 0x0006);
-		TOR[1] = PRESS_TOR = inputRegister(ID_PRESS, 0x000F);
-		ALM[1] = PRESS_ALM = inputRegister(ID_PRESS, 0x0100);
-		//mapAddress16(ID_SWING,"i0006","i000F","i0100");
-		RPM[2] = PV_SWING_RPM = inputRegister(ID_SWING, 0x0006);
-		TOR[2] = SWING_TOR = inputRegister(ID_SWING, 0x000F);
-		ALM[2] = SWING_ALM = inputRegister(ID_SWING, 0x0100);
+		//    - 瞬時轉速(RPM)- 0x0006
+		//	  - 瞬時轉矩(%)  - 0x000F
+		//	  - 異常警報     - 0x0100
+		//    - PIN port - 0x0203
+		//mapAddress16(ID_PRESS,"h0006","h000F","h0100","h0203");
+		mapAddress16(ID_PRESS,"h0006","h000F","h0100");
+		PRESS_RPM = mapInteger(ID_PRESS, 0x0006);		
+		PRESS_TOR = mapInteger(ID_PRESS, 0x000F);
+		PRESS_ALM = mapInteger(ID_PRESS, 0x0100);
+		PRESS_PIN = mapInteger(ID_PRESS, 0x0203);
+		
+		//mapAddress16(ID_SWING,"h0006","h000F","h0100","h0203");
+		mapAddress16(ID_SWING,"h0006","h000F","h0100");
+		SWING_RPM = mapInteger(ID_SWING, 0x0006);
+		SWING_TOR = mapInteger(ID_SWING, 0x000F);
+		SWING_ALM = mapInteger(ID_SWING, 0x0100);
+		SWING_PIN = mapInteger(ID_SWING, 0x0203);
 		
 		//SDE系列
 		//內部  - 註解        - Modbus地址
 		//     - 瞬時轉速(RPM)- 0x0008 (2word)
 		//	   - 瞬時轉矩(%)  - 0x001A (2word) 
 		//	   - 異常警報     - 0x0100
-		//mapAddress16(ID_MAJOR,"h008","h01A","h100");
-		/*= RPM[0]*/ PV_MAJOR_RPM = holdingRegister(ID_MAJOR, 0x0008);
-		TOR[0] = MAJOR_TOR = holdingRegister(ID_MAJOR, 0x001A);
-		ALM[0] = MAJOR_ALM = holdingRegister(ID_MAJOR, 0x0100);
-		
-		RPM[0] = new SimpleIntegerProperty(); 
-		RPM[0].bind(PV_MAJOR_RPM.multiply(-1));
-		
-		//change Alarm ID to readable text
-		if(ALM[0]!=null) {
-			ALM[0].addListener((obv,oldVal,newVal)->alarm_text(newVal.intValue(),ALM_TXT[0]));
-		}
-		if(ALM[1]!=null) {
-			ALM[1].addListener((obv,oldVal,newVal)->alarm_text(newVal.intValue(),ALM_TXT[1]));
-		}
-		if(ALM[2]!=null) {
-			ALM[2].addListener((obv,oldVal,newVal)->alarm_text(newVal.intValue(),ALM_TXT[2]));
-		}
+		mapAddress16(ID_MAJOR,"h008","h01A","h100");
+		MAJOR_RPM = mapInteger(ID_MAJOR, 0x0008);
+		MAJOR_TOR = mapInteger(ID_MAJOR, 0x001A);
+		MAJOR_ALM = mapInteger(ID_MAJOR, 0x0100);
 	}
 	
-	public final IntegerProperty SV_MAJOR_RPM1 = new SimpleIntegerProperty();
-	public final IntegerProperty SV_MAJOR_RPM2 = new SimpleIntegerProperty();
-	public final IntegerProperty SV_MAJOR_MOV1 = new SimpleIntegerProperty();
-	public final IntegerProperty SV_MAJOR_MOV2 = new SimpleIntegerProperty();
+	public final IntegerProperty MAJOR_RPM_SV = new SimpleIntegerProperty();
+	public final IntegerProperty MAJOR_POS_SV = new SimpleIntegerProperty();
 	
-	public final IntegerProperty SV_PRESS_RPM1 = new SimpleIntegerProperty();
-	public final IntegerProperty SV_PRESS_RPM2 = new SimpleIntegerProperty();
-	public final IntegerProperty SV_PRESS_MOV1 = new SimpleIntegerProperty();
-	public final IntegerProperty SV_PRESS_MOV2 = new SimpleIntegerProperty();
+	public final IntegerProperty PRESS_RPM_SV = new SimpleIntegerProperty();
+	public final IntegerProperty PRESS_PLS_SV = new SimpleIntegerProperty();	
 	
-	public final IntegerProperty SV_SWING_RPM1 = new SimpleIntegerProperty();
-	public final IntegerProperty SV_SWING_RPM2 = new SimpleIntegerProperty();
-	public final IntegerProperty SV_SWING_MOV1 = new SimpleIntegerProperty();
-	public final IntegerProperty SV_SWING_MOV2 = new SimpleIntegerProperty();
+	public final IntegerProperty SWING_RPM_SV = new SimpleIntegerProperty();
+	public final IntegerProperty SWING_PLS_SV = new SimpleIntegerProperty();
+	
+	private static final int SPD_DECAY = 40;
+	private static final int SDA_ADDR_RPM = 0x34F;//PC05 - 內部速度命令
+	//private static final int SDA_ADDR_POS = 0x310;//PA17 - 位置圈數(REV)
+	private static final int SDA_ADDR_POS = 0x311;//PA18 - 位置脈波數(PULSE)
 	
 	@Override
 	protected void ignite() {
-		looperDelay = 100;
-		//before looping, insure setting~~~	
-		//PA15 -0x030E- 內部位置命令1之位置旋轉圈數設定(rev)
-		//PA17 -0x0310- 內部位置命令2之位置旋轉圈數設定(rev)
-		final int PRESS_REV1 = readReg(ID_PRESS,'I',0x030E);
-		final int PRESS_REV2 = readReg(ID_PRESS,'I',0x0310);
-		final int SWING_REV1 = readReg(ID_SWING,'I',0x030E);
-		final int SWING_REV2 = readReg(ID_SWING,'I',0x0310);
+		
+		final int V_PRESS_RPM1 = readReg(ID_PRESS,'I',SDA_ADDR_RPM);
+		final int V_PRESS_POS1 = readReg(ID_PRESS,'I',SDA_ADDR_POS);
+				
+		final int V_SWING_RPM1 = readReg(ID_SWING,'I',SDA_ADDR_RPM);
+		final int V_SWING_POS1 = readReg(ID_SWING,'I',SDA_ADDR_POS);
 		
 		//PC05 - 速度1(RPM)
-		final int MAJOR_RPM1 = readReg(ID_MAJOR, 'I', 0x0508);
-		final int PRESS_RPM1 = readReg(ID_PRESS, 'I', 0x034F);
-		final int SWING_RPM1 = readReg(ID_SWING, 'I', 0x034F);
+		final int V_MAJOR_RPM1 = readReg(ID_MAJOR, 'I', 0x0508);
 		
-		//內部接點開關（速度模式）- PD16
+		OTHER_ZSP.bind(PRESS_ZSP.and(SWING_ZSP));
+		OTHER_CMDOK.bind(PRESS_CMDOK.and(SWING_CMDOK));
+		
+		PRESS_PIN.addListener((obv,oldVal,newVal)->{
+			PRESS_ZSP.set  ( (newVal.intValue()&0x0400)!=0 );
+			PRESS_CMDOK.set( (newVal.intValue()&0x0800)!=0 );
+		});
+		SWING_PIN.addListener((obv,oldVal,newVal)->{
+			SWING_ZSP.set  ( (newVal.intValue()&0x0400)!=0 );
+			SWING_CMDOK.set( (newVal.intValue()&0x0800)!=0 );
+		});
+		
+		//SDE 內部接點開關（速度模式）- PD16
 		//B11-B10-B09-B08-B07-B06-B05-B04-B03-B02-B01-B00
 		//CDP- TL- ? - ? -LOP-EMG-SP1-RES-ST2-ST1-SP2-SON
 		//0:外部配線，1:內部暫存器
-		writeVal(ID_MAJOR, 0x061E, 0x0FFF);
-		//內部接點狀態（速度模式）- PD25
+		writeCont_sid(ID_MAJOR, 0x061E, 0x0FFF);
+		//SDE 內部接點狀態（速度模式）- PD25
 		//B11-B10-B09-B08-B07-B06-B05-B04-B03-B02-B01-B00
 		//CDP- TL- ? - ? -LOP-EMG-SP1-RES-ST2-ST1-SP2-SON
 		//0:on，1:off
-		writeVal(ID_MAJOR, 0x0630, 0x0);
+		writeCont_sid(ID_MAJOR, 0x0630, 0x0);
 
 		Application.invokeLater(()->{
 			
-			SV_MAJOR_RPM1.set(MAJOR_RPM1);
+			MAJOR_RPM_SV.set(V_MAJOR_RPM1/SPD_DECAY);
+			MAJOR_POS_SV.set(0);
 			
-			SV_PRESS_RPM1.set(PRESS_RPM1);
-			SV_PRESS_MOV1.set(PRESS_REV1);
-			SV_PRESS_MOV2.set(PRESS_REV2);
+			PRESS_RPM_SV.set(V_PRESS_RPM1/SPD_DECAY);
+			PRESS_PLS_SV.set(V_PRESS_POS1);
 			
-			SV_SWING_RPM1.set(SWING_RPM1);
-			SV_SWING_MOV1.set(SWING_REV1);
-			SV_SWING_MOV2.set(SWING_REV2);
+			SWING_RPM_SV.set(V_SWING_RPM1/SPD_DECAY);
+			SWING_PLS_SV.set(V_SWING_POS1);
 		});
 		super.ignite();//goto next stage~~~~
 	}
-	private void SDA_speed(final int id,final int val) {
-		//PC05 - 速度1(RPM)
-		writeVal(id, 0x034F, 40*val);
-		Application.invokeLater(()->{
-			switch(id) {
-			case ID_SWING:
-				SV_SWING_RPM1.set(val);
-				break;
-			case ID_PRESS:
-				SV_PRESS_RPM1.set(val);
-				break;
-			}
-		});
-	}
-	private void SDA_kickoff(
-		final int id,
-		final boolean spin, 
-		final boolean clockwise
-	) {
-		//LOP is on : speed mode
-		//-LOP-xxx-xxx-xxx -xxx-SP1-ST2-ST1-
-		if(spin==true) {//PD
-			if(clockwise==true) {
-				writeVal(id, 0x0201, 0x085);
-			}else {
-				writeVal(id, 0x0201, 0x086);
-			}
-		}else {
-			writeVal(id, 0x0201, 0x080);
-		}
-	}
-	private void SDA_move(
-		final int id,
-		final int pos
-	) {
-		//LOP is off : position mode
-		//-LOP-POS2-POS1-CTRG-xxx-xxx-xxx-xxx-
-		
-		//clear flag
-		writeVal(id, 0x0201, 0x000);
-		block_delay(50);
-		//rise flag
-		switch(pos) {
-		case 1: writeVal(id, 0x0201, 0x010); break;
-		case 2: writeVal(id, 0x0201, 0x030); break;
-		}
-	}	
-	//PA16 -0x030F- 內部位置命令1之位置脈波數設定(pulse)
-	//PA18 -0x0311- 內部位置命令2之位置脈波數設定(pulse)
-	private void SDA_revolution(
-		final int id,
-		final int idx,
-		final int val
-	) {
-		//PA15 -0x030E- 內部位置命令1之位置旋轉圈數設定(rev)
-		//PA17 -0x0310- 內部位置命令2之位置旋轉圈數設定(rev)
-		writeVal(id, 0x030E+(idx-1)*2, val);
-		Application.invokeLater(()->{
-			switch(id) {
-			case ID_SWING:
-				switch(idx) {
-				case 1: SV_SWING_MOV1.set(val); break;
-				case 2: SV_SWING_MOV2.set(val); break;
-				} 
-				break;
-			case ID_PRESS:
-				switch(idx) {
-				case 1: SV_PRESS_MOV1.set(val); break;
-				case 2: SV_PRESS_MOV2.set(val); break;
-				}
-				break;
-			}
-		});
-	}
-	
 	//-------------------------------------------//
 	private void SDE_speed(final int val) {
 		//內部  - 註解        - Modbus 地址
 		//PC05 - 速度1(RPM)  - 0x0508_0509 (-6000~+6000)
-		writeVal(ID_MAJOR, 0x0508, (40*val>> 0));
-		writeVal(ID_MAJOR, 0x0509, (40*val>>16));
-		Application.invokeLater(()->{
-			SV_MAJOR_RPM1.set(val);
-		});
+		writeCont_sid(ID_MAJOR, 0x0508, (40*val>> 0));
+		writeCont_sid(ID_MAJOR, 0x0509, (40*val>>16));
 	}
 	private void SDE_kickoff(
 		final boolean spin, 
@@ -270,61 +196,59 @@ public class ModInsider extends DevModbus {
 		//-LOP-xxx-xxx-xxx-xxx-SP1-ST2-ST1-
 		if(spin==true) {
 			if(clockwise==true) {
-				writeVal(ID_MAJOR, 0x0630, 0x085);
+				writeCont_sid(ID_MAJOR, 0x0630, 0x085);
 			}else {
-				writeVal(ID_MAJOR, 0x0630, 0x086);
+				writeCont_sid(ID_MAJOR, 0x0630, 0x086);
 			}
 		}else {
-			writeVal(ID_MAJOR, 0x0630, 0x080);
+			writeCont_sid(ID_MAJOR, 0x0630, 0x080);
 		}
 	}
 	private void SDE_move(final int pos) {
 		//LOP is off : position mode
 		//-B07-B06 -B05 -B04 -B03-B02-B01-B00-
 		//-LOP-POS2-POS1-CTRG-STP-xxx-xxx-xxx-
-		writeVal(ID_MAJOR, 0x0630, 0x000);
+		writeCont_sid(ID_MAJOR, 0x0630, 0x000);
 		block_delay(100);
 		//rise flag
-		writeVal(ID_MAJOR, 0x0630, 0x030);
+		writeCont_sid(ID_MAJOR, 0x0630, 0x030);
 	}
 	private void SDE_set_pulse(final int pos) {
 
-		writeVal(ID_MAJOR, 0x030E, pos);
+		writeCont_sid(ID_MAJOR, 0x030E, pos);
 	}
 	//-------------------------------------------//
 	
-	public IntegerProperty getSpeed(final int ID) {
+	public void applyLocatePulse(final int ID) {
+		int val = 0;
 		switch(ID) {
-		case ID_MAJOR:return RPM[0];//return MAJOR_RPM;
-		case ID_PRESS:return PV_PRESS_RPM;
-		case ID_SWING:return PV_SWING_RPM;
+		case ID_PRESS:
+			val = PRESS_PLS_SV.get();
+			break;
+		case ID_SWING:
+			val = SWING_PLS_SV.get();
+			break;
+		default:
+			return;
 		}
-		return null;
+		final int _val = val;
+		asyncBreakIn(()->writeCont_sid(ID, SDA_ADDR_POS, _val));
 	}
-	public IntegerProperty getTorr(final int ID) {
+	
+	public void setLocatePulse(final int ID,final int val) {
 		switch(ID) {
-		case ID_MAJOR: return MAJOR_TOR;
-		case ID_PRESS:return PRESS_TOR;
-		case ID_SWING:return SWING_TOR;
+		case ID_PRESS:
+			PRESS_PLS_SV.set(val);
+			break;
+		case ID_SWING:
+			SWING_PLS_SV.set(val);
+			break;
+		default:
+			return;
 		}
-		return null;
+		asyncBreakIn(()->writeCont_sid(ID, SDA_ADDR_POS, val));
 	}
-	public IntegerProperty getAlarm(final int ID) {
-		switch(ID) {
-		case ID_MAJOR: return MAJOR_ALM;
-		case ID_PRESS:return PRESS_ALM;
-		case ID_SWING:return SWING_ALM;
-		}
-		return null;
-	}
-	public StringProperty getAlarmText(final int ID) {
-		switch(ID) {
-		case ID_MAJOR: return ALM_TXT[0];
-		case ID_PRESS:return ALM_TXT[1];
-		case ID_SWING:return ALM_TXT[2];
-		}
-		return null;
-	}
+	
 	
 	public void setSpeed(
 		final int ID,
@@ -332,11 +256,15 @@ public class ModInsider extends DevModbus {
 	) {
 		switch(ID) {
 		case ID_MAJOR:
-			asyncBreakIn(()->SDE_speed(RPM));
+			asyncBreakIn(()->SDE_speed(SPD_DECAY*RPM));
 			break;
 		case ID_PRESS:
+			PRESS_RPM.set(RPM);
+			asyncBreakIn(()->writeCont_sid(ID, SDA_ADDR_RPM, SPD_DECAY*RPM));
+			break;
 		case ID_SWING:
-			asyncBreakIn(()->SDA_speed(ID,RPM));
+			SWING_RPM.set(RPM);
+			asyncBreakIn(()->writeCont_sid(ID, SDA_ADDR_RPM, SPD_DECAY*RPM));
 			break;
 		}
 	}
@@ -351,17 +279,6 @@ public class ModInsider extends DevModbus {
 			//major axis always counter-clockwise!!!
 			asyncBreakIn(()->SDE_kickoff(SPIN,false));
 			break;
-		case ID_PRESS:
-		case ID_SWING:
-			asyncBreakIn(()->SDA_kickoff(ID,SPIN,CLOCKWISE));
-			break;
-		case ID_OTHER:
-			asyncBreakIn(()->{
-				SDA_kickoff(ID_PRESS,SPIN,CLOCKWISE);
-				//block_delay(100);//???why???
-				SDA_kickoff(ID_SWING,SPIN,CLOCKWISE);
-			});
-			break;
 		}
 	}
 	public void kickoff(
@@ -370,276 +287,98 @@ public class ModInsider extends DevModbus {
 	) {
 		kickoff(ID,SPIN,true);
 	}
-	public void kickoff_all(
-		final boolean SPIN,
-		final boolean CW_MAIN,
-		final boolean CW_PRESS,
-		final boolean CW_SWING
-	) {asyncBreakIn(()->{
-		SDE_kickoff(SPIN,CW_MAIN);
-		SDA_kickoff(ID_PRESS,SPIN,CW_PRESS);
-		SDA_kickoff(ID_SWING,SPIN,CW_SWING);
-	});}	
-	public void kickoff_all(
-		final boolean SPIN		
-	) {
-		kickoff_all(SPIN,true,true,true);
-	}
 	
 	public void set_FA231(final float val) {asyncBreakIn(()->{
-		writeVal(ID_FA231, 0, (int)(val*10.f));
+		writeCont_sid(ID_FA231, 0, (int)(val*10.f));
 	});}
 	
-	
-	private final void alarm_text(final int val,final StringProperty txt) {
-		switch(val) {
-		case  1: txt.set("過電壓"); break;
-		case  2: txt.set("低電壓"); break;
-		case  3: txt.set("過電流"); break;
-		case  4: txt.set("回生異常"); break;
-		case  5: txt.set("過負載"); break;
-		case  6: txt.set("過速度"); break;
-		case  7: txt.set("異常脈波控制命令"); break;
-		case  8: txt.set("位置控制誤差過大"); break;
-		case  9: txt.set("串列通訊異常"); break;
-		case 10: txt.set("串列通訊逾時"); break;
-		case 11: txt.set("位置檢出器異常 1"); break;
-		case 12: txt.set("位置檢出器異常 2"); break;
-		case 13: txt.set("風扇異常"); break;
-		case 14: txt.set("IGBT 過溫"); break;
-		case 15: txt.set("記憶體異常"); break;
-		
-		case 16: txt.set("過負載 2"); break;
-		case 17: txt.set("馬達匹配異常");  break;
-		case 18: txt.set("緊急停止"); break;
-		case 19: txt.set("正反轉極限異常"); break;
-		
-		case 0x20: txt.set("馬達碰撞錯誤"); break;
-		case 0x21: txt.set("馬達 UVW 斷線"); break;
-		case 0x22: txt.set("編碼器通訊異常"); break;
-		case 0x24: txt.set("馬達編碼器種類錯誤"); break;
-		case 0x26: txt.set("位置檢出器異常 3"); break;
-		case 0x27: txt.set("位置檢出器異常 4"); break;
-		case 0x28: txt.set("位置檢出器過熱"); break;
-		case 0x29: txt.set("位置檢出器溢位 5"); break;
-		case 0x2A: txt.set("絕對型編碼器異常 1"); break;
-		case 0x2B: txt.set("絕對型編碼器異常 2"); break;
-		case 0x2E: txt.set("控制迴路異常"); break;
-		case 0x2F: txt.set("回生能量異常"); break;
-		
-		case 0x30: txt.set("脈波輸出檢出器頻率過高"); break;
-		case 0x31: txt.set("過電流 2"); break;
-		case 0x32: txt.set("控制迴路異常 2"); break;
-		case 0x33: txt.set("記憶體異常 2"); break;
-		case 0x34: txt.set("過負載 4"); break;
-		}
+	private void init_text_box(
+		final Label txt,
+		final IntegerProperty prop,
+		final String title,
+		final int ID,
+		final int ADDR,
+		final int MAXIUM,
+		final int SCALE
+	) {
+		txt.getStyleClass().addAll("font-size5");
+		txt.setMinWidth(90.);
+		txt.textProperty().bind(prop.asString("%4d"));
+		txt.setOnMouseClicked(e->{
+			PadTouch pad = new PadTouch('I',title);
+			Optional<String> opt = pad.showAndWait();			
+			if(opt.isPresent()==false) {
+				return;
+			}
+			int val = Integer.valueOf(opt.get());
+			if(val>MAXIUM && MAXIUM>0) {
+				return;
+			}
+			prop.set(val);
+			asyncBreakIn(()->writeCont_sid(ID, ADDR, val*SCALE));
+		});
 	}
 	
 	public Node gen_console() {
 		
-		//速度 PV, 速度 SV, 寸進 SV, 迴圈 SV
-		final Label[] txt = new Label[15];
-		for(int i=0; i<txt.length; i++) {
-			Label obj = new Label();
-			obj.getStyleClass().addAll("font-size5");
-			obj.setMinWidth(100.);
-			txt[i] = obj;
-		}
-		
-		txt[0].textProperty().bind(PV_MAJOR_RPM.asString("%4d"));
-		txt[1].textProperty().bind(SV_MAJOR_RPM1.asString("%4d"));
-		txt[2].textProperty().bind(SV_MAJOR_MOV1.asString("%4d"));
-		txt[3].textProperty().bind(SV_MAJOR_MOV2.asString("%4d"));
-		
-		txt[1].setOnMouseClicked(e->set_rpm_value(ID_MAJOR,txt[1]));
-		txt[2].setOnMouseClicked(e->set_pos1_value(ID_MAJOR,txt[2]));
-		txt[3].setOnMouseClicked(e->set_pos2_value(ID_MAJOR,txt[3]));
-		
-		txt[4].textProperty().bind(PV_PRESS_RPM.asString("%4d"));
-		txt[5].textProperty().bind(SV_PRESS_RPM1.asString("%4d"));
-		txt[6].textProperty().bind(SV_PRESS_MOV1.asString("%4d"));
-		txt[7].textProperty().bind(SV_PRESS_MOV2.asString("%4d"));
-
-		txt[5].setOnMouseClicked(e->set_rpm_value(ID_PRESS,txt[5]));
-		txt[6].setOnMouseClicked(e->set_pos1_value(ID_PRESS,txt[6]));
-		txt[7].setOnMouseClicked(e->set_pos2_value(ID_PRESS,txt[7]));
-		
-		txt[8].textProperty().bind(PV_SWING_RPM.asString("%4d"));
-		txt[9].textProperty().bind(SV_SWING_RPM1.asString("%4d"));
-		txt[10].textProperty().bind(SV_SWING_MOV1.asString("%4d"));
-		txt[11].textProperty().bind(SV_SWING_MOV2.asString("%4d"));
-
-		txt[9].setOnMouseClicked(e->set_rpm_value(ID_SWING,txt[9]));
-		txt[10].setOnMouseClicked(e->set_pos1_value(ID_SWING,txt[10]));
-		txt[11].setOnMouseClicked(e->set_pos2_value(ID_SWING,txt[11]));
-		
-		//主軸,加壓,擺動
-		final JFXButton[] btn = {
-			new JFXButton("旋轉"), new JFXButton("停止"), new JFXButton("寸進"), new JFXButton("迴圈"),
-			new JFXButton("旋轉"), new JFXButton("停止"), new JFXButton("寸進"), new JFXButton("迴圈"),
-			new JFXButton("旋轉"), new JFXButton("停止"), new JFXButton("寸進"), new JFXButton("迴圈"),
-			
-			new JFXButton("同步迴圈"),
-			new JFXButton("同步旋轉"),
-			new JFXButton("同步停止"),
+		final JFXCheckBox[] chk = {
+			new JFXCheckBox(),//PRESS - ZSP
+			new JFXCheckBox(),//PRESS - CMDOK
+			new JFXCheckBox(),//SWING - ZSP
+			new JFXCheckBox(),//SWING - CMDOK
 		};
-		for(int i=0; i<btn.length; i++) {
-			btn[i].setMaxWidth(Double.MAX_VALUE);
+		for(int i=0; i<chk.length; i++) {
+			chk[i].setDisable(true);
+			chk[i].setStyle("-fx-opacity: 1.0;");
 		}
+		chk[0].selectedProperty().bind(PRESS_ZSP);		
+		chk[1].selectedProperty().bind(PRESS_ZSP);
+		chk[2].selectedProperty().bind(SWING_ZSP);		
+		chk[3].selectedProperty().bind(SWING_ZSP);
 		
-		btn[0].getStyleClass().add("btn-raised-1");
-		btn[0].setOnAction(e->kickoff(ID_MAJOR,true));
-		btn[1].getStyleClass().add("btn-raised-0");
-		btn[1].setOnAction(e->kickoff(ID_MAJOR,false));
-		btn[2].getStyleClass().add("btn-raised-2");
-		//btn[3].setDisable(true);
-		btn[3].setOnAction(e->asyncBreakIn(()->SDE_move(1)));
-		btn[3].getStyleClass().add("btn-raised-2");
-		//btn[3].setDisable(false);
-		btn[3].setOnAction(e->asyncBreakIn(()->SDE_move(2)));
-
+		//RPM,POS
+		final Label[] txt = new Label[6];
+		for(int i=0; i<txt.length; i++) {
+			txt[i] = new Label();
+		}
+		init_text_box(txt[1],PRESS_RPM_SV,"加壓軸(RPM)",ID_PRESS,0x034F,40,40);
+		init_text_box(txt[2],SWING_RPM_SV,"擺動軸(RPM)",ID_SWING,0x034F,40,40);
 		
-		btn[4].getStyleClass().add("btn-raised-1");
-		btn[4].setOnAction(e->kickoff(ID_PRESS,true));
-		btn[5].getStyleClass().add("btn-raised-0");
-		btn[5].setOnAction(e->kickoff(ID_PRESS,false));
-		btn[6].getStyleClass().add("btn-raised-2");
-		btn[6].setOnAction(e->asyncBreakIn(()->SDA_move(ID_PRESS,1)));
-		btn[7].getStyleClass().add("btn-raised-2");
-		btn[7].setOnAction(e->asyncBreakIn(()->SDA_move(ID_PRESS,2)));
-		
-		btn[8].getStyleClass().add("btn-raised-1");
-		btn[8].setOnAction(e->kickoff(ID_SWING,true));
-		btn[9].getStyleClass().add("btn-raised-0");
-		btn[9].setOnAction(e->kickoff(ID_SWING,false));
-		btn[10].getStyleClass().add("btn-raised-2");
-		btn[10].setOnAction(e->asyncBreakIn(()->SDA_move(ID_SWING,1)));
-		btn[11].getStyleClass().add("btn-raised-2");
-		btn[11].setOnAction(e->asyncBreakIn(()->SDA_move(ID_SWING,2)));
-		
-		btn[12].getStyleClass().add("btn-raised-3");
-		btn[12].setOnAction(e->{asyncBreakIn(()->{
-			SDA_move(ID_SWING,2);
-			SDA_move(ID_PRESS,2);
-		});});
-		
-		btn[13].getStyleClass().add("btn-raised-1");
-		btn[13].setOnAction(e->kickoff(ID_OTHER,true));
-		btn[14].getStyleClass().add("btn-raised-0");
-		btn[14].setOnAction(e->kickoff(ID_OTHER,false));
+		init_text_box(txt[4],PRESS_PLS_SV,"加壓軸(PULSE)",ID_PRESS,SDA_ADDR_POS,-1,1);
+		init_text_box(txt[5],SWING_PLS_SV,"擺動軸(PULSE)",ID_SWING,SDA_ADDR_POS,-1,1);
 		
 		final GridPane lay0 = new GridPane();
 		lay0.getStyleClass().addAll("box-pad","box-border");
 		lay0.addColumn(0, 
 			new Label("名稱"),
-			new Label("速度 PV"),
-			new Label("速度 SV")
+			new Label("ZSP"),
+			new Label("CMDOK"),
+			new Label("轉速"),
+			new Label("定位")
 		);
-		lay0.addColumn(1, 
+		lay0.addColumn(1,
 			new Label("主軸"),
-			txt[0],txt[1],btn[0],btn[1]
+			new Label(),
+			new Label(),
+			txt[0],
+			txt[3]
 		);
-		lay0.addColumn(2, 
-			new Label("加壓"),
-			txt[4],txt[5],btn[4],btn[5]
+		lay0.addColumn(2,
+			new Label("加壓軸"),
+			chk[0],
+			chk[1],
+			txt[1],
+			txt[4]
 		);
-		lay0.addColumn(3, 
-			new Label("擺動"),
-			txt[8],txt[9],btn[8],btn[9]
+		lay0.addColumn(3,
+			new Label("擺動軸"),
+			chk[2],
+			chk[3],
+			txt[2],
+			txt[5]
 		);
-		lay0.add(new Separator(), 0, 5, 4, 1);
-		lay0.addColumn(0, 
-			new Label("寸進 SV"),
-			new Label("迴圈 SV")
-		);
-		lay0.addColumn(1,txt[2],txt[3],btn[2],btn[3]);//主軸
-		lay0.addColumn(2,txt[6],txt[7],btn[6],btn[7]);//擺動
-		lay0.addColumn(3,txt[10],txt[11],btn[10],btn[11]);//加壓
-		lay0.add(new Separator(), 0, 10, 4, 1);
-		lay0.add(btn[12], 2, 11, 2, 1);
-		lay0.add(btn[13], 2, 12, 2, 1);
-		lay0.add(btn[14], 2, 13, 2, 1);
 		return lay0;
 	}
-	
-	private String id_to_name(final int ID) {
-		switch(ID) {
-		case ID_MAJOR: return "主軸";	
-		case ID_PRESS: return "加壓";
-		case ID_SWING: return "擺動";
-		default: return "???";
-		}
-	}
-	
-	private void set_pos_value(
-		final int pos,
-		final int ID,
-		final Label txt_val
-	) {
-		String appx;
-		switch(pos) {
-		case 1: appx = "寸進脈波數"; break;
-		case 2: appx = "迴圈脈波數"; break;
-		default: return;
-		}
-		PadTouch pad = new PadTouch(
-			'I',
-			id_to_name(ID)+appx
-		);
-		Optional<String> opt = pad.showAndWait();			
-		if(opt.isPresent()==false) {
-			return;
-		}
-		int val = Integer.valueOf(opt.get());
-		switch(ID) {
-		case ID_MAJOR:
-			break;
-		case ID_PRESS:
-		case ID_SWING:
-			asyncBreakIn(()->SDA_revolution(ID,pos,val));
-			break;
-		}
-	}
-	private void set_pos1_value(
-		final int ID,
-		final Label txt_val
-	) {
-		set_pos_value(1,ID,txt_val);
-	}
-	private void set_pos2_value(
-		final int ID,
-		final Label txt_val
-	) {
-		set_pos_value(2,ID,txt_val);
-	}
-	
-	private void set_rpm_value(
-		final int ID,
-		final Label txt_val
-	) {
-		PadTouch pad = new PadTouch(
-			'I',
-			id_to_name(ID)+"RPM"
-		);
-		Optional<String> opt = pad.showAndWait();			
-		if(opt.isPresent()==false) {
-			return;
-		}
-		int val = Integer.valueOf(opt.get());
-		if(val>=41) {
-			return;
-		}
-		switch(ID) {
-		case ID_MAJOR: 
-			asyncBreakIn(()->SDE_speed(val));
-			break;
-		case ID_PRESS:
-		case ID_SWING:
-			asyncBreakIn(()->SDA_speed(ID,val));
-			break;
-		}
-	}
-	
 	private void block_delay(final int msec) {
 		try {
 			Thread.sleep(msec);//????

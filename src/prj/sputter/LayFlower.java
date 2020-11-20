@@ -3,9 +3,8 @@ package prj.sputter;
 import java.util.Optional;
 
 import com.jfoenix.controls.JFXRadioButton;
-import com.sun.glass.ui.Application;
 
-import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.FloatProperty;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.RadioButton;
@@ -16,22 +15,16 @@ import narl.itrc.PadTouch;
 
 public class LayFlower {
 	
-	/**
-	 * h8000       - digital input
-	 * h8001~h8004 - analog  input  (1000-->1V)
-	 * i8005       - digital output
-	 * i8006~i8009 - analog  output (1000-->1V)
-	 */
-	private IntegerProperty[] sig = new IntegerProperty[5];
+	private final ModCouple dev;
 	
-	private final DevModbus dev;
+	private static final String UNIT_VOLT = "Volt";
+	private static final String UNIT_SCCM = "SCCM";
+	//private static final String UNIT_SLPM = "SLPM";//1SLPM=1000SCCM
+	
+	private static final String FMT_FLOAT = "%5.3f";
 	
 	public LayFlower(final DevModbus dev) {
-		this.dev = dev;
-		sig[1] = dev.holdingRegister(8001);
-		sig[2] = dev.holdingRegister(8002);
-		sig[3] = dev.holdingRegister(8003);
-		sig[4] = dev.holdingRegister(8004);
+		this.dev = (ModCouple)dev;
 	}
 	
 	/**
@@ -47,9 +40,10 @@ public class LayFlower {
 	 *   2 --  8 -- SIG ground
 	 *   1 --  9 -- chassis
 	 */
-	public Node genMassFlowCtrl(
+	public Node genPanel_5850E(
 		final String name,
-		final int cid
+		final int cid,
+		final int max_sccm
 	) {
 		//for Brooks 5850E
 		//0.003 lpm~30 lpm
@@ -62,42 +56,26 @@ public class LayFlower {
 		for(Label obj:txt) {
 			obj.getStyleClass().add("font-size5");
 		}
-		txt[2].setPrefWidth(73);
-		txt[4].setPrefWidth(73);
+		txt[2].setPrefWidth(100);
+		txt[4].setPrefWidth(100);
 		
 		final ToggleGroup grp = new ToggleGroup();
 		final JFXRadioButton[] rad = {
-			new JFXRadioButton("Volt"),
-			new JFXRadioButton("SCCM"),
-			new JFXRadioButton("SLPM"),
-		};
-		rad[0].setSelected(true);
+			new JFXRadioButton(UNIT_VOLT),
+			new JFXRadioButton(UNIT_SCCM)
+		};		
 		rad[0].setToggleGroup(grp);
-		rad[1].setToggleGroup(grp);
-		rad[2].setToggleGroup(grp);
-		
-		rad[0].setOnAction(e->{
-			txt[2].textProperty().unbind();
-			txt[2].textProperty().bind(sig[cid].divide(1000.f).asString("%.2f"));
-			get_5850E(cid,txt[4],grp);
-		});
-		rad[1].setOnAction(e->{
-			txt[2].textProperty().unbind();
-			txt[2].textProperty().bind(sig[cid].asString("%d"));
-			get_5850E(cid,txt[4],grp);
-		});
-		rad[2].setOnAction(e->{
-			txt[2].textProperty().unbind();
-			txt[2].textProperty().bind(sig[cid].asString("%d"));
-			get_5850E(cid,txt[4],grp);
-		});
-		
-		txt[3].setOnMouseClicked(e->set_5850E(cid,txt[3],grp));
-		txt[4].setOnMouseClicked(txt[3].getOnMouseClicked());
-		get_5850E(cid,txt[4],grp);
-		
-		//bind the first value
+		rad[1].setToggleGroup(grp);	
+		rad[0].setOnAction(e->bind_5850E(cid,grp,max_sccm,txt[2],txt[4]));
+		rad[1].setOnAction(e->bind_5850E(cid,grp,max_sccm,txt[2],txt[4]));
+
+		//default PV(Practice Value)
+		grp.selectToggle(rad[1]);
 		((JFXRadioButton)grp.getSelectedToggle()).getOnAction().handle(null);
+		
+		//label for SV(Setting Value)
+		txt[3].setOnMouseClicked(e->set_5850E(cid,grp,max_sccm));
+		txt[4].setOnMouseClicked(txt[3].getOnMouseClicked());
 		
 		final GridPane root = new GridPane();
 		root.getStyleClass().add("box-pad");
@@ -107,11 +85,11 @@ public class LayFlower {
 		root.addColumn(2, rad);
 		return root;
 	}
-	
+		
 	private void set_5850E(
-		final int cid, 
-		final Label txt,
-		final ToggleGroup grp
+		final int cid,
+		final ToggleGroup grp,
+		final float max_sccm
 	) {
 		String unit = ((RadioButton)grp.getSelectedToggle()).getText();
 		
@@ -120,44 +98,41 @@ public class LayFlower {
 		if(opt.isPresent()==false) {
 			return;
 		}
-		
-		String val = opt.get();
-		
-		int addr = 8005 + cid;
-		
-		if(unit.equals("Volt")==true) {
-			float _val = Float.valueOf(val);
-			if(_val<0.f || 5.f<_val) {
-				return;
+		float val = Float.valueOf(opt.get());
+		if(unit.equals(UNIT_VOLT)==true) {
+			if(val>5.f){ 
+				return; 
 			}
-			dev.asyncWriteVal(
-				addr,
-				(int)(_val*1000f)
-			);
-		}else if(unit.equals("SCCM")==true) {
-
-		}else if(unit.equals("SLPM")==true) {
-			
+		}else if(unit.equals(UNIT_SCCM)==true) {
+			if(val>max_sccm){ 
+				return; 
+			}
+			val = (val * 5f) / max_sccm;
 		}
-		txt.setText(val);
+		dev.asyncAanlogOut(cid,val);
 	}
-	private void get_5850E(
-		final int cid, 
-		final Label txt, 
-		final ToggleGroup grp
-	) {dev.asyncBreakIn(()->{
-		final int val = dev.readReg('I',8005+cid);
-		Application.invokeAndWait(()->{
-			String unit = ((RadioButton)grp.getSelectedToggle()).getText();
-			if(unit.equals("Volt")==true) {
-				txt.setText(String.format("%d", val));
-			}else if(unit.equals("SCCM")==true) {
-				txt.setText(String.format("%d", val));
-			}else if(unit.equals("SLPM")==true) {
-				txt.setText(String.format("%d", val));
-			}
-		});
-	});}
+	private void bind_5850E(
+		final int cid,
+		final ToggleGroup grp,
+		final float max_sccm,
+		final Label txt_pv,
+		final Label txt_sv
+	) {
+		String unit = ((RadioButton)grp.getSelectedToggle()).getText();	
+		
+		FloatProperty pv_v = dev.getChannelIn(cid);
+		FloatProperty sv_v = dev.getChannelOut(cid);
+		txt_pv.textProperty().unbind();
+		txt_sv.textProperty().unbind();
+		float fac = 1.f;
+		if(unit.equals(UNIT_VOLT)==true) {
+			fac = 1f;
+		}else if(unit.equals(UNIT_SCCM)==true) {
+			fac = max_sccm / 5f;
+		}
+		txt_pv.textProperty().bind(pv_v.multiply(fac).asString(FMT_FLOAT));
+		txt_sv.textProperty().bind(sv_v.multiply(fac).asString(FMT_FLOAT));
+	}
 }
 
 /**

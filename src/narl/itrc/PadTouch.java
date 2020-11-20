@@ -4,16 +4,19 @@ import java.util.Optional;
 
 import com.jfoenix.controls.JFXButton;
 
+import javafx.event.ActionEvent;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonBar.ButtonData;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
+import javafx.scene.control.DialogPane;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.util.Callback;
 
 /**
  * Touch pad for typing number and text.<p>
@@ -22,22 +25,162 @@ import javafx.scene.layout.VBox;
  *
  */
 public class PadTouch extends Dialog<String> {
-
+	
+	private class NumericPad extends PadPaneBase {
+		NumericPad(
+			final char style,
+			final String title,
+			final String value	
+		){
+			final Label[] txt = {
+				new Label(title), //number of title 
+				new Label(value) // number of value
+			};
+			for(Label obj:txt) {
+				obj.getStyleClass().add("font-size7");
+				obj.setMaxWidth(Double.MAX_VALUE);
+			}
+			txt[1].setAlignment(Pos.CENTER_RIGHT);
+			
+			final Label txt_v = txt[1];
+			
+			setResultConverter(dia->{
+				ButtonData btn = (dia==null)?(null):(dia.getButtonData());
+				if(btn!=ButtonData.OK_DONE) {
+					return null;				
+				}
+				String res = txt[1].getText();
+				if(res.length()==0) {
+					switch(style) {
+					//integer
+					case 'n':
+					case 'N':
+					case 'i':
+					case 'I':
+						return "0";
+					//float number
+					case 'f':
+					case 'F':
+					case 'q':
+					case 'Q':
+						return "0.";
+					}
+				}
+				return res;
+			});
+			
+			final Button btnCls = new JFXButton("C");//special button - clear
+			btnCls.getStyleClass().addAll("btn-raised-2","font-console");
+			btnCls.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+			btnCls.setOnAction(e->txt_v.setText(""));
+			
+			final Button btnDel = new JFXButton("Del");//special button - delete one character
+			btnDel.getStyleClass().addAll("btn-raised-2","font-console");
+			btnDel.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+			btnDel.setOnAction(e->{
+				String v = txt_v.getText();
+				if(v.length()==0) {
+					return;
+				}
+				v = v.substring(0, v.length()-1);
+				txt_v.setText(v);
+			});
+			
+			final Button btnDot = new JFXButton(".");//special button - dot
+			btnDot.getStyleClass().addAll("btn-raised-1","font-console");
+			btnDot.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+			btnDot.setOnAction(e->appear_once(btnDot,txt_v));
+			
+			final Button btnSign = new JFXButton("-");//special button - sign
+			btnSign.getStyleClass().addAll("btn-raised-1","font-console");
+			btnSign.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+			btnSign.setOnAction(e->prefix_once(btnSign,txt_v));
+			
+			final Button btnColon = new JFXButton(":");//special button - sign
+			btnColon.getStyleClass().addAll("btn-raised-1","font-console");
+			btnColon.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+			btnColon.setOnAction(e->append(btnColon,txt_v));
+			
+			GridPane lay1 = null;
+			switch(style) {
+			//nature (positive integer, include 0)
+			case 'n':
+			case 'N':
+				lay1 = gen_number_pad(txt_v,btnCls,btnDel);
+				break;
+			//integer (positive and negative integer)
+			case 'i':
+			case 'I':
+				lay1 = gen_number_pad(txt_v,btnCls,btnDel,btnSign);
+				break;
+			//rational (number with decimal point)
+			case 'f':
+			case 'F':
+			case 'q':
+			case 'Q':
+				lay1 = gen_number_pad(txt_v,btnCls,btnDel,btnSign,btnDot);
+				break;
+			//clock or time (hh:mm:ss)
+			case 'c':		
+			case 'C':
+			case 't':
+			case 'T':
+				lay1 = gen_number_pad(txt_v,btnCls,btnDel,btnColon);
+				break;
+			}
+			
+			final VBox lay0 = new VBox();
+			lay0.getStyleClass().addAll("box-pad-inner");
+			lay0.getChildren().addAll(txt[0], txt[1], lay1);				
+			setContent(lay0);
+		}
+		
+		private static final int BTN_SIZE = 64;
+		
+		private GridPane gen_number_pad(
+			final Label display,
+			final Button... spec
+		) {
+			Button[] btn = new JFXButton[10];
+			for(int i=0; i<btn.length; i++) {
+				final JFXButton obj = new JFXButton(""+i);
+				obj.getStyleClass().addAll("btn-raised-1","font-console");
+				obj.setPrefSize(BTN_SIZE, BTN_SIZE);
+				obj.setOnAction(e->append(obj,display));
+				btn[i] = obj;			
+			}
+			
+			final GridPane lay = new GridPane();
+			lay.getStyleClass().addAll("box-pad");
+			lay.addRow(0, btn[7], btn[8], btn[9], spec[0]);
+			lay.addRow(1, btn[4], btn[5], btn[6], spec[1]);
+			lay.addRow(2, btn[1], btn[2], btn[3]);
+			lay.add(btn[0], 1, 3);
+			switch(spec.length) {
+			case 3:
+				lay.add(spec[2], 0, 3);
+				break;
+			case 4:			
+				lay.add(spec[2], 0, 3);
+				lay.add(spec[3], 2, 3);
+				break;
+			}
+			return lay;
+		}
+	};
+	
 	public PadTouch(
-		final char numeric_pad_style,
+		final char numeric_style,
 		final String numeric_name,
 		final String numeric_value			
 	) {
-		final Node layout = layout_numeric_keypad(
-			numeric_pad_style,
+		DialogPane pan = new NumericPad(
+			numeric_style,
 			numeric_name,
-			numeric_value						
+			numeric_value
 		);
-		setHeaderText(null);
-		getDialogPane().setContent(layout);
-		getDialogPane().getStylesheets().add(Gawain.sheet);
-		getDialogPane().getStyleClass().addAll("background");
-		getDialogPane().getButtonTypes().addAll(ButtonType.CANCEL, ButtonType.OK);
+		setDialogPane(pan);		
+		pan.getButtonTypes().addAll(ButtonType.OK,ButtonType.CANCEL);
 	}
 	public PadTouch(
 		final char numeric_pad_style,
@@ -51,191 +194,6 @@ public class PadTouch extends Dialog<String> {
 	public PadTouch() {
 		this('i',"輸入","");
 	}
-	
-	public PadTouch(final String combo_value) {
-		String[] lst = combo_value.split(",");
-		String[][] cmb = new String[lst.length][2];
-		for(int i=0; i<lst.length; i++) {
-			String[] val = lst[i].split(":");
-			cmb[i][0] = val[0].trim();
-			cmb[i][1] = val[1].trim();
-		}
-		final Node layout = layout_combo_pad(cmb);
-		getDialogPane().setContent(layout);
-		getDialogPane().getStylesheets().add(Gawain.sheet);
-		getDialogPane().getStyleClass().addAll("background");
-		getDialogPane().getButtonTypes().clear();
-	}
-	
-	private Node layout_combo_pad(
-		final String[][] combo
-	) {
-		final Button[] lst = new Button[combo.length];
-		for(int i=0; i<lst.length; i++) {
-			lst[i] = new JFXButton();
-			lst[i].getStyleClass().addAll(
-				"btn-raised-1",
-				"font-size5"
-			);
-			lst[i].setMaxWidth(Double.MAX_VALUE);
-			lst[i].setMinWidth(200.);
-			lst[i].setMinHeight(64.);
-			lst[i].setText(combo[i][0]);
-			lst[i].setUserData(combo[i][1]);
-			lst[i].setOnAction(e->{
-				Button btn = (Button)e.getSource();
-				String val = (String)btn.getUserData();
-				setResult(val);
-			});
-		}
-		final VBox lay0 = new VBox();
-		lay0.getStyleClass().addAll("box-pad-inner");
-		lay0.getChildren().addAll(lst);		
-		return lay0;
-	}
-
-	private static final int BTN_SIZE = 64;
-	
-	private Node layout_numeric_keypad(
-		final char style,
-		final String name,
-		final String value		
-	) {
-		final Label[] txt = {
-			new Label(name), 
-			new Label(value)
-		};
-		txt[0].getStyleClass().add("font-size7");
-		txt[1].getStyleClass().add("font-size7");
-		txt[1].setMinWidth(BTN_SIZE*3);
-		txt[1].setAlignment(Pos.CENTER_RIGHT);
-				
-		setResultConverter(dia->{
-			ButtonData btn = (dia==null)?(null):(dia.getButtonData());
-			if(btn!=ButtonData.OK_DONE) {
-				return null;				
-			}
-			String res = txt[1].getText();
-			if(res.length()==0) {
-				switch(style) {
-				//integer
-				case 'n':
-				case 'N':
-				case 'i':
-				case 'I':
-					return "0";
-				//float number
-				case 'f':
-				case 'F':
-				case 'q':
-				case 'Q':
-					return "0.";
-				}
-			}
-			return txt[1].getText();
-		});
-		
-		final Button btnCls = new JFXButton("C");//special button - clear
-		btnCls.getStyleClass().addAll("btn-raised-2","font-console");
-		btnCls.setPrefSize(BTN_SIZE, BTN_SIZE);
-		btnCls.setOnAction(e->txt[1].setText(""));
-		
-		final Button btnDel = new JFXButton("Del");//special button - delete one character
-		btnDel.getStyleClass().addAll("btn-raised-2","font-console");
-		btnDel.setPrefSize(BTN_SIZE, BTN_SIZE);
-		btnDel.setOnAction(e->{
-			String v = txt[1].getText();
-			if(v.length()==0) {
-				return;
-			}
-			v = v.substring(0, v.length()-1);
-			txt[1].setText(v);
-		});
-		
-		final Button btnDot = new JFXButton(".");//special button - dot
-		btnDot.getStyleClass().addAll("btn-raised-1","font-console");
-		btnDot.setPrefSize(BTN_SIZE, BTN_SIZE);
-		btnDot.setOnAction(e->appear_once(btnDot,txt[1]));
-		
-		final Button btnSign = new JFXButton("-");//special button - sign
-		btnSign.getStyleClass().addAll("btn-raised-1","font-console");
-		btnSign.setPrefSize(BTN_SIZE, BTN_SIZE);
-		btnSign.setOnAction(e->prefix_once(btnSign,txt[1]));
-		
-		final Button btnColon = new JFXButton(":");//special button - sign
-		btnColon.getStyleClass().addAll("btn-raised-1","font-console");
-		btnColon.setPrefSize(BTN_SIZE, BTN_SIZE);
-		btnColon.setOnAction(e->append(btnColon,txt[1]));
-		
-		GridPane lay1 = null;
-		switch(style) {
-		//nature (positive integer, include 0)
-		case 'n':
-		case 'N':
-			lay1 = gen_number_pad(txt[1],btnCls,btnDel);
-			break;
-		//integer (positive and negative integer)
-		case 'i':
-		case 'I':
-			lay1 = gen_number_pad(txt[1],btnCls,btnDel,btnSign);
-			break;
-		//rational (number with decimal point)
-		case 'f':
-		case 'F':
-		case 'q':
-		case 'Q':
-			lay1 = gen_number_pad(txt[1],btnCls,btnDel,btnSign,btnDot);
-			break;
-		//clock or time (hh:mm:ss)
-		case 'c':		
-		case 'C':
-		case 't':
-		case 'T':
-			lay1 = gen_number_pad(txt[1],btnCls,btnDel,btnColon);
-			break;
-		}
-		
-		final HBox lay2 = new HBox();
-		lay2.getStyleClass().addAll("box-pad","border");
-		lay2.getChildren().addAll(txt);
-		
-		final VBox lay0 = new VBox();
-		lay0.getStyleClass().addAll("box-pad-inner");
-		lay0.getChildren().addAll(lay2, lay1);		
-		return lay0;
-	}
-	
-	private GridPane gen_number_pad(
-		final Label display,
-		final Button... spec
-	) {
-		Button[] btn = new JFXButton[10];
-		for(int i=0; i<btn.length; i++) {
-			final JFXButton obj = new JFXButton(""+i);
-			obj.getStyleClass().addAll("btn-raised-1","font-console");
-			obj.setPrefSize(BTN_SIZE, BTN_SIZE);
-			obj.setOnAction(e->append(obj,display));
-			btn[i] = obj;			
-		}
-		
-		final GridPane lay = new GridPane();
-		lay.getStyleClass().addAll("box-pad");
-		lay.addRow(0, btn[7], btn[8], btn[9], spec[0]);
-		lay.addRow(1, btn[4], btn[5], btn[6], spec[1]);
-		lay.addRow(2, btn[1], btn[2], btn[3]);
-		lay.add(btn[0], 1, 3);
-		switch(spec.length) {
-		case 3:
-			lay.add(spec[2], 0, 3);
-			break;
-		case 4:			
-			lay.add(spec[2], 0, 3);
-			lay.add(spec[3], 2, 3);
-			break;
-		}
-		return lay;
-	}
-	
 	
 	private void append(final Button btn, final Label txt) {
 		String v = txt.getText();
@@ -307,4 +265,83 @@ public class PadTouch extends Dialog<String> {
 		return "0";
 	}
 	
+	//--------------------------------//
+	
+	private class ComboPad extends PadPaneBase {
+		ComboPad(final String combo_value){
+			String[] lst = combo_value.split(",");
+			String[][] cmb = new String[lst.length][2];
+			for(int i=0; i<lst.length; i++) {
+				String[] val = lst[i].split(":");
+				cmb[i][0] = val[0].trim();
+				cmb[i][1] = val[1].trim();
+			}
+			setContent(layout(cmb));
+		}
+		private Node layout(final String[][] combo) {
+			final Button[] lst = new Button[combo.length];
+			for(int i=0; i<lst.length; i++) {
+				lst[i] = new JFXButton();
+				lst[i].getStyleClass().addAll(
+					"btn-raised-1",
+					"font-size5"
+				);
+				lst[i].setMaxWidth(Double.MAX_VALUE);
+				lst[i].setMinWidth(200.);
+				lst[i].setMinHeight(64.);
+				lst[i].setText(combo[i][0]);
+				lst[i].setUserData(combo[i][1]);
+				lst[i].setOnAction(e->{
+					Button btn = (Button)e.getSource();
+					String val = (String)btn.getUserData();
+					setResult(val);
+				});
+			}
+			final VBox lay0 = new VBox();
+			lay0.getStyleClass().addAll("box-pad-inner");
+			lay0.getChildren().addAll(lst);		
+			return lay0;
+		}
+	};
+		
+	public PadTouch(final String combo_value) {
+		setDialogPane(new ComboPad(combo_value));	
+	}	
+	//--------------------------------//
+	
+	private class PadPaneBase extends DialogPane {
+		
+		PadPaneBase(){
+			getStylesheets().add(Gawain.sheet);
+		}
+		
+		@Override
+		protected Node createButton(ButtonType buttonType) {
+			final JFXButton button = new JFXButton(buttonType.getText());
+			button.getStyleClass().addAll("btn-raised-3","font-console");
+			button.setPrefSize(48*2, 48);
+			
+	        final ButtonData buttonData = buttonType.getButtonData();
+	        ButtonBar.setButtonData(button, buttonData);
+	        button.setDefaultButton(buttonType != null && buttonData.isDefaultButton());
+	        button.setCancelButton(buttonType != null && buttonData.isCancelButton());
+	        button.addEventHandler(ActionEvent.ACTION, ae -> {
+	            if (ae.isConsumed()) return;
+	            if (this != null) {
+	                this.impl_setResultAndClose(buttonType, true);
+	            }
+	        });
+	        return button;
+		}
+	    void impl_setResultAndClose(ButtonType cmd, boolean close) {
+	        Callback<ButtonType, String> resultConverter = getResultConverter();
+	        String priorResultValue = getResult();
+	        String newResultValue = null;
+	        newResultValue = resultConverter.call(cmd);
+	        setResult(newResultValue);
+	        if (close && priorResultValue == newResultValue) {
+	            close();
+	        }
+	    }
+	};
 }

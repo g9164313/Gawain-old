@@ -103,7 +103,7 @@ public class StepSetPulse extends Stepper {
 	}
 	@Override
 	public void expand(String txt) {
-		if(txt.matches("([^:,\\s]+[:][^:,]+[,]?[\\s]*)+")==false){
+		if(txt.matches("([^:,\\\\p{Space}]+[:]\\\\p{ASCII}*[,\\\\s]?)+")==false){
 			Misc.loge("pasing fail");
 			return;
 		}

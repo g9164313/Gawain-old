@@ -5,8 +5,6 @@ import com.jfoenix.controls.JFXCheckBox;
 import com.jfoenix.controls.JFXTabPane;
 import com.jfoenix.controls.JFXTextField;
 
-import javafx.event.ActionEvent;
-import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Separator;
@@ -47,7 +45,6 @@ public class PanMain extends PanBase {
 		arg = Gawain.prop().getProperty("modbus", "");
 		if(arg.length()!=0) {			
 			coup.open(arg);
-			gauges.bindProperty(coup);
 		}
 		arg = Gawain.prop().getProperty("DCG100", "");
 		if(arg.length()>0) {			
@@ -68,12 +65,12 @@ public class PanMain extends PanBase {
 	private void init(){
 		//initial step-box for recipe
 		ladder.addStep("分隔線", Stepper.Sticker.class);
-		ladder.addStep("薄膜設定",StepSetFilm.class, sqm1);
-		ladder.addStep("電極切換",StepGunsHub.class, coup);
+		ladder.addStep("薄膜設定",StepSetFilm.class , sqm1);
+		ladder.addStep("電極切換",StepGunsHub.class , coup);
 		ladder.addStep("脈衝設定",StepSetPulse.class, spik);
-		ladder.addStep("高壓設定",StepKindler.class, sqm1, dcg1, spik);
-		ladder.addStep("厚度監控",StepWatcher.class, sqm1, dcg1);
-		ladder.addStep("[實驗用]",StepCollect.class);
+		ladder.addStep("高壓設定",StepKindler.class , sqm1, dcg1, spik);
+		ladder.addStep("流量控制",StepFlowCtrl.class, coup);
+		ladder.addStep("厚度監控",StepWatcher.class , sqm1, dcg1);		
 		ladder.addSack(
 			"<單層鍍膜.3>", 
 			Stepper.Sticker.class,
@@ -113,10 +110,10 @@ public class PanMain extends PanBase {
 		final VBox lay4 = new VBox();
 		lay4.getStyleClass().addAll("box-pad");
 		lay4.getChildren().addAll(
-			Misc.addBorder(flower.genMassFlowCtrl("O₂",1)),
-			Misc.addBorder(flower.genMassFlowCtrl("N₂",2)),
-			Misc.addBorder(flower.genMassFlowCtrl("Ar",3)),
-			Misc.addBorder(flower.genMassFlowCtrl("He",4))
+			Misc.addBorder(flower.genPanel_5850E("O2",1,10)), //O₂
+			Misc.addBorder(flower.genPanel_5850E("Ar",2,100))
+			//Misc.addBorder(flower.genMassFlowCtrl("N₂",2)),			
+			//Misc.addBorder(flower.genMassFlowCtrl("He",4))
 		);
 		
 		final HBox lay3 = new HBox();
@@ -139,7 +136,7 @@ public class PanMain extends PanBase {
 			new Tab("製程",ladder),			
 			new Tab("裝置",lay2)
 		);
-		lay1.getSelectionModel().select(3);
+		lay1.getSelectionModel().select(2);
 
 		final BorderPane lay0 = new BorderPane();
 		lay0.setCenter(lay1);
@@ -240,24 +237,18 @@ public class PanMain extends PanBase {
 			//a mutex for checking I/O
 			if(rad[1].isSelected()){
 				rad[2].setSelected(false);
-				coup.asyncBreakIn(()->{
-					coup.writeBit1(8005, 0);
-					coup.writeBit0(8005, 1);
-				});
+				coup.asyncBreakIn(()->coup.writeVals(8007, 1));
 			}else{
-				coup.asyncWriteBit0(8005,0);
+				coup.asyncBreakIn(()->coup.writeVals(8007, 0));
 			}
 		});
 		rad[2].setOnAction(e->{
 			//a mutex for checking I/O
 			if(rad[2].isSelected()){
 				rad[1].setSelected(false);
-				coup.asyncBreakIn(()->{
-					coup.writeBit1(8005, 1);
-					coup.writeBit0(8005, 0);
-				});
+				coup.asyncBreakIn(()->coup.writeVals(8007, 2));
 			}else{
-				coup.asyncWriteBit0(8005,1);
+				coup.asyncBreakIn(()->coup.writeVals(8007, 0));
 			}
 		});
 		rad[3].setOnAction(e->coup.select_gun1(e));
@@ -286,25 +277,6 @@ public class PanMain extends PanBase {
 }
 
 
-
-/**
- * DCG-100 analog control
- * pin.1 -->I1-2.1 (ch.B: out, DC on read-back
- * pin.2 -->AI-1.1 (ch.A: out, voltage get
- * pin.3 -->AI-1.2 (ch.A: out, power get
- * pin.4 -->O1-1.1 (ch.A: in , closure relay
- * pin.5 -->AO-1.1 (ch.A: in , power set
- * pin.6 -->AI-2.1 (    : GND, analog common
- * pin.7 -->I1-1.1 (ch.A: out, DC on read-back
- * pin.8 -->I1-1.3 (    : GND, DC read common
- * pin.9 -->O1-1.2 (    : GND, closure common
- * pin.10-->AO-2.1 (ch.B: in , power set
- * pin.11-->O1-1.4 (    : in , safety lock
- * pin.12-->O1-2.2 (    : GND, safety lock common
- * pin.13-->O1-2.1 (ch.B: in , closure relay
- * pin.14-->AI-1.3 (ch.B: out, voltage get
- * pin.15-->AI-1.4 (ch.B: out, power get
- */
 
 
 

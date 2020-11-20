@@ -5,10 +5,8 @@ import java.util.Optional;
 import eu.hansolo.tilesfx.Tile;
 import eu.hansolo.tilesfx.TileBuilder;
 import eu.hansolo.tilesfx.Tile.SkinType;
-import javafx.beans.binding.FloatBinding;
-import javafx.beans.property.IntegerProperty;
 import javafx.scene.layout.FlowPane;
-import narl.itrc.DevModbus;
+
 
 public class LayGauges extends FlowPane {
 
@@ -68,26 +66,6 @@ public class LayGauges extends FlowPane {
 		getStyleClass().addAll("box-pad");
 		setPrefWrapLength(800);
 		getChildren().addAll(gag);
-	}
-	
-	public LayGauges bindProperty(final DevModbus dev) {
-		IntegerProperty prop;
-		
-		prop = dev.inputRegister(8001);
-		if(prop==null) {
-			return this;
-		}
-		final FloatBinding a_volt = prop.multiply(0.20f);
-		gag[0].valueProperty().bind(a_volt);
-		
-		prop = dev.inputRegister(8002);
-		if(prop==null) {
-			return this;
-		}
-		final FloatBinding a_watt = prop.multiply(1.06f);
-		gag[1].valueProperty().bind(a_watt.divide(a_volt.add(Float.MIN_VALUE)));
-		gag[2].valueProperty().bind(a_watt);
-		return this;
 	}
 	
 	public LayGauges bindProperty(final DevDCG100 dev) {		
