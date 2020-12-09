@@ -2,6 +2,7 @@ package prj.shelter;
 
 import java.util.Calendar;
 
+import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXComboBox;
 import com.jfoenix.controls.JFXListView;
 
@@ -9,7 +10,6 @@ import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
-import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.SelectionMode;
 import javafx.scene.control.Separator;
@@ -21,7 +21,6 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import narl.itrc.Gawain;
-import narl.itrc.Misc;
 import narl.itrc.PanBase;
 import prj.shelter.DataBridge.Stuff;
 
@@ -133,8 +132,7 @@ public class LayQuery extends BorderPane {
 		}
 	};	
 	
-	private final TextField box_action = new TextField();
-	
+	private final TextField box_code = new TextField();
 	private final TextField box_date = new TextField();	
 	private final TextField box_memo = new TextField();
 	private final JFXComboBox<String> cmb_employ = new JFXComboBox<String>();
@@ -151,7 +149,7 @@ public class LayQuery extends BorderPane {
 		lst_card.setOnKeyPressed(e->{
 			KeyCode cc = e.getCode();
 			if(cc==KeyCode.F1 || cc==KeyCode.ESCAPE){
-				box_action.requestFocus();
+				box_code.requestFocus();
 				e.consume();
 			}else if(cc==KeyCode.F3){
 				print_label();
@@ -159,8 +157,8 @@ public class LayQuery extends BorderPane {
 			}			
 		});
 		
-		box_action.setOnAction(e->searchy_text());
-		box_action.setOnKeyPressed(e->{
+		box_code.setOnAction(e->searchy_text());
+		box_code.setOnKeyPressed(e->{
 			KeyCode cc = e.getCode();
 			if(cc==KeyCode.F2 || cc==KeyCode.DOWN){
 				//when user DOWN key, focus list view.
@@ -173,14 +171,15 @@ public class LayQuery extends BorderPane {
 			}
 			//just propagate event~~~
 		});		
-		HBox.setHgrow(box_action, Priority.ALWAYS);
+		HBox.setHgrow(box_code, Priority.ALWAYS);
 		
-		Button btn_print = new Button("列印-F3");
+		JFXButton btn_print = new JFXButton("列印-F3");
+		btn_print.getStyleClass().add("btn-raised-1");
 		btn_print.setOnAction(e->print_label());
 		
 		HBox lay1 = new HBox(
 			new Label("搜尋:"),
-			box_action			
+			box_code			
 		);
 		lay1.getStyleClass().addAll("box-pad");
 		lay1.setAlignment(Pos.CENTER_LEFT);
@@ -193,7 +192,7 @@ public class LayQuery extends BorderPane {
 			btn_print
 		);
 		lay2.getStyleClass().addAll("box-pad");
-		lay1.setAlignment(Pos.CENTER_LEFT);
+		lay2.setAlignment(Pos.CENTER_LEFT);
 		
 		//getStyleClass().addAll("font-size1");
 		setMinSize(500,500);
@@ -260,7 +259,7 @@ public class LayQuery extends BorderPane {
 				if(arg3.length()!=0){
 					args = args+"@"+arg3;
 				}
-				//TODO:execute scripter
+				//TODO:execute bash script~~
 				return 0;
 			}
 		};
@@ -268,7 +267,7 @@ public class LayQuery extends BorderPane {
 	}
 	
 	void searchy_text(){
-		String txt = box_action.getText()
+		String txt = box_code.getText()
 			.replace("\\r", "")
 			.replace("\\n", "")
 			.trim();

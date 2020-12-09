@@ -211,5 +211,13 @@ public abstract class DevBase implements Runnable {
 			}
 		}while(taskFlow.getState()!=Thread.State.WAITING);
 	}
+	
+	protected void blocking_delay(final long millisec) {
+		try {
+			Thread.sleep(millisec);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
 }
 

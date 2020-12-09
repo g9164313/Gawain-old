@@ -20,7 +20,7 @@ public class DevCDR06 extends DevModbus {
 	
 	public DevCDR06(){
 		TAG = "CDR06";
-		mapAddress16("h300000-300006");
+		mapAddress16("i300000-300006");
 		
 		channel[0] = mapInteger(0x300000);
 		channel[1] = mapInteger(0x300001);
@@ -29,7 +29,7 @@ public class DevCDR06 extends DevModbus {
 	
 	private IntegerProperty[] channel = new SimpleIntegerProperty[8];
 	
-	private FloatProperty[] ch_value = {
+	private FloatProperty[] ch_val = {
 		new SimpleFloatProperty(0.f),
 		new SimpleFloatProperty(0.f),
 		new SimpleFloatProperty(0.f),
@@ -39,16 +39,16 @@ public class DevCDR06 extends DevModbus {
 		new SimpleFloatProperty(0.f),
 		new SimpleFloatProperty(0.f)
 	};
-	private StringProperty[] ch_v_txt = {
-		new SimpleStringProperty("＊＊＊＊＊"),
-		new SimpleStringProperty("＊＊＊＊＊"),
-		new SimpleStringProperty("＊＊＊＊＊"),
-		new SimpleStringProperty("＊＊＊＊＊"),
-		new SimpleStringProperty("＊＊＊＊＊"),
-		new SimpleStringProperty("＊＊＊＊＊"),
-		new SimpleStringProperty("＊＊＊＊＊"),
-		new SimpleStringProperty("＊＊＊＊＊")
-	};
+	private StringProperty[] ch_txt = {
+		new SimpleStringProperty(),
+		new SimpleStringProperty(),
+		new SimpleStringProperty(),
+		new SimpleStringProperty(),
+		new SimpleStringProperty(),
+		new SimpleStringProperty(),
+		new SimpleStringProperty(),
+		new SimpleStringProperty()
+	};//"＊＊＊＊＊"
 	private StringProperty[] ch_name = {
 		new SimpleStringProperty("壓力"),
 		new SimpleStringProperty("濕度"),
@@ -76,14 +76,26 @@ public class DevCDR06 extends DevModbus {
 		return (IntegerProperty) get_prop(channel,idx);
 	}
 	public FloatProperty getChannelValue(final int idx){
-		return (FloatProperty) get_prop(ch_value,idx);
+		return (FloatProperty) get_prop(ch_val,idx);
 	}
 	public StringProperty getChannelName(final int idx){
 		return (StringProperty) get_prop(ch_name,idx);
 	}
 	public StringProperty getChannelText(final int idx){
-		return (StringProperty) get_prop(ch_v_txt,idx);
-	}	
+		return (StringProperty) get_prop(ch_txt,idx);
+	}
+	
+	public StringProperty getPropPression() { return ch_txt[0]; }
+	public StringProperty getPropHumidity() { return ch_txt[1]; }
+	public StringProperty getPropTemperature() { return ch_txt[2]; }
+	
+	public String getTxtPression() { return ch_txt[0].getValue(); }
+	public String getTxtHumidity() { return ch_txt[1].getValue(); }
+	public String getTxtTemperature() { return ch_txt[2].getValue(); }
+	
+	public float getValPression() { return ch_val[0].getValue(); }
+	public float getValHumidity() { return ch_val[1].getValue(); }
+	public float getValTemperature() { return ch_val[2].getValue(); }
 	
 	@Override
 	protected void ignite(){
@@ -107,14 +119,14 @@ public class DevCDR06 extends DevModbus {
 					continue;
 				}
 				double scale = Math.pow(10, (double)reg[i+2]); 
-				ch_value[i].bind(
+				ch_val[i].bind(
 					channel[i]
 					.subtract(19999)
 					.divide(scale)
 				);
-				ch_v_txt[i].bind(
-					ch_value[i]
-					.asString("%3.1f")
+				ch_txt[i].bind(
+					ch_val[i]
+					.asString("%3."+reg[i+2]+"f")
 				);
 			}
 		});

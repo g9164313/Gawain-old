@@ -1,7 +1,9 @@
 package narl.itrc;
 
+import java.util.Arrays;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 import com.jfoenix.controls.JFXButton;
 
@@ -83,6 +85,18 @@ public abstract class Stepper extends HBox {
 		works = Optional.of(runs);
 	}
 	
+	protected void addRun(Runnable... runs){
+		if(works.isPresent()==false) {
+			set(runs);
+		}else {
+			Stream<?> lst1 = Arrays.stream(works.get());
+			Stream<?> lst2 = Arrays.stream(runs);
+			works = Optional.of(
+				Stream.concat(lst1,lst2).toArray(Runnable[]::new)
+			);
+		}
+	}
+	
 	protected Stepper get(final int cnt) {		
 		if(items.isPresent()==false) {
 			return null;
@@ -109,18 +123,16 @@ public abstract class Stepper extends HBox {
 	
 	public boolean isAsync = false;
 	public final AtomicInteger next = new AtomicInteger(LEAD);
-		
-	protected void next_hold() { next.set(HOLD); }
-	protected void next_abort(){ next.set(ABORT);}
-	protected void next_pause(){ next.set(PAUSE);}	
-	protected void next_jump(final int cnt) {
-		next.set((cnt>0)?(SPEC_JUMP):(-SPEC_JUMP)+cnt); 
+			
+	protected void abort_step(){ next.set(ABORT);}
+	protected void pause_step(){ next.set(PAUSE);}
+	protected void hold_step() { next.set(HOLD); }	
+	protected void next_step() { next.set(LEAD); }
+	protected void next_step(final int stp) {		
+		if(Math.abs(stp)<SPEC_JUMP) { next.set(stp); }
 	}
-	protected void next_work() { next.set(LEAD);}
-	protected void next_work(final int cnt) {
-		if(Math.abs(cnt)<SPEC_JUMP) {
-			next.set(cnt);
-		}
+	protected void step_jump(final int stp) {
+		next.set((stp>0)?(SPEC_JUMP):(-SPEC_JUMP)+stp); 
 	}
 	
 	protected void waiting_async(){
@@ -141,9 +153,9 @@ public abstract class Stepper extends HBox {
 		long pass = System.currentTimeMillis() - tick;
 		if(pass>=period){
 			tick = -1L;//reset for next turn~~~
-			next_work();
+			next_step();
 		}else{
-			next_hold();
+			hold_step();
 		}
 		long rem = period - pass;
 		return (rem>0)?(rem):(0);
@@ -151,20 +163,10 @@ public abstract class Stepper extends HBox {
 	protected long waiting_tick(final String time){
 		return waiting_time(Misc.time2tick(time));
 	}
-	protected long remain_tick(final boolean stop){
-		if(stop==true) {
-			tick = -1L;//reset for next turn~~~
-			next_work();
-			return System.currentTimeMillis();
-		}
-		tick = System.currentTimeMillis();
-		next_hold();
-		return tick;
-	}
 	
 	protected void prepare(){
 		indicator(false);
-		next_hold();
+		hold_step();
 	}
 	
 	public abstract Node getContent();//{

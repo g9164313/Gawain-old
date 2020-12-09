@@ -70,7 +70,7 @@ public class StepKindler extends StepAnalysis {
 		final String _txt = "關閉擋板";
 		msg1.setText(_txt);
 		msg2.setText("");
-		next_work();
+		next_step();
 		waiting_async();
 		sqm.asyncBreakIn(()->{
 			try {
@@ -80,13 +80,13 @@ public class StepKindler extends StepAnalysis {
 				Thread.sleep(250);
 				if(sqm.exec("U0").charAt(0)=='A') {
 					Misc.logv(_txt);
-					next_work();
+					next_step();
 				}else{
-					next_abort();
+					abort_step();
 					Application.invokeLater(()->PanBase.notifyError("失敗", "無法控制擋板!!"));
 				}
 			} catch (InterruptedException e) {
-				next_abort();
+				abort_step();
 				Application.invokeLater(()->PanBase.notifyError("", "內部錯誤!!"));
 			}
 		});
@@ -165,7 +165,7 @@ public class StepKindler extends StepAnalysis {
 				if(setting(cmd)==false) { return; }
 			}
 			Misc.logv("！！Fire！！");			
-			next_work();
+			next_step();
 		});
 		//rad[0].setDisable(true);
 		//rad[0].setStyle("-fx-opacity: 1");
@@ -203,7 +203,7 @@ public class StepKindler extends StepAnalysis {
 		msg1.setText(init_text);
 		msg2.setText("");
 		Misc.logv(init_text+"結束");
-		next_work();
+		next_step();
 	};
 	
 	private boolean setting(final String cmd) {
@@ -216,7 +216,7 @@ public class StepKindler extends StepAnalysis {
 		boolean res = dcg.exec(cmd).endsWith("*");
 		if(res==false) {
 			String _txt = cmd + "設定失效!!";
-			next_abort();
+			abort_step();
 			Misc.logv(_txt);
 			Application.invokeLater(()->PanBase.notifyError("",_txt));
 		}
@@ -297,8 +297,8 @@ public class StepKindler extends StepAnalysis {
 	}
 	@Override
 	public void expand(String txt) {
-		if(txt.matches("([^:,\\\\p{Space}]+[:]\\\\p{ASCII}*[,\\\\s]?)+")==false){
-			Misc.loge("pasing fail");
+		if(txt.matches("([^:,\\p{Space}]+[:]\\p{ASCII}*[,\\s]?)+")==false){
+			Misc.loge("pasing fail-->%s",txt);
 			return;
 		}
 		//trick, replace time format.

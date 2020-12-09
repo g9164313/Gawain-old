@@ -109,7 +109,6 @@ public class SignMotor extends StackPane {
 		if(val>=41) {
 			return;
 		}
-		SV_RPM.set(val);
 		bus.setSpeed(did,val);
 	}
 	

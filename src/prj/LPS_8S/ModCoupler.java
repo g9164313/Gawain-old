@@ -56,9 +56,9 @@ public class ModCoupler extends DevModbus {
 	public final FloatProperty ARM_PRESS_DW = new SimpleFloatProperty();//unit is MPa
 	
 	public Runnable working_press = null;
-	public Runnable working_float = null;
+	public Runnable working_release = null;
 	public Runnable emerged_press = null;
-	public Runnable emerged_float = null;
+	public Runnable emerged_release = null;
 	
 	public ModCoupler() {
 		
@@ -76,8 +76,8 @@ public class ModCoupler extends DevModbus {
 			}
 			//remember to swap!!!
 			detect_edge(prv,cur,1,act_arm_up,act_arm_dw);
-			detect_edge(prv,cur,4,emerged_press,emerged_float);
-			detect_edge(prv,cur,5,working_press,working_float);
+			detect_edge(prv,cur,4,emerged_press,emerged_release);
+			detect_edge(prv,cur,5,working_press,working_release);
 		});
 		
 		flgMasterUnLock = iflag[0];//卡榫退出
@@ -92,38 +92,52 @@ public class ModCoupler extends DevModbus {
 		ARM_PRESS_UP.bind(ARM_MVOLT_DW.divide(1000f).multiply(0.1726).subtract(0.1239f)); 
 	}
 	
-	private JFXToggleButton[] tgl_dout;
-	private Label[] txt_aout;
-		
 	public ModInsider ibus = null;
+	
+	public JFXToggleButton tglAlarm;
+	public JFXToggleButton tglSlurryHeat;
+	public JFXToggleButton tglSlurryPump;
 	
 	@Override
 	protected void ignite() {
 		//before looping, insure setting~~~
 		
-		//final short[] dv1 = new short[1];
-		//final short[] dv2 = new short[1];
+		//writeSet(DOUT_ADDR2,0);//卡榫退出
+		
 		//implReadI(DOUT_ADDR1,dv1);
 		int dout1 = readReg('I',DOUT_ADDR1);
 		int dout2 = readReg('I',DOUT_ADDR2);
-		final boolean[] d_flg = {
-			(dout1&0x1)!=0,
-			(dout1&0x2)!=0,
-			(dout1&0x4)!=0,
-			(dout1&0x8)!=0,
-			(dout2&0x1)!=0,
+		final boolean[] dout = {
+			(dout1&0x1)!=0,//抽水幫浦和止水汽缸
+			(dout1&0x2)!=0,//加熱器
+			(dout1&0x4)!=0,//警示燈
+			(dout1&0x8)!=0,//~~~~
+			(dout2&0x1)!=0,//擺動軸 CTRG 
+			(dout2&0x2)!=0,//壓力軸 CTRG
+			(dout2&0x4)!=0,//擺動和壓力軸 LOP
+			(dout2&0x8)!=0,//擺動和壓力軸 ST1
 		};
-
+		
 		//when system boost, arm is always up~~~~
 		act_arm_up.run();
 		
 		final short[] a_val = new short[4];
 		implReadI(AOUT_ADDR, a_val);
 		
-		//writeSet(DOUT_ADDR2,0);//卡榫退出
-				
+		Application.invokeAndWait(()->{
+			toggle(tglAlarm,dout[2]);
+			toggle(tglSlurryHeat,dout[1]);
+			toggle(tglSlurryPump,dout[0]);
+		});		
 		super.ignite();//goto next stage~~~~
 	}
+	private void toggle(final JFXToggleButton obj, final boolean flg) {
+		if(obj==null) {
+			return;
+		}
+		obj.setSelected(flg);
+	}
+	
 	
 	private boolean first_edge = false;
 	
@@ -154,7 +168,7 @@ public class ModCoupler extends DevModbus {
 	
 	private Runnable act_arm_up = ()->{
 		writeCont(AOUT_ADDR+0, 0);//arm-forward
-		writeCont(AOUT_ADDR+1, 500);//arm-backward
+		writeCont(AOUT_ADDR+1,  600);//arm-backward
 	};
 	private Runnable act_arm_dw = ()->{			
 		writeCont(AOUT_ADDR+0, 8000);//arm-forward
@@ -164,36 +178,43 @@ public class ModCoupler extends DevModbus {
 		blocking_delay(ArmDownDelay.get());//angle-2
 		//finally~~~
 		writeCont(AOUT_ADDR+0, 3000);//arm-forward
-		writeCont(AOUT_ADDR+1, 3300);//arm-backward
+		writeCont(AOUT_ADDR+1, 3400);//arm-backward
 	};
 	
-	public void pumpSlurry(final boolean flg) {
-		asyncBreakIn(()->{
-			if(flg) {
-				writeSet(DOUT_ADDR1,3);//-->開水
-				//writeSet(DOUT_ADDR1,0);
-			}else {
-				writeCls(DOUT_ADDR1,3);//-->關水
-			}
-		});
+	public void pumpSlurry(final boolean flg) {asyncBreakIn(()->{
+		if(flg) {
+			writeSet(DOUT_ADDR1,0);// 開汞  and 開水
+		}else {
+			writeCls(DOUT_ADDR1,0);// 關汞 and 關水
+		}
+	});}
+	public void pumpSlurry() {
+		if(tglSlurryPump==null) { return; }
+		pumpSlurry(tglSlurryPump.isSelected());
 	}
-	public void heatSlurry(final boolean flg) {
-		asyncBreakIn(()->{
-			if(flg) {
-				writeSet(DOUT_ADDR1,1);
-			}else {
-				writeCls(DOUT_ADDR1,1);
-			}
-		});
+	
+	public void heatSlurry(final boolean flg) {asyncBreakIn(()->{
+		if(flg) {
+			writeSet(DOUT_ADDR1,1);
+		}else {
+			writeCls(DOUT_ADDR1,1);
+		}
+	});}
+	public void heatSlurry() {
+		if(tglSlurryHeat==null) { return; }
+		heatSlurry(tglSlurryHeat.isSelected());
 	}
-	public void alarm(final boolean flg) {
-		asyncBreakIn(()->{
-			if(flg) {
-				writeSet(DOUT_ADDR1,2);
-			}else {
-				writeCls(DOUT_ADDR1,2);
-			}
-		});
+
+	public void giveAlarm(final boolean flg) {asyncBreakIn(()->{
+		if(flg) {
+			writeSet(DOUT_ADDR1,2);
+		}else {
+			writeCls(DOUT_ADDR1,2);
+		}
+	});}
+	public void giveAlarm() {
+		if(tglAlarm==null) { return; }
+		giveAlarm(tglAlarm.isSelected());
 	}
 	
 	public void armForce(final float volt) {
@@ -203,25 +224,20 @@ public class ModCoupler extends DevModbus {
 			writeVals(AOUT_ADDR+1, val);//press-up
 		});
 	}
-	private void change_aout(final int id, final float volt) {
-		txt_aout[id].setText(String.format("%.2f",volt));
-		final int val =  (int)(volt*1000.f);
-		asyncWriteVals(AOUT_ADDR+id, val);
-	}
 	
-	final AtomicBoolean flagStep = new AtomicBoolean(false);
+	final AtomicBoolean flag_move = new AtomicBoolean(false);
 		
 	public void servoMove(
 		final int ID,
 		final boolean flag
 	) {
 		final int bit = (ID==ModInsider.ID_PRESS)?(1):(0);
-		flagStep.set(flag);
+		flag_move.set(flag);
 		if(flag==false) {
 			return;
 		}
 		asyncBreakIn(()->{	
-			while(flagStep.get()==true) {
+			while(flag_move.get()==true) {
 				writeSet(DOUT_ADDR2,bit);
 				blocking_delay(25);
 				writeCls(DOUT_ADDR2,bit);
@@ -243,17 +259,17 @@ public class ModCoupler extends DevModbus {
 		Application.invokeAndWait(afterEvent);
 	});}
 	
-	public void action_working(final JFXToggleButton tgl) {
+	public void kickoff_other(final JFXToggleButton tgl) {
 		if(tgl.isSelected()==true) {
 			asyncBreakIn(()->{
 				writeSet(DOUT_ADDR2,2);//LOP
-				blocking_delay(500);
+				blocking_delay(200);
 				writeSet(DOUT_ADDR2,3);//ST1
 			});	
 		}else {
 			asyncBreakIn(()->{
 				writeCls(DOUT_ADDR2,3);//ST1
-				blocking_delay(5000);
+				blocking_delay(4000);
 				writeCls(DOUT_ADDR2,2);//LOP
 			});	
 		}
@@ -289,16 +305,6 @@ public class ModCoupler extends DevModbus {
 		
 		//----------------------
 		
-		final JFXButton btn_stp1 =  new JFXButton("加壓軸寸進");
-		btn_stp1.setMaxWidth(Double.MAX_VALUE);
-		btn_stp1.getStyleClass().add("btn-raised-1");
-		btn_stp1.setOnAction(e->dout_bounce(5));
-		
-		final JFXButton btn_stp2 =  new JFXButton("擺動軸寸進");
-		btn_stp2.setMaxWidth(Double.MAX_VALUE);
-		btn_stp2.getStyleClass().add("btn-raised-1");
-		btn_stp2.setOnAction(e->dout_bounce(4));
-
 		final JFXToggleButton[] tgl = {
 			new JFXToggleButton(),
 			new JFXToggleButton(),
@@ -306,84 +312,20 @@ public class ModCoupler extends DevModbus {
 			new JFXToggleButton(),
 			new JFXToggleButton()
 		};
-		tgl_dout = tgl;
 		tgl[0].setText("冷卻水");//冷卻水(抽水幫浦)-->止水汽缸-->
 		tgl[1].setText("加熱器");
 		tgl[2].setText("警示燈");
 		tgl[3].setText("止水汽缸");
-		tgl[4].setText("同步旋轉");
 		
 		tgl[0].setOnAction(e->dout_pin(tgl[0],0));
 		tgl[1].setOnAction(e->dout_pin(tgl[1],1));
 		tgl[2].setOnAction(e->dout_pin(tgl[2],2));
 		tgl[3].setOnAction(e->dout_pin(tgl[3],3));
-		tgl[4].setOnAction(e->action_working(tgl[4]));
-		
-		
-		final Label[] t_aout = {
-			new Label("------"), 
-			new Label("------"), 
-			new Label("------"), 
-			new Label("------")
-		};
-		txt_aout = t_aout;
-		for(int i=0; i<t_aout.length; i++) {
-			final int ID = i;
-			t_aout[i].setOnMouseClicked(e->{
-				final int aid = ID+1;
-				final PadTouch pad = new PadTouch('f',"AO"+aid+"(V)");
-				Optional<String> opt = pad.showAndWait();			
-				if(opt.isPresent()==false) {
-					return;
-				}
-				float val = Float.valueOf(opt.get());
-				if(val<0. || 10.<val) {
-					return;
-				}
-				change_aout(ID,val);
-			});
-		}
-		
-		final GridPane lay3 = new GridPane();
-		lay3.getStyleClass().addAll("box-pad-inner");
-		lay3.add(new Label("類比輸入"), 0, 0, 2, 1);
-		lay3.addColumn(0,
-			new Label("AI1:"),
-			new Label("AI2:"),
-			new Label("AI3:"),
-			new Label("AI4:")
-		);
-		lay3.addColumn(1,t_ain);
-		
-		final GridPane lay4 = new GridPane();
-		lay4.getStyleClass().addAll("box-pad-inner");
-		lay4.add(new Label("類比輸出"), 0, 0, 2, 1);
-		lay4.addColumn(0,
-			new Label("AO1(下壓):"),
-			new Label("AO2(上提):"),
-			new Label("AO3:"),
-			new Label("AO4:")
-		);
-		lay4.addColumn(1,t_aout);
-		
-		final VBox lay2 = new VBox();
-		lay2.getStyleClass().addAll("box-pad");
-		lay2.getChildren().add(new Label("輸入接點"));
-		lay2.getChildren().addAll(chk);
-
-		final VBox lay1 = new VBox();
-		lay1.getStyleClass().addAll("box-pad");
-		lay1.getChildren().add(new Label("輸出接點"));
-		lay1.getChildren().addAll(tgl);
-		lay1.getChildren().addAll(btn_stp1);
-		lay1.getChildren().addAll(btn_stp2);
-
-		final HBox lay0 = new HBox(lay2,lay1,lay3,lay4);
-		lay0.getStyleClass().addAll("box-pad","box-border");
-		return lay0;
+		tgl[4].setOnAction(e->kickoff_other(tgl[4]));
+		return null;
 	}
 	
-	private void dout_pin(
+	public void dout_pin(
 		final JFXToggleButton tgl,
 		int bit
 	) {
@@ -402,15 +344,7 @@ public class ModCoupler extends DevModbus {
 			asyncWriteCls(addr, bit);
 		}		
 	}
-	public void dout_bounce(final int bit) {
-		final int addr = (bit>=4)?(DOUT_ADDR2):(DOUT_ADDR1);
-		final int _bit = (bit>=4)?(bit-4):(bit);
-		asyncBreakIn(()->{
-			writeSet(addr,_bit);
-			blocking_delay(50);
-			writeCls(addr,_bit);
-		});	
-	}
+
 	private void blocking_delay(final int msec) {
 		try {
 			Thread.sleep(msec);

@@ -12,8 +12,7 @@ import javafx.scene.layout.HBox;
 import narl.itrc.Misc;
 import narl.itrc.Stepper;
 
-public class StepGraduate extends Stepper {
-
+public class StepCalibrateBak extends Stepper {
 	
 	public static final FloatProperty[] S_PRED_DIST = {
 		new SimpleFloatProperty(700f),//unit is 'mm'
@@ -33,7 +32,7 @@ public class StepGraduate extends Stepper {
 	DevAT5350 at5350;
 	DevCDR06 cdr06;
 	
-	public StepGraduate(
+	public StepCalibrateBak(
 		final DevHustIO dev1,
 		final DevAT5350 dev2,
 		final DevCDR06 dev3
@@ -135,13 +134,13 @@ public class StepGraduate extends Stepper {
 		next.set(LEAD);
 	};
 	Runnable op_mov2 = ()->{
-		if(hustio.isMoving()==true){
+		if(hustio.isMoving.get()==true){
 			msg1.setText("移動中");
 			next.set(HOLD);	
 		}else{
 			msg1.setText("照射中");
-			hustio.isotope.set(ispt_name);
-			hustio.makeRadiation();
+			//hustio.isotope.set(ispt_name);
+			//hustio.makeRadiation();
 			next.set(LEAD);
 		}		
 	};
@@ -246,7 +245,7 @@ public class StepGraduate extends Stepper {
 	 * @param arg - sheet, upper(dose, location, column), lower
 	 * @return
 	 */
-	public StepGraduate editValue(
+	public StepCalibrateBak editValue(
 		final String... arg
 	){	
 		ispt_name = arg[0];

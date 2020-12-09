@@ -241,10 +241,11 @@ public class Misc {
 	 * @return stamp text (時:分:秒)
 	 */
 	public static String tick2text(
-		final long tick, 
+		long tick, 
 		final boolean readable,
 		final int columns
 	){
+		if(tick<0) { tick = 0; }
 		long sec = tick / 1000L;
 		long min = sec / 60; sec = sec % 60;
 		long hour= min / 60; min = min % 60;
@@ -257,7 +258,7 @@ public class Misc {
 				);
 			}else{
 				txt = String.format(
-					"%2d:%2d:%2d", 
+					"%02d:%02d:%02d", 
 					hour, min, sec
 				);
 			}
@@ -266,9 +267,9 @@ public class Misc {
 				txt = String.format("%2d分%2d秒", min, sec);
 			}else{
 				switch(columns) {
-				default:txt = String.format("%2d:%2d", min, sec); break;
-				case 2: txt = String.format("%2d:%2d", min, sec); break;
-				case 3: txt = String.format("00:%2d:%2d", min, sec); break;
+				default:txt = String.format("%02d:%02d", min, sec); break;
+				case 2: txt = String.format("%02d:%02d", min, sec); break;
+				case 3: txt = String.format("00:%02d:%02d", min, sec); break;
 				}
 			}
 		}else{
@@ -276,9 +277,9 @@ public class Misc {
 				txt = String.format("%2d秒", sec);
 			}else{
 				switch(columns) {
-				default: txt= String.format("%2d", sec); break;
-				case 2: txt = String.format("00:%2d", sec); break;
-				case 3: txt = String.format("00:00:%2d", sec); break;
+				default: txt= String.format("%02d", sec); break;
+				case 2: txt = String.format("00:%02d", sec); break;
+				case 3: txt = String.format("00:00:%02d", sec); break;
 				}
 			}
 		}
@@ -293,10 +294,13 @@ public class Misc {
 	/**
 	 * change text to millisecond.<p>
 	 * Text format is hh:mm:ss.<p>
-	 * @param time - 
+	 * @param time - readable time value
 	 * @return tick, unit is millisecond
 	 */
 	public static long time2tick(final String time){
+		if(time.length()==0) {
+			return 0L;
+		}
 		final long[] scale = {1L, 60L, 3600L};
 		String[] arg = time.replace("\\s", "").split(":");
 		int size = (arg.length>=3)?(3):(arg.length);
@@ -306,7 +310,8 @@ public class Misc {
 			String txt = arg[i].replaceFirst("^0+(?!$)","");
 			long val = (txt.length()==0)?
 				(0L):
-				(Integer.valueOf(txt));
+				(Integer.valueOf(txt)
+			);
 			val = val * 1000L * scale[size-1-i];
 			tick += val;
 		}

@@ -71,16 +71,16 @@ public class StepCollect extends Stepper {
 			msg2.setText("init...");
 			cur_watt = beg;
 			init_watt= true;
-			next_jump(-1);
+			step_jump(-1);
 		}else{
 			if(cur_watt<end){
 				msg2.setText("step...");
 				cur_watt+= dff;
-				next_jump(-1);
+				step_jump(-1);
 			}else {
 				msg2.setText("final...");
 				init_watt= false;
-				next_work();
+				next_step();
 			}
 		} 
 		Stepper stp = get(-1);
@@ -88,7 +88,7 @@ public class StepCollect extends Stepper {
 			((StepKindler)stp).boxValue.setText(""+cur_watt);
 		}else {
 			PanBase.notifyWarning("", "不合法的執行規則！！");
-			next_abort();
+			abort_step();
 		}
 	};
 	private Runnable op2 = ()->{
@@ -102,16 +102,16 @@ public class StepCollect extends Stepper {
 			msg2.setText("init...");
 			cur_zfac = beg;
 			init_zfac= true;
-			next_jump(-2);
+			step_jump(-2);
 		}else{
 			 if(cur_zfac<end){
 				msg2.setText("step...");
 				cur_zfac+= dff;
-				next_jump(-2);
+				step_jump(-2);
 			}else {
 				msg2.setText("final...");
 				init_zfac= false;
-				next_work();
+				next_step();
 			}
 		}
 		Stepper stp = get(-2);
@@ -119,7 +119,7 @@ public class StepCollect extends Stepper {
 			((StepSetFilm)stp).boxZFactor.setText(""+cur_zfac);
 		}else {
 			PanBase.notifyWarning("", "不合法的執行規則！！");
-			next_abort();
+			abort_step();
 		}
 	};
 	private Runnable end = ()->{
@@ -249,7 +249,7 @@ public class StepCollect extends Stepper {
 			prepare_book();
 			writing_book(msg);
 			close_book();
-			next_work();
+			next_step();
 			msg2.textProperty().unbind();
 			return 0;
 		}

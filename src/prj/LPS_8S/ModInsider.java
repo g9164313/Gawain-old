@@ -1,8 +1,10 @@
 package prj.LPS_8S;
 
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.jfoenix.controls.JFXCheckBox;
+import com.jfoenix.controls.JFXToggleButton;
 import com.sun.glass.ui.Application;
 
 import javafx.beans.property.BooleanProperty;
@@ -93,15 +95,13 @@ public class ModInsider extends DevModbus {
 		//	  - 瞬時轉矩(%)  - 0x000F
 		//	  - 異常警報     - 0x0100
 		//    - PIN port - 0x0203
-		//mapAddress16(ID_PRESS,"h0006","h000F","h0100","h0203");
-		mapAddress16(ID_PRESS,"h0006","h000F","h0100");
+		mapAddress16(ID_PRESS,"h0006","h000F","h0100","h0203");
 		PRESS_RPM = mapInteger(ID_PRESS, 0x0006);		
 		PRESS_TOR = mapInteger(ID_PRESS, 0x000F);
 		PRESS_ALM = mapInteger(ID_PRESS, 0x0100);
 		PRESS_PIN = mapInteger(ID_PRESS, 0x0203);
 		
-		//mapAddress16(ID_SWING,"h0006","h000F","h0100","h0203");
-		mapAddress16(ID_SWING,"h0006","h000F","h0100");
+		mapAddress16(ID_SWING,"h0006","h000F","h0100","h0203");
 		SWING_RPM = mapInteger(ID_SWING, 0x0006);
 		SWING_TOR = mapInteger(ID_SWING, 0x000F);
 		SWING_ALM = mapInteger(ID_SWING, 0x0100);
@@ -119,7 +119,7 @@ public class ModInsider extends DevModbus {
 	}
 	
 	public final IntegerProperty MAJOR_RPM_SV = new SimpleIntegerProperty();
-	public final IntegerProperty MAJOR_POS_SV = new SimpleIntegerProperty();
+	public final IntegerProperty MAJOR_PLS_SV = new SimpleIntegerProperty();
 	
 	public final IntegerProperty PRESS_RPM_SV = new SimpleIntegerProperty();
 	public final IntegerProperty PRESS_PLS_SV = new SimpleIntegerProperty();	
@@ -165,12 +165,12 @@ public class ModInsider extends DevModbus {
 		//B11-B10-B09-B08-B07-B06-B05-B04-B03-B02-B01-B00
 		//CDP- TL- ? - ? -LOP-EMG-SP1-RES-ST2-ST1-SP2-SON
 		//0:on，1:off
-		writeCont_sid(ID_MAJOR, 0x0630, 0x0);
+		writeCont_sid(ID_MAJOR, 0x0630, 0x0000);
 
 		Application.invokeLater(()->{
 			
 			MAJOR_RPM_SV.set(V_MAJOR_RPM1/SPD_DECAY);
-			MAJOR_POS_SV.set(0);
+			MAJOR_PLS_SV.set(0);
 			
 			PRESS_RPM_SV.set(V_PRESS_RPM1/SPD_DECAY);
 			PRESS_PLS_SV.set(V_PRESS_POS1);
@@ -181,113 +181,86 @@ public class ModInsider extends DevModbus {
 		super.ignite();//goto next stage~~~~
 	}
 	//-------------------------------------------//
-	private void SDE_speed(final int val) {
-		//內部  - 註解        - Modbus 地址
-		//PC05 - 速度1(RPM)  - 0x0508_0509 (-6000~+6000)
-		writeCont_sid(ID_MAJOR, 0x0508, (40*val>> 0));
-		writeCont_sid(ID_MAJOR, 0x0509, (40*val>>16));
-	}
-	private void SDE_kickoff(
-		final boolean spin, 
-		final boolean clockwise
-	) {
-		//LOP is on : speed mode
-		//-B07-B06-B05-B04-B03-B02-B01-B00-
-		//-LOP-xxx-xxx-xxx-xxx-SP1-ST2-ST1-
-		if(spin==true) {
-			if(clockwise==true) {
-				writeCont_sid(ID_MAJOR, 0x0630, 0x085);
-			}else {
-				writeCont_sid(ID_MAJOR, 0x0630, 0x086);
-			}
-		}else {
-			writeCont_sid(ID_MAJOR, 0x0630, 0x080);
+	
+	private final AtomicBoolean flag_major_move = new AtomicBoolean(false);
+	
+	public void majorMove(final boolean flag) {
+		flag_major_move.set(flag);
+		if(flag==false) {
+			return;
 		}
+		asyncBreakIn(()->{
+			while(flag_major_move.get()==true) {
+				//LOP is off : position mode
+				//-B07-B06 -B05 -B04 -B03-B02-B01-B00-
+				//-LOP-POS2-POS1-CTRG-STP-xxx-xxx-xxx-
+				writeCont_sid(ID_MAJOR, 0x0630, 0x030);
+				block_delay(50);
+				writeCont_sid(ID_MAJOR, 0x0630, 0x000);
+				block_delay(50);
+			}
+		});
 	}
-	private void SDE_move(final int pos) {
-		//LOP is off : position mode
-		//-B07-B06 -B05 -B04 -B03-B02-B01-B00-
-		//-LOP-POS2-POS1-CTRG-STP-xxx-xxx-xxx-
-		writeCont_sid(ID_MAJOR, 0x0630, 0x000);
-		block_delay(100);
-		//rise flag
-		writeCont_sid(ID_MAJOR, 0x0630, 0x030);
+	
+	public void majorKickoff(final JFXToggleButton tgl) {
+		final boolean SPIN = tgl.isSelected();
+		asyncBreakIn(()->{
+			//LOP is on : speed mode
+			//-B07-B06-B05-B04-B03-B02-B01-B00-
+			//-LOP-xxx-xxx-xxx-xxx-SP1-ST2-ST1-
+			if(SPIN==true) {
+				//if(clockwise==true) {
+				//	writeCont_sid(ID_MAJOR, 0x0630, 0x085);
+				//}else {
+					writeCont_sid(ID_MAJOR, 0x0630, 0x086);
+				//}
+			}else {
+				writeCont_sid(ID_MAJOR, 0x0630, 0x080);
+			}
+		});
 	}
-	private void SDE_set_pulse(final int pos) {
-
-		writeCont_sid(ID_MAJOR, 0x030E, pos);
-	}
+	
 	//-------------------------------------------//
 	
-	public void applyLocatePulse(final int ID) {
-		int val = 0;
+	public void setLocatePulse(final int ID,final int val) {		
 		switch(ID) {
-		case ID_PRESS:
-			val = PRESS_PLS_SV.get();
-			break;
-		case ID_SWING:
-			val = SWING_PLS_SV.get();
-			break;
-		default:
-			return;
+		case ID_MAJOR: MAJOR_PLS_SV.set(val); break;
+		case ID_PRESS: PRESS_PLS_SV.set(val); break;
+		case ID_SWING: SWING_PLS_SV.set(val); break;
+		default: return;
 		}
-		final int _val = val;
-		asyncBreakIn(()->writeCont_sid(ID, SDA_ADDR_POS, _val));
+		asyncBreakIn(()->{
+			if(ID==ID_MAJOR) {
+				writeCont_sid(ID, 0x030E, 5000);
+			}else {
+				writeCont_sid(ID, SDA_ADDR_POS, val);
+			}
+		});
 	}
 	
-	public void setLocatePulse(final int ID,final int val) {
-		switch(ID) {
-		case ID_PRESS:
-			PRESS_PLS_SV.set(val);
-			break;
-		case ID_SWING:
-			SWING_PLS_SV.set(val);
-			break;
-		default:
-			return;
-		}
-		asyncBreakIn(()->writeCont_sid(ID, SDA_ADDR_POS, val));
-	}
-	
-	
-	public void setSpeed(
-		final int ID,
-		final int RPM
-	) {
+	public void setSpeed(final int ID,final int RPM) {		
 		switch(ID) {
 		case ID_MAJOR:
-			asyncBreakIn(()->SDE_speed(SPD_DECAY*RPM));
+			MAJOR_RPM_SV.set(RPM);
+			asyncBreakIn(()->{
+				//內部  - 註解        - Modbus 地址
+				//PC05 - 速度1(RPM)  - 0x0508_0509 (-6000~+6000)
+				final int _v = SPD_DECAY * RPM;
+				writeCont_sid(ID_MAJOR, 0x0508, (_v>> 0));
+				writeCont_sid(ID_MAJOR, 0x0509, (_v>>16));
+			});
 			break;
 		case ID_PRESS:
-			PRESS_RPM.set(RPM);
+			PRESS_RPM_SV.set(RPM);
 			asyncBreakIn(()->writeCont_sid(ID, SDA_ADDR_RPM, SPD_DECAY*RPM));
 			break;
 		case ID_SWING:
-			SWING_RPM.set(RPM);
+			SWING_RPM_SV.set(RPM);
 			asyncBreakIn(()->writeCont_sid(ID, SDA_ADDR_RPM, SPD_DECAY*RPM));
 			break;
 		}
 	}
-	
-	public void kickoff(
-		final int ID,
-		final boolean SPIN,
-		final boolean CLOCKWISE
-	) {
-		switch(ID) {
-		case ID_MAJOR:
-			//major axis always counter-clockwise!!!
-			asyncBreakIn(()->SDE_kickoff(SPIN,false));
-			break;
-		}
-	}
-	public void kickoff(
-		final int ID,
-		final boolean SPIN
-	) {
-		kickoff(ID,SPIN,true);
-	}
-	
+
 	public void set_FA231(final float val) {asyncBreakIn(()->{
 		writeCont_sid(ID_FA231, 0, (int)(val*10.f));
 	});}

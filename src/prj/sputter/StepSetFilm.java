@@ -12,6 +12,7 @@ import javafx.scene.control.Separator;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
 import narl.itrc.Gawain;
+import narl.itrc.Misc;
 import narl.itrc.PadTouch;
 import narl.itrc.PanBase;
 import narl.itrc.Stepper;
@@ -196,6 +197,7 @@ public class StepSetFilm extends Stepper {
 	@Override
 	public void expand(String txt) {
 		if(txt.matches("([^:,\\p{Space}]+[:]\\p{ASCII}*[,\\s]?)+")==false){
+			Misc.loge("pasing fail-->%s",txt);
 			return;
 		}
 		String[] arg = txt.split(":|,");

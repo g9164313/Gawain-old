@@ -1,14 +1,12 @@
 package prj.shelter;
 
 import com.jfoenix.controls.JFXCheckBox;
-import com.jfoenix.controls.JFXComboBox;
 
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
 import narl.itrc.Misc;
 import narl.itrc.Stepper;
 
@@ -23,86 +21,72 @@ public class StepArrange extends Stepper {
 	){
 		hustio = dev1;
 		at5350 = dev2;
-		set(
-			op_1,
-			op_2,op_3,
-			op_4,op_5
-		);
+		set(op_1,op_2,op_3,op_4);
 	}
 		
-	private Label msg1 = new Label("");
-	private JFXComboBox<String> act1 = new JFXComboBox<String>();
-	private JFXCheckBox act2 = new JFXCheckBox("原點回歸");
+	protected final Label title = new Label();
+	protected final Label status= new Label();
+	
+	private JFXCheckBox act2 = new JFXCheckBox("回歸原點");
 	private JFXCheckBox act3 = new JFXCheckBox("高壓補償");
 	
 	Runnable op_1 = ()->{
-		hustio.isotope.set(act1.getSelectionModel().getSelectedItem());
-		next.set(1);
-	};
-	
-	Runnable op_2 = ()->{
 		if(act2.isSelected()==false){
-			msg1.setText("跳過回歸");
+			status.setText("忽略原點");
+			next_step(2);
 		}else{
-			msg1.setText("開始回歸");
+			status.setText("回歸原點");
 			hustio.moveToAbs("");
+			next_step();
 		}
-		next.set(LEAD);
 	};
 	
-	Runnable op_3 = ()->{				
-		if(hustio.isMoving()==true){
-			msg1.setText("移動中");
-			next.set(HOLD);
+	Runnable op_2 = ()->{				
+		if(hustio.isMoving.get()==true){
+			status.setText("移動中");
+			hold_step();
 		}else{
-			msg1.setText("");
-			next.set(LEAD);
+			status.setText("");
+			next_step();
 		}
+	};
+	
+	Runnable op_3 = ()->{
+		if(act3.isSelected()==false){
+			status.setText("忽略補償");
+			next_step(2);
+		}else{
+			status.setText("開始補償");
+			at5350.compensate();
+			next_step();
+		}		
 	};
 	
 	Runnable op_4 = ()->{
-		if(act3.isSelected()==false){
-			msg1.setText("跳過補償");
-		}else{
-			msg1.setText("開始補償");
-			at5350.compensate();
-		}
-		next.set(LEAD);		
-	};
-	
-	Runnable op_5 = ()->{
-		if(act3.isSelected()==false){
-			next.set(LEAD);			
+		if(at5350.isAsyncDone()==false){
+			status.setText("補償中");
+			hold_step();
 		}else {
-			msg1.setText(String.format(
-				"等待 %s",
-				Misc.tick2text(waiting_time(3*60*1000),true)
-			));
+			status.setText("");
+			next_step();
 		}
 	};
 
 	@Override
 	public Node getContent() {
 		
-		msg1.setPrefWidth(90.);
+		title.setText("原點。補償");
+		title.setPrefWidth(100.);
 		
-		act1.getItems().addAll("0.05Ci","0.5Ci","3Ci");
-		act1.getSelectionModel().select(0);
 		act2.setSelected(true);
 		act3.setSelected(true);
 		
-		GridPane lay1 = new GridPane();
-		lay1.getStyleClass().addAll("box-pad");
-		lay1.addColumn(0,act1,act2,act3);
-		
-		HBox lay0 = new HBox();
-		lay0.getStyleClass().addAll("box-pad");
-		lay0.getChildren().addAll(
-			msg1,
-			new Separator(Orientation.VERTICAL),
-			lay1
-		);
-		return lay0;
+		GridPane lay = new GridPane();
+		lay.getStyleClass().addAll("box-pad","font-console");
+		lay.addColumn(0,title,status);
+		lay.add(new Separator(Orientation.VERTICAL), 1, 0, 1, 2);
+		lay.addColumn(2,act2,act3);
+		return lay;
 	}
 
 	@Override
@@ -114,7 +98,6 @@ public class StepArrange extends Stepper {
 		final boolean go_home,
 		final boolean compenset
 	){
-		act1.getSelectionModel().select(isotope);
 		act2.setSelected(go_home);
 		act3.setSelected(compenset);
 	}

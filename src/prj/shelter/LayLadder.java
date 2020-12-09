@@ -27,9 +27,11 @@ public class LayLadder extends Ladder {
 		final DevCDR06 dev3
 	){
 		addStep("分隔線", Stepper.Sticker.class);
-		addStep("核種。原點。補償", StepArrange.class, dev1,dev2);
-		addStep("校正刻度", StepGraduate.class, dev1,dev2,dev3);
-		addStep("照射劑量", StepRadiate.class , dev1);
+		addStep("原點。補償", StepArrange.class, dev1,dev2);
+		//addStep("校正刻度", StepCalibrate.class, dev1,dev2,dev3);
+		addStep("定點照射", StepRadiate.class,dev1);
+		addStep("輻射測量", StepMeasure.class,dev1,dev2,dev3);
+		addStep("劑量校正", StepCalibrate.class,dev1,dev2,dev3);
 	}
 	
 	/**
@@ -133,7 +135,7 @@ public class LayLadder extends Ladder {
 					pin[1][2], pin[1][3]
 				));				
 				Application.invokeAndWait(()->{
-					((StepGraduate)genStep(StepGraduate.class)).editValue(
+					((StepCalibrateBak)genStep(StepCalibrateBak.class)).editValue(
 						name, 
 						val[0], val[1], pin[1][0],
 						val[2], val[3], pin[1][2]
@@ -180,10 +182,10 @@ public class LayLadder extends Ladder {
 				ObservableList<Stepper> lst = recipe.getItems();
 				for(Stepper stp:lst){
 					updateMessage("確認步驟；"+stp.getClass().getName());
-					if(stp.getClass()!=StepGraduate.class){
+					if(stp.getClass()!=StepCalibrateBak.class){
 						continue;
 					}
-					fill_mark_data(wb,(StepGraduate) stp);
+					fill_mark_data(wb,(StepCalibrateBak) stp);
 				}
 				//清除舊有的標定表
 				wb.removeSheetAt(3);
@@ -211,7 +213,7 @@ public class LayLadder extends Ladder {
 		}		
 		private void fill_mark_data(
 			final Workbook wb,
-			final StepGraduate stp
+			final StepCalibrateBak stp
 		){
 			Sheet sh = wb.getSheet(stp.ispt_name);
 			fill_pin_value(sh,stp.pts[0]);
@@ -219,7 +221,7 @@ public class LayLadder extends Ladder {
 		}
 		private void fill_pin_value(
 			final Sheet sh,
-			final StepGraduate.GradValue pts
+			final StepCalibrateBak.GradValue pts
 		){
 			updateMessage(String.format(
 				"%s: 更新欄位-%c", 

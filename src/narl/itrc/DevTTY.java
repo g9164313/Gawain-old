@@ -29,7 +29,7 @@ public class DevTTY extends DevBase {
 	 */
 	protected byte flowControl= 0;
 	
-	protected int readTimeout = 3000;//milliseconds~~
+	protected int readTimeout = 10;//milliseconds~~
 
 	/**
 	 * Device path name, it is like "/dev/ttyS0,9600,8n1".<p>
@@ -165,7 +165,9 @@ public class DevTTY extends DevBase {
 	 * @return - got text from TTY. 
 	 */
 	public String readTxt() {
-		return readTxt(500);
+		final byte[] buf = new byte[TXT_BUF_SIZE];
+		int cnt = implRead(buf,0,-1);
+		return new String(buf,0,cnt);
 	}
 	
 	private static final int TXT_BUF_SIZE = 256;
@@ -268,6 +270,16 @@ public class DevTTY extends DevBase {
 	 */
 	public void writeTxtDelay(final int millisecond, final String txt) {
 		final byte[] buf = txt.getBytes();
+		for(byte vv:buf) {
+			writeByte(vv);
+			try {
+				TimeUnit.MILLISECONDS.sleep(millisecond);
+			} catch (Exception e) {
+				break;
+			}
+		}
+	}
+	public void writeByteDelay(final int millisecond, final byte[] buf) {
 		for(byte vv:buf) {
 			writeByte(vv);
 			try {

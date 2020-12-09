@@ -1,7 +1,6 @@
 package prj.sputter;
 
 import com.jfoenix.controls.JFXButton;
-import com.jfoenix.controls.JFXCheckBox;
 import com.jfoenix.controls.JFXTabPane;
 import com.jfoenix.controls.JFXTextField;
 
@@ -9,7 +8,6 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Separator;
 import javafx.scene.control.Tab;
-import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
@@ -29,7 +27,6 @@ public class PanMain extends PanBase {
 	final DevSPIK2k spik = new DevSPIK2k();
 	final DevSQM160 sqm1 = new DevSQM160();
 	
-	final LayFlower flower = new LayFlower(coup);
 	final LayGauges gauges = LayGauges.getInstance();	
 	final Ladder    ladder = new Ladder();
 
@@ -45,6 +42,7 @@ public class PanMain extends PanBase {
 		arg = Gawain.prop().getProperty("modbus", "");
 		if(arg.length()!=0) {			
 			coup.open(arg);
+			gauges.bindProperty(coup);
 		}
 		arg = Gawain.prop().getProperty("DCG100", "");
 		if(arg.length()>0) {			
@@ -64,12 +62,15 @@ public class PanMain extends PanBase {
 	
 	private void init(){
 		//initial step-box for recipe
-		ladder.addStep("分隔線", Stepper.Sticker.class);
+		StepFlowCtrl.dev = coup;
+		StepGunsHub.dev = coup;
+		
+		ladder.addStep("分隔線",Stepper.Sticker.class);
 		ladder.addStep("薄膜設定",StepSetFilm.class , sqm1);
-		ladder.addStep("電極切換",StepGunsHub.class , coup);
+		ladder.addStep("電極切換",StepGunsHub.class);
 		ladder.addStep("脈衝設定",StepSetPulse.class, spik);
 		ladder.addStep("高壓設定",StepKindler.class , sqm1, dcg1, spik);
-		ladder.addStep("流量控制",StepFlowCtrl.class, coup);
+		ladder.addStep("流量控制",StepFlowCtrl.class);
 		ladder.addStep("厚度監控",StepWatcher.class , sqm1, dcg1);		
 		ladder.addSack(
 			"<單層鍍膜.3>", 
@@ -107,22 +108,12 @@ public class PanMain extends PanBase {
 	@Override
 	public Pane eventLayout(PanBase self) {
 		
-		final VBox lay4 = new VBox();
-		lay4.getStyleClass().addAll("box-pad");
-		lay4.getChildren().addAll(
-			Misc.addBorder(flower.genPanel_5850E("O2",1,10)), //O₂
-			Misc.addBorder(flower.genPanel_5850E("Ar",2,100))
-			//Misc.addBorder(flower.genMassFlowCtrl("N₂",2)),			
-			//Misc.addBorder(flower.genMassFlowCtrl("He",4))
-		);
-		
 		final HBox lay3 = new HBox();
 		lay3.getStyleClass().addAll("box-pad");
 		lay3.getChildren().addAll(
 			DevDCG100.genPanel(dcg1),
 			DevSPIK2k.genPanel(spik),
-			DevSQM160.genPanel(sqm1),
-			lay4
+			DevSQM160.genPanel(sqm1)
 		);
 
 		final ScrollPane lay2 = new ScrollPane(lay3);
@@ -220,56 +211,18 @@ public class PanMain extends PanBase {
 		lay2.addRow(4, new Label("感測器編號："), txt[4]);
 		lay2.setOnMouseClicked(e->sqm1.updateFilm());
 		
-		final JFXCheckBox[] rad = {
-			new JFXCheckBox("Shutter"),
-			new JFXCheckBox("Bipolar"),
-			new JFXCheckBox("Unipolar"),
-			new JFXCheckBox("Gun-1"),
-			new JFXCheckBox("Gun-2"),
-		};
-		rad[0].setDisable(true);
-		rad[0].selectedProperty().bind(sqm1.shutter);
-		rad[0].setStyle("-fx-opacity: 1.0;");
-		
-		final ToggleGroup grp = new ToggleGroup();
-		
-		rad[1].setOnAction(e->{
-			//a mutex for checking I/O
-			if(rad[1].isSelected()){
-				rad[2].setSelected(false);
-				coup.asyncBreakIn(()->coup.writeVals(8007, 1));
-			}else{
-				coup.asyncBreakIn(()->coup.writeVals(8007, 0));
-			}
-		});
-		rad[2].setOnAction(e->{
-			//a mutex for checking I/O
-			if(rad[2].isSelected()){
-				rad[1].setSelected(false);
-				coup.asyncBreakIn(()->coup.writeVals(8007, 2));
-			}else{
-				coup.asyncBreakIn(()->coup.writeVals(8007, 0));
-			}
-		});
-		rad[3].setOnAction(e->coup.select_gun1(e));
-		rad[4].setOnAction(e->coup.select_gun2(e));
-		rad[3].visibleProperty().bind(rad[2].selectedProperty());
-		rad[4].visibleProperty().bind(rad[2].selectedProperty());
-		
-		final GridPane lay3 = new GridPane();
-		lay3.getStyleClass().addAll("box-pad-inner");
-		lay3.addColumn(0, rad);
-		
-		//final Label _test_ = new Label();
-		//_test_.textProperty().bind(dcg1.onTime);
-		
+		//rad[0].setDisable(true);
+		//rad[0].setStyle("-fx-opacity: 1.0;");
+
 		final VBox lay0 = new VBox();
 		lay0.getStyleClass().addAll("box-pad","border");
 		//lay0.getChildren().addAll(_test_,new Label(),box[0]);
 		lay0.getChildren().addAll(new Label(),box[0]);
 		lay0.getChildren().add(lay2);
 		lay0.getChildren().add(new Separator());
-		lay0.getChildren().add(lay3);
+		lay0.getChildren().add(Misc.addBorder(StepFlowCtrl.genCtrlPanel()));
+		lay0.getChildren().add(new Separator());
+		lay0.getChildren().add(Misc.addBorder(StepGunsHub.genPanel()));
 		lay0.getChildren().add(new Separator());
 		lay0.getChildren().addAll(btn);
 		return lay0;

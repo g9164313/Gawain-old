@@ -87,9 +87,9 @@ public class StepWatcher extends StepAnalysis {
 		record_info(TAG_WATCH);
 		
 		if(sqm.shutter.get()==false){
-			next_work();
+			next_step();
 		}else{
-			next_hold();
+			hold_step();
 		}
 	};
 	final Runnable op_4 = ()->{
@@ -99,10 +99,10 @@ public class StepWatcher extends StepAnalysis {
 		waiting_async();		
 		dcg.asyncBreakIn(()->{
 			if(dcg.exec("OFF").endsWith("*")==false) {
-				next_abort();
+				abort_step();
 				Application.invokeLater(()->PanBase.notifyError("失敗", "無法關閉!!"));
 			}else {
-				next_work();
+				next_step();
 			}
 		});
 	};	

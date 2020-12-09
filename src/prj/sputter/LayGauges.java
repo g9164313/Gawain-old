@@ -10,7 +10,7 @@ import javafx.scene.layout.FlowPane;
 
 public class LayGauges extends FlowPane {
 
-	public final Tile gag[] = new Tile[6];
+	public final Tile gag[] = new Tile[9];
 	
 	public LayGauges() {
 		//gauge for DCG-100
@@ -63,6 +63,26 @@ public class LayGauges extends FlowPane {
 		gag[5].setDecimals(3);
 		gag[5].setId("g_high");
 		
+		gag[6] = TileBuilder.create()
+			.skinType(SkinType.SPARK_LINE)
+			.title("Ar")
+			.unit("SCCM")
+			.build();
+		gag[6].setDecimals(2);
+		gag[7] = TileBuilder.create()
+			.skinType(SkinType.SPARK_LINE)
+			.title("O2")
+			.unit("SCCM")
+			.build();
+		gag[7].setDecimals(2);
+		gag[8] = TileBuilder.create()
+			.skinType(SkinType.SPARK_LINE)
+			.title("N2")
+			.unit("SCCM")
+			.build();
+		gag[8].setDecimals(2);
+
+			
 		getStyleClass().addAll("box-pad");
 		setPrefWrapLength(800);
 		getChildren().addAll(gag);
@@ -95,6 +115,13 @@ public class LayGauges extends FlowPane {
 		gag[5].setUnit(dev.unitThick.get());
 		return this;
 	}
+	public LayGauges bindProperty(final ModCouple dev) {
+		gag[6].valueProperty().bind(dev.PV_FlowAr);
+		gag[7].valueProperty().bind(dev.PV_FlowO2);
+		gag[8].valueProperty().bind(dev.PV_FlowN2);
+		return this;
+	}
+	
 	private void set_max_limit(
 		final Tile obj,
 		final double val
@@ -125,39 +152,4 @@ public class LayGauges extends FlowPane {
 		LayGauges inst = self.get();
 		inst.set_max_limit(inst.gag[5],val);
 	}
-	
-	/*public LayGauges bindProperty(
-		final DevSQM160 dev1,
-		final DevModbus dev2
-	) {			
-		FloatProperty rate_min = dev1.rateRange[0];
-		FloatProperty rate_max = dev1.rateRange[1];
-		FloatProperty high_min = dev1.highRange[0];
-		FloatProperty high_max = dev1.highRange[1];
-				
-		IntegerProperty prop;
-		
-		prop = dev2.inputRegister(8003);
-		if(prop==null) {
-			return this;
-		}
-		NumberBinding rate = prop
-			.multiply(rate_max.subtract(rate_min))
-			.divide(5.f)
-			.add(rate_min);
-		
-		gag[4].valueProperty().bind(rate);
-		
-		prop = dev2.inputRegister(8004);
-		if(prop==null) {
-			return this;
-		}
-		NumberBinding high = prop
-			.multiply(high_max.subtract(high_min))
-			.divide(5.f)
-			.add(high_min);
-		gag[5].valueProperty().bind(high);
-		
-		return this;
-	}*/
 }

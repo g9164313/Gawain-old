@@ -87,7 +87,7 @@ abstract class StepAnalysis extends Stepper {
 					),mesg);
 				}
 				unbind_log_text();
-				next_work();
+				next_step();
 				return null;
 			}
 		};
