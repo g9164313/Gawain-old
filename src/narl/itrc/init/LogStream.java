@@ -12,6 +12,7 @@ import java.io.Serializable;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -22,7 +23,10 @@ import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
+import javafx.scene.control.ContextMenu;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.cell.PropertyValueFactory;
@@ -35,14 +39,14 @@ import narl.itrc.Misc;
 import narl.itrc.PanBase;
 
 public class LogStream {
-
+	
 	private static final SimpleDateFormat F_STAMP = new SimpleDateFormat("MM/dd  HH:mm:ss.SSS");
+	
+	private static final SimpleDateFormat DEF_TICK_FORMAT = new SimpleDateFormat("HH:mm:ss.SSS");
 	
 	public interface Hooker {
 		void callback(long tick, char level, String text);
 	};
-	
-	private static final SimpleDateFormat DEF_TICK_FORMAT = new SimpleDateFormat("HH:mm:ss.SSS");
 	
 	public static class Mesg implements Serializable {		
 
@@ -113,12 +117,11 @@ public class LogStream {
 					return;
 				}
 				Mesg mm = msg.get().setText(buf.toString());				
-				//1.logger always need it
-				if(logger.size()>=200){
-					logger.remove(0, 100);
-				}else{
-					logger.add(mm);
+				//1.observable list for GUI 
+				if(observe.size()>=500) {
+					observe.remove(0);
 				}
+				observe.add(mm);
 				//2.Should we put it in pool?
 				if(usePool.get()==true){
 					pooler.add(mm);
@@ -177,7 +180,7 @@ public class LogStream {
 	};
 	
 	private static Optional<LogStream> self = Optional.empty();
-	private static Optional<PanBase> console = Optional.empty();
+	private static Optional<PanBase> console= Optional.empty();
 	
 	private LogStream(){
 		String[] name = {null,null};
@@ -204,7 +207,7 @@ public class LogStream {
 		}
 	}
 	
-	private ObservableList<Mesg> logger = FXCollections.observableArrayList();
+	private final ObservableList<Mesg> observe = FXCollections.observableArrayList();	
 	private final AtomicBoolean usePool = new AtomicBoolean(false);
 	private final ArrayList<Mesg> pooler = new ArrayList<Mesg>();
 	
@@ -217,8 +220,27 @@ public class LogStream {
 		}
 		usePool.set(enable);
 	}
+	/**
+	 * fetch message from pool.<p>
+	 * @param count - negative integer means indexinf from tail.<p>
+	 * @return array of message structure
+	 */
+	public Mesg[] fetchPool(final int count){
+		int cnt = Math.abs(count);
+		int max = pooler.size();
+		if(cnt>=max) {
+			cnt = 0;
+		}
+		Mesg[] buf = new Mesg[cnt];
+		if(count>0) {
+			return Arrays.copyOfRange(buf, 0, cnt);
+		}else if(count<0) {			
+			return Arrays.copyOfRange(buf, max-cnt, cnt); 
+		}
+		return pooler.toArray(buf);
+	}
 	public Mesg[] fetchPool(){
-		return pooler.toArray(new Mesg[0]);
+		return fetchPool(0);
 	}
 	public Mesg[] flushPool() {
 		Mesg[] lst = fetchPool();
@@ -232,7 +254,7 @@ public class LogStream {
 	 * @param name
 	 */
 	public void serializePool(final String name){
-		Misc.serialize2file(name, flushPool());
+		Misc.serialize2file(flushPool(),name);
 	}
 
 	public void setHook(final Hooker event){
@@ -245,23 +267,101 @@ public class LogStream {
 		}
 	}
 	
+	public static LogStream getInstance() {
+		if(self.isPresent()==false){
+			self = Optional.of(new LogStream());
+		}
+		return self.get();
+	}
+	
+	/**
+	 * convenience method for reading message object.<p>
+	 * @param name - file name of serialized object.
+	 * @return
+	 */
+	public static Mesg[] read(final String name){
+		return read(new File(name));
+	}
+	/**
+	 * convenience method for reading message object.<p>
+	 * @param fs - file of serialized object.
+	 * @return
+	 */
+	public static Mesg[] read(final File fs) {
+		Object obj = Misc.deserializeFile(fs);
+		if(obj!=null) {
+			return (Mesg[])obj;
+		}
+		return null;
+	}
+	
+	public static void dump(
+		final String name,
+		final Mesg[] mesg
+	){
+		if(name.endsWith(".obj")==true){
+			Misc.serialize2file(mesg,name);
+			return;
+		}
+		//flatten data~~~
+		try {
+			FileWriter fs = new FileWriter(name);
+			for(Mesg m:mesg){
+				fs.write(String.format(
+					"%s    %s\r\n",
+					m.getTickText(""),
+					m.getText()
+				));				
+			}
+			fs.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}	
+	//--------------------------------------//
+	
 	@SuppressWarnings("unchecked")
-	private Pane layout_console(PanBase self){
-		
+	public TableView<Mesg> genViewer() {
+				
 		final TableColumn<Mesg,String> col0 = new TableColumn<>("時間");
 		final TableColumn<Mesg,String> col1 = new TableColumn<>("層級");
 		final TableColumn<Mesg,String> col2 = new TableColumn<>("訊息");
 		
 		col0.setCellValueFactory(new PropertyValueFactory<Mesg,String>("col0"));
-		col0.setMinWidth(80);
+		col0.setMinWidth(200);		
 		col1.setCellValueFactory(new PropertyValueFactory<Mesg,String>("col1"));
+		col0.setMinWidth(100);
 		col2.setCellValueFactory(new PropertyValueFactory<Mesg,String>("col2"));		
-		col2.setMinWidth(200);
+		col2.setMinWidth(400);
 		
-		final TableView<Mesg> tbl = new TableView<Mesg>();		
+		final TableView<Mesg> tbl = new TableView<Mesg>();
+		tbl.getStyleClass().addAll("font-console");
 		tbl.setEditable(false);
 		tbl.getColumns().addAll(col0,col1,col2);
-		tbl.setItems(logger);
+		
+		final ListChangeListener<Mesg> event = c->{
+			c.next();
+			final int size = tbl.getItems().size();
+	        if (size > 0) {
+	        	tbl.scrollTo(size - 1);
+	        }
+		};		
+		tbl.setItems(observe);		
+		observe.addListener(event);
+		//TODO: when to remove this change listener ?? 
+		//observe.removeListener(event);
+		
+		final MenuItem itm1 = new MenuItem("清除");
+		itm1.setOnAction(e->observe.clear());
+		final MenuItem itm2 = new MenuItem("儲存");
+		
+		tbl.setContextMenu(new ContextMenu(itm1,itm2));
+		return tbl;
+	}
+	
+	private Pane layout_console(PanBase self){	
+		
+		final TableView<Mesg> tbl = genViewer();
 		
 		final Timeline timer = new Timeline(new KeyFrame(
 			Duration.seconds(1), 
@@ -320,56 +420,4 @@ public class LogStream {
 		console = Optional.of(obj.appear());
 		return obj;
 	}
-
-	public static LogStream getInstance() {
-		if(self.isPresent()==false){
-			self = Optional.of(new LogStream());
-		}
-		return self.get();
-	}
-	
-	/**
-	 * convenience method for reading message object.<p>
-	 * @param name - file name of serialized object.
-	 * @return
-	 */
-	public static Mesg[] read(final String name){
-		return read(new File(name));
-	}
-	/**
-	 * convenience method for reading message object.<p>
-	 * @param fs - file of serialized object.
-	 * @return
-	 */
-	public static Mesg[] read(final File fs) {
-		Object obj = Misc.deserializeFile(fs);
-		if(obj!=null) {
-			return (Mesg[])obj;
-		}
-		return null;
-	}
-	
-	public static void dump(
-		final String name,
-		final Mesg[] mesg
-	){
-		if(name.endsWith(".obj")==true){
-			Misc.serialize2file(name, mesg);
-			return;
-		}
-		//flatten data~~~
-		try {
-			FileWriter fs = new FileWriter(name);
-			for(Mesg m:mesg){
-				fs.write(String.format(
-					"%s    %s\r\n",
-					m.getTickText(""),
-					m.getText()
-				));				
-			}
-			fs.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}	
 }

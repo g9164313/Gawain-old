@@ -1,12 +1,10 @@
 package prj.shelter;
 
-import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXTabPane;
 
 import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
 import javafx.scene.control.Tab;
-import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
@@ -76,36 +74,20 @@ public class PanMain extends PanBase {
 		inf[4].textProperty().bind(hustio.location);
 		inf[5].textProperty().bind(hustio.remainTime);
 		
-		JFXButton btn_measure = new JFXButton("量測");
-		btn_measure.getStyleClass().add("btn-raised-1");
-		
-		JFXButton btn_radiation = new JFXButton("照射");
-		btn_radiation.getStyleClass().add("btn-raised-1");
-		
-		JFXButton btn_test = new JFXButton("test");
-		btn_test.getStyleClass().add("btn-raised-1");
-		btn_test.setOnAction(e->at5350.measure());
-		
 		GridPane lay1 = new GridPane();
 		lay1.getStyleClass().addAll("box-pad-inner");
-		lay1.addRow(0, new Label("大氣壓力："), inf[0]);
+		lay1.addRow(0, new Label("大企壓力："), inf[0]);
 		lay1.addRow(1, new Label("環境濕度："), inf[1]);
 		lay1.addRow(2, new Label("環境溫度："), inf[2]);
 		lay1.add(new Separator(), 0, 3, 2, 1);
 		lay1.addRow(4, new Label("輻射源種："), inf[3]);
 		lay1.addRow(5, new Label("載台位置："), inf[4]);
 		lay1.addRow(6, new Label("照射時間："), inf[5]);
-		lay1.add(new Separator(), 0, 7, 2, 1);		
-		AnchorPane.setTopAnchor(lay1, 0.);
-		AnchorPane.setLeftAnchor(lay1, 0.);
+		lay1.add(new Separator(), 0, 7, 2, 1);
+		lay1.add(new Separator(), 0, 9, 2, 1);
 		
-		VBox lay2 = new VBox(btn_measure,btn_radiation,btn_test);
-		lay2.getStyleClass().addAll("box-pad");
-		AnchorPane.setBottomAnchor(lay2, 0.);
-		AnchorPane.setLeftAnchor(lay2, 0.);
-		
-		AnchorPane lay0 = new AnchorPane();
-		lay0.getChildren().addAll(lay1,lay2);		
+		VBox lay0 = new VBox(lay1);
+		lay0.getStyleClass().addAll("box-pad","border");
 		return lay0;
 	}
 }

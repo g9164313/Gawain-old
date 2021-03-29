@@ -2,8 +2,12 @@
 .background {
    -fx-background-color: WHITE;
 }
-
-
+.font-size2 {
+  -fx-font-size: 1.2em;
+}
+.font-size3 {
+  -fx-font-size: 1.3em;
+}
 .font-size4 {
   -fx-font-size: 1.4em;
 }
@@ -21,6 +25,20 @@
 }
 .font-red {
   -fx-text-fill: #c62828;
+}
+.font-pv0 {
+  -fx-font-family: 'Consolas';
+  -fx-text-fill: black;
+}
+.font-pv1 {
+  -fx-font-family: 'Consolas';
+  -fx-background-color: #d32f2f;
+  -fx-text-fill: #ffffff;
+}
+.font-pv2 {
+  -fx-font-family: 'Consolas';
+  -fx-background-color: #1976d2;
+  -fx-text-fill: #ffffff;
 }
 
 
@@ -118,8 +136,9 @@
   -fx-spacing: 13, 0, 13, 0;
   -fx-padding:  7, 0,  7, 0;
   -fx-hgap: 7;
-  -fx-vgap: 7;	 
+  -fx-vgap: 7; 
 }
+
 .box-pad-group {
   -fx-padding:  13, 0,  7, 0; 
 }

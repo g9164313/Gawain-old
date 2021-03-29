@@ -552,21 +552,21 @@ public class Misc {
 	}
 	//----------------------------------------//
 	
-	public static void asynSerialize2file(
-		final String file_name,
-		final Object source
+	public static void asynSerialize2file(		
+		final Object obj,
+		final String name
 	) {
 		new Thread(
-			()->serialize2file(file_name,source),
+			()->serialize2file(obj,name),
 			"serial2file"
 		).start();
 	}
 	
-	public static void serialize2file(
-		final String name,
-		final Object object
+	public static void serialize2file(		
+		final Object obj,
+		final String name
 	) {
-		serialize2file(new File(name),object);
+		serialize2file(obj,new File(name));
 	}
 	public static Object deserializeFile(
 		final String name
@@ -575,8 +575,8 @@ public class Misc {
 	}
 
 	public static void serialize2file(
-		final File fs,
-		final Object obj
+		final Object obj,
+		final File fs		
 	) {
 		try {
 			FileOutputStream fid = new FileOutputStream(fs);

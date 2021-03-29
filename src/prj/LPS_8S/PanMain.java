@@ -18,6 +18,7 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
+import javafx.event.EventHandler;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
@@ -27,6 +28,7 @@ import javafx.scene.control.Toggle;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
@@ -46,10 +48,9 @@ public class PanMain extends PanBase {
 	private static final String TXT_AXIS_SWING = "擺動軸";
 	private static final String TXT_CYLI_FORCE = "氣壓缸";
 	
-	private ModInsider ibus = new ModInsider();
 	private ModCoupler coup = new ModCoupler();
-	//private LogHistory hist = new LogHistory(ibus,coup);
-	
+	private ModInsider ibus = new ModInsider(coup);	
+
 	private SignMotor[] moto = {
 		new SignMotor(TXT_AXIS_MAJOR).binding(
 			ibus.MAJOR_RPM.negate().divide(40), 
@@ -185,38 +186,6 @@ public class PanMain extends PanBase {
 		},
 	};
 	
-	private final NotifyEvent[] e_unlock_master = {
-		(ldd,dlg)->{
-			dlg.setText("退出卡榫");
-			ladderJump(ldd,1);
-		}	
-	};
-	private final NotifyEvent[] e_lock_master = {
-		(ldd,dlg)->{
-			if(coup.flgMasterLocate.get()==true) {
-				ladderJump(ldd,-1);
-				return;
-			}
-			if(coup.flgMasterUnLock.get()==true) {
-				//TODO:汽缸準備
-				ladderJump(ldd,-1);
-				return;
-			}
-			dlg.setText("準備拆模");
-			ibus.setSpeed(ModInsider.ID_MAJOR, 50);
-		},
-		(ldd,dlg)->{
-			dlg.setText("等待卡榫位置");
-			if(coup.flgMasterLocate.get()==true) {
-				return;
-			}
-			ladderJump(ldd,2);
-		},
-		(ldd,dlg)->{
-			dlg.setText("推入卡榫");
-		}
-	};
-	
 	@Override
 	public Pane eventLayout(PanBase self) {
 		
@@ -231,7 +200,7 @@ public class PanMain extends PanBase {
 			gen_locate_setting(TXT_AXIS_PRESS,ModInsider.ID_PRESS),
 			gen_locate_setting(TXT_AXIS_SWING,ModInsider.ID_SWING),
 			//gen_locate_setting(TXT_AXIS_MAJOR,ModInsider.ID_MAJOR)
-			gen_starter_setting()
+			gen_start_work_setting()
 		);
 		
 		final HBox lay1 = new HBox(lay_info,lay_ctrl);
@@ -259,32 +228,73 @@ public class PanMain extends PanBase {
 		
 		final GridPane lay = new GridPane();
 		lay.getStyleClass().addAll("box-pad","box-border");
-		lay.add(new Label("轉速設定"), 0, 0, 2, 1);
+		lay.add(new Label("馬達轉速設定"), 0, 0, 2, 1);
 		lay.addRow(1, new Label("主軸:"),txt[0]);
 		lay.addRow(2, new Label("加壓:"),txt[1]);
 		lay.addRow(3, new Label("擺動:"),txt[2]);
 		return lay;
 	}
-	
+		
 	private Pane gen_stretch_option() {
+		
+		final EventHandler<MouseEvent> event_set_volt = new EventHandler<MouseEvent>(){
+			@Override
+			public void handle(MouseEvent event) {PadTouch pad = new PadTouch('f',"Volt");
+				Optional<String> opt = pad.showAndWait();			
+				if(opt.isPresent()==false) {
+					return;
+				}
+				float val = Float.valueOf(opt.get());
+				Label txt = (Label)event.getSource();
+				txt.setText(String.format("%.1f V", val));
+				txt.setUserData(val);
+			}
+		};
+		
+		final Label[] txt = {
+			new Label("3.0 V"),
+			new Label("3.0 V"),
+		};
+		txt[0].setOnMouseClicked(event_set_volt);
+		txt[1].setOnMouseClicked(event_set_volt);
+		txt[0].setUserData(3f);
+		txt[1].setUserData(3f);
+		
+		final JFXButton btn = new JFXButton("");
+		btn.getStyleClass().add("btn-raised-1");
+		btn.setPrefSize(64., 64.);
+		btn.setOnAction(e->coup.armForce(
+			(float)txt[0].getUserData(),
+			(float)txt[1].getUserData()
+		));
 		
 		final ToggleGroup grp = new ToggleGroup();
 		final JFXRadioButton[] rad = {
+			new JFXRadioButton("自訂"),
 			new JFXRadioButton("高度-1"),
 			new JFXRadioButton("高度-2"),
-			new JFXRadioButton("高度-3"),
+			new JFXRadioButton("高度-3"),			
 		};
-		rad[0].setSelected(true);
+		rad[1].setSelected(true);
 		rad[0].setToggleGroup(grp);
 		rad[1].setToggleGroup(grp);
 		rad[2].setToggleGroup(grp);
-		rad[0].setOnAction(e->coup.ArmDownDelay.set(500));
-		rad[1].setOnAction(e->coup.ArmDownDelay.set(650));
-		rad[2].setOnAction(e->coup.ArmDownDelay.set(750));
+		rad[3].setToggleGroup(grp);
+		rad[1].setOnAction(e->coup.ArmDownDelay.set(500));
+		rad[2].setOnAction(e->coup.ArmDownDelay.set(650));
+		rad[3].setOnAction(e->coup.ArmDownDelay.set(750));
 		
-		final VBox lay = new VBox(new Label("汽缸設定"));
-		lay.getChildren().addAll(rad);
+		txt[0].visibleProperty().bind(rad[0].selectedProperty());		
+		txt[1].visibleProperty().bind(rad[0].selectedProperty());
+		btn.visibleProperty().bind(rad[0].selectedProperty());
+		
+		final GridPane lay = new GridPane();
 		lay.getStyleClass().addAll("box-pad","box-border");
+		lay.addColumn(0, new Label("加壓軸汽缸設定"), rad[0], rad[1], rad[2], rad[3]);
+		lay.add(txt[0], 1, 1);
+		lay.add(txt[1], 1, 2);
+		lay.add(btn   , 1, 3, 1,2);
+	
 		return lay;
 	}
 	
@@ -295,20 +305,8 @@ public class PanMain extends PanBase {
 		final JFXButton btn = new JFXButton("");
 		btn.setPrefSize(64., 64.);
 		btn.getStyleClass().add("btn-raised-1");
-		btn.setOnMousePressed (e->{
-			if(dev_id==ModInsider.ID_MAJOR) {
-				ibus.majorMove(true);
-			}else {
-				coup.servoMove(dev_id, true);
-			}
-		});
-		btn.setOnMouseReleased(e->{
-			if(dev_id==ModInsider.ID_MAJOR) {
-				ibus.majorMove(false);
-			}else {
-				coup.servoMove(dev_id, false);
-			}
-		});
+		btn.setOnMousePressed (e->coup.servoMove(dev_id, true));
+		btn.setOnMouseReleased(e->coup.servoMove(dev_id, false));
 
 		final ToggleGroup grp = new ToggleGroup();
 		final JFXRadioButton[] rad = {
@@ -330,7 +328,7 @@ public class PanMain extends PanBase {
 		return lay;
 	}
 	
-	private Pane gen_starter_setting() {		
+	private Pane gen_start_work_setting() {		
 		final JFXCheckBox[] chk = {
 			new JFXCheckBox("加熱器"),
 			new JFXCheckBox("研磨液"),
@@ -343,7 +341,7 @@ public class PanMain extends PanBase {
 		startMotorOther.bind(chk[3].selectedProperty());
 		chk[3].setSelected(true);
 		
-		final VBox lay = new VBox(new Label("啟動設定"));
+		final VBox lay = new VBox(new Label("加工步驟設定"));
 		lay.getChildren().addAll(chk[1],chk[2],chk[3]);
 		lay.getStyleClass().addAll("box-pad","box-border");
 		return lay; 
@@ -377,7 +375,7 @@ public class PanMain extends PanBase {
 		tgl[2].setOnAction(e->coup.pumpSlurry());
 		
 		tglMotorMajor = tgl[3];
-		//tglMotorMajor.disableProperty().bind(coup.flgMasterUnLock.not());
+		tglMotorMajor.disableProperty().bind(coup.majorUnlock.not());
 		tglMotorMajor.setOnAction(e->{
 			if(tglMotorMajor.isDisable()==true) { return; }
 			ibus.majorKickoff(tgl[3]);
@@ -386,18 +384,28 @@ public class PanMain extends PanBase {
 		tglMotorOther = tgl[4];
 		tgl[4].setOnAction(e->coup.kickoff_other(tgl[4]));
 		
-		final JFXButton btn2 = new JFXButton();
-		btn2.setMaxWidth(Double.MAX_VALUE);
-		btn2.setMinHeight(72.);
-		btn2.getStyleClass().add("btn-raised-1");
-		btn2.setText("test");
-				
+		final JFXButton btn_lock = new JFXButton();
+		btn_lock.setMaxWidth(Double.MAX_VALUE);
+		btn_lock.setMinHeight(72.);
+		btn_lock.getStyleClass().add("btn-raised-0");
+		btn_lock.disableProperty().bind(coup.majorUnlock.not());
+		btn_lock.setText("Lock");
+		btn_lock.setOnAction(e->ibus.lockMajorMotor());
+		
+		final JFXButton btn_unlock = new JFXButton();
+		btn_unlock.setMaxWidth(Double.MAX_VALUE);
+		btn_unlock.setMinHeight(72.);
+		btn_unlock.getStyleClass().add("btn-raised-1");
+		btn_unlock.disableProperty().bind(coup.majorUnlock);
+		btn_unlock.setText("Unlock");
+		btn_unlock.setOnAction(e->coup.LockMasterMotor(false));
+		
 		final VBox lay1 = new VBox(tgl);
 		AnchorPane.setTopAnchor  (lay1, 7.0);
 		AnchorPane.setLeftAnchor (lay1, 7.0);
 		AnchorPane.setRightAnchor(lay1, 7.0);
 		
-		final VBox lay2 = new VBox(btn2); 
+		final VBox lay2 = new VBox(btn_lock,btn_unlock); 
 		lay2.getStyleClass().add("box-pad");
 		AnchorPane.setBottomAnchor(lay2, 7.0);
 		AnchorPane.setLeftAnchor  (lay2, 7.0);
@@ -476,14 +484,6 @@ public class PanMain extends PanBase {
 			.build();
 		tile[4].setDecimals(2);
 		tile[4].valueProperty().bind(coup.ARM_PRESS_UP.multiply(10.2f));
-		tile[4].setOnMouseClicked(e->{
-			PadTouch pad = new PadTouch('f',"Volt");
-			Optional<String> opt = pad.showAndWait();			
-			if(opt.isPresent()==false) {
-				return;
-			}
-			coup.armForce(Float.valueOf(opt.get()));
-		});
 		
 		final GridPane lay = new GridPane();
 		lay.getStyleClass().addAll("box-pad");

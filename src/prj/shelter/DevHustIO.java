@@ -150,17 +150,13 @@ public class DevHustIO extends DevTTY {
 	}
 	
 	public void exec(final String... cmd){
-		String CMD = "";;
+		final byte[] beg = {DC2,'%',CR_};
+		final byte[] end = {'%',DC4};
+		writeByte(beg);
 		for(String txt:cmd){
-			CMD = CMD + txt + CR_;
+			writeTxt(txt+CR_);
 		}
-		byte[] buf = String.format(
-			"%c%c%c%s%c%c",
-			DC2,'%',CR_,
-			CMD,
-			'%',DC4
-		).getBytes();
-		writeByteDelay(2,buf);
+		writeByte(end);
 	}
 	
 	private void make_radiaton(final String isotope) {
@@ -209,31 +205,25 @@ public class DevHustIO extends DevTTY {
 	 * The position is an absolute location.<p> 
 	 * @param position - physical number
 	 */
-	public void moveToAbs(
-		final String position
-	){asyncBreakIn(()->{
+	public void moveToAbs(final String position){
 		if(position.length()==0){
 			exec("O9005","N00100000");//go home
 		}else{
 			double val = UtilPhysical.convert(position, "mm");
-			if(val<=0.){
-				exec("O9005","N00100000");//go home
-			}else{
-				exec("O9000","N0000111",String.format("G01X%.2f",val));
-			}			
+			exec("O9000","N0000111",String.format("G01X%.2f",val));
 		}
-	});}
+	}
 	public void moveToAbs(
 		final double value, 
 		final String unit
-	){asyncBreakIn(()->{
+	){
 		double val = UtilPhysical.convert(value, unit, "mm");
 		if(val<=0.){
 			exec("O9005","N00100000");//go home
 		}else{
 			exec("O9000","N0000111",String.format("G01X%.2f",val));
 		}
-	});}
+	}
 	//-------------------------------------------//
 
 	public static Pane genPanelD(final DevHustIO dev){

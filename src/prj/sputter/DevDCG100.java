@@ -3,19 +3,23 @@ package prj.sputter;
 import java.util.Optional;
 
 import com.jfoenix.controls.JFXButton;
+import com.jfoenix.controls.JFXComboBox;
 import com.jfoenix.controls.JFXRadioButton;
+import com.jfoenix.controls.JFXTextField;
 import com.sun.glass.ui.Application;
 
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.FloatProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleFloatProperty;
+import javafx.beans.property.StringProperty;
 import javafx.event.EventHandler;
 import javafx.geometry.Orientation;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
+import javafx.scene.control.SingleSelectionModel;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
@@ -58,7 +62,7 @@ public class DevDCG100 extends DevTTY {
 		v_spr = cook(exec("SPR"),"5");
 		v_spv = cook(exec("SPV"),"100.0V");
 		v_spa = cook(exec("SPA"),"0.01A");
-		v_spw = cook(exec("SPW"),"32W");
+		v_spw = cook(exec("SPW"),"0W");
 		v_spt = cook(exec("SPT"),"30.000");
 		v_spj = cook(exec("SPJ"),"0");
 		ans = cook(exec("CHL"),"W");
@@ -93,12 +97,16 @@ public class DevDCG100 extends DevTTY {
 	public final FloatProperty watt = new SimpleFloatProperty(0.f);
 	public final FloatProperty joul = new SimpleFloatProperty(0.f);	
 
+	private int cur_watt = 0;
+		
 	private void measurement() {
 		final String[] val = {"","","",""};
 		val[0] = cook(exec("MVV"),"");
 		val[1] = cook(exec("MVA"),"");
 		val[2] = cook(exec("MVW"),"");
-		val[3] = cook(exec("MVJ"),"");
+		cur_watt = Integer.valueOf(val[2]);
+		//val[3] = cook(exec("MVJ"),"");
+		
 		//output on-time
 		//format is hhhhhhh.mm.ss
 		/*long v_sec = -1L;
@@ -116,7 +124,7 @@ public class DevDCG100 extends DevTTY {
 			txt2prop(val[0], volt);
 			txt2prop(val[1], amps);
 			txt2prop(val[2], watt);
-			txt2prop(val[3], joul);
+			//txt2prop(val[3], joul);
 		});
 	}
 	protected void afterOpen() {
@@ -196,6 +204,20 @@ public class DevDCG100 extends DevTTY {
 		txt2prop(txt,prop,1f);
 	}
 	
+	public void asyncAdjustWatt(
+		final int watt,
+		final int min_v,
+		final int max_v
+	) {asyncBreakIn(()->{
+		int val = cur_watt + watt;
+		if(min_v>0 && val<=min_v){
+			return;
+		}
+		if(max_v>0 && max_v<=val){
+			return;
+		}
+		exec("SPW="+val);
+	});}
 	public void asyncExec(final String cmd) {asyncBreakIn(()->{
 		final String res = exec(cmd);
 		if(res.endsWith("*")==true) {
@@ -203,9 +225,9 @@ public class DevDCG100 extends DevTTY {
 		}
 		Application.invokeAndWait(()->{
 			Alert alt = new Alert(AlertType.ERROR);
-			alt.setTitle("!!錯誤的回應!!");
-			alt.setHeaderText(cmd+":"+res);
-			alt.setContentText(null);
+			alt.setTitle("DCG100");
+			alt.setHeaderText("無效的命令");
+			alt.setContentText(cmd+" ("+res+")");
 			alt.showAndWait();
 		});
 	});}	
@@ -285,6 +307,100 @@ public class DevDCG100 extends DevTTY {
 			PadTouch.toMillsec(_val)
 		);
 		return _val;
+	}
+	
+	public static Pane genCtrlPanel(final DevDCG100 dev) {
+
+		final JFXComboBox<String> cmb = new JFXComboBox<String>();
+		cmb.setMaxWidth(Double.MAX_VALUE);
+		cmb.getItems().addAll("功率","電壓","電流");		
+		final SingleSelectionModel<String> opt = cmb.getSelectionModel();
+		opt.select(0);
+		cmb.setOnAction(e->{
+			String cmd = "";
+			switch(opt.getSelectedIndex()) {
+			case 0: cmd = "CHL=W"; break;
+			case 1: cmd = "CHL=V"; break;
+			case 2: cmd = "CHL=A"; break;
+			default: return;
+			}
+			dev.asyncExec(cmd);
+		});
+		GridPane.setHgrow(cmb, Priority.ALWAYS);
+		
+		final Label txt_pv = new Label();
+		txt_pv.setMaxWidth(Double.MAX_VALUE);	
+		GridPane.setHgrow(txt_pv, Priority.ALWAYS);
+		
+		final JFXTextField box = new JFXTextField("100");
+		box.setMaxWidth(Double.MAX_VALUE);	
+		box.setOnAction(e->{
+			String txt_sv = box.getText().trim();
+			if(txt_sv.matches("\\d+")==false) {
+				return;
+			}
+			int val = Integer.valueOf(txt_sv);
+			String cmd = "";
+			switch(opt.getSelectedIndex()) {
+			case 0: cmd = "SPW="+val; break;
+			case 1: cmd = "SPV="+val; break;
+			case 2: cmd = "SPA="+val; break;
+			default: return;
+			}
+			dev.asyncExec(cmd);
+		});
+		GridPane.setHgrow(box, Priority.ALWAYS);
+		
+		final JFXButton[] btn = {
+			new JFXButton("ON"), 
+			new JFXButton("OFF")	
+		};		
+		for(JFXButton obj:btn) {
+			obj.setMaxWidth(Double.MAX_VALUE);
+			GridPane.setHgrow(obj, Priority.ALWAYS);
+		}
+		btn[0].getStyleClass().add("btn-raised-1");		
+		btn[1].getStyleClass().add("btn-raised-2");
+		
+		btn[0].setOnAction(e->{
+			txt_pv.getStyleClass().add("font-pv1");
+			final StringProperty pp = txt_pv.textProperty();			
+			switch(opt.getSelectedIndex()) {
+			case 0: pp.bind(dev.watt.asString("%3.0f W")); break;
+			case 1: pp.bind(dev.volt.asString("%5.2f V")); break;
+			case 2: pp.bind(dev.amps.asString("%5.2f A")); break;
+			default: txt_pv.setText("???"); break;
+			}
+			dev.asyncExec("TRG");
+		});
+		btn[1].setOnAction(e->{
+			txt_pv.getStyleClass().remove("font-pv1");
+			txt_pv.textProperty().unbind();
+			txt_pv.setText("");
+			dev.asyncExec("OFF");
+		});
+		
+		final GridPane lay = new GridPane();
+		lay.getStyleClass().addAll("box-pad");
+		lay.addRow(0, new Label("調變"), cmb);
+		lay.addRow(1, new Label("輸出"), txt_pv);
+		lay.addRow(2, new Label("輸入"), box);
+		lay.add(btn[0], 0, 3, 2, 1);
+		lay.add(btn[1], 0, 4, 2, 1);
+		
+		dev.isRemote.addListener((obv,oldVal,newVal)->{
+			if(newVal==false) {
+				lay.setDisable(true);
+			}else {
+				lay.setDisable(false);
+				switch(dev.v_chl) {
+				case 'W': opt.select(0); break;
+				case 'V': opt.select(1); break;
+				case 'A': opt.select(2); break;
+				}
+			}
+		});
+		return lay;
 	}
 	
 	public static Pane genPanel(final DevDCG100 dev) {

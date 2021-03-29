@@ -112,7 +112,7 @@ public class LayGauges extends FlowPane {
 			gag[5],
 			dev.thickRange[1].doubleValue()
 		);
-		gag[5].setUnit(dev.unitThick.get());
+		gag[5].setUnit(dev.unitHigh.get());
 		return this;
 	}
 	public LayGauges bindProperty(final ModCouple dev) {

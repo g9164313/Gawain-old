@@ -31,36 +31,41 @@ public class DevAT5350 extends DevTTY {
 
 	public DevAT5350(){
 		TAG="AT5350";
+		readTimeout = 600;
+		//flowControl = 2;
 	}
 	public DevAT5350(final String path){
 		this();
 		setPathName(path);
-	}	
-	protected void afterOpen() {		
-		init_param();		
-	}
-	
-	private void init_param(){
-		final String idn = wxr("*IDN?");
-		final String conf= wxr("CONF?");
-		
-		Application.invokeLater(()->{
-			
-		});	
-	}
-	
-	private String wxr(String cmd){
-		if(cmd.endsWith("\n")==false){
-			cmd = cmd + "\n";
-		}
-		writeTxtDelay(6,cmd);
-		String[] res = readTxt().split("\n");
-		if(res.length<=1){
-			return "";
-		}
-		return res[1];	
 	}
 
+	protected void afterOpen() {
+		playFlow("");
+		asyncBreakIn(()->{
+			String[] idfy = wxr("*IDN?")
+				.replaceAll("[\n|\\s]", "")
+				.split(",");
+			//wxr("TRIG:COUN 5");
+			//wxr("TRIG:ECO 10");
+			if(idfy.length<4){
+				return;
+			}
+			Application.invokeAndWait(()->{
+				Identify[0].setValue(idfy[0]);
+				Identify[1].setValue(idfy[1]);
+				Identify[2].setValue(idfy[2]);
+				Identify[3].setValue(idfy[3]);
+			});	
+		});
+	}
+	
+	public final StringProperty[] Identify ={ 
+		new SimpleStringProperty("＊＊＊＊"),
+		new SimpleStringProperty("＊＊＊＊"),
+		new SimpleStringProperty("＊＊＊＊"),
+		new SimpleStringProperty("＊＊＊＊"),
+	};
+	
 	/**
 	 * use 'CONF?' to get type and range:
 	 * CURRent - 電流 [LOW|MEDium|HIGH]
@@ -74,26 +79,30 @@ public class DevAT5350 extends DevTTY {
 	 * MEDium-  18 mSv/min
 	 * HIGH  -  1.8 Sv/min
 	 */
-	
 	/**
 	 * Filter state(on or off) and value.<p>
 	 * Only used in :CURRent|:DRATe.<p>
+	 */
+	/**
 	 * Damper state(on or off) and value.<p>
 	 * Only used in :CURRent|:DRATe.<p>
+	 */
+	/**
 	 * Correction state(on or off) for measuring zero.<p>
 	 * Only used in :CURRent|:DRATe.<p>
+	 */
+	/**
 	 * Adjusting factor(on or off), Temperature and Pressure.<p>
+	 */
+	/**
 	 * high voltage source(on or off).<p>
 	 */
 
-	public void compensate(){asyncBreakIn(()->{
-		wxr(":CORRection:AUTO");
-		blocking_delay(500);
-		//let working thread blocked~~~
-		wxr("*STB?");//read status byte query	
-	});}
+	public void compensate(){
+		wxr(":CORRection:AUTO\n");
+	}
 	public void abort(){asyncBreakIn(()->{
-		wxr("ABOR");
+		wxr("ABOR\n");
 	});}
 	
 	/**
@@ -104,11 +113,11 @@ public class DevAT5350 extends DevTTY {
 	 * average dose rate from last measurement.<p>
 	 * value and unit.<p>
 	 */
-	public final StringProperty avgDose= new SimpleStringProperty();
+	public final StringProperty avgDose= new SimpleStringProperty("＊＊＊＊");
 	/**
 	 * standard deviation dose rate from last measurement.<p>
 	 */
-	public final StringProperty devDose= new SimpleStringProperty();
+	public final StringProperty devDose= new SimpleStringProperty("＊＊＊＊");
 	
 	/**
 	 * @param configue - measurement type and range.<p>
@@ -120,7 +129,8 @@ public class DevAT5350 extends DevTTY {
 	 * 		Filter, damper, High-Voltage, Temperature, Pressure.<p>
 	 */
 	public void measure(){asyncBreakIn(()->{
-		String res;		
+		
+		String res;
 		int coun,eco;
 		try{
 			coun= Integer.valueOf(wxr("TRIG:COUN?"));
@@ -129,7 +139,6 @@ public class DevAT5350 extends DevTTY {
 			Misc.loge("[%s] ECOunt or COUNt fail!!", TAG);
 			return;
 		}
-
 		wxr("INIT");//delay = ECO * COUN * 0.1sec
 		try {
 			Thread.sleep(1000*(1+(coun*eco)/10));
@@ -165,7 +174,36 @@ public class DevAT5350 extends DevTTY {
 		}
 		return false;
 	}
-
+	private String wxr(String cmd){
+		//write_with_delay(cmd);
+		if(cmd.endsWith("\n")==false){
+			cmd = cmd + "\n";
+		}
+		writeTxtDelay(25,cmd);
+		String res = readTxt(600).trim();
+		if(verbose==true){
+			Misc.logv("[%s] %s --> %s",TAG,cmd,res);
+		}
+		int pos = res.indexOf('\n');
+		if(pos>0){
+			res = res.substring(pos+1);
+		}
+		return res;	
+	}
+	/*private void write_with_delay(String cmd){
+		if(cmd.endsWith("\n")==false){
+			cmd = cmd + "\n";
+		}
+		for(byte val:cmd.getBytes()){
+			writeByte(val);
+			try {
+				Thread.sleep(25);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+	}*/
+	
 	private String[] split_txt(String txt){
 		ArrayList<String> vals = new ArrayList<String>(10);
 		int beg, end;
@@ -290,7 +328,8 @@ public class DevAT5350 extends DevTTY {
 	public static Pane genPanel(final DevAT5350 dev){
 		
 		Label name = new Label();
-
+		name.textProperty().bind(dev.Identify[1]);
+		
 		final JFXComboBox<String> cmb = new JFXComboBox<String>();
 		cmb.getItems().addAll(
 			":CHARge LOW", ":CHARge HIGH",
@@ -371,7 +410,8 @@ public class DevAT5350 extends DevTTY {
 		
 		btn[1].setText("高壓補償");
 		btn[1].getStyleClass().add("btn-raised-1");
-
+		btn[1].setOnAction(e->compensate((Node)e.getSource(),dev));
+		
 		btn[2].setText("下載參數");
 		btn[2].getStyleClass().add("btn-raised-2");
 		btn[2].setOnAction(e->load_param(dev,cmb,tgl,box));
@@ -423,4 +463,26 @@ public class DevAT5350 extends DevTTY {
 		lay0.setRight(lay2);
 		return lay0;
 	}
+	
+	private static void compensate(
+		final Node obj, 
+		final DevAT5350 dev
+	){
+		PanBase pan = PanBase.self(obj);
+		Task<?> tsk = new Task<Void>(){
+			@Override
+			protected Void call() throws Exception {
+				updateMessage("開始高壓補償");
+				dev.compensate();
+				int sec = 3 * 60; 
+				do{
+					Thread.sleep(1000);
+					sec-=1;
+					updateMessage("剩餘時間 "+Misc.tick2text(sec*1000));
+				}while(sec>0);
+				return null;
+			}
+		};
+		pan.notifyTask(dev.TAG+"-高壓補償", tsk);
+	}	
 }

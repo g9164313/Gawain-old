@@ -36,22 +36,14 @@ public class StepFlowCtrl extends Stepper {
 	};
 	
 	private void arrange_prop(
-		final FloatProperty prop,
 		final TextField box,
 		final Label txt		
 	) {
 		txt.setText("----");
-		txt.setUserData(null);
-		String sval = box.getText();		
-		if(sval.length()==0) { 
-			return;
-		}
-		try {
-			float val = Float.valueOf(sval);
-			prop.set(val);
+		txt.setUserData(null);	
+		if(box.getText().length()!=0) {
+			//FIXME:here sampling~~~
 			txt.setUserData(new DescriptiveStatistics(5));
-		}catch(NumberFormatException e) {
-			e.printStackTrace();
 		}
 	};
 	
@@ -74,7 +66,8 @@ public class StepFlowCtrl extends Stepper {
 			float val = Float.valueOf(sval);
 			float avg = (float)sts.getMean();
 			txt.setText(String.format("%.2fsccm",avg));
-			if(Math.abs(val-avg)<0.5) {
+			//FIXME:how to decide stable state?
+			if(Math.abs(val-avg)<0.7) {
 				return true;
 			}
 		}catch(NumberFormatException e) {
@@ -84,13 +77,18 @@ public class StepFlowCtrl extends Stepper {
 	}
 	
 	final Runnable op1 = ()->{
-		status.setText("準備中");
-		arrange_prop(dev.SV_FlowAr,box_sval[0],txt_mean[0]);
-		arrange_prop(dev.SV_FlowO2,box_sval[1],txt_mean[1]);
-		arrange_prop(dev.SV_FlowN2,box_sval[2],txt_mean[2]);
+		status.setText("準備氣體");
+		arrange_prop(box_sval[0],txt_mean[0]);
+		arrange_prop(box_sval[1],txt_mean[1]);
+		arrange_prop(box_sval[2],txt_mean[2]);
+		dev.asynSetMassFlow(
+			box_sval[0].getText(), 
+			box_sval[2].getText(), 
+			box_sval[1].getText()
+		);
 		next_step();
 	};
-	
+		
 	final Runnable op2 = ()->{
 		status.setText("穩定中");
 		boolean flg = true;
@@ -118,10 +116,10 @@ public class StepFlowCtrl extends Stepper {
 		status.setPrefWidth(150);
 		
 		for(TextField obj:box_sval) { 
-			obj.setPrefWidth(83); 
+			obj.setPrefWidth(97); 
 		}
 		for(Label obj:txt_mean) { 
-			obj.setPrefWidth(83);
+			obj.setPrefWidth(97);
 		}
 		
 		GridPane lay = new GridPane();
@@ -171,31 +169,19 @@ public class StepFlowCtrl extends Stepper {
 	}
 	//-------------------------------------//
 	
-	private static void set_flow_value(
-		final FloatProperty prop,
-		final TextField box
-	) {
-		final String txt = box.getText().trim();
-		try {
-			prop.set(Float.valueOf(txt));
-		}catch(NumberFormatException e) {
-			Misc.loge("Wrong Format:%s", txt);
-		}
-	}
-	
 	public static Pane genCtrlPanel() {
 				
 		final JFXTextField[] box = {
-			new JFXTextField(),
-			new JFXTextField(),
-			new JFXTextField()
+			new JFXTextField(),//Ar
+			new JFXTextField(),//N2
+			new JFXTextField() //O2
 		};
 		for(JFXTextField obj:box) { 
 			obj.setPrefWidth(63);
 		}
-		box[0].setOnAction(e->set_flow_value(dev.SV_FlowAr,box[0]));
-		box[1].setOnAction(e->set_flow_value(dev.SV_FlowO2,box[1]));
-		box[2].setOnAction(e->set_flow_value(dev.SV_FlowN2,box[2]));
+		box[0].setOnAction(e->dev.asynSetMassFlow(box[0].getText(),"",""));
+		box[1].setOnAction(e->dev.asynSetMassFlow("",box[1].getText(),""));
+		box[2].setOnAction(e->dev.asynSetMassFlow("","",box[2].getText()));
 		
 		final Label[] txt = {
 			new Label(),
@@ -206,15 +192,15 @@ public class StepFlowCtrl extends Stepper {
 			obj.setPrefWidth(63);
 		}
 		txt[0].textProperty().bind(dev.PV_FlowAr.asString("%5.2f"));
-		txt[1].textProperty().bind(dev.PV_FlowO2.asString("%5.2f"));
-		txt[2].textProperty().bind(dev.PV_FlowN2.asString("%5.2f"));
+		txt[1].textProperty().bind(dev.PV_FlowN2.asString("%5.2f"));
+		txt[2].textProperty().bind(dev.PV_FlowO2.asString("%5.2f"));
 		
 		GridPane lay = new GridPane();
 		lay.getStyleClass().add("box-pad");
 		lay.add(new Label("微量氣體（SCCM）"),0,0,3,1);
-		lay.addColumn(0, new Label("Ar"), new Label("O2"), new Label("N2"));
-		lay.addColumn(1, box);
-		lay.addColumn(2, txt);
+		lay.addColumn(0, new Label("Ar"), new Label("N2"), new Label("O2"));
+		lay.addColumn(1, txt);
+		lay.addColumn(2, box);		
 		return lay; 
 	}
 	

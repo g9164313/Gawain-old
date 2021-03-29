@@ -1,242 +1,421 @@
 package prj.sputter;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Optional;
 
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.DataFormat;
+import org.apache.poi.ss.usermodel.Font;
+import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import com.jfoenix.controls.JFXButton;
+import com.jfoenix.controls.JFXProgressBar;
 import com.jfoenix.controls.JFXRadioButton;
-import com.jfoenix.controls.JFXToggleButton;
 
-import javafx.animation.Animation;
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
-import javafx.beans.binding.DoubleBinding;
-import javafx.beans.property.FloatProperty;
-import javafx.collections.ObservableList;
+import eu.hansolo.tilesfx.Tile;
+import eu.hansolo.tilesfx.TileBuilder;
+import eu.hansolo.tilesfx.Tile.SkinType;
 import javafx.concurrent.Task;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.Label;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
+import javafx.scene.control.ProgressBar;
 import javafx.scene.control.ToggleGroup;
-import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.VBox;
-import javafx.util.Duration;
-
+import javafx.scene.layout.Pane;
+import javafx.scene.layout.StackPane;
 import narl.itrc.Gawain;
 import narl.itrc.Misc;
+import narl.itrc.PanBase;
+import narl.itrc.init.LogStream;
+import narl.itrc.init.LogStream.Mesg;
 
-public class LayLogger extends VBox {
+public class LayLogger extends BorderPane {
 
-	private final TableView<Record> table = new TableView<Record>();
-	
-	private final JFXToggleButton starter = new JFXToggleButton();
-	
-	private final ToggleGroup period = new ToggleGroup();
-	
-	private Optional<Timeline> time = Optional.empty();
+	private final AnchorPane lay_status = new AnchorPane();
 	
 	public LayLogger() {
 		
-		init_table();
+		Node n1 = LogStream.getInstance().genViewer();
+		Node n2 = layout_gauge();
 		
-		final JFXRadioButton[] rad = {
-			new JFXRadioButton(" 1 秒"),
-			new JFXRadioButton(" 5 秒"),
-			new JFXRadioButton("10 秒"),
-		};
-		rad[0].setUserData(Duration.seconds(1.));
-		rad[1].setUserData(Duration.seconds(5.));
-		rad[2].setUserData(Duration.seconds(10.));
-		for(int i=0; i<rad.length; i++) {
-			rad[i].setToggleGroup(period);
-		}
-		period.selectToggle(rad[0]);
+		final ToggleGroup grp = new ToggleGroup();
+		final JFXRadioButton r_n1 =	new JFXRadioButton("訊息");
+		final JFXRadioButton r_n2 =	new JFXRadioButton("儀錶");
+		r_n1.setToggleGroup(grp);
+		r_n2.setToggleGroup(grp);
+		r_n1.setSelected(true);
 		
-		starter.setText("紀錄");
-		starter.setOnAction(e->{
-			if(time.isPresent()==false) {
-				startRecord();
-			}else {
-				stopRecord();
-			}
+		n1.visibleProperty().bind(r_n1.selectedProperty());
+		n2.visibleProperty().bind(r_n2.selectedProperty());
+				
+		final StackPane lay_view = new StackPane(n1,n2);
+		lay_view.getStyleClass().addAll("box-pad");
+		
+		final JFXButton btn = new JFXButton("test~logger");
+		btn.setOnAction(e->{
+			//if(badge.isPresent()==false) {
+			//	show_progress();
+			//}else {
+				done_progress();
+			//}			
 		});
 		
-		final JFXButton btnDump = new JFXButton("匯出");
-		btnDump.disableProperty().bind(starter.selectedProperty());
-		btnDump.getStyleClass().add("btn-raised-1");
-		btnDump.setMinWidth(120.);
-		btnDump.setOnAction(e->{
-			File fid = Gawain.mainPanel.saveAs("record.xlsx");
-			if(fid==null) {
+		final HBox lay_ctrl = new HBox(r_n1,r_n2,btn);
+		lay_ctrl.getStyleClass().addAll("box-pad");		
+		AnchorPane.setTopAnchor(lay_ctrl, 0.);
+		AnchorPane.setLeftAnchor(lay_ctrl, 0.);
+		
+		lay_status.getChildren().addAll(lay_ctrl);
+		
+		setCenter(lay_view);	
+		setBottom(lay_status);
+	}	
+	//-----------------------------------------------//
+	
+	private class Badge extends HBox {
+		final Label txt = new Label("紀錄中");
+		final ProgressBar bar = new ProgressBar();
+		Badge() {
+			bar.setProgress(-1.f);
+			//bar.setPrefWidth(100);
+			setStyle("-fx-hgap: 7;");
+			setAlignment(Pos.CENTER);
+			getChildren().addAll(txt,bar);			
+		}
+	};
+	
+	private static final String pathLogStock = Gawain.pathSock+"監控紀錄"+File.separatorChar;
+	private static final String pathLogCache = pathLogStock+"cache"+File.separatorChar;	
+	
+	private class Dumping extends Task<Void>{
+		private void check_path(final String path) throws Exception {
+			updateMessage("確認路徑： "+path);
+			File fs = new File(path);
+			if(fs.exists()==false) {
+				if(fs.mkdirs()==false) {
+					updateMessage("無效的路徑："+path);
+					throw new Exception("Fail to create "+path);
+				}
+			}			
+		}
+		private void dump_text(final Mesg[] msg) {
+			try {
+				updateMessage("輸出文字");
+				FileWriter fs = new FileWriter(String.format(
+					"%s%s.txt",
+					pathLogStock, Misc.getDateName()
+				));
+				for(int i=0; i<msg.length; i++) {
+					updateProgress(i,msg.length);					
+					fs.write(String.format(
+						"%s] %s\r\n",
+						msg[i].getTickText(""),
+						msg[i].getText()
+					));
+				}
+				fs.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		@Override
+		protected Void call() throws Exception {
+			check_path(pathLogStock);
+			check_path(pathLogCache);
+			//Mesg[] msg = LogStream.getInstance().flushPool();
+			Mesg[] msg = (Mesg[]) Misc.deserializeFile(pathLogCache+"CEAA12-0001.obj");
+			dump_text(msg);
+			Workbook wb = new XSSFWorkbook();
+			export_mesg(wb,msg);
+			export_book(wb);			
+			return null;
+		}
+
+		private void export_mesg(
+			final Workbook wb,
+			final Mesg[] msg
+		) throws IOException {
+			updateMessage("工作中");			
+			Sheet sh0 = wb.createSheet("時間表");
+			get_cell(sh0, 0, 0).setCellValue("時間");
+			get_cell(sh0, 1, 0).setCellValue("標記");
+			Sheet shx = null;
+			for(int i=0; i<msg.length; i++) {
+				updateProgress(i,msg.length);
+				flush_action(sh0,msg[i]);
+				shx = flush_recipe(shx,wb,msg[i]);			
+			}
+		}
+		private Sheet flush_recipe(
+			Sheet shx,
+			final Workbook wb,
+			final Mesg msg
+		) {
+			final String txt = msg.getText();			
+			if(txt.matches("^[\\>\\>].+[\\<\\<]$")==true) {
+				//create a new sheet~~~
+				shx = wb.createSheet(txt.substring(2,txt.length()-2).trim());
+				init_column_name(shx,0);
+				init_column_name(shx,1);
+				return shx;
+			}
+			if(shx==null) {
+				return shx;
+			}
+			if(txt.startsWith(StepKindler.TAG_KINDLE)==true) {
+				set_column_value(shx,0,msg);
+			}else if(txt.startsWith(StepWatcher.TAG_WATCH)==true) {
+				set_column_value(shx,1,msg);
+			}			
+			return shx;
+		}
+		private void init_column_name(final Sheet sh,int page) {
+			page = page * 10;
+			get_cell(sh, page+0, 0).setCellValue("時間");
+			get_cell(sh, page+1, 0).setCellValue("電壓");
+			get_cell(sh, page+2, 0).setCellValue("電流");
+			get_cell(sh, page+3, 0).setCellValue("功率");
+			get_cell(sh, page+4, 0).setCellValue("mfc-1");
+			get_cell(sh, page+5, 0).setCellValue("mfc-2");
+			get_cell(sh, page+6, 0).setCellValue("mfc-3");
+			get_cell(sh, page+7, 0).setCellValue("速率");
+			get_cell(sh, page+8, 0).setCellValue("厚度");
+		}
+		private void set_column_value(final Sheet sh,int page,final Mesg msg) {
+			int row = sh.getLastRowNum() + 1;
+			page = page * 10;
+			//put time stamp~~
+			get_cell(sh, page+0, row).setCellValue(msg.getTickText(""));
+			String txt = msg.getText();
+			String[] val = txt
+				.substring(txt.indexOf(":")+1)
+				.split(",");
+			//put other records~~
+			for(int i=0; i<val.length; i++) {
+				get_cell(sh, page+i+1, row).setCellValue(val[i]);
+			}
+		}
+		private void flush_action(final Sheet sh,final Mesg msg) {
+			int row = sh.getLastRowNum() + 1;
+			final String txt = msg.getText();
+			if(
+				txt.startsWith(StepKindler.TAG_KINDLE)==true ||
+				txt.startsWith(StepWatcher.TAG_WATCH)==true
+			) {
 				return;
 			}
-			Gawain.mainPanel.notifyTask(dumpRecord(fid));
-		});
+			//put time stamp~~
+			get_cell(sh, 0, row).setCellValue(msg.getTickText(""));
+			//put action text~~~
+			get_cell(sh, 1, row).setCellValue(txt);
+		}
+		private void export_book(final Workbook wb) throws IOException {
+			updateMessage("匯出試算表");
+			FileOutputStream dst = new FileOutputStream(String.format(
+				"製程紀錄-%s.xlsx",
+				Misc.getDateName()
+			));			
+			wb.write(dst);		
+			wb.close();
+			dst.close();
+		}		
+		private Cell get_cell(
+			final Sheet sheet,
+			final int xx,
+			final int yy
+		){
+			Row rr = sheet.getRow(yy);
+			if(rr==null){ rr = sheet.createRow(yy); }
+			Cell cc = rr.getCell(xx);
+			if(cc==null){ cc = rr.createCell(xx); }
+			return cc;
+		}
+		/*private void prepare_book() {
+			DataFormat fmt;
+			CellStyle styl_norm, styl_upper, styl_lower;
+			fmt = wb.createDataFormat();
+			short f_id = fmt.getFormat("0.000");
+			
+			styl_norm = wb.createCellStyle();
+			styl_norm.setDataFormat(f_id);
+			
+			Font fnt_red = wb.createFont();
+			fnt_red.setColor(IndexedColors.RED.getIndex());
+			
+			Font fnt_blue = wb.createFont();
+			fnt_blue.setColor(IndexedColors.BLUE.getIndex());
+			
+			styl_upper= wb.createCellStyle();
+			styl_upper.setDataFormat(f_id);
+			//styl_upper.setFillBackgroundColor(IndexedColors.RED.getIndex());
+			//styl_upper.setFillPattern(FillPatternType.NO_FILL);			
+			styl_upper.setFont(fnt_red);
+			
+			styl_lower= wb.createCellStyle();
+			styl_lower.setDataFormat(f_id);
+			//styl_lower.setFillBackgroundColor(IndexedColors.BLUE.getIndex());
+			//styl_lower.setFillPattern(FillPatternType.NO_FILL);
+			styl_lower.setFont(fnt_blue);
+		}*/
+	};
+	
+	private Optional<Badge> badge = Optional.empty();
+	
+	public void show_progress() {
+		Badge node;
+		if(badge.isPresent()==false) {
+			node = new Badge();
+			badge = Optional.of(node);
+		}else {
+			node = badge.get();
+		}
+		lay_status.getChildren().add(node);		
+		AnchorPane.setTopAnchor(node, 0.);
+		AnchorPane.setRightAnchor(node, 0.);
+		LogStream.getInstance().usePool(true);
+	}
+	
+	public void done_progress() {
+		LogStream.getInstance().usePool(false);
+		final PanBase pan = PanBase.self(this);
+		final Task<?> tsk = new Dumping();
+		if(badge.isPresent()==true) {
+			Badge node = badge.get();
+			node.bar.progressProperty().bind(tsk.progressProperty());
+			node.txt.textProperty().bind(tsk.messageProperty());
+			tsk.setOnSucceeded(e->lay_status.getChildren().remove(node));
+		}
+		pan.notifyTask("輸出紀錄",tsk);
+	}
+	//-----------------------------------------------//
+	
+	private final Tile gag[] = new Tile[9];
 		
-		final HBox lay0 = new HBox(); 
-		lay0.getStyleClass().addAll("box-pad");
-		lay0.setAlignment(Pos.BASELINE_LEFT);
-		lay0.getChildren().addAll(
-			starter,
-			new Label("週期:"), 
-			rad[0], rad[1], rad[2],
-			new Label("    "),
-			btnDump
+	private Pane layout_gauge() {
+		
+		//gauge for DCG-100
+		gag[0] = TileBuilder.create()
+			.skinType(SkinType.SPARK_LINE)
+			.title("電壓")
+			.unit("Volt")
+			.maxValue(1000)			
+			.build();
+		gag[0].setDecimals(1);
+		gag[0].setId("v_volt");
+						
+		gag[1] = TileBuilder.create()
+			.skinType(SkinType.SPARK_LINE)
+			.title("電流")			
+			.unit("Amp")
+			.maxValue(10)
+			.build();
+		gag[1].setDecimals(2);
+		gag[1].setId("g_amps");
+					
+		gag[2] = TileBuilder.create()
+			.skinType(SkinType.SPARK_LINE)
+			.title("功率")			
+			.unit("Watt")
+			.maxValue(5000)				
+			.build();
+		gag[2].setId("g_watt");
+					
+		gag[3] = TileBuilder.create()
+			.skinType(SkinType.SPARK_LINE)
+			.title("焦耳")			
+			.unit("Joules")
+			.maxValue(5000)			
+			.build();
+		gag[3].setId("g_joul");
+				
+		//gauge for SQM-160
+		gag[4] = TileBuilder.create()			
+			.skinType(SkinType.GAUGE)
+			.title("薄膜速率")	
+			.build();
+		gag[4].setDecimals(3);
+		gag[4].setId("g_rate");
+			
+		gag[5] = TileBuilder.create()
+			.skinType(SkinType.GAUGE)
+			.title("薄膜厚度")
+			.build();
+		gag[5].setDecimals(3);
+		gag[5].setId("g_high");
+				
+		gag[6] = TileBuilder.create()
+			.skinType(SkinType.SPARK_LINE)
+			.title("Ar")
+			.unit("SCCM")
+			.build();
+		gag[6].setDecimals(2);
+		gag[7] = TileBuilder.create()
+			.skinType(SkinType.SPARK_LINE)
+			.title("O2")
+			.unit("SCCM")
+			.build();
+		gag[7].setDecimals(2);
+		gag[8] = TileBuilder.create()
+			.skinType(SkinType.SPARK_LINE)
+			.title("N2")
+			.unit("SCCM")
+			.build();
+		gag[8].setDecimals(2);
+
+		final FlowPane lay = new FlowPane();
+		lay.getStyleClass().addAll("box-pad");
+		lay.setPrefWrapLength(800);
+		lay.getChildren().addAll(gag);
+		return lay;
+	}
+	
+	public void bindProperty(final DevDCG100 dev) {		
+		gag[0].valueProperty().bind(dev.volt);
+		gag[1].valueProperty().bind(dev.amps);
+		gag[2].valueProperty().bind(dev.watt);
+		gag[3].valueProperty().bind(dev.joul);
+	}
+	public void bindProperty(final DevSQM160 dev) {
+		
+		gag[4].valueProperty().bind(dev.rate[0]);
+		gag[4].setMinValue(dev.rateRange[0].doubleValue());
+		set_max_limit(
+			gag[4],
+			dev.rateRange[1].doubleValue()
 		);
-				
-		getChildren().addAll(table,lay0);
+		gag[4].setUnit(dev.unitRate.get());
+		
+		gag[5].valueProperty().bind(dev.thick[0]);
+		gag[5].setMinValue(dev.thickRange[0].doubleValue());
+		set_max_limit(
+			gag[5],
+			dev.thickRange[1].doubleValue()
+		);
+		gag[5].setUnit(dev.unitHigh.get());
+	}
+	public void bindProperty(final ModCouple dev) {
+		gag[6].valueProperty().bind(dev.PV_FlowAr);
+		gag[7].valueProperty().bind(dev.PV_FlowO2);
+		gag[8].valueProperty().bind(dev.PV_FlowN2);
 	}
 	
-	//public DevPoster poster = null;
-	
-	@SuppressWarnings("unused")
-	private void simulation(){
-		for(FloatProperty val:vals){
-			float vv = val.get();
-			float ss = (float)Math.random();
-			ss = ss * 10f;
-			vv = ss * 3f + 7f;
-			val.set(vv);
-		}
-	}
-	
-	private void record(){
-		Record itm = new Record(vals);
-		ObservableList<Record> obv = table.getItems();		
-		if(obv.size()>=3600){
-			obv.remove(0, 1800);
-		}
-		obv.add(itm);
-		table.scrollTo(itm);
-	}
-	
-	public void startRecord() {Misc.invoke(()->{
-		if(time.isPresent()==true) {
-			return;
-		}
-		table.getItems().clear();
-
-		final KeyFrame kfm = new KeyFrame(
-			(Duration)period.getSelectedToggle().getUserData(), 
-			e->record()
-		);		
-		Timeline obj = new Timeline(kfm);
-		obj.setCycleCount(Animation.INDEFINITE);
-		obj.play();
-		time = Optional.of(obj);
-
-		starter.setSelected(true);
-	});}
-	
-	public void stopRecord() {Misc.invoke(()->{
-		
-		if(time.isPresent()==false) {
-			return;
-		}
-		time.get().stop();
-		time = Optional.empty();
-		
-		starter.setSelected(false);
-	});}
-	//--------------------------------//
-	
-	@SuppressWarnings("unchecked")
-	private void init_table() {
-		
-		final TableColumn<Record,String> col0 = new TableColumn<>("時間");
-		final TableColumn<Record,String> col1 = new TableColumn<>("電壓");
-		final TableColumn<Record,String> col2 = new TableColumn<>("電流");
-		final TableColumn<Record,String> col3 = new TableColumn<>("功率");
-		//final TableColumn<Record,String> col4 = new TableColumn<>("焦耳"),
-		final TableColumn<Record,String> col5 = new TableColumn<>("速率");
-		final TableColumn<Record,String> col6 = new TableColumn<>("厚度");
-
-		col0.setCellValueFactory(new PropertyValueFactory<Record,String>("stmp"));
-		col1.setCellValueFactory(new PropertyValueFactory<Record,String>("volt"));
-		col2.setCellValueFactory(new PropertyValueFactory<Record,String>("amps"));
-		col3.setCellValueFactory(new PropertyValueFactory<Record,String>("watt"));
-		//col4.setCellValueFactory(new PropertyValueFactory<Record,String>("joul"));
-		col5.setCellValueFactory(new PropertyValueFactory<Record,String>("rate"));
-		col6.setCellValueFactory(new PropertyValueFactory<Record,String>("high"));
-		
-		DoubleBinding col_w = widthProperty().subtract(col0.prefWidthProperty()).divide(5f);
-		col0.setPrefWidth(100);
-		col1.prefWidthProperty().bind(col_w);
-		col2.prefWidthProperty().bind(col_w);
-		col3.prefWidthProperty().bind(col_w);
-		col5.prefWidthProperty().bind(col_w);
-		col6.prefWidthProperty().bind(col_w);
-		
-		final TableColumn<Record,String> colA = new TableColumn<>("輸出");		
-		final TableColumn<Record,String> colB = new TableColumn<>("薄膜");
-		colA.getColumns().addAll(col1,col2,col3);
-		colB.getColumns().addAll(col5,col6);
-		
-		table.setEditable(false);
-		table.getColumns().addAll(col0,colA,colB);
-		
-		VBox.setVgrow(table, Priority.ALWAYS);
-	}
-	
-	private FloatProperty[] vals = null;
-	
-	public void bindProperty(final FloatProperty... values) {
-		vals = values;
-	}	
-	
-	public Task<?> dumpRecord(final File fid) {
-		
-		return new Task<Void>() {
-			@Override
-			protected Void call() throws Exception {
-				
-				XSSFWorkbook workbook = new XSSFWorkbook();
-		        XSSFSheet sheet = workbook.createSheet("Datatypes in Java");
-				
-		        //create title~~~~
-		        Row row = sheet.createRow(0);
-		        row.createCell(0).setCellValue("時間");					
-				row.createCell(1).setCellValue("電壓");
-				row.createCell(2).setCellValue("電流");
-				row.createCell(3).setCellValue("功率");
-				row.createCell(4).setCellValue("焦耳");
-				row.createCell(5).setCellValue("速率");
-				row.createCell(6).setCellValue("厚度");
-				
-				ObservableList<Record> lst = table.getItems();
-				for(int i=0; i<lst.size(); i++) {
-					row = sheet.createRow(i+1);
-					updateMessage(String.format("處理項目: %d/%d", i, lst.size()));
-					Record itm = lst.get(i);
-					row.createCell(0).setCellValue(itm.getStmp());					
-					row.createCell(1).setCellValue(itm.getValue(1));
-					row.createCell(2).setCellValue(itm.getValue(2));
-					row.createCell(3).setCellValue(itm.getValue(3));
-					row.createCell(4).setCellValue(itm.getValue(4));
-					row.createCell(5).setCellValue(itm.getValue(5));
-					row.createCell(6).setCellValue(itm.getValue(6));
-				}
-				try {
-					updateMessage("匯出檔案中...");
-		            workbook.write(new FileOutputStream(fid));
-		            workbook.close();
-		        } catch (FileNotFoundException e) {
-		            e.printStackTrace();
-		        } catch (IOException e) {
-		            e.printStackTrace();
-		        }
-				return null;
-			}
-		};
+	private void set_max_limit(
+		final Tile obj,
+		final double val
+	) {
+		obj.setMaxValue(val);
+		obj.setThreshold(val-0.7);
 	}
 }

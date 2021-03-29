@@ -16,6 +16,7 @@ import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
 import narl.itrc.DevModbus;
+import narl.itrc.Misc;
 import narl.itrc.PadTouch;
 
 /**
@@ -78,7 +79,11 @@ public class ModInsider extends DevModbus {
 	public final IntegerProperty PV_FA231;
 	public final FloatProperty   PV_COND,PV_TEMP;	
 		
-	public ModInsider() {
+	public final ModCoupler coup;
+	
+	public ModInsider(final ModCoupler dev) {
+		
+		coup = dev;
 		
 		looperDelay = 250;//good delay~~
 		
@@ -181,26 +186,29 @@ public class ModInsider extends DevModbus {
 		super.ignite();//goto next stage~~~~
 	}
 	//-------------------------------------------//
-	
-	private final AtomicBoolean flag_major_move = new AtomicBoolean(false);
-	
-	public void majorMove(final boolean flag) {
-		flag_major_move.set(flag);
-		if(flag==false) {
+
+	public void lockMajorMotor() {asyncBreakIn(()->{
+		//LOP is off : position mode
+		//-B07-B06 -B05 -B04 -B03-B02-B01-B00-
+		//-LOP-POS2-POS1-CTRG-STP-xxx-xxx-xxx-
+		boolean flg = coup.majorLockPing.get();
+		if(flg==true) {
+			coup.LockMasterMotor(true);
 			return;
+		}else {
+			coup.LockMasterMotor(false);
+			block_delay(50);
 		}
-		asyncBreakIn(()->{
-			while(flag_major_move.get()==true) {
-				//LOP is off : position mode
-				//-B07-B06 -B05 -B04 -B03-B02-B01-B00-
-				//-LOP-POS2-POS1-CTRG-STP-xxx-xxx-xxx-
-				writeCont_sid(ID_MAJOR, 0x0630, 0x030);
-				block_delay(50);
-				writeCont_sid(ID_MAJOR, 0x0630, 0x000);
-				block_delay(50);
-			}
-		});
-	}
+		writeCont_sid(ID_MAJOR, 0x0630, 0x010);
+		while(flg==false) {
+			flg = coup.majorLockPing.get();
+			block_delay(5);
+		}
+		writeCont_sid(ID_MAJOR, 0x0630, 0x018);
+		coup.LockMasterMotor(true);
+		block_delay(500);
+		writeCont_sid(ID_MAJOR, 0x0630, 0x000);
+	});}
 	
 	public void majorKickoff(final JFXToggleButton tgl) {
 		final boolean SPIN = tgl.isSelected();

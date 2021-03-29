@@ -27,20 +27,6 @@ import narl.itrc.Misc;
  * 1.3 GND   2.2 GND
  * 1.4 IN7   2.3 IN8
  * -----------------
- * IB IL AO 4-ECO
- * 1.1 OUT1  2.1 OUT2
- * 1.2 GND   2.1 GND
- * 1.3 OUT3  2.2 OUT4
- * 1.4 GND   2.3 GND
- * -----------------
- * IB IL AI 4-ECO
- * 1.1 IN1   2.1 GND
- * 1.2 IN2   2.1 GND
- * 1.3 IN3   2.2 GND
- * 1.4 IN4   2.3 GND 
- * -----------------
- *  
- * -----------------
  * IB IL AI 2/SF-PAC
  * 1.1 +U1   2.1 +U2
  * 1.2 +I1   2.2 +I2
@@ -64,7 +50,7 @@ public class ModCouple extends DevModbus {
 
 	/**
 	 * h8000       - digital input
-	 * i8007       - digital output
+	 * i8005       - digital output
 	 * 
 	 * h8001-8002  - analog 2 input channel
 	 * i8008-8009  - analog 2 setting, B15:parameterization, Bit5-4: 11-standardized 
@@ -87,7 +73,7 @@ public class ModCouple extends DevModbus {
 	
 	public ModCouple(){
 		
-		mapAddress("h8000-8006");
+		mapAddress("h8000-8010");
 		
 		ain1 = mapInteger(8001);
 		ain2 = mapInteger(8002);
@@ -194,16 +180,6 @@ public class ModCouple extends DevModbus {
 	 *   2 --  8 -- SIG ground
 	 *   1 --  9 -- chassis
 	 */
-	
-	public final FloatProperty[] SV_Flow = {
-		new SimpleFloatProperty(),
-		new SimpleFloatProperty(),
-		new SimpleFloatProperty(),
-	};//unit is sccm!!!
-	
-	public final FloatProperty SV_FlowAr = SV_Flow[0];
-	public final FloatProperty SV_FlowN2 = SV_Flow[1];
-	public final FloatProperty SV_FlowO2 = SV_Flow[2];
 		
 	public final FloatProperty[] PV_Flow = {
 		new SimpleFloatProperty(),
@@ -215,43 +191,56 @@ public class ModCouple extends DevModbus {
 	public final FloatProperty PV_FlowN2 = PV_Flow[1];
 	public final FloatProperty PV_FlowO2 = PV_Flow[2];
 	
+	private final float ar_max_sccm = 100f;
+	private final float n2_max_sccm =  30f;
+	private final float o2_max_sccm =  10f;
+	
 	private void set_mass_flow(
-		final int bus_aout,
-		final Number set_val,		
-		final float max_sccm		
-	) {		
-		float volt = (set_val.floatValue() * 5f) / max_sccm;
-		//boundary!!
-		if(volt>5f) { 
-			volt = 5f;
-		}else if(volt<0f){
-			volt = 0f;
+		final int aout_addr,
+		String value,
+		final float max_sccm
+	){
+		try{
+			value = value.trim();
+			if(value.length()==0){
+				return;
+			}
+			float volt = (Float.valueOf(value) * 5f) / max_sccm;
+			//boundary!!
+			if(volt>5f) { 
+				volt = 5f;
+			}else if(volt<=0f){
+				volt = 0f;
+			}
+			int mvolt = (int)(volt * 1000f);//IB IL format
+			writeVals(aout_addr,mvolt);
+		}catch(NumberFormatException e){
+			Misc.loge("Wrong Format: %s", value);
 		}
-		int mvolt = (int)(volt * 1000f);//IB IL format
-		writeVals(bus_aout,mvolt);
 	}
 	
+	/**
+	 * set mass flow control, unit is SCCM
+	 * @param val_ar
+	 * @param val_n2
+	 * @param val_o2
+	 */
+	public void asynSetMassFlow(
+		final String val_ar,
+		final String val_n2,
+		final String val_o2
+	){asyncBreakIn(()->{
+		set_mass_flow(8006, val_ar, ar_max_sccm);
+		set_mass_flow(8007, val_n2, n2_max_sccm);
+		set_mass_flow(8008, val_o2, o2_max_sccm);
+	});}
+	
 	private void init_flow_prop() {
-		
-		final float ar_max_sccm = 100f;
-		final float n2_max_sccm =  30f;
-		final float o2_max_sccm =  10f;
-		
 		Application.invokeLater(()->{
 			PV_Flow[0].bind(ain1.divide(1000f).multiply(ar_max_sccm/5f));
 			PV_Flow[1].bind(ain2.divide(1000f).multiply(n2_max_sccm/5f));
 			PV_Flow[2].bind(ain3.divide(1000f).multiply(o2_max_sccm/5f));			
 		});
-
-		SV_Flow[0].addListener((obv,oldVal,newVal)->asyncBreakIn(()->{			
-			set_mass_flow(8006, newVal, ar_max_sccm);
-		}));
-		SV_Flow[1].addListener((obv,oldVal,newVal)->asyncBreakIn(()->{
-			set_mass_flow(8007, newVal, n2_max_sccm);
-		}));
-		SV_Flow[2].addListener((obv,oldVal,newVal)->asyncBreakIn(()->{
-			set_mass_flow(8008, newVal, o2_max_sccm);
-		}));
 	}
 	
 	//-------------------------------//
@@ -261,27 +250,35 @@ public class ModCouple extends DevModbus {
 		final boolean unipolar,
 		final boolean gun1,
 		final boolean gun2
-	) {	
-		asyncBreakIn(()->{
-			if(bipolar==true) {
-				Misc.logv("mode=bipolar");
-				writeVals(8005, 1);
-			}else if(unipolar==true) {
-				Misc.logv("mode=unipolar,gun1=%B,gun2=%B",gun1,gun2);
-				int val = 2;
-				if(gun1==true) {
-					val = val | 4;
-				}
-				if(gun2==true) {
-					val = val | 8;
-				}
-				writeVals(8005, val);
-			}else {
-				Misc.logv("mode=???");
+	) {	asyncBreakIn(()->{
+		if(bipolar==true) {
+			Misc.logv("電極切換:bipolar");
+			writeVals(8005, 1);
+		}else if(unipolar==true) {
+			Misc.logv("電極切換:unipolar, %s",(gun1==true)?("gun-1"):("gun-2"));
+			int val = 2;
+			if(gun1==true) {
+				val = val | 4;
 			}
-		});
-	}
+			if(gun2==true) {
+				val = val | 8;
+			}
+			writeVals(8005, val);
+		}else {
+			Misc.logv("電極切換:???");
+		}
+	});}
 	
+	public void asyncMotorPump(final int dir) {	asyncBreakIn(()->{
+		int val = readReg('H',8010);
+		val = val & 0xFC0;
+		if(dir<0) {
+			val = val | 0x01;			
+		}else if(dir>0) {
+			val = val | 0x02;
+		}
+		writeVals(8010, val);
+	});}
 }
 
 /**
@@ -302,8 +299,21 @@ public class ModCouple extends DevModbus {
  * 1.2 Um    2.2 Um
  * 1.3 GND   2.3 GND
  * 1.4 IN7   2.4 IN8
-
  * Um - 24V
  * FE - Function Earth
+ * -----------------
+ * IB IL AO 4-ECO
+ * 1.1 OUT1  2.1 OUT2
+ * 1.2 GND   2.1 GND
+ * 1.3 OUT3  2.2 OUT4
+ * 1.4 GND   2.3 GND
+ * -----------------
+ * IB IL AI 4-ECO
+ * 1.1 IN1   2.1 GND
+ * 1.2 IN2   2.1 GND
+ * 1.3 IN3   2.2 GND
+ * 1.4 IN4   2.3 GND 
+ * -----------------
+ *  
  */
 

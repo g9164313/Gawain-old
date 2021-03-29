@@ -21,54 +21,54 @@ public class StepArrange extends Stepper {
 	){
 		hustio = dev1;
 		at5350 = dev2;
-		set(op_1,op_2,op_3,op_4);
+		set(op_2,op_3,op_4,op_5);
 	}
 		
 	protected final Label title = new Label();
-	protected final Label status= new Label();
+	protected final Label inform= new Label();
 	
-	private JFXCheckBox act2 = new JFXCheckBox("回歸原點");
+	//private JFXComboBox<String> act1 = new JFXComboBox<String>();	
+	private JFXCheckBox act2 = new JFXCheckBox("原點回歸");
 	private JFXCheckBox act3 = new JFXCheckBox("高壓補償");
 	
-	Runnable op_1 = ()->{
+	Runnable op_2 = ()->{
 		if(act2.isSelected()==false){
-			status.setText("忽略原點");
-			next_step(2);
+			inform.setText("跳過回歸");
 		}else{
-			status.setText("回歸原點");
+			inform.setText("開始回歸");
 			hustio.moveToAbs("");
-			next_step();
 		}
+		next_step();
 	};
 	
-	Runnable op_2 = ()->{				
+	Runnable op_3 = ()->{				
 		if(hustio.isMoving.get()==true){
-			status.setText("移動中");
+			inform.setText("移動中");
 			hold_step();
 		}else{
-			status.setText("");
+			inform.setText("");
 			next_step();
 		}
-	};
-	
-	Runnable op_3 = ()->{
-		if(act3.isSelected()==false){
-			status.setText("忽略補償");
-			next_step(2);
-		}else{
-			status.setText("開始補償");
-			at5350.compensate();
-			next_step();
-		}		
 	};
 	
 	Runnable op_4 = ()->{
-		if(at5350.isAsyncDone()==false){
-			status.setText("補償中");
-			hold_step();
-		}else {
-			status.setText("");
+		if(act3.isSelected()==false){
+			inform.setText("跳過補償");
+		}else{
+			inform.setText("開始補償");
+			at5350.compensate();
+		}
+		next_step();
+	};
+	
+	Runnable op_5 = ()->{
+		if(act3.isSelected()==false){
 			next_step();
+		}else {
+			inform.setText(String.format(
+				"等待 %s",
+				Misc.tick2text(waiting_time(3*60*1000),true)
+			));
 		}
 	};
 
@@ -83,7 +83,7 @@ public class StepArrange extends Stepper {
 		
 		GridPane lay = new GridPane();
 		lay.getStyleClass().addAll("box-pad","font-console");
-		lay.addColumn(0,title,status);
+		lay.addColumn(0,title,inform);
 		lay.add(new Separator(Orientation.VERTICAL), 1, 0, 1, 2);
 		lay.addColumn(2,act2,act3);
 		return lay;

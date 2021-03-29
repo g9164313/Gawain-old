@@ -28,12 +28,63 @@ import narl.itrc.init.LogStream;
 import narl.itrc.init.LogStream.Mesg;
 import narl.itrc.init.Terminal;
 
-abstract class StepAnalysis extends Stepper {
+abstract class StepExtender extends Stepper {
 	
-	protected DevSQM160 sqm;
-	protected DevDCG100 dcg;
-
-	protected Label[] log_text = {null,null};
+	protected static DevSQM160 sqm;
+	protected static DevDCG100 dcg;
+	protected static ModCouple cup;
+	protected static DevSPIK2k spk;
+	
+	//protected static ScriptEngineManager sc_man = new ScriptEngineManager();
+	//protected static ScriptEngine sc_eng = sc_man.getEngineByName("nashorn");
+	
+	protected Label[] msg = {
+		new Label(), new Label(), new Label(),
+	};
+	
+	public StepExtender() {
+		msg[0].setPrefWidth(150);
+		msg[1].setPrefWidth(150);
+		msg[2].setPrefWidth(150);
+	}
+	
+	protected void set_mesg(final String... txt) {
+		for(int i=0; i<msg.length; i++) {
+			if(i>=txt.length) {
+				msg[i].setText("");
+			}else {
+				msg[i].setText(txt[i]);
+			}
+		}
+	}
+	
+	protected void print_info(final String TAG) {
+		
+		final float volt = dcg.volt.get();		
+		final float amps = dcg.amps.get();				
+		final int   watt = (int)dcg.watt.get();
+		
+		final float rate = sqm.rate[0].get();
+		final String unit1 = sqm.unitRate.get();
+		
+		final float high = sqm.thick[0].get();
+		final String unit2 = sqm.unitHigh.get();
+		
+		final float mfc1 = cup.PV_FlowAr.get();
+		final float mfc2 = cup.PV_FlowN2.get();
+		final float mfc3 = cup.PV_FlowO2.get();
+		
+		Misc.logv(
+			"%s: %.3f V, %.3f A, %d W, "+
+			"%.3f sccm, %.3f sccm, %.3f sccm, "+
+			"%.3f %s, %.3f %s",
+			TAG, 
+			volt, amps, watt,
+			mfc1, mfc2, mfc3,
+			rate, unit1, high, unit2
+		);
+	}
+	//-----------------------------//
 	
 	private static final File study_fs = new File(Gawain.pathSock+"temp.csv");
 	
@@ -48,13 +99,13 @@ abstract class StepAnalysis extends Stepper {
 			}
 		}
 	}
-	private void operation(final boolean flush) {
+	private void flush_record(final boolean flag) {
 		final Task<?> tsk = new Task<Void>() {		
 			@Override
 			protected Void call() throws Exception {
 				check_path(pathLogStock);
 				check_path(pathLogCache);								
-				Mesg[] mesg = (flush==true)?(
+				Mesg[] mesg = (flag==true)?(
 					LogStream.getInstance().flushPool()
 				):(
 					LogStream.getInstance().fetchPool()
@@ -79,58 +130,21 @@ abstract class StepAnalysis extends Stepper {
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
-				if(flush==true) {
+				if(flag==true) {
 					updateMessage("快取中...");
-					Misc.serialize2file(String.format(
+					Misc.serialize2file(mesg,String.format(
 						"%s%s+%s.obj",
 						pathLogCache,ladder.uuid(),Misc.getTickName()
-					),mesg);
+					));
 				}
-				unbind_log_text();
+				msg[2].textProperty().unbind();
 				next_step();
 				return null;
 			}
 		};
-		bind_log_text(tsk);
+		msg[1].setText("匯出紀錄");
+		msg[2].textProperty().bind(tsk.messageProperty());
 		waiting_async(tsk);
-	}
-	
-	protected final Runnable op_save  = ()-> operation(false);
-	protected final Runnable op_export= ()-> operation(true);
-	
-	private void bind_log_text(final Task<?> tsk) {
-		if(log_text[0]!=null) {
-			log_text[0].setText("匯出紀錄");
-		}
-		if(log_text[1]!=null) {
-			log_text[1].textProperty().bind(tsk.messageProperty());
-		}
-	}
-	private void unbind_log_text() {
-		if(log_text[1]!=null) {
-			log_text[1].textProperty().unbind();
-		}
-	}
-	
-	protected void record_info(final String TAG) {
-		
-		final float volt = dcg.volt.get();		
-		final float amps = dcg.amps.get();				
-		final int   watt = (int)dcg.watt.get();
-		
-		final float rate = sqm.rate[0].get();
-		final String unit1 = sqm.unitRate.get();
-		
-		final float high = sqm.thick[0].get();
-		final String unit2 = sqm.unitThick.get();
-		
-		Misc.logv(
-			"%s: %.3f V, %.3f A, %d W, %.3f %s, %.3f %s",
-			TAG, 
-			volt, amps, watt,
-			rate, unit1,
-			high, unit2
-		);
 	}
 
 	public static Task<?> task_dump(final String uuid){ return new Task<Integer>() {
@@ -228,8 +242,8 @@ abstract class StepAnalysis extends Stepper {
 			get_cell(sh, 0, 0).setCellValue("清洗過程");
 			get_cell(sh, 8, 0).setCellValue("鍍膜過程");
 
-			study_message(StepKindler.TAG_CLEAN,msg);			
-			dump_message(sh,0,StepKindler.TAG_CLEAN,msg);
+			//study_message(StepKindler.TAG_CLEAN,msg);			
+			//dump_message(sh,0,StepKindler.TAG_CLEAN,msg);
 			
 			study_message(StepWatcher.TAG_WATCH,msg);
 			dump_message(sh,8,StepWatcher.TAG_WATCH,msg);

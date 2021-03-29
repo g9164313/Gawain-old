@@ -160,7 +160,7 @@ public abstract class Stepper extends HBox {
 		long rem = period - pass;
 		return (rem>0)?(rem):(0);
 	}
-	protected long waiting_tick(final String time){
+	protected long waiting_time(final String time){
 		return waiting_time(Misc.time2tick(time));
 	}
 	

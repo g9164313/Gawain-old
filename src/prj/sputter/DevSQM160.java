@@ -1,6 +1,9 @@
 package prj.sputter;
 
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+
+import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
 import com.jfoenix.controls.JFXButton;
 import com.sun.glass.ui.Application;
@@ -82,19 +85,19 @@ public class DevSQM160 extends DevTTY {
 				switch(Integer.valueOf(b_value[3])) {
 				case 0:
 					unitRate.set("A/s");//Å, font problem
-					unitThick.set("kA");
+					unitHigh.set("kA");//thick
 					break;
 				case 1:
 					unitRate.set("nm/s");
-					unitThick.set("μm");
+					unitHigh.set("μm");//thick
 					break;
 				case 2:
 					unitRate.set("Hz");
-					unitThick.set("Hz");
+					unitHigh.set("Hz");//thick
 					break;
 				case 3:
 					unitRate.set("ng/cm²/s");
-					unitThick.set("μg/cm²");
+					unitHigh.set("μg/cm²");//thick
 					break;
 				}
 			}
@@ -145,7 +148,18 @@ public class DevSQM160 extends DevTTY {
 			Misc.logv("[%s] %s",TAG,e.getMessage());
 		}
 		
+		stats.addValue(m_value);
+		
 		Application.invokeAndWait(()->{
+			
+			stats_rate_avg.set(String.format("%5.3f", stats.getMean()));
+			double sigma = stats.getVariance();
+			if(sigma==Double.NaN) {
+				stats_rate_dev.set("NaN");
+			}else {
+				stats_rate_dev.set(String.format("%5.4f", sigma));
+			}
+			
 			shutter.set(u_value);
 			rate[0].set(m_value);
 			thick[0].set(o_value);
@@ -262,25 +276,33 @@ public class DevSQM160 extends DevTTY {
 		}
 		nextState(STG_MONT);
 	});}
+	
+	private void cmd_S_and_T() {
+		try {
+			stats.clear();
+			exec("S");
+			TimeUnit.MILLISECONDS.sleep(250);
+			exec("T");
+			TimeUnit.MILLISECONDS.sleep(250);
+		} catch (InterruptedException e1) {
+			Misc.loge("INTERRUPT in shutter_and_zero");
+		}
+	}
 	public void zeros() {asyncBreakIn(()->{
-		String res;
-		res = exec("T");
-		if(res.charAt(0)!='A'){
-			Misc.logw("[%s] fail to reset reading value", TAG);
-		}
-		res = exec("S");
-		if(res.charAt(0)!='A'){
-			Misc.logw("[%s] fail to reset time value", TAG);
-		}
+		cmd_S_and_T();
 		nextState(STG_MONT);
 	});}
-	public void shutter_on_zeros(){asyncBreakIn(()->{		
-		String res;
-		res = exec("T");
-		res = exec("S");
-		res = exec("U1");
-		if(res.charAt(0)=='A'){
-			Application.invokeAndWait(()->shutter.set(true));
+	public void shutter_and_zeros(
+		final boolean on_off,
+		final Runnable event_done,
+		final Runnable event_fail
+	){asyncBreakIn(()->{		
+		cmd_S_and_T();
+		final String cmd = (on_off)?("U1"):("U0");
+		if(exec(cmd).charAt(0)=='A') {
+			if(event_done!=null) { event_done.run(); }
+		}else{
+			if(event_fail!=null) { event_fail.run(); }
 		}
 		nextState(STG_MONT);
 	});}	
@@ -288,7 +310,7 @@ public class DevSQM160 extends DevTTY {
 	public final BooleanProperty shutter = new SimpleBooleanProperty(false);
 
 	public final StringProperty unitRate = new SimpleStringProperty("??");
-	public final StringProperty unitThick= new SimpleStringProperty("??");
+	public final StringProperty unitHigh= new SimpleStringProperty("??");
 	
 	public final StringProperty[] filmData = {
 		new SimpleStringProperty("??"),//name
@@ -354,6 +376,10 @@ public class DevSQM160 extends DevTTY {
 		new SimpleFloatProperty()
 	};
 	
+	private final DescriptiveStatistics stats = new DescriptiveStatistics(60);
+	public final StringProperty stats_rate_avg = new SimpleStringProperty();
+	public final StringProperty stats_rate_dev = new SimpleStringProperty();
+	
 	public static void exec_gui(
 		final DevSQM160 dev,
 		final String cmd,
@@ -384,6 +410,68 @@ public class DevSQM160 extends DevTTY {
 		dev.nextState(dev.STG_MONT);
 	});}
 	
+	public static Pane genCtrlPanel(final DevSQM160 dev) {
+		
+		final JFXButton[] btn = {
+			new JFXButton("選取薄膜"),
+			new JFXButton("計時歸零"),
+			new JFXButton("檔板(開)"), 
+			new JFXButton("檔板(關)")	
+		};
+		for(JFXButton obj:btn) {
+			obj.setMaxWidth(Double.MAX_VALUE);
+			GridPane.setHgrow(obj, Priority.ALWAYS);
+		}
+		btn[0].getStyleClass().add("btn-raised-3");
+		btn[1].getStyleClass().add("btn-raised-3");
+		btn[2].getStyleClass().add("btn-raised-1");		
+		btn[3].getStyleClass().add("btn-raised-2");
+		
+		btn[0].setOnAction(e->{
+			PadTouch pad = new PadTouch('N',"薄膜編號:");
+			Optional<String> opt = pad.showAndWait();
+			if(opt.isPresent()==true) {
+				int idx = Integer.valueOf(opt.get());
+				if(idx==0) {
+					return;
+				}
+				active_film_gui(dev,idx);
+			}
+		});
+		btn[1].setOnAction(e->dev.zeros());
+		btn[2].setOnAction(e->exec_gui(dev,"U1",null));
+		btn[3].setOnAction(e->exec_gui(dev,"U0",null));
+		
+		final Label[] txt = new Label[5];
+		for(int i=0; i<txt.length; i++) {
+			Label obj = new Label();
+			obj.setMaxWidth(Double.MAX_VALUE);
+			GridPane.setHgrow(obj, Priority.ALWAYS);
+			txt[i] = obj;
+		}
+		txt[0].textProperty().bind(dev.filmData[0]);//film name
+		txt[1].textProperty().bind(dev.filmData[1]);//film Density (g/cm3)
+		txt[2].textProperty().bind(dev.rate[0].asString("%5.3f"));
+		txt[3].textProperty().bind(dev.stats_rate_avg);
+		txt[4].textProperty().bind(dev.stats_rate_dev);
+		
+		final GridPane lay = new GridPane();
+		lay.getStyleClass().addAll("box-pad");
+		lay.addColumn(0, 
+			new Label("薄膜名稱："),
+			new Label("薄膜密度："),
+			new Label("平均速率："),
+			new Label("統計值："),
+			new Label("標準差：")
+		);
+		lay.addColumn(1, txt);
+		lay.add(btn[0], 0, 5, 2, 1);
+		lay.add(btn[1], 0, 6, 2, 1);
+		lay.add(btn[2], 0, 7, 2, 1);
+		lay.add(btn[3], 0, 8, 2, 1);
+		return lay;
+	}
+		
 	public static Pane genPanel(final DevSQM160 dev) {
 		
 		final Label[] txt = new Label[8];
@@ -395,7 +483,7 @@ public class DevSQM160 extends DevTTY {
 		txt[0].textProperty().bind(dev.rate[0].asString("%6.3f"));
 		txt[1].textProperty().bind(dev.unitRate);
 		txt[2].textProperty().bind(dev.thick[0].asString("%6.3f"));
-		txt[3].textProperty().bind(dev.unitThick);
+		txt[3].textProperty().bind(dev.unitHigh);
 		txt[4].textProperty().bind(dev.filmData[0]);//film name
 		txt[5].textProperty().bind(dev.filmData[1]);//film Density (g/cm3)
 		txt[6].textProperty().bind(dev.filmData[2]);//film Tooling (%)
