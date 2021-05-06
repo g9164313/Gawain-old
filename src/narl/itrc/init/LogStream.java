@@ -33,6 +33,7 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
 import javafx.util.Duration;
 import narl.itrc.Gawain;
 import narl.itrc.Misc;
@@ -408,10 +409,13 @@ public class LogStream {
 	}
 	
 	public PanBase showConsole(){
+		return showConsole(null);
+	}
+	public PanBase showConsole(final Stage stg){
 		if(console.isPresent()==true){
 			return console.get();
 		}
-		PanBase obj = new PanBase(){
+		PanBase obj = new PanBase(stg){
 			@Override
 			public Pane eventLayout(PanBase self) {
 				return layout_console(self);

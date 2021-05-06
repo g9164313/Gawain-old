@@ -613,8 +613,6 @@ public class Misc {
 		return obj;
 	}
 
-	
-	
 	/**
 	 * a wrap for GUI-thread application.
 	 */

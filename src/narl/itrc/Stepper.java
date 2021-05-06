@@ -137,7 +137,7 @@ public abstract class Stepper extends HBox {
 	
 	protected void waiting_async(){
 		isAsync = true;
-		next.set(HOLD);
+		hold_step();
 	}
 	protected Task<?> waiting_async(final Task<?> tsk) {
 		waiting_async();

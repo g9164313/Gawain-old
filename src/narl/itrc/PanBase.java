@@ -39,8 +39,12 @@ public abstract class PanBase {
 		stage = new Stage();
 	}
 	
-	public PanBase(Stage init_stage){
-		stage = init_stage;
+	public PanBase(final Stage stg){
+		if(stg==null) {
+			stage = new Stage();
+		}else {
+			stage = stg;
+		}
 	}	
 	//------------------------//
 	
@@ -65,7 +69,7 @@ public abstract class PanBase {
 	//txt.setAlignment(Pos.CENTER);
 	//face1 = txt;
 	private static final KeyCombination kb_quit = KeyCombination.keyCombination("Ctrl+ESC");
-	private static final KeyCombination kb_console = KeyCombination.keyCombination("Ctrl+F1");
+	private static final KeyCombination kb_console = KeyCombination.keyCombination("Ctrl+Shift+C");
 	
 	public void initLayout() {
 		final Pane face = eventLayout(this);

@@ -6,6 +6,7 @@ import javafx.scene.control.Tab;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
 import narl.itrc.Gawain;
 import narl.itrc.Ladder;
 import narl.itrc.Misc;
@@ -24,8 +25,8 @@ public class PanMain extends PanBase {
 	final LayBPrint bprint = new LayBPrint(coup);
 	final Ladder    ladder = new Ladder();
 
-	public PanMain() {
-		super();
+	public PanMain(Stage stg) {
+		super(stg);
 		init();
 		stage().setOnShown(e->on_shown());
 	}
@@ -117,7 +118,7 @@ public class PanMain extends PanBase {
 			new Tab("監測",logger),
 			new Tab("製程",ladder)
 		);
-		lay1.getSelectionModel().select(1);
+		lay1.getSelectionModel().select(2);
 
 		final BorderPane lay0 = new BorderPane();
 		lay0.setCenter(lay1);

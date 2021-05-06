@@ -36,6 +36,7 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
 import narl.itrc.Gawain;
 import narl.itrc.Misc;
 import narl.itrc.PadTouch;
@@ -69,7 +70,8 @@ public class PanMain extends PanBase {
 		).attach(ibus, ModInsider.ID_SWING),
 	};
 	
-	public PanMain() {
+	public PanMain(final Stage stg) {
+		super(stg);
 		moto[0].SV_RPM = ibus.MAJOR_RPM_SV;
 		moto[1].SV_RPM = ibus.PRESS_RPM_SV;
 		moto[2].SV_RPM = ibus.SWING_RPM_SV;

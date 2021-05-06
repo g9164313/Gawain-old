@@ -17,7 +17,7 @@ public class Terminal {
 		
 	public final HashMap<String,Process> pool = new HashMap<String,Process>();
 	
-	private Terminal exec(
+	/*private Terminal exec(
 		final String tag,
 		final String cmd
 	) {		
@@ -29,7 +29,7 @@ public class Terminal {
 			e.printStackTrace();
 		}
 		return this;
-	}
+	}*/
 	
 	public String prompt(
 		final String tag,

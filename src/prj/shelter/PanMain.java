@@ -10,6 +10,7 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
 import narl.itrc.Gawain;
 import narl.itrc.PanBase;
 
@@ -21,7 +22,8 @@ public class PanMain extends PanBase {
 	
 	final LayLadder ladder = new LayLadder(hustio,at5350,cdr06);
 	
-	public PanMain(){
+	public PanMain(final Stage stg){
+		super(stg);
 		stage().setOnShown(e->on_shown());		
 	}
 	

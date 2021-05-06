@@ -26,12 +26,14 @@ import java.util.jar.JarFile;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import narl.itrc.init.Loader;
 import narl.itrc.init.LogStream;
+import narl.itrc.init.PanSplash;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -300,15 +302,18 @@ public class Gawain extends Application {
 		
 	public static PanBase mainPanel = null;
 	
-	public static void mainPanel() {
+	public static final AtomicBoolean isKill = new AtomicBoolean(false);
+	
+	@Override
+	public void start(Stage stg) throws Exception {
 		long tick = System.currentTimeMillis();
 		try {
 			String name = Gawain.prop().getProperty("LAUNCH","");
 			mainPanel = (PanBase)Class.forName(name)
-				.getConstructor()
-				.newInstance();
-				//.getConstructor(Stage.class)
-				//.newInstance(stg);
+				//.getConstructor()
+				//.newInstance();
+				.getConstructor(Stage.class)
+				.newInstance(stg);
 			mainPanel.initLayout();
 			mainPanel.appear();
 		} catch (
@@ -322,45 +327,43 @@ public class Gawain extends Application {
 		) {
 			e.printStackTrace();
 			Misc.loge("啟動失敗!!");
-			mainPanel = LogStream.getInstance().showConsole();
+			mainPanel = LogStream.getInstance().showConsole(stg);
 		}
-		tick = System.currentTimeMillis()-tick;			
-		Misc.logv("啟動時間: %dms",tick);
-	}
-	
-	public static final AtomicBoolean isKill = new AtomicBoolean(false);
-	@Override
-	public void start(Stage stg) throws Exception {
-		new Loader().launch(stg);
+		tick = System.currentTimeMillis()-tick;		
+		Misc.logv("啟動時間: %dms",tick);	
+		PanSplash.done();
 	}	
 	@Override
 	public void stop() throws Exception {
 		isKill.set(true);
 	}
 	
-	public static void main(String[] argv) {
+	public static void main(String[] argv) {		
+		propPrepare();		
+		PanSplash.spawn(argv);		
+		Loader.start();
 		LogStream.getInstance();
-		propPrepare();
-		//liceBind();//check dark license~~~
+		//liceBind();
 		launch(argv);
 		//End of Application
-		//store property and 
-		propRestore();
+		//restore property and waiting daemon thread		
 		if(jarName.length()!=0){
 			//This is the jar file, try to wait release resource.
 			try {
 				//let daemon thread have chance to escape its loop.
 				Misc.logv("waiting to shutdown...");
+				System.gc();
 				Thread.sleep(3000);
 			}catch(InterruptedException e) { 
 			}
 		}
+		propRestore();
 		LogStream.getInstance().close();
 	}
 	//--------------------------------------------//
 	//In this section, we initialize all global variables~~
 	
-	private static final String jarName; 
+	public static final String jarName; 
 	
 	public static final String sheet = Gawain.class.
 		getResource("res/styles.css").
