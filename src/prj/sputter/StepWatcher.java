@@ -53,11 +53,11 @@ public class StepWatcher extends StepExtender {
 		set_mesg(action_name,txt);
 		waiting_async();
 		sqm.shutter_and_zeros(true, ()->{
-			Misc.logv("%s: %s",TAG_WATCH, txt);
+			Misc.logv("%s: %s",action_name, txt);
 			tick_beg = System.currentTimeMillis();
 			next.set(LEAD);
 		}, ()->{
-			Misc.logv("%s: %s",TAG_WATCH, txt+"失敗");
+			Misc.logv("%s: %s",action_name, txt+"失敗");
 			abort_step();
 			Application.invokeLater(()->PanBase.notifyError("失敗", "無法控制擋板!!"));
 		});
@@ -113,7 +113,7 @@ public class StepWatcher extends StepExtender {
 			sqm.thick[0].get(), sqm.unitHigh.get()
 		);
 		set_mesg(
-			TAG_WATCH,
+			action_name,
 			tick_txt,
 			high_txt
 		);
@@ -148,7 +148,8 @@ public class StepWatcher extends StepExtender {
 	};
 	final Runnable op_4 = ()->{
 		//extinguish plasma		
-		set_mesg("關閉高壓");	
+		set_mesg("關閉高壓");
+		Misc.logv("%s: 關閉高壓",action_name);
 		waiting_async();		
 		dcg.asyncBreakIn(()->{
 			if(dcg.exec("OFF").endsWith("*")==false) {
@@ -197,7 +198,7 @@ public class StepWatcher extends StepExtender {
 		lay.getStyleClass().addAll("box-pad");
 		lay.addColumn(0, msg);
 		lay.add(new Separator(Orientation.VERTICAL), 1, 0, 1, 3);
-		lay.addColumn(2,new Label("成長速率"),new Label("平均速率"),new Label("標準差"));
+		lay.addColumn(2,new Label("成長速率"),new Label("統計值"),new Label("標準差"));
 		lay.addColumn(3,inf_rate,inf_avg,inf_dev);
 		lay.add(new Separator(Orientation.VERTICAL), 4, 0, 1, 3);
 		lay.addColumn(5,new Label("目標速率"),new Label("最大功率"),new Label("最小功率"));

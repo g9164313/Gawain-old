@@ -140,8 +140,15 @@ public class PanSplash extends Application {
 	
 	private static final String ARG_TAG = "--splash";
 	
-	public static void spawn(final String[] argv) {
+	public static void spawn(final String[] argv) {		
 		
+		String tag = Gawain.prop().getProperty("SPLASH", "");
+		if(tag.length()!=0) {
+			tag = tag.toLowerCase();
+			if(tag.charAt(0)=='f') {
+				return;
+			}
+		}		
 		if(argv.length!=0) {
 			for(String txt:argv) {
 				//System.out.print(txt);
@@ -159,7 +166,6 @@ public class PanSplash extends Application {
 		
 		try {
 			ProcessBuilder build = new ProcessBuilder();
-			
 			if(Gawain.jarName.length()==0) {
 				//when we are debugging(in IDE), there is no jar file.					
 				String clp = Gawain.prop().getProperty("CLASSPATH", "");

@@ -157,6 +157,9 @@ public class StepFlowCtrl extends Stepper {
 		String[] arg = txt.split(":|,");
 		for(int i=0; i<arg.length; i+=2){
 			final String tag = arg[i+0].trim();
+			if(i+1>=arg.length){
+				break;
+			}
 			final String val = arg[i+1].trim();
 			if(tag.equals(TAG0)==true){
 				box_sval[0].setText(val);

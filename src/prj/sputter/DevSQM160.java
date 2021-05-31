@@ -450,7 +450,7 @@ public class DevSQM160 extends DevTTY {
 			txt[i] = obj;
 		}
 		txt[0].textProperty().bind(dev.filmData[0]);//film name
-		txt[1].textProperty().bind(dev.filmData[1]);//film Density (g/cm3)
+		txt[1].textProperty().bind(dev.filmData[4]);//film Density (g/cm3)
 		txt[2].textProperty().bind(dev.rate[0].asString("%5.3f"));
 		txt[3].textProperty().bind(dev.stats_rate_avg);
 		txt[4].textProperty().bind(dev.stats_rate_dev);
@@ -459,7 +459,7 @@ public class DevSQM160 extends DevTTY {
 		lay.getStyleClass().addAll("box-pad");
 		lay.addColumn(0, 
 			new Label("薄膜名稱："),
-			new Label("薄膜密度："),
+			new Label("最終厚度："),
 			new Label("平均速率："),
 			new Label("統計值："),
 			new Label("標準差：")

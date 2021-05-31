@@ -124,6 +124,15 @@
   -fx-border-width: 2;
 }
 
+.mark-selected {
+  /*-fx-background-color: #2969c0;*/
+  -fx-background-radius: 13px;
+  -fx-border-color: #C5C5C5;
+  -fx-border-style: solid;
+  -fx-border-radius: 13px;
+  -fx-border-width : 3px;
+}
+
 .box-pad {
   -fx-font-size: 1.4em;
   -fx-spacing: 13;
@@ -133,14 +142,14 @@
 }
 .box-pad-inner {
   -fx-font-size: 1.4em;
-  -fx-spacing: 13, 0, 13, 0;
-  -fx-padding:  7, 0,  7, 0;
+  -fx-spacing: 13 0 13 0;
+  -fx-padding:  7 0  7 0;
   -fx-hgap: 7;
   -fx-vgap: 7; 
 }
 
 .box-pad-group {
-  -fx-padding:  13, 0,  7, 0; 
+  -fx-padding:  13 0 7 0; 
 }
 .box-border {
   -fx-border-color: black;

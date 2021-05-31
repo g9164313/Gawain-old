@@ -68,7 +68,7 @@ public class LayLogger extends BorderPane {
 			//if(badge.isPresent()==false) {
 			//	show_progress();
 			//}else {
-				done_progress();
+			//	done_progress();
 			//}			
 		});
 		
@@ -111,8 +111,9 @@ public class LayLogger extends BorderPane {
 			}			
 		}
 		private void dump_text(final Mesg[] msg) {
+			if(msg==null){ return; }
 			try {
-				updateMessage("輸出文字");
+				updateMessage("資料輸出");
 				FileWriter fs = new FileWriter(String.format(
 					"%s%s.txt",
 					pathLogStock, Misc.getDateName()
@@ -133,20 +134,23 @@ public class LayLogger extends BorderPane {
 		@Override
 		protected Void call() throws Exception {
 			check_path(pathLogStock);
-			check_path(pathLogCache);
-			//Mesg[] msg = LogStream.getInstance().flushPool();
-			Mesg[] msg = (Mesg[]) Misc.deserializeFile(pathLogCache+"CEAA12-0001.obj");
+			check_path(pathLogCache);			
+			Mesg[] msg = LogStream.getInstance().flushPool();
+			//Mesg[] msg = (Mesg[]) Misc.deserializeFile(pathLogCache+"temp.obj");
+			//Misc.serialize2file(msg, pathLogCache+"temp.obj");
 			dump_text(msg);
 			Workbook wb = new XSSFWorkbook();
 			export_mesg(wb,msg);
 			export_book(wb);			
 			return null;
 		}
-
+		
+		int[] row_idx = {0,0};
+		
 		private void export_mesg(
 			final Workbook wb,
 			final Mesg[] msg
-		) throws IOException {
+		) throws IOException {			
 			updateMessage("工作中");			
 			Sheet sh0 = wb.createSheet("時間表");
 			get_cell(sh0, 0, 0).setCellValue("時間");
@@ -155,7 +159,7 @@ public class LayLogger extends BorderPane {
 			for(int i=0; i<msg.length; i++) {
 				updateProgress(i,msg.length);
 				flush_action(sh0,msg[i]);
-				shx = flush_recipe(shx,wb,msg[i]);			
+				shx = flush_recipe(shx,wb,msg[i]);	
 			}
 		}
 		private Sheet flush_recipe(
@@ -169,6 +173,7 @@ public class LayLogger extends BorderPane {
 				shx = wb.createSheet(txt.substring(2,txt.length()-2).trim());
 				init_column_name(shx,0);
 				init_column_name(shx,1);
+				row_idx[0] = row_idx[1] = 1;
 				return shx;
 			}
 			if(shx==null) {
@@ -193,19 +198,22 @@ public class LayLogger extends BorderPane {
 			get_cell(sh, page+7, 0).setCellValue("速率");
 			get_cell(sh, page+8, 0).setCellValue("厚度");
 		}
-		private void set_column_value(final Sheet sh,int page,final Mesg msg) {
-			int row = sh.getLastRowNum() + 1;
-			page = page * 10;
+		private void set_column_value(
+			final Sheet sh, 
+			int page, 
+			final Mesg msg
+		) {
 			//put time stamp~~
-			get_cell(sh, page+0, row).setCellValue(msg.getTickText(""));
+			get_cell(sh, page*10+0, row_idx[page]).setCellValue(msg.getTickText(""));
 			String txt = msg.getText();
 			String[] val = txt
 				.substring(txt.indexOf(":")+1)
 				.split(",");
 			//put other records~~
-			for(int i=0; i<val.length; i++) {
-				get_cell(sh, page+i+1, row).setCellValue(val[i]);
+			for(int col=0; col<val.length; col++) {
+				get_cell(sh, page*10+col+1, row_idx[page]).setCellValue(val[col]);
 			}
+			row_idx[page]+=1;
 		}
 		private void flush_action(final Sheet sh,final Mesg msg) {
 			int row = sh.getLastRowNum() + 1;
@@ -213,7 +221,7 @@ public class LayLogger extends BorderPane {
 			if(
 				txt.startsWith(StepKindler.TAG_KINDLE)==true ||
 				txt.startsWith(StepWatcher.TAG_WATCH)==true
-			) {
+			) {				
 				return;
 			}
 			//put time stamp~~
@@ -274,7 +282,7 @@ public class LayLogger extends BorderPane {
 	private Optional<Badge> badge = Optional.empty();
 	
 	public void show_progress() {
-		Badge node;
+		/*Badge node;
 		if(badge.isPresent()==false) {
 			node = new Badge();
 			badge = Optional.of(node);
@@ -283,7 +291,7 @@ public class LayLogger extends BorderPane {
 		}
 		lay_status.getChildren().add(node);		
 		AnchorPane.setTopAnchor(node, 0.);
-		AnchorPane.setRightAnchor(node, 0.);
+		AnchorPane.setRightAnchor(node, 0.);*/
 		LogStream.getInstance().usePool(true);
 	}
 	
@@ -291,18 +299,23 @@ public class LayLogger extends BorderPane {
 		LogStream.getInstance().usePool(false);
 		final PanBase pan = PanBase.self(this);
 		final Task<?> tsk = new Dumping();
-		if(badge.isPresent()==true) {
+		//TODO: how to remove badge??
+		/*if(badge.isPresent()==true) {
 			Badge node = badge.get();
 			node.bar.progressProperty().bind(tsk.progressProperty());
 			node.txt.textProperty().bind(tsk.messageProperty());
-			tsk.setOnSucceeded(e->lay_status.getChildren().remove(node));
-		}
+			tsk.setOnSucceeded(e->{
+				lay_status.getChildren().remove(node);
+			});
+		}*/
 		pan.notifyTask("輸出紀錄",tsk);
 	}
 	//-----------------------------------------------//
 	
 	private final Tile gag[] = new Tile[9];
-		
+
+	public static Optional<Tile> gag_thick = Optional.empty();
+	
 	private Pane layout_gauge() {
 		
 		//gauge for DCG-100
@@ -354,7 +367,8 @@ public class LayLogger extends BorderPane {
 			.build();
 		gag[5].setDecimals(3);
 		gag[5].setId("g_high");
-				
+		gag_thick = Optional.of(gag[5]);
+		
 		gag[6] = TileBuilder.create()
 			.skinType(SkinType.SPARK_LINE)
 			.title("Ar")

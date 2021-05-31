@@ -5,6 +5,7 @@ import java.util.Optional;
 import com.jfoenix.controls.JFXButton;
 import com.sun.glass.ui.Application;
 
+import eu.hansolo.tilesfx.Tile;
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
@@ -72,11 +73,11 @@ public class StepSetFilm extends Stepper {
 				vals[4], vals[5], vals[6]
 			);
 			if(sqm.exec(cmd).charAt(0)!='A') {
-				next.set(ABORT);
+				abort_step();
 				Application.invokeLater(()->PanBase.notifyError("失敗", "無法設定薄膜參數!!"));
 				return;
 			}
-			next.set(LEAD);
+			next_step();
 		});
 	};
 	
@@ -85,11 +86,11 @@ public class StepSetFilm extends Stepper {
 		msg1.setText("切換中");
 		sqm.asyncBreakIn(()->{
 			if(sqm.exec("D1").charAt(0)!='A') {
-				next.set(ABORT);
+				abort_step();
 				Application.invokeLater(()->PanBase.notifyError("失敗", "無法使用薄膜參數!!"));
 				return;
 			}
-			next.set(LEAD);
+			next_step();
 		});
 	};
 	
@@ -97,8 +98,11 @@ public class StepSetFilm extends Stepper {
 		msg1.setText(init_txt);
 		double val = Double.valueOf(args[3].getText().trim());//final thickness
 		val = val + 0.01;
-		LayGauges.setRateMax(val/2.);
-		LayGauges.setThickMax(val);
+		if(LayLogger.gag_thick.isPresent()==true) {
+			Tile obj = LayLogger.gag_thick.get();
+			obj.setMaxValue(val);
+		}
+		next_step();
 	};
 	
 	private void select_film(){

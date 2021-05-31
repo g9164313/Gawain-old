@@ -26,7 +26,6 @@ import java.util.jar.JarFile;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Application;
-import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.stage.Stage;
@@ -362,9 +361,6 @@ public class Gawain extends Application {
 	}
 	//--------------------------------------------//
 	//In this section, we initialize all global variables~~
-	
-	public static final String jarName; 
-	
 	public static final String sheet = Gawain.class.
 		getResource("res/styles.css").
 		toExternalForm() ;
@@ -378,10 +374,10 @@ public class Gawain extends Application {
 	public static final File dirHome;//User home directory.
 	public static final File dirSock;//Data or setting directory.
 	
+	public static final String jarName;
+	
 	static {
-		
 		String txt = null;
-		
 		//check operation system....
 		txt = System.getProperty("os.name").toLowerCase();
 		if(txt.indexOf("win")>=0){
@@ -389,11 +385,9 @@ public class Gawain extends Application {
 		}else{
 			isPOSIX = true;
 		}
-		
 		//check working path
 		pathRoot= new File(".").getAbsolutePath() + File.separatorChar;
 		dirRoot = new File(pathRoot);
-		
 		//check home path, user store data in this directory.
 		if(isPOSIX==true){
 			txt = System.getenv("HOME");
@@ -405,8 +399,8 @@ public class Gawain extends Application {
 			txt = ".";
 		}
 		pathHome = txt + File.separatorChar;		
-		dirHome = new File(pathHome);
-		
+		dirHome = new File(pathHome);	
+		//check whether self is a jar file or not~~~		
 		//cascade sock directory.
 		pathSock = pathHome + ".gawain" + File.separatorChar;		
 		dirSock = new File(pathSock);
@@ -416,23 +410,24 @@ public class Gawain extends Application {
 				System.exit(-2);
 			}
 		}
-		
-		//check whether self is a jar file or not~~~
 		try {
-			txt = Gawain.class.getProtectionDomain()
+			File fs = new File(
+				Gawain.class.getProtectionDomain()
 				.getCodeSource()
 				.getLocation()
 				.toURI()
-				.toString()
-				.replace('/',File.separatorChar);
+			);
+			if(fs.isFile()==true) {
+				txt = fs.getAbsolutePath();
+			}else {
+				txt = "";
+			}
 		} catch (URISyntaxException e) {
-			e.printStackTrace();
 			txt = "";
 		}
-		final String prefix = "jar:file:";
-		if(txt.startsWith(prefix)==true){
-			jarName = txt.substring(prefix.length());
-		}else{
+		if(txt.length()>0) {
+			jarName = txt;
+		}else {
 			jarName = "";
 		}
 	}

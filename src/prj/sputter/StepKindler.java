@@ -28,7 +28,7 @@ import narl.itrc.PanBase;
 public class StepKindler extends StepExtender {
 		
 	private final static String action_name = "高壓設定";
-	public final static String TAG_KINDLE = "點火程序";
+	public final static String TAG_KINDLE = "點火";
 	
 	public StepKindler(){
 		set_mesg(action_name);		
@@ -53,7 +53,7 @@ public class StepKindler extends StepExtender {
 		TextField[] arg = {
 			new TextField("100") ,//regulator value
 			new TextField("5")   ,//ramp time
-			new TextField("5:00"),//stable time
+			new TextField("30"),//stable time
 		};
 		PanAction(){
 			txt[0].setOnMouseClicked(e->choose_level());
@@ -87,7 +87,7 @@ public class StepKindler extends StepExtender {
 			
 			final Dialog<String> dia = new Dialog<>();
 			dia.setTitle("選取模式");
-			dia.setTitle("DCG100 調節模式");
+			dia.setHeaderText("DCG100 調節模式");
 			dia.getDialogPane().getButtonTypes().addAll(
 				ButtonType.OK,
 				ButtonType.CANCEL
@@ -121,19 +121,21 @@ public class StepKindler extends StepExtender {
 			final ArrayList<String> cmd
 		) {				
 			final String chl = txt[0].getText();
-			final String val = arg[0].getText();
-			final String tk1 = arg[1].getText();
-			final String tk2 = arg[2].getText();
+			int val = Integer.valueOf(arg[0].getText());
+			final int tk1 = Integer.valueOf(arg[1].getText())*1000;
+			final int tk2 = Integer.valueOf(arg[2].getText())*1000;
 			if(chl.equals(LEVEL_VOLT)==true) {
+				val = val * 10;
 				cmd.add(String.format("SQL%d=V",seq_id));
 			}else if(chl.equals(LEVEL_AMPR)==true) {
+				val = val * 100;
 				cmd.add(String.format("SQL%d=A",seq_id));
 			}else if(chl.equals(LEVEL_WATT)==true) {
 				cmd.add(String.format("SQL%d=W",seq_id));
 			}
 			cmd.add(String.format("SQN%d=2",seq_id));
-			cmd.add(String.format("SQP%d0-%s=%s",seq_id,val,tk1));
-			cmd.add(String.format("SQP%d1-%s=%s",seq_id,val,tk2));
+			cmd.add(String.format("SQP%d0-%d=%d",seq_id,val,tk1));
+			cmd.add(String.format("SQP%d1-%d=%d",seq_id,val,tk2));
 		}
 	};
 	
@@ -184,7 +186,7 @@ public class StepKindler extends StepExtender {
 		set_mesg(tag);
 		ObservableList<Node> pan = lay_root.getChildren();		
 		final ArrayList<String> cmd = new ArrayList<String>();
-		if(pan.size()<2) {
+		if(pan.size()<=2) {
 			//constant mode
 			PanAction act = (PanAction)pan.get(1);			
 			tick_total = act.get_all_tick();
@@ -195,7 +197,7 @@ public class StepKindler extends StepExtender {
 			for(int i=1; i<cnt; i++) {
 				cmd.add(String.format("SQC%d=%d",i-1,i));
 			}
-			cmd.add(String.format("SQC%d=FF",cnt));			
+			cmd.add(String.format("SQC%d=FF",cnt-1));			
 			for(int i=1; i<pan.size(); i++) {
 				PanAction act = (PanAction)pan.get(i);
 				tick_total += act.get_all_tick();
@@ -211,9 +213,10 @@ public class StepKindler extends StepExtender {
 			exec(_txt);
 			String flat = "";
 			for(String v:_txt) {
-				flat = flat+", "+v;
+				flat = flat + v + ", ";
 			}
 			Misc.logv("[DCG] : %s",flat);
+			tick_start = System.currentTimeMillis();
 			next_step();
 		});
 	};
@@ -221,10 +224,12 @@ public class StepKindler extends StepExtender {
 	final Runnable op_4 = ()->{
 		long tick = System.currentTimeMillis() - tick_start;
 		print_info(TAG_KINDLE);		
-		set_mesg(
-			TAG_KINDLE,
-			String.format("%s",Misc.tick2text(tick,false)),
-			String.format("%s",Misc.tick2text(tick_total,false))
+		set_mesg(TAG_KINDLE,
+			String.format(
+				"倒數:%s/%s",
+				Misc.tick2text(tick,false),
+				Misc.tick2text(tick_total,false)
+			)
 		);
 		if(tick<tick_total) {
 			hold_step();
@@ -256,6 +261,11 @@ public class StepKindler extends StepExtender {
 			abort_step();
 			Misc.logv(_txt);
 			Application.invokeLater(()->PanBase.notifyError("",_txt));
+		}
+		try {
+			TimeUnit.MILLISECONDS.sleep(100);
+		} catch (Exception e) {
+			//for next command~~~
 		}
 		return res;		
 	}
@@ -291,31 +301,24 @@ public class StepKindler extends StepExtender {
 		}
 	}
 	
-	//private static final String TAG0 = "option";
-	//private static final String TAG1 = "ramp";
-	//private static final String TAG2 = "value";
-	//private static final String TAG3 = "time";
+	private static final String TAG0 = "option";
+	private static final String TAG1 = "ramp";
+	private static final String TAG2 = "value";
+	private static final String TAG3 = "time";
 	
 	@Override
 	public String flatten() {
 		//trick, replace time format.
 		//EX: mm:ss --> mm#ss
-		/*int opt_level = 0;
-		if(opt_reg[0].isSelected()==true) {
-			opt_level = 0;
-		}else if(opt_reg[1].isSelected()==true){
-			opt_level = 1;
-		}else if(opt_reg[2].isSelected()==true){
-			opt_level = 2;
-		}
+		ObservableList<Node> pan = lay_root.getChildren();
+		PanAction act = (PanAction)pan.get(1);
 		return String.format(
 			"%s:%d-%d, %s:%s, %s:%s, %s:%s",
-			TAG0, 0, opt_level,
-			TAG1, box_ramp.getText().trim().replace(':','.'),
-			TAG2, box_power.getText().trim(),
-			TAG3, box_clean.getText().trim().replace(':','.')
-		);*/
-		return "";
+			TAG0, 0, 0,
+			TAG1, act.arg[1].getText().trim().replace(':','.'),
+			TAG2, act.arg[0].getText().trim(),
+			TAG3, act.arg[2].getText().trim().replace(':','.')
+		);
 	}
 	@Override
 	public void expand(String txt) {
@@ -323,19 +326,21 @@ public class StepKindler extends StepExtender {
 			Misc.loge("pasing fail-->%s",txt);
 			return;
 		}
+		ObservableList<Node> pan = lay_root.getChildren();
+		PanAction act = (PanAction)pan.get(1);
 		//trick, replace time format.
 		//EX: mm#ss --> mm:ss
-		/*String[] col = txt.split(":|,");
+		String[] col = txt.split(":|,");
 		for(int i=0; i<col.length; i+=2){
 			final String tag = col[i+0].trim();
 			final String val = col[i+1].trim();
 			if(tag.equals(TAG1)==true){
-				box_ramp.setText(val.replace('.',':'));
+				act.arg[1].setText(val.replace('.',':'));
 			}else if(tag.equals(TAG2)==true){
-				box_power.setText(val);
+				act.arg[0].setText(val);
 			}else if(tag.equals(TAG3)==true){
-				box_clean.setText(val.replace('.',':'));
+				act.arg[2].setText(val.replace('.',':'));
 			}
-		}*/
+		}
 	}
 }

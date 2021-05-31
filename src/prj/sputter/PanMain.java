@@ -2,8 +2,10 @@ package prj.sputter;
 
 import com.jfoenix.controls.JFXTabPane;
 
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Tab;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
@@ -22,10 +24,10 @@ public class PanMain extends PanBase {
 	
 	//final LayGauges gauges = LayGauges.getInstance();
 	final LayLogger logger = new LayLogger();
-	final LayBPrint bprint = new LayBPrint(coup);
+	final DrawVaccum  digram = new DrawVaccum(coup);
 	final Ladder    ladder = new Ladder();
 
-	public PanMain(Stage stg) {
+	public PanMain(final Stage stg) {
 		super(stg);
 		init();
 		stage().setOnShown(e->on_shown());
@@ -101,7 +103,7 @@ public class PanMain extends PanBase {
 	@Override
 	public Pane eventLayout(PanBase self) {
 		
-		/*final HBox lay3 = new HBox();
+		final HBox lay3 = new HBox();
 		lay3.getStyleClass().addAll("box-pad");
 		lay3.getChildren().addAll(
 			DevDCG100.genPanel(dcg1),
@@ -110,15 +112,16 @@ public class PanMain extends PanBase {
 		);
 		final ScrollPane lay2 = new ScrollPane(lay3);
 		lay2.setPrefViewportWidth(800);
-		lay2.setMinViewportHeight(500);*/
+		lay2.setMinViewportHeight(500);
 		
 		final JFXTabPane lay1 = new JFXTabPane();
 		lay1.getTabs().addAll(
-			new Tab("管路",bprint),
+			new Tab("管路",digram),
 			new Tab("監測",logger),
-			new Tab("製程",ladder)
+			new Tab("製程",ladder),
+			new Tab("裝置",lay3)
 		);
-		lay1.getSelectionModel().select(2);
+		lay1.getSelectionModel().select(0);
 
 		final BorderPane lay0 = new BorderPane();
 		lay0.setCenter(lay1);

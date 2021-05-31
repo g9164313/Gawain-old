@@ -1,6 +1,7 @@
 package prj.sputter;
 
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXComboBox;
@@ -218,18 +219,24 @@ public class DevDCG100 extends DevTTY {
 		}
 		exec("SPW="+val);
 	});}
-	public void asyncExec(final String cmd) {asyncBreakIn(()->{
-		final String res = exec(cmd);
-		if(res.endsWith("*")==true) {
-			return;
+	public void asyncExec(final String... cmd) {asyncBreakIn(()->{
+		for(String cc:cmd){
+			final String res = exec(cc);
+			if(res.endsWith("*")==false) {
+				Application.invokeAndWait(()->{
+					Alert alt = new Alert(AlertType.ERROR);
+					alt.setTitle("DCG100");
+					alt.setHeaderText("無效的命令");
+					alt.setContentText(cmd+" ("+res+")");
+					alt.showAndWait();
+				});
+				return;
+			}
+			try {
+				TimeUnit.MILLISECONDS.sleep(100);
+			} catch (Exception e) {
+			}
 		}
-		Application.invokeAndWait(()->{
-			Alert alt = new Alert(AlertType.ERROR);
-			alt.setTitle("DCG100");
-			alt.setHeaderText("無效的命令");
-			alt.setContentText(cmd+" ("+res+")");
-			alt.showAndWait();
-		});
 	});}	
 	public void asyncExec(
 		final String cmd,
@@ -334,21 +341,6 @@ public class DevDCG100 extends DevTTY {
 		
 		final JFXTextField box = new JFXTextField("100");
 		box.setMaxWidth(Double.MAX_VALUE);	
-		box.setOnAction(e->{
-			String txt_sv = box.getText().trim();
-			if(txt_sv.matches("\\d+")==false) {
-				return;
-			}
-			int val = Integer.valueOf(txt_sv);
-			String cmd = "";
-			switch(opt.getSelectedIndex()) {
-			case 0: cmd = "SPW="+val; break;
-			case 1: cmd = "SPV="+val; break;
-			case 2: cmd = "SPA="+val; break;
-			default: return;
-			}
-			dev.asyncExec(cmd);
-		});
 		GridPane.setHgrow(box, Priority.ALWAYS);
 		
 		final JFXButton[] btn = {
@@ -371,7 +363,19 @@ public class DevDCG100 extends DevTTY {
 			case 2: pp.bind(dev.amps.asString("%5.2f A")); break;
 			default: txt_pv.setText("???"); break;
 			}
-			dev.asyncExec("TRG");
+			String txt_sv = box.getText().trim();
+			if(txt_sv.matches("\\d+")==false) {
+				return;
+			}
+			int val = Integer.valueOf(txt_sv);
+			String spx = "";
+			switch(opt.getSelectedIndex()) {
+			case 0: spx = "SPW="+val; break;
+			case 1: spx = "SPV="+val; break;
+			case 2: spx = "SPA="+val; break;
+			default: return;
+			}
+			dev.asyncExec(spx,"CHT=C","TRG");
 		});
 		btn[1].setOnAction(e->{
 			txt_pv.getStyleClass().remove("font-pv1");

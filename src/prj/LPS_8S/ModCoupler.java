@@ -12,6 +12,7 @@ import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleFloatProperty;
 import narl.itrc.DevModbus;
+import narl.itrc.Misc;
 
 /**
  * PHOENIX CONTACT coupler:
@@ -73,8 +74,9 @@ public class ModCoupler extends DevModbus {
 	
 	//private final int AOUT_VAL1 = 8005;
 	//private final int AOUT_VAL2 = 8006;
-	private final int AOUT_ARM_DW = 8013;//下壓
-	private final int AOUT_ARM_UP = 8014;//上推
+	private final int AOUT_ARM_BASE_DW_UP = 8013;//base address
+	private final int AOUT_ARM_BASE_DW = 8013;//下壓
+	private final int AOUT_ARM_BASE_UP = 8014;//上推
 	
 	public final BooleanProperty pumperUnclog = new SimpleBooleanProperty(false);
 	public final BooleanProperty majorUnlock  = new SimpleBooleanProperty(false);
@@ -109,7 +111,7 @@ public class ModCoupler extends DevModbus {
 	
 	public ModInsider ibus = null;
 	
-	public JFXToggleButton tglAlarm;
+	public JFXToggleButton tglDoneAlarm;
 	public JFXToggleButton tglSlurryHeat;
 	public JFXToggleButton tglSlurryPump;
 	
@@ -188,7 +190,7 @@ public class ModCoupler extends DevModbus {
 				detect_edge(prv,cur,5,working_press,working_release);
 			});
 			
-			toggle(tglAlarm,dout[2]);
+			toggle(tglDoneAlarm,dout[2]);
 			toggle(tglSlurryHeat,dout[1]);
 			toggle(tglSlurryPump,dout[0]);
 		});		
@@ -226,35 +228,69 @@ public class ModCoupler extends DevModbus {
 		}
 	}
 	
-	public final AtomicInteger ArmDownDelay = new AtomicInteger(500);
+	//public float ArmUpSP2 = 0.3f;//good for 主軸伸 0mm
+	//public float ArmUpSP3 = 0.1f;//good for 主軸伸 0mm
+	public float ArmUpSP2 = 0.9f;//good for 主軸伸 180mm
+	public float ArmUpSP3 = 0.1f;//good for 主軸伸 180mm
+	//public float ArmUpSP2 = 1.2f;//good for 主軸伸 250mm
+	//public float ArmUpSP3 = 0.2f;//good for 主軸伸 250mm
 	
-	final float VOLT_SCALE = 3000f;//IBIL format
+	//public float ArmDwSP2_1 = 0.9f;//good for 主軸伸 0mm
+	//public float ArmDwSP2_2 = 1.1f;//good for 主軸伸 0mm
+	public float ArmDwSP2_1 = 1.7f;//good for 主軸伸 180mm
+	public float ArmDwSP2_2 = 2.2f;//good for 主軸伸 180mm
+	//public float ArmDwSP2_1 = 1.9f;//good for 主軸伸 250mm
+	//public float ArmDwSP2_2 = 2.5f;//good for 主軸伸 250mm
+	
+	private int IBIL_V(final float val) {
+		return (int)(val*3000f);//value change to IBIL format
+	}
+	
 	private Runnable act_arm_up = ()->{
-		writeVals(AOUT_ARM_DW, (int)(0.0f*VOLT_SCALE));//exhaust~~~
-		writeVals(AOUT_ARM_UP, (int)(0.9f*VOLT_SCALE));//up up~~~
+		writeVals(
+			AOUT_ARM_BASE_DW_UP, 
+			IBIL_V(0.0f),
+			IBIL_V(1.0f)
+		);
+		blocking_delay(250);
+		writeVals(AOUT_ARM_BASE_UP, IBIL_V(ArmUpSP2));
+		blocking_delay(150);
+		writeVals(AOUT_ARM_BASE_UP, IBIL_V(ArmUpSP3));
 	};
-	private Runnable act_arm_dw = ()->{			
-		writeVals(AOUT_ARM_UP, (int)(0.0f*VOLT_SCALE));//exhaust~~~
-		writeVals(AOUT_ARM_DW, (int)(1.4f*VOLT_SCALE));//down, down~~~
-		//blocking_delay(500);//angle-1
-		//blocking_delay(700);//angle-2
-		blocking_delay(ArmDownDelay.get());//angle-2
-		//finally~~~
-		writeVals(AOUT_ARM_DW, (int)(3.0f*VOLT_SCALE));
-		writeVals(AOUT_ARM_UP, (int)(3.4f*VOLT_SCALE));
-		blocking_delay(50);
-	};	
-	public void armForce(
-		final float volt1,
-		final float volt2
-	) {
-		final int v1 =  (int)(volt1*VOLT_SCALE);
-		final int v2 =  (int)(volt2*VOLT_SCALE);
+
+	private Runnable act_arm_dw = ()->{
+		//將手臂保持水平位置~~~
+		writeVals(
+			AOUT_ARM_BASE_DW_UP, 
+			IBIL_V(1.0f),
+			IBIL_V(0.3f)
+		);
+		blocking_delay(450);		
+		writeVals(
+			AOUT_ARM_BASE_DW_UP, 
+			IBIL_V(ArmDwSP2_1),
+			IBIL_V(ArmDwSP2_2)
+		);
+	};
+	
+	public FloatProperty armForceDw = new SimpleFloatProperty(1.0f);
+	public FloatProperty armForceUp = new SimpleFloatProperty(0.7f);
+	
+	public void armPressProp(final float dw, final float up) {
+		armForceDw.set(dw);
+		armForceUp.set(up);
+	}
+	
+	public void armPression() {
+		final float dw = armForceDw.get();
+		final float up = armForceUp.get();
 		asyncBreakIn(()->{
-			writeVals(AOUT_ARM_DW, 0, 0);//exhaust~~~
-			blocking_delay(150);//angle-2
-			writeVals(AOUT_ARM_DW,v1,v2);//supply~~~
-			blocking_delay(150);//angle-2
+			writeVals(AOUT_ARM_BASE_DW_UP, IBIL_V(dw), IBIL_V(up));
+		});
+	}	
+	public void armPression(final float dw, final float up) {
+		asyncBreakIn(()->{
+			writeVals(AOUT_ARM_BASE_DW_UP, IBIL_V(dw), IBIL_V(up));
 		});
 	}
 	
@@ -290,8 +326,8 @@ public class ModCoupler extends DevModbus {
 		}
 	});}
 	public void giveAlarm() {
-		if(tglAlarm==null) { return; }
-		giveAlarm(tglAlarm.isSelected());
+		if(tglDoneAlarm==null) { return; }
+		giveAlarm(tglDoneAlarm.isSelected());
 	}
 	
 
