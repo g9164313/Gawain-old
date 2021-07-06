@@ -1,7 +1,6 @@
 package prj.shelter;
 
-import java.util.Arrays;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.math.BigDecimal;
 
 import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXCheckBox;
@@ -10,9 +9,7 @@ import com.jfoenix.controls.JFXTextField;
 import com.sun.glass.ui.Application;
 
 import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.FloatProperty;
 import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.property.SimpleFloatProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.scene.control.Label;
@@ -86,14 +83,13 @@ public class DevHustIO extends DevTTY {
 	public final BooleanProperty isMoving = new SimpleBooleanProperty();
 	public final BooleanProperty isRadiant= new SimpleBooleanProperty();
 	
-	public final StringProperty location = U_code;//= new SimpleStringProperty();
-
-	public final StringProperty remainTime = new SimpleStringProperty("00:00:00");
+	public final StringProperty locationText = new SimpleStringProperty();
+	public final StringProperty activityName = new SimpleStringProperty(ACT_NAME_0_05Ci);
+	public final StringProperty leftTime = new SimpleStringProperty("00:00:00");
 	
-	private long radiation_start = -1L;
-	private long radiation_time = -1L;
-	
-	private AtomicInteger reamin_time = new AtomicInteger(-1);
+	private long left_time_start = -1L;
+	private long left_time_count = -1L;
+	private long left_time_total = -1L;
 	
 	private void parse_report(final String report){
 		
@@ -118,21 +114,20 @@ public class DevHustIO extends DevTTY {
 		final boolean moving = (h_val.charAt(2)=='?')?(true):(false);
 		
 		if(radiant==true) {
-			if(radiation_start<0L) {
-				radiation_start = System.currentTimeMillis();
-				reamin_time.set((int)radiation_time);
-			}else {
-				long count = System.currentTimeMillis() - radiation_start;
-				if(radiation_time>0 && count>=radiation_time) {
+			if(left_time_start<0L) {
+				left_time_start = System.currentTimeMillis();
+				left_time_count = 0L;
+			}else if(left_time_count>=0L){
+				left_time_count = System.currentTimeMillis() - left_time_start;
+				if(left_time_count>=left_time_total) {
 					exec("O9005","N01000000");//stop radiation~~~
-					radiation_time = -1L;
-					reamin_time.set(0);
-				}else {
-					reamin_time.set((int)(radiation_time-count));
+					left_time_count = -1L;
 				}
 			}
 		}else{
-			radiation_start = -1L;//for next turn~~~
+			//for next turn~~~
+			left_time_start = -1L;
+			left_time_count = -1L;
 		}
 		
 		Application.invokeAndWait(()->{
@@ -145,7 +140,23 @@ public class DevHustIO extends DevTTY {
 			isRadiant.setValue(radiant);
 			isMoving.setValue(moving);
 			
-			remainTime.set(Misc.tick2text(reamin_time.get(),false,3));
+			BigDecimal u_dec = new BigDecimal(u_val);
+			int pp = u_dec.precision();//digital的數量
+			int ss = u_dec.scale();//多少 digital在逗點右邊
+			if((pp-ss)>=2) {
+				u_dec = u_dec.movePointLeft(1);
+				locationText.set(u_dec.toString()+" cm");
+			}else {
+				locationText.set(u_val+" mm");
+			}
+			
+			if(left_time_count>=0L) {
+				leftTime.set(Misc.tick2text(
+					Math.abs(left_time_count - left_time_total),
+					false,
+					3
+				));
+			}
 		});
 	}
 	
@@ -167,6 +178,38 @@ public class DevHustIO extends DevTTY {
 		exec("O9005","N01000000");
 	}
 	
+	public static final String ACTIVITY_3Ci   = "M03";
+	public static final String ACTIVITY_0_5Ci = "M04";
+	public static final String ACTIVITY_0_05Ci= "M05";
+	public static final String ACT_NAME_3Ci   = "3 Ci";
+	public static final String ACT_NAME_0_5Ci = "0.5 Ci";
+	public static final String ACT_NAME_0_05Ci= "0.05 Ci";
+	
+	public static String act_name2value(final String txt) {
+		if(txt.equals(ACT_NAME_3Ci)==true) {
+			return ACTIVITY_3Ci;
+		}else if(txt.equals(ACT_NAME_0_5Ci)==true) {
+			return ACTIVITY_0_5Ci;
+		}else if(txt.equals(ACT_NAME_0_05Ci)==true) {
+			return ACTIVITY_0_05Ci;
+		}else {
+			Misc.loge("Wrong activity name(%s)", txt);
+		}
+		return "";
+	}
+	public static String act_value2name(final String txt) {
+		if(txt.equals(ACTIVITY_3Ci)==true) {
+			return ACT_NAME_3Ci;
+		}else if(txt.equals(ACTIVITY_0_5Ci)==true) {
+			return ACT_NAME_0_5Ci;
+		}else if(txt.equals(ACTIVITY_0_05Ci)==true) {
+			return ACT_NAME_0_05Ci;
+		}else {
+			Misc.loge("Wrong activity value(%s)", txt);
+		}
+		return "???";
+	}
+	
 	@Override
 	protected void afterOpen() {
 		exec("O9000","N00000010000000001");//start report
@@ -180,22 +223,31 @@ public class DevHustIO extends DevTTY {
 		stop_radiaton();
 	}
 	//-------------------------------------------//
-
-	public static final String ISOTOPE_3Ci  = "M03";
-	public static final String ISOTOPE_05Ci = "M04";
-	public static final String ISOTOPE_005Ci= "M05";
 	
 	public void makeRadiation(
-		final String isotope,
 		final int time_val
-	){asyncBreakIn(()->{
-		make_radiaton(isotope);
-		radiation_time = time_val;
+	){
+		final String act_val = act_name2value(activityName.get());
+		asyncBreakIn(()->{
+		left_time_total = time_val;
+		make_radiaton(act_val);
 	});}
+	public void makeRadiation(
+		final String act_name,
+		final int time_val
+	){
+		final String act_val = act_name2value(act_name);
+		if(act_val.length()==0) {
+			return;
+		}
+		activityName.set(act_name);
+		makeRadiation(time_val);
+	}
 	public void stopRadiation(){
 		//R_code --> 00000018
 		asyncBreakIn(()->stop_radiaton());
 	}
+	
 	
 	/**
 	 * move tools to position form home point.<p>
@@ -253,11 +305,11 @@ public class DevHustIO extends DevTTY {
 			new JFXRadioButton("3Ci")			
 		};
 		rad[0].setToggleGroup(grp);
-		rad[0].setUserData(ISOTOPE_005Ci);
+		rad[0].setUserData(ACTIVITY_0_05Ci);
 		rad[1].setToggleGroup(grp);
-		rad[1].setUserData(ISOTOPE_05Ci);
+		rad[1].setUserData(ACTIVITY_0_5Ci);
 		rad[2].setToggleGroup(grp);
-		rad[2].setUserData(ISOTOPE_3Ci);
+		rad[2].setUserData(ACTIVITY_3Ci);
 		grp.selectToggle(rad[0]);
 		
 		JFXButton[] btn = {

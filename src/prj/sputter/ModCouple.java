@@ -235,6 +235,22 @@ public class ModCouple extends DevModbus {
 		set_mass_flow(8008, val_o2, o2_max_sccm);
 	});}
 	
+	public void asynSetArFlow(
+		final String value
+	){asyncBreakIn(()->{
+		set_mass_flow(8006, value, ar_max_sccm);
+	});}
+	public void asynSetN2Flow(
+		final String value
+	){asyncBreakIn(()->{
+		set_mass_flow(8007, value, n2_max_sccm);
+	});}
+	public void asynSetO2Flow(
+		final String value
+	){asyncBreakIn(()->{
+		set_mass_flow(8008, value, o2_max_sccm);
+	});}
+	
 	private void init_flow_prop() {
 		Application.invokeLater(()->{
 			PV_Flow[0].bind(ain1.divide(1000f).multiply(ar_max_sccm/5f));

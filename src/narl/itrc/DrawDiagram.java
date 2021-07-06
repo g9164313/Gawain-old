@@ -21,15 +21,20 @@ import javafx.scene.shape.SVGPath;
 
 
 public class DrawDiagram extends AnchorPane  {
+	
 	protected interface DrawNode<T> {
 		T locate(final int xx, final int yy);
-	};	
-	protected class PipeBlock extends SVGPath 
-	  implements DrawNode<PipeBlock>
+	};
+	
+	protected class Pipe1 extends SVGPath 
+	  implements DrawNode<Pipe1>
 	{
 		final public BooleanProperty state = new SimpleBooleanProperty(false);
-		
-		public PipeBlock(
+		public Color[] color = {
+			Color.TRANSPARENT,
+			Color.CORNFLOWERBLUE,
+		};
+		public Pipe1(
 			final char fmt,
 			final int... arg
 		) {
@@ -162,23 +167,33 @@ public class DrawDiagram extends AnchorPane  {
 			setContent(txt);
 			setStrokeWidth(3.);
 			setStroke(Color.BLACK);
-			//setFill(Color.CORNFLOWERBLUE);
-			setFill(Color.TRANSPARENT);
+			setFill(color[0]);
 			
 			state.addListener((obv,oldVal,newVal)->{
 				if(newVal==true) {
-					setFill(Color.CORNFLOWERBLUE);
+					setFill(color[1]);
 				}else {
-					setFill(Color.TRANSPARENT);
+					setFill(color[0]);
 				}
 			});
 		}
 		@Override
-		public PipeBlock locate(final int xx, final int yy) {
+		public Pipe1 locate(final int xx, final int yy) {
 			set_location(this,xx,yy);
 			return this;
 		}
 	};
+	
+	protected class PipeN extends SVGPath 
+	  implements DrawNode<PipeN>
+	{
+		@Override
+		public PipeN locate(int xx, int yy) {
+			set_location(this,xx,yy);
+			return this;
+		}
+	}
+	
 	
 	protected void set_location(final Node obj,final int xx, final int yy) {
 		if(getChildren().contains(obj)==false) {

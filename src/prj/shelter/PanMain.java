@@ -1,5 +1,7 @@
 package prj.shelter;
 
+import java.math.BigDecimal;
+
 import com.jfoenix.controls.JFXTabPane;
 
 import javafx.scene.control.Label;
@@ -22,8 +24,18 @@ public class PanMain extends PanBase {
 	
 	final LayLadder ladder = new LayLadder(hustio,at5350,cdr06);
 	
+	public final DataRadiation radpro = new DataRadiation();
+	
 	public PanMain(final Stage stg){
 		super(stg);
+		
+		BigDecimal val = new BigDecimal("1.2345");
+		int pp = val.precision();
+		int ss = val.scale();
+		if((pp-ss)>=2) {
+			val = val.movePointLeft(1);
+		}
+		String txt = val.toString();
 		stage().setOnShown(e->on_shown());		
 	}
 	
@@ -49,11 +61,11 @@ public class PanMain extends PanBase {
 		
 		final JFXTabPane lay1 = new JFXTabPane();
 		lay1.getTabs().addAll(			
-			new Tab("條碼/調閱", new LayQuery()),
-			new Tab("執行校正",ladder),
+			new Tab("調閱",new LayQuery()),
+			new Tab("校正",ladder),
 			new Tab("設備",lay2)
 		);
-		lay1.getSelectionModel().select(1);
+		lay1.getSelectionModel().select(2);
 
 		final BorderPane lay0 = new BorderPane();
 		lay0.setCenter(lay1);
@@ -63,33 +75,45 @@ public class PanMain extends PanBase {
 	
 	private Pane gen_info_panel(){
 		
-		Label[] inf = new Label[8];
-		for(int i=0; i<inf.length; i++){
-			inf[i] = new Label();
-			inf[i].setMinWidth(90);
-		}		
-		inf[0].textProperty().bind(cdr06.getPropPression());
-		inf[1].textProperty().bind(cdr06.getPropHumidity());
-		inf[2].textProperty().bind(cdr06.getPropTemperature());
+		final String f_size="font-size2";
 		
-		//inf[3].textProperty().bind(hustio.isotope);
-		inf[4].textProperty().bind(hustio.location);
-		inf[5].textProperty().bind(hustio.remainTime);
+		final Label[] inf = {
+			new Label("大氣溫度："),new Label(),
+			new Label("大氣濕度："),new Label(),
+			new Label("大氣壓力："),new Label(),
+			new Label("輻射源種："),new Label(),
+			new Label("輻射劑量："),new Label(),
+			new Label("照射位置："),new Label(),
+			new Label("照射時間："),new Label(),
+		};
+		for(int i=0 ;i<inf.length; i++){
+			inf[i].getStyleClass().addAll(f_size);
+			if(i%2==1) {
+				inf[i].setMinWidth(90);
+			}
+		}
+		
+		inf[1].textProperty().bind(cdr06.getPropTemperature());
+		inf[3].textProperty().bind(cdr06.getPropHumidity());
+		inf[5].textProperty().bind(cdr06.getPropPression());
+		
+		//inf[ 7].textProperty().bind(hustio.isotope);
+		//inf[ 9].textProperty().bind();
+		inf[11].textProperty().bind(hustio.locationText);
+		inf[13].textProperty().bind(hustio.leftTime);
 		
 		GridPane lay1 = new GridPane();
-		lay1.getStyleClass().addAll("box-pad-inner");
-		lay1.addRow(0, new Label("大企壓力："), inf[0]);
-		lay1.addRow(1, new Label("環境濕度："), inf[1]);
-		lay1.addRow(2, new Label("環境溫度："), inf[2]);
+		lay1.getStyleClass().addAll("box-pad");
+		lay1.addRow(0, inf[ 0], inf[ 1]);
+		lay1.addRow(1, inf[ 2], inf[ 3]);
+		lay1.addRow(2, inf[ 4], inf[ 5]);
 		lay1.add(new Separator(), 0, 3, 2, 1);
-		lay1.addRow(4, new Label("輻射源種："), inf[3]);
-		lay1.addRow(5, new Label("載台位置："), inf[4]);
-		lay1.addRow(6, new Label("照射時間："), inf[5]);
-		lay1.add(new Separator(), 0, 7, 2, 1);
+		lay1.addRow(4, inf[ 6], inf[ 7]);
+		lay1.addRow(5, inf[ 8], inf[ 9]);
+		lay1.addRow(6, inf[10], inf[11]);
+		lay1.addRow(7, inf[12], inf[13]);
+		lay1.add(new Separator(), 0, 8, 2, 1);
 		lay1.add(new Separator(), 0, 9, 2, 1);
-		
-		VBox lay0 = new VBox(lay1);
-		lay0.getStyleClass().addAll("box-pad","border");
-		return lay0;
+		return lay1;
 	}
 }

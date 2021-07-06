@@ -1,6 +1,8 @@
 package prj.shelter;
 
 import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.commons.math3.stat.StatUtils;
 
 import com.jfoenix.controls.JFXButton;
@@ -23,6 +25,7 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.util.StringConverter;
 import narl.itrc.DevTTY;
+import narl.itrc.Gawain;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
 import narl.itrc.UtilPhysical;
@@ -31,8 +34,7 @@ public class DevAT5350 extends DevTTY {
 
 	public DevAT5350(){
 		TAG="AT5350";
-		readTimeout = 600;
-		//flowControl = 2;
+		readTimeout = 3000;
 	}
 	public DevAT5350(final String path){
 		this();
@@ -42,19 +44,17 @@ public class DevAT5350 extends DevTTY {
 	protected void afterOpen() {
 		playFlow("");
 		asyncBreakIn(()->{
-			String[] idfy = wxr("*IDN?")
+			String[] idn = wxr("*IDN?")
 				.replaceAll("[\n|\\s]", "")
 				.split(",");
 			//wxr("TRIG:COUN 5");
-			//wxr("TRIG:ECO 10");
-			if(idfy.length<4){
-				return;
-			}
+			//Misc.logv("STB=%s", wxr("*STB?"));
+			//Misc.logv("SRE=%s", wxr("*SRE?"));
 			Application.invokeAndWait(()->{
-				Identify[0].setValue(idfy[0]);
-				Identify[1].setValue(idfy[1]);
-				Identify[2].setValue(idfy[2]);
-				Identify[3].setValue(idfy[3]);
+				Identify[0].setValue(idn[0]);
+				Identify[1].setValue(idn[1]);
+				Identify[2].setValue(idn[2]);
+				Identify[3].setValue(idn[3]);
 			});	
 		});
 	}
@@ -71,13 +71,13 @@ public class DevAT5350 extends DevTTY {
 	 * CURRent - 電流 [LOW|MEDium|HIGH]
 	 * CHARge - 電荷 [LOW|HIGH]
 	 * DRATe - Kerma rate [LOW|MEDium|HIGH]
-	 * DOSE - Kerma [LOW|HIGH]
-	 * ICHarge - 累積電荷 integration of current [LOW|MEDium|HIGH]
-	 * IDOSe - 累積劑量 integration of kerma rate [LOW|MEDium|HIGH]
+	 * DOSE  - Kerma [LOW|HIGH]
+	 * ICHarge- 累積電荷 integration of current [LOW|MEDium|HIGH]
+	 * IDOSe  - 累積劑量 integration of kerma rate [LOW|MEDium|HIGH]
 	 * Measurement range:
-	 * LOW   -  180 uSv/min
-	 * MEDium-  18 mSv/min
-	 * HIGH  -  1.8 Sv/min
+	 * HIGH  -  1.7 Sv/min
+	 * MEDium- 17  mSv/min
+	 * LOW   -179  uSv/min
 	 */
 	/**
 	 * Filter state(on or off) and value.<p>
@@ -146,7 +146,7 @@ public class DevAT5350 extends DevTTY {
 			e.printStackTrace();
 		}
 		lastMeasure = wxr("FETC:ARR? "+coun);
-		split_data(lastMeasure);
+		split_data();
 		double avg = StatUtils.mean(data_value);
 		double sig = Math.sqrt(StatUtils.variance(data_value));
 		//change UI scale
@@ -175,36 +175,27 @@ public class DevAT5350 extends DevTTY {
 		return false;
 	}
 	private String wxr(String cmd){
-		//write_with_delay(cmd);
 		if(cmd.endsWith("\n")==false){
 			cmd = cmd + "\n";
 		}
-		writeTxtDelay(25,cmd);
-		String res = readTxt(600).trim();
-		if(verbose==true){
-			Misc.logv("[%s] %s --> %s",TAG,cmd,res);
+		for(char cc:cmd.toCharArray()) {
+			writeByte(cc);
+			cc = (char)readByte();
+			//Misc.logv("recv=%c(%d)",cc,(int)cc);
 		}
-		int pos = res.indexOf('\n');
-		if(pos>0){
-			res = res.substring(pos+1);
+		String res = "";
+		if(cmd.contains("?")==false) {
+			return res;
+		}
+		char rr=0;
+		while(true) {
+			rr = (char)readByte();
+			if(rr==0x0A) { break; }
+			res = res + (char)rr;
 		}
 		return res;	
 	}
-	/*private void write_with_delay(String cmd){
-		if(cmd.endsWith("\n")==false){
-			cmd = cmd + "\n";
-		}
-		for(byte val:cmd.getBytes()){
-			writeByte(val);
-			try {
-				Thread.sleep(25);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}
-	}*/
-	
-	private String[] split_txt(String txt){
+	private String[] split_measurement_text(String txt){
 		ArrayList<String> vals = new ArrayList<String>(10);
 		int beg, end;
 		char quo = '"';
@@ -226,23 +217,16 @@ public class DevAT5350 extends DevTTY {
 	private double[] data_value;
 	private String data_unit;
 	
-	private void split_data(String txt){		
-		String[] col = split_txt(txt);
-		ArrayList<Double> lst = new ArrayList<Double>();
-		for(String val:col){
-			try{
-				String[] vv = val.split("\\s");
-				data_unit = vv[1];
-				lst.add(Double.valueOf(vv[0]));
-			}catch(NumberFormatException e){
-				Misc.loge("[%s] invalid format: %s", TAG,txt);
-			}
-		}
-		data_value = new double[lst.size()];
-		for(int i=0; i<lst.size(); i++){
-			data_value[i] = lst.get(i).doubleValue();
+	private void split_data(){
+		String[] vals = lastMeasure.split(",");
+		for(String txt:vals) {
+			String[] cols = txt.replace("\"", "").split("\\s");
+			double numb = Double.valueOf(cols[0].trim());
+			String unit = cols[1].trim();
+			Misc.logv("%f", numb);
 		}
 	}
+	
 	//-------------------------------------//
 	
 	private final static StringConverter<String> conf_name = new StringConverter<String>(){
@@ -269,7 +253,7 @@ public class DevAT5350 extends DevTTY {
 		final TextField[] val
 		
 	){dev.asyncBreakIn(()->{
-		dev.wxr("SYSTem:RWLock\n");//lock panel
+		dev.wxr("SYSTem:RWLock");//lock panel
 		
 		final boolean[] flg = new boolean[5];
 		flg[0] = dev.get_flag(":DRATe:FILTer?");
@@ -325,6 +309,10 @@ public class DevAT5350 extends DevTTY {
 		
 	}
 	
+	//AT5350 example:
+	//SEND --> FETC:ARR? 
+	//RECV --> "-1.1279E-08 Sv/min #774","-1.1279E-08 Sv/min #775","-1.1097E-08 Sv/min #776","-1.1097E-08 Sv/min #777","-1.1097E-08 Sv/min #778","-1.1097E-08 Sv/min #779","-1.1097E-08 Sv/min #780","-1.1279E-08 Sv/min #781","-1.1279E-08 Sv/min #782","-1.1279E-08 Sv/min #783","-1.1279E-08 Sv/min #784","-1.1279E-08 Sv/min #785","-1.1279E-08 Sv/min #786","-1.1097E-08 Sv/min #787","-1.1279E-08 Sv/min #788","-1.1097E-08 Sv/min #789","-1.1097E-08 Sv/min #790","-1.1279E-08 Sv/min #791","-1.1097E-08 Sv/min #792","-1.1097E-08 Sv/min #793"
+
 	public static Pane genPanel(final DevAT5350 dev){
 		
 		Label name = new Label();
@@ -383,7 +371,7 @@ public class DevAT5350 extends DevTTY {
 		btn[0].setText("讀取量測");
 		btn[0].getStyleClass().add("btn-raised-1");
 		btn[0].setOnAction(e->{
-			String conf = cmb.getSelectionModel().getSelectedItem();
+			/*String conf = cmb.getSelectionModel().getSelectedItem();
 			boolean[] use = {
 				tgl[0].isSelected(),
 				tgl[1].isSelected(),
@@ -404,13 +392,20 @@ public class DevAT5350 extends DevTTY {
 				ecnt = Integer.valueOf(box[5].getText().trim());
 			}catch(NumberFormatException exp){
 				return;
-			}
+			}*/
 			dev.measure();
 		});
 		
-		btn[1].setText("高壓補償");
+		btn[1].setText("testing~~~");
 		btn[1].getStyleClass().add("btn-raised-1");
-		btn[1].setOnAction(e->compensate((Node)e.getSource(),dev));
+		btn[1].setOnAction(e->{
+			dev.lastMeasure =Gawain.prop().getProperty("lastmeas");
+			dev.split_data();
+			//dev.asyncBreakIn(()->{
+				//String txt = dev.wxr("FETC:ARR? "+20);
+
+			//});
+		});
 		
 		btn[2].setText("下載參數");
 		btn[2].getStyleClass().add("btn-raised-2");

@@ -36,7 +36,7 @@ import narl.itrc.PanBase;
 
 public class PanMain extends PanBase {
 	
-	private static final String TXT_AXIS_MAJOR = "主軸";
+	private static final String TXT_AXIS_MAJOR = "旋轉軸(主軸)";
 	private static final String TXT_AXIS_PRESS = "加壓軸";
 	private static final String TXT_AXIS_SWING = "擺動軸";
 	private static final String TXT_CYLI_FORCE = "氣缸加壓";
@@ -82,8 +82,12 @@ public class PanMain extends PanBase {
 		if(arg.length()!=0) {
 			coup.working_press  = ()->notifyEvent(e_working);
 			coup.working_release= ()->notifyEvent(e_halting);
-			coup.emerged_press  = ()->toggle_btn(coup.tglDoneAlarm,true);
-			coup.emerged_release= ()->toggle_btn(coup.tglDoneAlarm,false);
+			coup.emerged_press  = ()->{
+				//coup.giveAlarm(true);
+				toggle_btn(tglMotorMajor,false);
+				toggle_btn(tglMotorOther,false);
+			};
+			//coup.emerged_release= ()->{};
 			coup.open(arg);
 		}
 	}
@@ -537,7 +541,7 @@ public class PanMain extends PanBase {
 		final GridPane lay = new GridPane();
 		lay.getStyleClass().addAll("box-pad");
 		lay.addColumn(0,tile[0],tile[5],tile[4]);
-		lay.addColumn(1,moto[0],moto[1],moto[2]);
+		lay.addColumn(1,moto[1],moto[2],moto[0]);
 		lay.addColumn(2,tile[1],tile[2],tile[3]);		
 		return lay;
 	}

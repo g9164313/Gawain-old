@@ -20,6 +20,9 @@
 .font-size9 {
   -fx-font-size: 1.9em;
 }
+.font-size20 {
+  -fx-font-size: 2.0em;
+}
 .font-console {
   -fx-font-family: 'Consolas';
 }
@@ -153,9 +156,9 @@
 }
 .box-border {
   -fx-border-color: black;
-  -fx-border-width: 1.7px;
-  -fx-border-radius: 10px;
-  -fx-background-radius: 10px;
+  -fx-border-width: 1px;
+  -fx-border-radius: 3px;
+  -fx-background-radius: 3px;
 }
 
 .titled-pane > .title {

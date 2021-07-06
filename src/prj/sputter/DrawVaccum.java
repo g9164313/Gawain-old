@@ -2,33 +2,30 @@ package prj.sputter;
 
 import java.util.Optional;
 
-import com.jfoenix.controls.JFXButton;
-
 import javafx.animation.Animation;
 import javafx.animation.RotateTransition;
-import javafx.animation.ScaleTransition;
-import javafx.animation.TranslateTransition;
+import javafx.beans.property.FloatProperty;
 import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.value.ChangeListener;
 import javafx.geometry.Pos;
 import javafx.scene.Group;
 import javafx.scene.Node;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.AnchorPane;
-import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Region;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.Circle;
 import javafx.scene.shape.Line;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.SVGPath;
 import javafx.util.Duration;
 import narl.itrc.DrawDiagram;
 import narl.itrc.Misc;
+import narl.itrc.PadTouch;
 
 public class DrawVaccum extends DrawDiagram {
 
@@ -43,13 +40,30 @@ public class DrawVaccum extends DrawDiagram {
 		RoughPump oo4 = new RoughPump().locate( 10,380);
 		CommValve gg1 = new CommValve().locate(253,380);
 		CommValve gg2 = new CommValve().locate(253,500);
+				
+		Pipe1 pp1 = new Pipe1('▟',90,113,11).locate(300,303);
+		Pipe1 pp2 = new Pipe1('▔',146,11).locate(110,405);
 		
-		PipeBlock pp1 = new PipeBlock('▟',90,113,11).locate(300,303);
-		PipeBlock pp2 = new PipeBlock('▔',146,11).locate(110,405);
+		Pipe1 pp3 = new Pipe1('▔',196,11).locate(300,526);
+		Pipe1 pp4 = new Pipe1('▚',146,91,11).locate(110,447);
 		
-		PipeBlock pp3 = new PipeBlock('▔',196,11).locate(300,526);
-		PipeBlock pp4 = new PipeBlock('▚',146,91,11).locate(110,447);
-		
+		Pipe1 pp5 = new Pipe1('▚',124,107,7).locate(174,83);
+		Pipe1 pp6 = new Pipe1('▔',124,7    ).locate(174,183);
+		Pipe1 pp7 = new Pipe1('▞',124,107,7).locate(174,183);
+
+		FlowValve ff1 = new FlowValve("Ar").locate(10, 10)
+			.pipe_out(pp5,coup.PV_FlowAr,(obv,oldVal,newVal)->{
+				coup.asynSetArFlow(newVal);
+			});
+		FlowValve ff2 = new FlowValve("N2").locate(10,115)
+			.pipe_out(pp6,coup.PV_FlowN2,(obv,oldVal,newVal)->{
+				coup.asynSetN2Flow(newVal);
+			});
+		FlowValve ff3 = new FlowValve("O2").locate(10,225)
+			.pipe_out(pp7,coup.PV_FlowO2,(obv,oldVal,newVal)->{
+				coup.asynSetO2Flow(newVal);
+			});
+				
 		oo3.setOnMouseClicked(e->{
 			oo3.next_state();
 		});
@@ -83,37 +97,29 @@ public class DrawVaccum extends DrawDiagram {
 		Chamber(){
 			final int ww = 340;
 			final int hh = 300;
-			final int bw = 167;
-			final int bh =  54;
-			
-			Rectangle rr;
-			Line ll;
-			
-			rr = new Rectangle(0, 0, bw, bh);
-			rr.setFill(Color.TRANSPARENT);
-			rr.setStroke(Color.BLACK);
-			rr.setStrokeWidth(1.5);
-			rr.setArcWidth(27);
-			rr.setArcHeight(27);
-			put_in(rr,(ww-bw)/2,hh-bh-33);
-			
-			ll = new Line(0,0,45,45);
-			ll.setStrokeWidth(3.1);
-			ll.getStrokeDashArray().setAll(17.,13.,5.);
-			//put_in(ll,0,0);
-			
-			//TranslateTransition tt = new TranslateTransition(Duration.millis(2000),rr);
-			//tt.setByX(200f);
-			//tt.setCycleCount(Animation.INDEFINITE);
-			//tt.setAutoReverse(false);
-		    //tt.play();
-			
-			ScaleTransition st = new ScaleTransition(Duration.millis(2000), ll);
-			st.setByX(1.5f);
-			st.setByY(1.5f);
-			st.setCycleCount(Animation.INDEFINITE);
-			st.setAutoReverse(false);
-		    st.play();
+			final int pole_w = 167;
+			final int pole_h =  54;
+			//電極
+			final double pole_x = (ww-pole_w)/2;
+			final double pole_y = (hh-pole_h-33);
+			final Rectangle pole = new Rectangle(0, 0, pole_w, pole_h);
+			pole.setFill(Color.TRANSPARENT);
+			pole.setStroke(Color.BLACK);
+			pole.setStrokeWidth(1.5);
+			pole.setArcWidth(27);
+			pole.setArcHeight(27);
+			put_in(pole,pole_x,pole_y);
+
+			Pane plsm = pane_plasma(73.,pole_w);
+			plsm.setVisible(false);
+			put_in(plsm,pole_x,pole_y-73.);
+
+			/*FadeTransition ani = new FadeTransition(Duration.millis(500),plsm);
+			ani.setFromValue(1.0);
+			ani.setToValue(0.1);
+			ani.setCycleCount(Animation.INDEFINITE);
+			ani.setAutoReverse(true);
+		    ani.play();*/
 		    
 		    setPrefSize(ww, hh);
 			final String css =
@@ -125,6 +131,40 @@ public class DrawVaccum extends DrawDiagram {
 			  "-fx-border-color: black;"+
 			  "-fx-border-style: solid";
 			setStyle(css);
+		}
+		Pane pane_plasma(
+			final double length,
+			final double pole_w
+		) {
+			//電漿指示動畫
+			//cos(33 deg) = 0.83
+			//sin(33 deg) = 0.54
+			final double ang1 = 60.;//unit is degree
+			final double ang2 = 73.;
+			final double[][] trig = {
+				{length*Math.cos((ang1*Math.PI)/180.), length*Math.sin((ang1*Math.PI)/180.),},
+				{length*Math.cos((ang2*Math.PI)/180.), length*Math.sin((ang2*Math.PI)/180.),},
+			};
+			final Line[] plsm = {
+				new Line(0,0,trig[0][0],trig[0][1]),
+				new Line(0,0,trig[1][0],trig[1][1]),
+				new Line(0,0,0,length),
+				new Line(0,trig[1][1],trig[1][0],0),
+				new Line(0,trig[0][1],trig[0][0],0),
+			};
+			for(Line obj:plsm) {
+				obj.setStrokeWidth(1.1);
+				obj.getStrokeDashArray().setAll(10.,10.,10.);
+				AnchorPane.setBottomAnchor(obj, 0.);
+			}
+			final double pos0 = pole_w/2.;
+			AnchorPane lay = new AnchorPane(plsm);
+			AnchorPane.setLeftAnchor (plsm[0], 0.);
+			AnchorPane.setLeftAnchor (plsm[1], 50.);
+			AnchorPane.setLeftAnchor (plsm[2], pos0);
+			AnchorPane.setRightAnchor(plsm[3], -37.);
+			AnchorPane.setRightAnchor(plsm[4], -pos0);
+			return lay; 
 		}
 		void put_in(final Node obj, final double xx, final double yy) {
 			AnchorPane.setLeftAnchor(obj, xx);
@@ -166,11 +206,11 @@ public class DrawVaccum extends DrawDiagram {
 			//working indicator
 			ImageView indr = new ImageView(img_work);
 			indr.visibleProperty().bind(state.isEqualTo(1));
+			put_in(indr,w1/2.-img_work.getWidth()/2.,hh*3/5);
 			RotateTransition ani = new RotateTransition(Duration.seconds(3), indr);
 			ani.setByAngle(360);
 			ani.setCycleCount(Animation.INDEFINITE);
 			//ani.play();			
-			put_in(indr,w1/2.-img_work.getWidth()/2.,hh*3/5);			
 			//main body
 			rr = new Rectangle(w2,hh);
 			rr.setFill(Color.TRANSPARENT);
@@ -388,6 +428,82 @@ public class DrawVaccum extends DrawDiagram {
 		}
 		@Override
 		public CommValve locate(int xx, int yy) {
+			set_location(this,xx,yy);
+			return this;
+		}
+	}
+	
+	private class FlowValve extends StackPane
+	  implements DrawNode<FlowValve>
+	{
+		final SimpleIntegerProperty state = new SimpleIntegerProperty(0);
+		
+		final Label txt_pv = new Label("0.");
+		final Label txt_sv = new Label("0.");
+		final Button btn_close = new Button("關閉");
+		
+		FlowValve(final String name){
+			
+			btn_close.setMinSize(60.,47.);
+			
+			value_showing(txt_pv);
+			value_showing(txt_sv);
+			
+			final GridPane lay = new GridPane();
+			lay.getStyleClass().add("box-pad");
+			lay.add(new Label(name), 0, 0, 4, 1);
+			lay.addRow(1, new Label("PV"), txt_pv);
+			lay.addRow(2, new Label("SV"), txt_sv);
+			lay.add(btn_close, 2, 1, 2, 2);
+			
+			final SVGPath bnd = new SVGPath();
+			bnd.setContent("M0,0 h32 l21,22 h110 v66 h-163 v-88");
+			bnd.setStrokeWidth(1.4);
+			bnd.setStroke(Color.BLACK);
+			bnd.setFill(Color.TRANSPARENT);
+			
+			StackPane.setAlignment(bnd, Pos.TOP_LEFT);
+			StackPane.setAlignment(lay, Pos.TOP_LEFT);
+			
+			getChildren().addAll(bnd,lay);
+		}
+		
+		FlowValve pipe_out(
+			final Pipe1 flow,
+			final FloatProperty pv,
+			final ChangeListener<String> sv_event
+		) {
+			txt_pv.textProperty().bind(pv.asString("%.2f"));
+			txt_pv.textProperty().addListener((obv,oldVal,newVal)->{
+				final float val = Float.valueOf(newVal);
+				if(val<=0.1) {
+					flow.state.set(false);
+				}else {
+					flow.state.set(true);
+				}
+			});
+			txt_sv.textProperty().addListener(sv_event);
+			
+			setOnMouseClicked(e->{
+				PadTouch pad = new PadTouch('f',"SCCM");
+				Optional<String> val = pad.showAndWait();
+				if(val.isPresent()==false) {
+					return;
+				}
+				txt_sv.setText(val.get());
+			});
+			btn_close.setOnAction(e->txt_sv.textProperty().set("0."));
+			return this;
+		}
+		
+		private void value_showing(final Label txt) {
+			txt.setMinWidth(55.);
+			txt.setAlignment(Pos.BASELINE_RIGHT);
+			//txt.getStyleClass().add("box-border");
+		}
+		
+		@Override
+		public FlowValve locate(int xx, int yy) {
 			set_location(this,xx,yy);
 			return this;
 		}

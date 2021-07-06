@@ -1,7 +1,6 @@
 package prj.LPS_8S;
 
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import com.jfoenix.controls.JFXToggleButton;
 import com.sun.glass.ui.Application;
@@ -75,7 +74,7 @@ public class ModCoupler extends DevModbus {
 	//private final int AOUT_VAL1 = 8005;
 	//private final int AOUT_VAL2 = 8006;
 	private final int AOUT_ARM_BASE_DW_UP = 8013;//base address
-	private final int AOUT_ARM_BASE_DW = 8013;//下壓
+	//private final int AOUT_ARM_BASE_DW = 8013;//下壓
 	private final int AOUT_ARM_BASE_UP = 8014;//上推
 	
 	public final BooleanProperty pumperUnclog = new SimpleBooleanProperty(false);
@@ -190,7 +189,7 @@ public class ModCoupler extends DevModbus {
 				detect_edge(prv,cur,5,working_press,working_release);
 			});
 			
-			toggle(tglDoneAlarm,dout[2]);
+			toggle(tglDoneAlarm ,dout[2]);
 			toggle(tglSlurryHeat,dout[1]);
 			toggle(tglSlurryPump,dout[0]);
 		});		
@@ -329,9 +328,7 @@ public class ModCoupler extends DevModbus {
 		if(tglDoneAlarm==null) { return; }
 		giveAlarm(tglDoneAlarm.isSelected());
 	}
-	
 
-	
 	public void LockMasterMotor(final boolean lock) {
 		asyncBreakIn(()->lockclub(lock));
 	}
