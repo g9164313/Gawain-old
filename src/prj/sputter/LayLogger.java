@@ -1,40 +1,37 @@
 package prj.sputter;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Optional;
+import java.util.Scanner;
 
 import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellStyle;
-import org.apache.poi.ss.usermodel.DataFormat;
-import org.apache.poi.ss.usermodel.Font;
-import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import com.jfoenix.controls.JFXButton;
-import com.jfoenix.controls.JFXProgressBar;
 import com.jfoenix.controls.JFXRadioButton;
 
 import eu.hansolo.tilesfx.Tile;
 import eu.hansolo.tilesfx.TileBuilder;
 import eu.hansolo.tilesfx.Tile.SkinType;
 import javafx.concurrent.Task;
-import javafx.geometry.Pos;
 import javafx.scene.Node;
-import javafx.scene.control.Label;
-import javafx.scene.control.ProgressBar;
 import javafx.scene.control.ToggleGroup;
-import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
+import javafx.stage.FileChooser;
 import narl.itrc.Gawain;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
@@ -43,8 +40,6 @@ import narl.itrc.init.LogStream.Mesg;
 
 public class LayLogger extends BorderPane {
 
-	private final AnchorPane lay_status = new AnchorPane();
-	
 	public LayLogger() {
 		
 		Node n1 = LogStream.getInstance().genViewer();
@@ -61,10 +56,23 @@ public class LayLogger extends BorderPane {
 		n2.visibleProperty().bind(r_n2.selectedProperty());
 				
 		final StackPane lay_view = new StackPane(n1,n2);
-		lay_view.getStyleClass().addAll("box-pad");
 		
-		final JFXButton btn = new JFXButton("test~logger");
-		btn.setOnAction(e->{
+		final JFXButton btn_review = new JFXButton("調閱");
+		btn_review.getStyleClass().add("btn-raised-1");
+		btn_review.setOnAction(e->{
+			final FileChooser diag = new FileChooser();
+			diag.setTitle("");
+			diag.setInitialDirectory(Gawain.dirSock);
+			diag.getExtensionFilters().add(new FileChooser.ExtensionFilter("紀錄檔","*.txt","*.obj"));
+			final File fs = diag.showOpenDialog(Misc.getParent(e));
+			if(fs==null) {
+				return;
+			}
+			PanBase.self(this).notifyTask("輸出紀錄",new Dumping(fs));
+		});
+		final JFXButton btn_rever = new JFXButton("test");
+		btn_rever.getStyleClass().add("btn-raised-1");
+		btn_rever.setOnAction(e->{
 			//if(badge.isPresent()==false) {
 			//	show_progress();
 			//}else {
@@ -72,19 +80,17 @@ public class LayLogger extends BorderPane {
 			//}			
 		});
 		
-		final HBox lay_ctrl = new HBox(r_n1,r_n2,btn);
-		lay_ctrl.getStyleClass().addAll("box-pad");		
-		AnchorPane.setTopAnchor(lay_ctrl, 0.);
-		AnchorPane.setLeftAnchor(lay_ctrl, 0.);
-		
-		lay_status.getChildren().addAll(lay_ctrl);
-		
+		final HBox lay_ctrl = new HBox(
+			r_n1,r_n2,
+			btn_review,btn_rever
+		);
+		lay_ctrl.getStyleClass().addAll("tool-pad");
 		setCenter(lay_view);	
-		setBottom(lay_status);
+		setBottom(lay_ctrl);
 	}	
 	//-----------------------------------------------//
 	
-	private class Badge extends HBox {
+	/*private class Badge extends HBox {
 		final Label txt = new Label("紀錄中");
 		final ProgressBar bar = new ProgressBar();
 		Badge() {
@@ -95,11 +101,21 @@ public class LayLogger extends BorderPane {
 			getChildren().addAll(txt,bar);			
 		}
 	};
-	
+	private Optional<Badge> badge = Optional.empty();
+	*/
+
 	private static final String pathLogStock = Gawain.pathSock+"監控紀錄"+File.separatorChar;
 	private static final String pathLogCache = pathLogStock+"cache"+File.separatorChar;	
+	private static final SimpleDateFormat fmt_time = new SimpleDateFormat("HH:mm:ss.SSS");
 	
 	private class Dumping extends Task<Void>{
+		final File fs;
+		Dumping(){
+			fs = null;//source is from stdio~~~
+		}
+		Dumping(final File src){
+			fs = src;//source is from file~~~
+		}
 		private void check_path(final String path) throws Exception {
 			updateMessage("確認路徑： "+path);
 			File fs = new File(path);
@@ -131,17 +147,59 @@ public class LayLogger extends BorderPane {
 				e.printStackTrace();
 			}
 		}
+		private Mesg[] plain_restore(final File fs) {
+			final ArrayList<Mesg> lst = new ArrayList<Mesg>();
+			try {
+				//Scanner scn = new Scanner(fs,Charset.forName("big5").name());
+				Scanner scn = new Scanner(fs);
+				while(scn.hasNextLine()){
+					String flat = scn.nextLine();
+					if(flat.length()==0) {
+						continue;
+					}
+					try {
+						int i = flat.indexOf(']');
+						if(i<0) {
+							continue;
+						}
+						String[] arg = {
+							flat.substring(0,i),
+							flat.substring(i+1).trim(),
+						};
+						Mesg mm = new Mesg(
+							fmt_time.parse(arg[0]).getTime(),
+							arg[1]
+						);
+						lst.add(mm);
+					} catch (ParseException e) {
+						e.printStackTrace();
+					}
+				}
+				scn.close();
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+			}
+			return lst.toArray(new Mesg[0]);
+		}
 		@Override
 		protected Void call() throws Exception {
 			check_path(pathLogStock);
-			check_path(pathLogCache);			
-			Mesg[] msg = LogStream.getInstance().flushPool();
-			//Mesg[] msg = (Mesg[]) Misc.deserializeFile(pathLogCache+"temp.obj");
+			check_path(pathLogCache);
+			updateMessage("讀取資料");
+			Mesg[] msg = null;
+			if(fs==null) {
+				msg = LogStream.getInstance().flushPool();
+				dump_text(msg);
+			}else if(fs.getName().matches(".*[.]obj$")==true){
+				msg = (Mesg[]) Misc.deserializeFile(fs);
+			}else if(fs.getName().matches(".*[.]txt$")==true){
+				msg = plain_restore(fs);
+			}
 			//Misc.serialize2file(msg, pathLogCache+"temp.obj");
-			dump_text(msg);
 			Workbook wb = new XSSFWorkbook();
 			export_mesg(wb,msg);
-			export_book(wb);			
+			export_book(wb);
+			updateMessage("完成匯出");
 			return null;
 		}
 		
@@ -150,7 +208,10 @@ public class LayLogger extends BorderPane {
 		private void export_mesg(
 			final Workbook wb,
 			final Mesg[] msg
-		) throws IOException {			
+		) throws IOException {
+			if(msg==null) {
+				return;
+			}
 			updateMessage("工作中");			
 			Sheet sh0 = wb.createSheet("時間表");
 			get_cell(sh0, 0, 0).setCellValue("時間");
@@ -189,14 +250,14 @@ public class LayLogger extends BorderPane {
 		private void init_column_name(final Sheet sh,int page) {
 			page = page * 10;
 			get_cell(sh, page+0, 0).setCellValue("時間");
-			get_cell(sh, page+1, 0).setCellValue("電壓");
-			get_cell(sh, page+2, 0).setCellValue("電流");
-			get_cell(sh, page+3, 0).setCellValue("功率");
-			get_cell(sh, page+4, 0).setCellValue("mfc-1");
-			get_cell(sh, page+5, 0).setCellValue("mfc-2");
-			get_cell(sh, page+6, 0).setCellValue("mfc-3");
-			get_cell(sh, page+7, 0).setCellValue("速率");
-			get_cell(sh, page+8, 0).setCellValue("厚度");
+			get_cell(sh, page+1, 0).setCellValue("電壓(V)");
+			get_cell(sh, page+2, 0).setCellValue("電流(A)");
+			get_cell(sh, page+3, 0).setCellValue("功率(W)");
+			get_cell(sh, page+4, 0).setCellValue("mfc-1(sccm)");
+			get_cell(sh, page+5, 0).setCellValue("mfc-2(sccm)");
+			get_cell(sh, page+6, 0).setCellValue("mfc-3(sccm)");
+			get_cell(sh, page+7, 0).setCellValue("速率(A/s)");
+			get_cell(sh, page+8, 0).setCellValue("厚度(kA)");
 		}
 		private void set_column_value(
 			final Sheet sh, 
@@ -210,8 +271,34 @@ public class LayLogger extends BorderPane {
 				.substring(txt.indexOf(":")+1)
 				.split(",");
 			//put other records~~
-			for(int col=0; col<val.length; col++) {
-				get_cell(sh, page*10+col+1, row_idx[page]).setCellValue(val[col]);
+			for(int i=0; i<val.length; i++) {
+				//According unit, set column index~~~
+				//How to convert unit?
+				String v = val[i].trim();
+				int col = 0, sub_col = 3;
+				if(v.contains("A/s")==true) {
+					col = 6;
+					v = v.substring(0,v.length()-3).trim();
+				}else if(v.contains("kA")==true) {
+					col = 7;
+					v = v.substring(0,v.length()-2).trim();
+				}else if(v.contains("V")==true) {
+					col = 0;
+					v = v.substring(0,v.length()-1).trim();
+				}else if(v.contains("A")==true) {
+					col = 1;//don'y mix with 'A/s' and 'kA'
+					v = v.substring(0,v.length()-1).trim();
+				}else if(v.contains("W")==true) {
+					col = 2;
+					v = v.substring(0,v.length()-1).trim();
+				}else if(v.contains("sccm")==true) {
+					col = sub_col; sub_col+=1;
+					v = v.substring(0,v.length()-4).trim();
+				}else {
+					Misc.logw("未知的數據（%s）", v);
+					continue;
+				}
+				get_cell(sh, page*10+1+col, row_idx[page]).setCellValue(v);
 			}
 			row_idx[page]+=1;
 		}
@@ -278,9 +365,7 @@ public class LayLogger extends BorderPane {
 			styl_lower.setFont(fnt_blue);
 		}*/
 	};
-	
-	private Optional<Badge> badge = Optional.empty();
-	
+
 	public void show_progress() {
 		/*Badge node;
 		if(badge.isPresent()==false) {
@@ -388,10 +473,14 @@ public class LayLogger extends BorderPane {
 			.build();
 		gag[8].setDecimals(2);
 
-		final FlowPane lay = new FlowPane();
+		for(Tile obj:gag) {
+			obj.setMaxSize(178.,178.);
+		}
+		final GridPane lay = new GridPane();
 		lay.getStyleClass().addAll("box-pad");
-		lay.setPrefWrapLength(800);
-		lay.getChildren().addAll(gag);
+		lay.addRow(0, gag[0],gag[1],gag[2]);
+		lay.addRow(1, gag[3],gag[4],gag[5]);
+		lay.addRow(2, gag[6],gag[7],gag[8]);
 		return lay;
 	}
 	

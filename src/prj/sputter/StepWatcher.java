@@ -6,6 +6,7 @@ import com.sun.glass.ui.Application;
 
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
 import javafx.scene.control.TextField;
@@ -27,25 +28,34 @@ public class StepWatcher extends StepExtender {
 		);
 	}
 	
-	private final Label inf_rate= new Label("");
-	private final Label inf_avg = new Label("");
-	private final Label inf_dev = new Label("");
+	private final Label stats_avg = new Label("");
+	private final Label stats_dev = new Label("");
 	
-	private final TextField[] box_args = {
-		new TextField(""),new TextField("400"),new TextField("200"),
-		new TextField("3"),new TextField("0.3"),new TextField(""),
+	final TextField[] box_args = {
+		new TextField("30"),
+		new TextField("3."),new TextField("0.3"),
+		new TextField("200"),new TextField("500"),
+		new TextField(),
+		new TextField(),
 	};
-	final TextField box_goal = box_args[0];
-	final TextField box_maxw = box_args[1];
-	final TextField box_minw = box_args[2];
-	final TextField box_prop = box_args[3];
-	final TextField box_inte = box_args[4];
-	final TextField box_deri = box_args[5];
+	final TextField box_stat_win = box_args[0];//filter window, or cycle
+	final TextField box_max_rate = box_args[1];
+	final TextField box_min_rate = box_args[2];
+	final TextField box_max_watt = box_args[3];
+	final TextField box_min_watt = box_args[4];
+	final TextField box_ctl_arg1 = box_args[5];
+	final TextField box_ctl_arg2 = box_args[6];
 	
-	private DescriptiveStatistics stats = new DescriptiveStatistics(30);
+	private static String FILTER_NONE = "無自動調整";
+	private static String FILTER_PID1 = "平均算術調整";
+	private static String FILTER_PID2 = "訊號比調整";
+	private static String FILTER_PID3 = "卡爾曼濾波";
+	private static String FILTER_PID4 = "高斯過程";
+	final ComboBox<String> cmb_filter = new ComboBox<String>(); 
+	
+	private DescriptiveStatistics stats = new DescriptiveStatistics();
 	
 	long tick_beg = -1L, tick_end = -1L;
-	String tick_txt, high_txt;
 	
 	final Runnable op_1 = ()->{
 		//open shutter
@@ -60,32 +70,37 @@ public class StepWatcher extends StepExtender {
 			Misc.logv("%s: %s",action_name, txt+"失敗");
 			abort_step();
 			Application.invokeLater(()->PanBase.notifyError("失敗", "無法控制擋板!!"));
-		});
-		stats.setWindowSize(Integer.valueOf(box_deri.getText().trim()));
+		});		
+		//statistic for rate value~~~		
+		stats.setWindowSize(Integer.valueOf(box_stat_win.getText().trim()));
 		stats.clear();
+		//initialize value for PID2
+		hit_count = 0;
 	};
-	//final Runnable op_2 = ()->{
-	//	set_mesg(
-	//		"等待檔板",
-	//		String.format("%s",Misc.tick2text(waiting_time(5000),true)
-	//	));		
-	//};
+	//--------------------------------//
 	
-	final void PID_feedback() {
-		int gain,maxw,minw;
-		float goal,thres;
+	final void PID_feedback_filter1() {
+		int gain=100,max_watt,min_watt;
+		float max_rate,min_rate;
+		float goal,thrs;
 		try {
-			gain = Integer.valueOf(box_prop.getText().trim());
-			maxw = Integer.valueOf(box_maxw.getText().trim());
-			minw = Integer.valueOf(box_minw.getText().trim());
-			goal = Float.valueOf(box_goal.getText().trim());			
-			int filter_size = Integer.valueOf(box_deri.getText().trim());
-			if(filter_size!=stats.getWindowSize()) {
-				stats.setWindowSize(filter_size);
+			gain= Integer.valueOf(box_ctl_arg1.getText().trim());
+			thrs= Float.valueOf(box_ctl_arg2.getText().trim());
+			
+			max_watt = Integer.valueOf(box_max_watt.getText().trim());
+			min_watt = Integer.valueOf(box_min_watt.getText().trim());
+			
+			max_rate = Integer.valueOf(box_max_watt.getText().trim());
+			min_rate = Integer.valueOf(box_min_watt.getText().trim());			
+			
+			goal = (max_rate + 3f*min_rate)/2f;
+			
+			int wsize = Integer.valueOf(box_stat_win.getText().trim());
+			if(wsize!=stats.getWindowSize()) {
+				stats.setWindowSize(wsize);
 				stats.clear();
 				return;
 			}			
-			thres = Float.valueOf(box_inte.getText().trim());
 		}catch(NumberFormatException e) {
 			return;
 		}		
@@ -95,54 +110,83 @@ public class StepWatcher extends StepExtender {
 			delta = delta + Math.abs(((float)stats.getElement(i)-goal));
 		}
 		delta = delta / ((float)n_size);
-		if(delta<=thres) {
+		if(delta<=thrs) {
 			return;
 		}
 		if(stats.getMean()>goal) {
 			gain = -1*gain;
 		}
-		dcg.asyncAdjustWatt(gain,minw,maxw);
+		dcg.asyncAdjustWatt(gain, min_watt, max_watt);
 	}
+	//--------------------------------//
+	private int hit_count = 0;
+	final void PID_feedback_filter2() {
+		int gain,thrs,max_watt,min_watt;
+		float max_rate,min_rate;
+		try {
+			gain = Integer.valueOf(box_ctl_arg1.getText().trim());
+			thrs = Integer.valueOf(box_ctl_arg2.getText().trim());
+			
+			max_watt = Integer.valueOf(box_max_watt.getText().trim());
+			min_watt = Integer.valueOf(box_min_watt.getText().trim());
+			
+			max_rate = Integer.valueOf(box_max_watt.getText().trim());
+			min_rate = Integer.valueOf(box_min_watt.getText().trim());
+			
+		}catch(NumberFormatException e) {
+			return;
+		}
+		final float rate = sqm.rate[0].get();		
+		if(min_rate<=rate && rate<=max_rate) {
+			hit_count+=1;
+			return;
+		}
+		if(hit_count<thrs) {
+			if(max_rate<rate) {
+				gain = -1 * gain;
+			}
+			dcg.asyncAdjustWatt(gain, min_watt, max_watt);
+		}
+		hit_count = 0;
+	}
+	//--------------------------------//
 	
 	final Runnable op_3 = ()->{
 		//monitor shutter
-		tick_end = System.currentTimeMillis();
-		tick_txt = Misc.tick2text(tick_end-tick_beg,true);
-		high_txt = String.format(
-			"%5.3f%s",
-			sqm.thick[0].get(), sqm.unitHigh.get()
-		);
-		set_mesg(
-			action_name,
-			tick_txt,
-			high_txt
-		);
-		
 		final float rate_value= sqm.rate[0].get();
 		final String rate_unit= sqm.unitRate.get();
 		
+		tick_end = System.currentTimeMillis();
+		set_mesg(
+			TAG_WATCH, 
+			Misc.tick2text(tick_end-tick_beg,true), 
+			String.format("%5.3f%s", rate_value, rate_unit)
+		);
+		
 		stats.addValue(rate_value);
 		
-		inf_rate.setText(String.format(
-			"%5.3f%s", 
-			rate_value, rate_unit
-		));
-		inf_avg.setText(String.format(
-			"%5.3f", stats.getMean()
-		));
-		
+		stats_avg.setText(String.format("%5.3f", stats.getMean()));
 		double sigma = stats.getVariance();
 		if(sigma==Double.NaN) {
-			inf_dev.setText("-----");
+			stats_dev.setText("-----");
 		}else {
-			inf_dev.setText(String.format("%5.3f", sigma));
+			stats_dev.setText(String.format("%5.3f", sigma));
 		}
 		print_info(TAG_WATCH);
 				
 		if(sqm.shutter.get()==false){
 			next_step();
 		}else{
-			PID_feedback();
+			final String itm = cmb_filter.getSelectionModel().getSelectedItem();
+			if(itm.equals(FILTER_PID1)==true) {				
+				PID_feedback_filter1();//平均算術調整
+			}else if(itm.equals(FILTER_PID2)==true){
+				PID_feedback_filter2();//訊號比調整
+			}else if(itm.equals(FILTER_PID3)==true){
+			//卡爾曼濾波
+			}else if(itm.equals(FILTER_PID4)==true){
+			//高斯過程
+			}
 			hold_step();
 		}
 	};
@@ -176,51 +220,96 @@ public class StepWatcher extends StepExtender {
 	final Runnable op_6 = ()->{
 		set_mesg(
 			action_name,
-			tick_txt,
-			high_txt
+			Misc.tick2text(tick_end-tick_beg,true),
+			String.format("%5.3f%s", sqm.thick[0].get(), sqm.unitHigh.get())
 		);
 	};
+	
+	private final void disable_ctl_box(final Label txt, final TextField box) {
+		txt.setText("-------");
+		txt.setDisable(true);
+		box.setText("");
+		box.setDisable(true);
+	}
+	private final void enable_ctl_box(
+		final Label txt,final TextField box,
+		final String key,final String val
+	) {
+		txt.setText(key);
+		txt.setDisable(false);
+		if(box.getText().length()==0) {
+			box.setText(val);
+		}
+		box.setDisable(false);
+	}
 	
 	@Override
 	public Node getContent(){
 
-		inf_rate.setPrefWidth(80);
-		inf_avg.setPrefWidth(80);
-		inf_dev.setPrefWidth(80);
+		stats_avg.setPrefWidth(80);
+		stats_dev.setPrefWidth(80);
 		
 		for(TextField obj:box_args) {
 			obj.setPrefWidth(80);
 		}
 
-		box_deri.setText(""+stats.getWindowSize());
-		
 		GridPane lay = new GridPane();
 		lay.getStyleClass().addAll("box-pad");
 		lay.addColumn(0, msg);
-		lay.add(new Separator(Orientation.VERTICAL), 1, 0, 1, 3);
-		lay.addColumn(2,new Label("成長速率"),new Label("統計值"),new Label("標準差"));
-		lay.addColumn(3,inf_rate,inf_avg,inf_dev);
-		lay.add(new Separator(Orientation.VERTICAL), 4, 0, 1, 3);
-		lay.addColumn(5,new Label("目標速率"),new Label("最大功率"),new Label("最小功率"));
-		lay.addColumn(6,box_goal,box_maxw,box_minw);
-		lay.addColumn(7,new Label("P"),new Label("I"),new Label("IT"));
-		lay.addColumn(8,box_prop,box_inte,box_deri);
+		lay.add(new Separator(Orientation.VERTICAL), 1, 0, 1, 4);
+		lay.addColumn(2,new Label("統計值"),new Label("標準差"),new Label("週期"));
+		lay.addColumn(3,stats_avg,stats_dev,box_stat_win);
+		lay.add(new Separator(Orientation.VERTICAL), 4, 0, 1, 4);
+		
+		final Label txt_ctl_arg1 = new Label("");
+		final Label txt_ctl_arg2 = new Label("");
+		
+		//how to load item step by step ?
+		cmb_filter.getItems().addAll(
+			FILTER_NONE,
+			FILTER_PID1,FILTER_PID2,
+			FILTER_PID3,FILTER_PID4
+		);
+		cmb_filter.valueProperty().addListener((obv,oldVal,newVal)->{
+			disable_ctl_box(txt_ctl_arg1,box_ctl_arg1);
+			disable_ctl_box(txt_ctl_arg2,box_ctl_arg2);
+			if(newVal.equals(FILTER_PID1)==true) {				
+				//平均算術調整
+				enable_ctl_box(txt_ctl_arg1,box_ctl_arg1,"增益值","10");
+				enable_ctl_box(txt_ctl_arg2,box_ctl_arg2,"門檻值","1.5");
+			}else if(newVal.equals(FILTER_PID2)==true){
+				//訊號比調整
+				enable_ctl_box(txt_ctl_arg1,box_ctl_arg1,"增益值","10");
+				enable_ctl_box(txt_ctl_arg2,box_ctl_arg2,"門檻值","10");
+			}else if(newVal.equals(FILTER_PID3)==true){
+				//卡爾曼濾波
+			}else if(newVal.equals(FILTER_PID4)==true){
+				//高斯過程
+			}
+		});
+		cmb_filter.getSelectionModel().select(0);
+		
+		lay.add(cmb_filter, 5, 0, 4, 1);
+		lay.addColumn( 5,new Label("最大速率"),new Label("最小速率"),txt_ctl_arg1);
+		lay.addColumn( 6,box_max_rate,box_min_rate,box_ctl_arg1);		
+		lay.addColumn( 7,new Label("最大功率"),new Label("最小功率"),txt_ctl_arg2);
+		lay.addColumn( 8,box_max_watt,box_min_watt,box_ctl_arg2);
 		return lay;
 	}
 	@Override
 	public void eventEdit() {
 	}
 	
-	private static final String TAG0 = "ATTR-VAL";
+	/*private static final String TAG0 = "ATTR-VAL";
 	private static final String TAG1 = "ATTR-MIN";
 	private static final String TAG2 = "ATTR-MAX";
 	private static final String TAG3 = "PID-P";
 	private static final String TAG4 = "PID-I";
-	private static final String TAG5 = "PID-IT";
+	private static final String TAG5 = "PID-IT";*/
 	
 	@Override
 	public String flatten() {
-		return String.format(
+		/*return String.format(
 			"%s:%s, %s:%s, %s:%s, %s:%s, %s:%s, %s:%s",
 			TAG0, box_goal.getText().trim(),
 			TAG1, box_minw.getText().trim(),
@@ -228,7 +317,8 @@ public class StepWatcher extends StepExtender {
 			TAG3, box_prop.getText().trim(),
 			TAG4, box_inte.getText().trim(),
 			TAG5, box_deri.getText().trim()
-		);
+		);*/
+		return "";
 	}
 	@Override
 	public void expand(String txt) {
@@ -240,7 +330,7 @@ public class StepWatcher extends StepExtender {
 		//EX: mm#ss --> mm:ss
 		String[] col = txt.split(":|,");
 		for(int i=0; i<col.length; i+=2){
-			final String tag = col[i+0].trim();
+			/*final String tag = col[i+0].trim();
 			final String val = col[i+1].trim();
 			if(tag.equals(TAG0)==true){
 				box_goal.setText(val);
@@ -254,7 +344,7 @@ public class StepWatcher extends StepExtender {
 				box_inte.setText(val);
 			}else if(tag.equals(TAG5)==true){
 				box_deri.setText(val);
-			}
+			}*/
 		}
 	}
 }

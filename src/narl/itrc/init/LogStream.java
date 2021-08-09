@@ -18,6 +18,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXToggleButton;
+import com.sun.glass.ui.Application;
 
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
@@ -60,6 +61,14 @@ public class LogStream {
 		public Mesg(final char level){
 			stm = new Timestamp(System.currentTimeMillis());
 			tkn = level;
+		}
+		public Mesg(final long tick, final String text){
+			this(tick,'V',text);
+		}
+		public Mesg(final long tick, final char level, final String text){
+			stm = new Timestamp(tick);
+			tkn = level;
+			txt = text;
 		}
 		public String getCol0() { return F_STAMP.format(stm); }
 		public String getCol1() { return ""+tkn; }
@@ -111,6 +120,10 @@ public class LogStream {
 		
 		@Override
 		public void write(int b) throws IOException {
+			if(Application.isEventThread()==false) {
+				p_out.write(b);//pipe to the origin stream
+				return;
+			}
 			switch(b){
 			case 020://end of log message
 				//upload message~~~
@@ -118,7 +131,7 @@ public class LogStream {
 					return;
 				}
 				Mesg mm = msg.get().setText(buf.toString());				
-				//1.observable list for GUI 
+				//1.observable list for GUI
 				if(observe.size()>=500) {
 					observe.remove(0);
 				}

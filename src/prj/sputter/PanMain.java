@@ -121,7 +121,7 @@ public class PanMain extends PanBase {
 			new Tab("製程",ladder),
 			new Tab("裝置",lay3)
 		);
-		lay1.getSelectionModel().select(0);
+		lay1.getSelectionModel().select(2);
 
 		final BorderPane lay0 = new BorderPane();
 		lay0.setCenter(lay1);
