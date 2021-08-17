@@ -149,7 +149,7 @@ public class DevAT5350 extends DevTTY {
 		split_data();
 		double avg = StatUtils.mean(data_value);
 		double sig = Math.sqrt(StatUtils.variance(data_value));
-		//change UI scale
+		//change SI scale
 		final String data_value = UtilPhysical.addPrefix(avg);
 		
 		Application.invokeAndWait(()->{
@@ -178,6 +178,8 @@ public class DevAT5350 extends DevTTY {
 		if(cmd.endsWith("\n")==false){
 			cmd = cmd + "\n";
 		}
+		//the correct communication is that:
+		//Send character, then Receive .
 		for(char cc:cmd.toCharArray()) {
 			writeByte(cc);
 			cc = (char)readByte();

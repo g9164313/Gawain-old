@@ -1,7 +1,5 @@
 package prj.shelter;
 
-import java.math.BigDecimal;
-
 import com.jfoenix.controls.JFXTabPane;
 
 import javafx.scene.control.Label;
@@ -11,10 +9,10 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
-import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import narl.itrc.Gawain;
 import narl.itrc.PanBase;
+import narl.itrc.UtilPhysical;
 
 public class PanMain extends PanBase {
 
@@ -22,24 +20,26 @@ public class PanMain extends PanBase {
 	final DevAT5350 at5350= new DevAT5350();
 	final DevCDR06  cdr06 = new DevCDR06();
 	
-	final LayLadder ladder = new LayLadder(hustio,at5350,cdr06);
-	
-	public final DataRadiation radpro = new DataRadiation();
+	final LayPogsql pogsql = new LayPogsql();//調閱機器紀錄
+	final LayLadder ladder = new LayLadder(hustio,at5350,cdr06);	
+	final LayAbacus abacus = new LayAbacus();
 	
 	public PanMain(final Stage stg){
 		super(stg);
 		
-		BigDecimal val = new BigDecimal("1.2345");
+		/*BigDecimal val = new BigDecimal("1.2345");
 		int pp = val.precision();
 		int ss = val.scale();
 		if((pp-ss)>=2) {
 			val = val.movePointLeft(1);
 		}
-		String txt = val.toString();
+		String txt = val.toString();*/
+		
 		stage().setOnShown(e->on_shown());		
 	}
 	
 	private void on_shown(){
+		
 		String arg;
 		arg = Gawain.prop().getProperty("HUSTIO", "");
 		if(arg.length()!=0) { hustio.open(arg); }
@@ -48,6 +48,8 @@ public class PanMain extends PanBase {
 		arg = Gawain.prop().getProperty("CDR06", "");
 		if(arg.length()!=0) { cdr06.open(arg); }
 		//DataBridge.getInstance();
+		
+		abacus.reloadLast();
 	}
 	
 	@Override
@@ -55,14 +57,15 @@ public class PanMain extends PanBase {
 		
 		final HBox lay2 = new HBox();
 		lay2.getChildren().addAll(
-			PanBase.border("HustIO", DevHustIO.genPanelD(hustio)),
+			PanBase.border("HustIO", DevHustIO.genPanel(hustio)),
 			PanBase.border("AT5350", DevAT5350.genPanel(at5350))
 		);
 		
 		final JFXTabPane lay1 = new JFXTabPane();
 		lay1.getTabs().addAll(			
-			new Tab("調閱",new LayQuery()),
+			new Tab("調閱",pogsql),
 			new Tab("校正",ladder),
+			new Tab("模型",abacus),
 			new Tab("設備",lay2)
 		);
 		lay1.getSelectionModel().select(2);

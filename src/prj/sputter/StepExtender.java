@@ -68,7 +68,7 @@ abstract class StepExtender extends Stepper {
 		final String unit1 = sqm.unitRate.get();
 		
 		final float high = sqm.thick[0].get();
-		final String unit2 = sqm.unitHigh.get();
+		final String unit2 = sqm.unitThick.get();
 		
 		final float mfc1 = cup.PV_FlowAr.get();
 		final float mfc2 = cup.PV_FlowN2.get();

@@ -256,8 +256,8 @@ public class LayLogger extends BorderPane {
 			get_cell(sh, page+4, 0).setCellValue("mfc-1(sccm)");
 			get_cell(sh, page+5, 0).setCellValue("mfc-2(sccm)");
 			get_cell(sh, page+6, 0).setCellValue("mfc-3(sccm)");
-			get_cell(sh, page+7, 0).setCellValue("速率(A/s)");
-			get_cell(sh, page+8, 0).setCellValue("厚度(kA)");
+			get_cell(sh, page+7, 0).setCellValue("速率(Å/s)");
+			get_cell(sh, page+8, 0).setCellValue("厚度(kÅ)");
 		}
 		private void set_column_value(
 			final Sheet sh, 
@@ -271,11 +271,11 @@ public class LayLogger extends BorderPane {
 				.substring(txt.indexOf(":")+1)
 				.split(",");
 			//put other records~~
+			int col = 0, sub_col = 3;
 			for(int i=0; i<val.length; i++) {
 				//According unit, set column index~~~
 				//How to convert unit?
-				String v = val[i].trim();
-				int col = 0, sub_col = 3;
+				String v = val[i].trim();				
 				if(v.contains("A/s")==true) {
 					col = 6;
 					v = v.substring(0,v.length()-3).trim();
@@ -506,7 +506,7 @@ public class LayLogger extends BorderPane {
 			gag[5],
 			dev.thickRange[1].doubleValue()
 		);
-		gag[5].setUnit(dev.unitHigh.get());
+		gag[5].setUnit(dev.unitThick.get());
 	}
 	public void bindProperty(final ModCouple dev) {
 		gag[6].valueProperty().bind(dev.PV_FlowAr);

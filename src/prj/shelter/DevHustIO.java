@@ -178,31 +178,31 @@ public class DevHustIO extends DevTTY {
 		exec("O9005","N01000000");
 	}
 	
-	public static final String ACTIVITY_3Ci   = "M03";
-	public static final String ACTIVITY_0_5Ci = "M04";
-	public static final String ACTIVITY_0_05Ci= "M05";
+	public static final String ACT_CODE_3Ci   = "M03";
+	public static final String ACT_CODE_0_5Ci = "M04";
+	public static final String ACT_CODE_0_05Ci= "M05";
 	public static final String ACT_NAME_3Ci   = "3 Ci";
 	public static final String ACT_NAME_0_5Ci = "0.5 Ci";
 	public static final String ACT_NAME_0_05Ci= "0.05 Ci";
 	
 	public static String act_name2value(final String txt) {
 		if(txt.equals(ACT_NAME_3Ci)==true) {
-			return ACTIVITY_3Ci;
+			return ACT_CODE_3Ci;
 		}else if(txt.equals(ACT_NAME_0_5Ci)==true) {
-			return ACTIVITY_0_5Ci;
+			return ACT_CODE_0_5Ci;
 		}else if(txt.equals(ACT_NAME_0_05Ci)==true) {
-			return ACTIVITY_0_05Ci;
+			return ACT_CODE_0_05Ci;
 		}else {
 			Misc.loge("Wrong activity name(%s)", txt);
 		}
 		return "";
 	}
 	public static String act_value2name(final String txt) {
-		if(txt.equals(ACTIVITY_3Ci)==true) {
+		if(txt.equals(ACT_CODE_3Ci)==true) {
 			return ACT_NAME_3Ci;
-		}else if(txt.equals(ACTIVITY_0_5Ci)==true) {
+		}else if(txt.equals(ACT_CODE_0_5Ci)==true) {
 			return ACT_NAME_0_5Ci;
-		}else if(txt.equals(ACTIVITY_0_05Ci)==true) {
+		}else if(txt.equals(ACT_CODE_0_05Ci)==true) {
 			return ACT_NAME_0_05Ci;
 		}else {
 			Misc.loge("Wrong activity value(%s)", txt);
@@ -278,7 +278,7 @@ public class DevHustIO extends DevTTY {
 	}
 	//-------------------------------------------//
 
-	public static Pane genPanelD(final DevHustIO dev){
+	public static Pane genPanel(final DevHustIO dev){
 
 		JFXTextField box_loca = new JFXTextField();
 		box_loca.setPromptText("絕對位置");
@@ -305,11 +305,11 @@ public class DevHustIO extends DevTTY {
 			new JFXRadioButton("3Ci")			
 		};
 		rad[0].setToggleGroup(grp);
-		rad[0].setUserData(ACTIVITY_0_05Ci);
+		rad[0].setUserData(ACT_CODE_0_05Ci);
 		rad[1].setToggleGroup(grp);
-		rad[1].setUserData(ACTIVITY_0_5Ci);
+		rad[1].setUserData(ACT_CODE_0_5Ci);
 		rad[2].setToggleGroup(grp);
-		rad[2].setUserData(ACTIVITY_3Ci);
+		rad[2].setUserData(ACT_CODE_3Ci);
 		grp.selectToggle(rad[0]);
 		
 		JFXButton[] btn = {

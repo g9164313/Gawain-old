@@ -50,8 +50,8 @@ public class StepWatcher extends StepExtender {
 	private static String FILTER_PID1 = "平均算術調整";
 	private static String FILTER_PID2 = "訊號比調整";
 	private static String FILTER_PID3 = "卡爾曼濾波";
-	private static String FILTER_PID4 = "高斯過程";
-	final ComboBox<String> cmb_filter = new ComboBox<String>(); 
+	private static String FILTER_PID4 = "高斯過程";	
+	private final ComboBox<String> cmb_filter = new ComboBox<String>(); 
 	
 	private DescriptiveStatistics stats = new DescriptiveStatistics();
 	
@@ -152,18 +152,16 @@ public class StepWatcher extends StepExtender {
 	//--------------------------------//
 	
 	final Runnable op_3 = ()->{
-		//monitor shutter
-		final float rate_value= sqm.rate[0].get();
-		final String rate_unit= sqm.unitRate.get();
-		
+		//monitor film data~~~
+
 		tick_end = System.currentTimeMillis();
 		set_mesg(
 			TAG_WATCH, 
 			Misc.tick2text(tick_end-tick_beg,true), 
-			String.format("%5.3f%s", rate_value, rate_unit)
+			String.format("%5.3f%s", sqm.thick[0].get(), sqm.unitThick.get())
 		);
 		
-		stats.addValue(rate_value);
+		stats.addValue(sqm.rate[0].get());
 		
 		stats_avg.setText(String.format("%5.3f", stats.getMean()));
 		double sigma = stats.getVariance();
@@ -183,9 +181,9 @@ public class StepWatcher extends StepExtender {
 			}else if(itm.equals(FILTER_PID2)==true){
 				PID_feedback_filter2();//訊號比調整
 			}else if(itm.equals(FILTER_PID3)==true){
-			//卡爾曼濾波
+				//卡爾曼濾波
 			}else if(itm.equals(FILTER_PID4)==true){
-			//高斯過程
+				//高斯過程
 			}
 			hold_step();
 		}
@@ -221,7 +219,7 @@ public class StepWatcher extends StepExtender {
 		set_mesg(
 			action_name,
 			Misc.tick2text(tick_end-tick_beg,true),
-			String.format("%5.3f%s", sqm.thick[0].get(), sqm.unitHigh.get())
+			String.format("%5.3f%s", sqm.thick[0].get(), sqm.unitThick.get())
 		);
 	};
 	

@@ -24,7 +24,7 @@ import narl.itrc.Gawain;
 import narl.itrc.PanBase;
 import prj.shelter.DataBridge.Stuff;
 
-public class LayQuery extends BorderPane {
+public class LayPogsql extends BorderPane {
 
 	class Card extends VBox {
 		final String[] t_info;
@@ -139,7 +139,7 @@ public class LayQuery extends BorderPane {
 	
 	private final JFXListView<Card> lst_card = new JFXListView<Card>();
 	
-	public LayQuery(){
+	public LayPogsql(){
 		
 		init_label_setting();
 		

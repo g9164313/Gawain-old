@@ -49,9 +49,9 @@ public class StepRadiate extends Stepper {
 	Runnable op_action = ()->{
 		String isotope=""; 
 		switch(cmb_radi.getSelectionModel().getSelectedIndex()) {
-		case 0: isotope = DevHustIO.ACTIVITY_0_05Ci; break;
-		case 1: isotope = DevHustIO.ACTIVITY_0_5Ci; break;
-		case 2: isotope = DevHustIO.ACTIVITY_3Ci; break;
+		case 0: isotope = DevHustIO.ACT_CODE_0_05Ci; break;
+		case 1: isotope = DevHustIO.ACT_CODE_0_5Ci; break;
+		case 2: isotope = DevHustIO.ACT_CODE_3Ci; break;
 		default: next_step(); return;
 		}
 		hustio.makeRadiation(

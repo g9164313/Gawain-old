@@ -10,6 +10,8 @@ import com.jfoenix.controls.JFXSpinner;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.concurrent.Task;
+import javafx.concurrent.WorkerStateEvent;
+import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Parent;
@@ -229,7 +231,13 @@ public abstract class PanBase {
 		dlg.prog.visibleProperty().bind(task.progressProperty().greaterThan(0.f));
 		dlg.prog.textProperty().bind(task.progressProperty().multiply(100.f).asString("%.0f％"));
 		//override old handler~~~
-		task.setOnSucceeded(e->dlg.close());
+		final EventHandler<WorkerStateEvent> user_hook = task.getOnSucceeded();
+		task.setOnSucceeded(e->{
+			if(user_hook!=null) {
+				user_hook.handle(e);
+			}
+			dlg.close();
+		});
 		task.setOnCancelled(e->dlg.close());
 		dlg.setOnDialogOpened(e->new Thread(task,name).start());
 		dlg.setOnDialogClosed(e->task.cancel());

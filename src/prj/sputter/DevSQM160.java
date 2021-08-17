@@ -85,19 +85,19 @@ public class DevSQM160 extends DevTTY {
 				switch(Integer.valueOf(b_value[3])) {
 				case 0:
 					unitRate.set("A/s");//Å, font problem
-					unitHigh.set("kA");//thick
+					unitThick.set("kA");//thick
 					break;
 				case 1:
 					unitRate.set("nm/s");
-					unitHigh.set("μm");//thick
+					unitThick.set("μm");//thick
 					break;
 				case 2:
 					unitRate.set("Hz");
-					unitHigh.set("Hz");//thick
+					unitThick.set("Hz");//thick
 					break;
 				case 3:
 					unitRate.set("ng/cm²/s");
-					unitHigh.set("μg/cm²");//thick
+					unitThick.set("μg/cm²");//thick
 					break;
 				}
 			}
@@ -310,7 +310,7 @@ public class DevSQM160 extends DevTTY {
 	public final BooleanProperty shutter = new SimpleBooleanProperty(false);
 
 	public final StringProperty unitRate = new SimpleStringProperty("??");
-	public final StringProperty unitHigh= new SimpleStringProperty("??");
+	public final StringProperty unitThick= new SimpleStringProperty("??");
 	
 	public final StringProperty[] filmData = {
 		new SimpleStringProperty("??"),//name
@@ -483,7 +483,7 @@ public class DevSQM160 extends DevTTY {
 		txt[0].textProperty().bind(dev.rate[0].asString("%6.3f"));
 		txt[1].textProperty().bind(dev.unitRate);
 		txt[2].textProperty().bind(dev.thick[0].asString("%6.3f"));
-		txt[3].textProperty().bind(dev.unitHigh);
+		txt[3].textProperty().bind(dev.unitThick);
 		txt[4].textProperty().bind(dev.filmData[0]);//film name
 		txt[5].textProperty().bind(dev.filmData[1]);//film Density (g/cm3)
 		txt[6].textProperty().bind(dev.filmData[2]);//film Tooling (%)
