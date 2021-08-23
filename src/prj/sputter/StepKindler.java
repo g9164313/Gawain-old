@@ -106,13 +106,13 @@ public class StepKindler extends StepExtender {
 		}
 		public long get_all_tick() { 
 			long tick = 0L;
-			tick += Misc.time2tick(arg[1].getText().trim());
-			tick += Misc.time2tick(arg[2].getText().trim());
+			tick += Misc.text2tick(arg[1].getText().trim());
+			tick += Misc.text2tick(arg[2].getText().trim());
 			return tick;
 		}
 		public void get_constant_command(final ArrayList<String> cmd) {
 			cmd.add(String.format("SPW=%d",Integer.valueOf(arg[0].getText().trim())));
-			cmd.add(String.format("SPR=%d",Misc.time2tick(arg[1].getText().trim())));//unit is millisecond
+			cmd.add(String.format("SPR=%d",Misc.text2tick(arg[1].getText().trim())));//unit is millisecond
 			cmd.add("CHL=W");
 			cmd.add("CHT=C");
 		}

@@ -27,22 +27,25 @@ import com.jfoenix.controls.JFXDatePicker;
 
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.property.StringProperty;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
-import javafx.geometry.Pos;
+import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import narl.itrc.Gawain;
 import narl.itrc.PanBase;
 import narl.itrc.UtilPhysical;
-
+import prj.shelter.DevHustIO.Activity;
 
 public class LayAbacus extends BorderPane
 {
-	//private final static DateTimeFormatter fmt_day = DateTimeFormatter.ofPattern("yyyy/MM/dd");
+	private final static DateTimeFormatter fmt_day = DateTimeFormatter.ofPattern("yyyy/MM/dd");
 	
 	private final static DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
 	
@@ -92,10 +95,12 @@ public class LayAbacus extends BorderPane
 		
 		public static final String LOCA_UNIT = "cm";
 		public static final String DOSE_UNIT = "μSv/hr";
-		
+
 		//Casium-137 --> 30.17 year --> 952 Msec
 		//see WIKI: radioactive nuclides by half-life
 		private long half_life_nuclide = 952000000;//unit is second
+				
+		public LocalDate last_mark_day = LocalDate.now(); 
 		
 		private double getDecay(
 			final LocalDateTime start,
@@ -115,6 +120,10 @@ public class LayAbacus extends BorderPane
 			
 			final WeightedObservedPoints obv = new WeightedObservedPoints();			
 			for(Mark mm:this) {
+				final LocalDate day = mm.date.toLocalDate();
+				if(day.isBefore(last_mark_day)==true) {
+					last_mark_day = day;
+				}				
 				double decay = getDecay(mm.date,endof);//RADIOACTIVE DECAY EQUATION				
 				double xx = mm.getX(LOCA_UNIT);
 				double yy = mm.getY(DOSE_UNIT) * decay; 
@@ -129,7 +138,7 @@ public class LayAbacus extends BorderPane
 		}
 		
 		public Description[] getLocaDesc(double... loca) {
-			Description[] lst = new Description[loca.length];
+			ArrayList<Description> lst = new ArrayList<Description>();
 			for(int i=0; i<loca.length; i++) {
 				final double xx = loca[i];
 				final double yy = getDose(xx);
@@ -139,12 +148,12 @@ public class LayAbacus extends BorderPane
 				final Description obj = new Description();
 				obj.loca = String.format("%8.2f", xx);
 				obj.dose = String.format("%8.2f", yy);
-				lst[i] = obj; 
+				lst.add(obj); 
 			}
-			return lst;
+			return lst.toArray(new Description[0]);
 		}
 		public Description[] getDoseDesc(double... dose) {
-			Description[] lst = new Description[dose.length];
+			ArrayList<Description> lst = new ArrayList<Description>();
 			for(int i=0; i<dose.length; i++) {
 				final double yy = dose[i];
 				final double xx = getLoca(yy);
@@ -154,11 +163,12 @@ public class LayAbacus extends BorderPane
 				final Description obj = new Description();
 				obj.loca = String.format("%8.2f", xx);
 				obj.dose = String.format("%8.2f", yy);
-				lst[i] = obj; 
+				lst.add(obj); 
 			}
-			return lst;
+			return lst.toArray(new Description[0]);
 		}
 		public Description[] getMarkDesc() {
+			
 			Description[] lst = new Description[size()];
 
 			for(int i=0; i<size(); i++) {
@@ -264,32 +274,75 @@ public class LayAbacus extends BorderPane
 		null, null, null	
 	};//3Ci, 0.5Ci, 0.05Ci
 	
-	private static final String BY_LOCA = "依位置";
-	private static final String BY_DOSE = "依劑量";
-	private static final String BY_PLOT = "圖表顯示";
-		
-	private final ObjectProperty<LocalDate> endof;
-	private final ReadOnlyObjectProperty<String> showby;
-	private final ReadOnlyObjectProperty<String> activity;
-	private ObservableList<Description> lst_fore;
-	private ObservableList<Description> lst_mark;
+	public String predict_loca(
+		final double dose,
+		final SimpleObjectProperty<Activity> activity
+	) {
+		double[] loca = {
+			model[0].getLoca(dose),
+			model[1].getLoca(dose),
+			model[2].getLoca(dose),
+		};
+		double tmp = Double.MIN_VALUE;
+		int idx = -1;
+		for(int i=0; i<loca.length; i++) {
+			if(Double.isNaN(loca[i])==true) {
+				continue;
+			}
+			if(tmp<loca[i]) {
+				idx = i;
+				tmp= loca[i];
+			}
+		}
+		switch(idx) {
+		case 0: activity.set(Activity.V_3Ci); break;
+		case 1: activity.set(Activity.V_05Ci); break;
+		case 2: activity.set(Activity.V_005Ci); break;
+		default: return "!!Error!!";
+		}
+		return String.format(
+			"%.2f %s", 
+			loca[idx], Model.LOCA_UNIT
+		);
+	} 
 	
+	public String predict_dose(
+		final double loca,
+		final SimpleObjectProperty<Activity> activity
+	) {
+		final Activity act = activity.get();
+		Model mm = null;
+		switch(act) {
+		case V_3Ci  : mm = model[0]; break;
+		case V_05Ci : mm = model[1]; break;
+		case V_005Ci: mm = model[2]; break;
+		default: return "!!Error!!";
+		}
+		return String.format(
+			"%.2f", 
+			mm.getDose(loca), Model.DOSE_UNIT
+		);
+	}
+	
+	public final ObjectProperty<LocalDate> endofday;
+	private final StringProperty markofday;
+	private final ReadOnlyObjectProperty<String> showby;
+	private final ReadOnlyObjectProperty<DevHustIO.Activity> modelby;
+		
 	private void update_table() {
+		
 		lst_fore.clear();
 		lst_mark.clear();
 		
-		Model mod = null;
-		String opt_actv = activity.get();
-		if(opt_actv.equals(DevHustIO.ACT_NAME_3Ci)) {
-			mod = model[0];
-		}else if(opt_actv.equals(DevHustIO.ACT_NAME_0_5Ci)) {
-			mod = model[1];
-		}else if(opt_actv.equals(DevHustIO.ACT_NAME_0_05Ci)) {
-			mod = model[2];
+		Model mm = null;
+		switch(modelby.get()) {
+		case V_3Ci  : mm = model[0]; break;
+		case V_05Ci : mm = model[1]; break;
+		case V_005Ci: mm = model[2]; break;
+		default: return;
 		}
-		if(mod==null) {
-			return;
-		}
+		
+		markofday.setValue(mm.last_mark_day.format(fmt_day));
 		
 		final double[] loca = {
 			0.,10.,50.,100.,
@@ -298,22 +351,25 @@ public class LayAbacus extends BorderPane
 			450.,500.	
 		};
 		final double[] dose = {
-			   5.,
-			  10.,  20.,  25.,  40.,  50.,  80.,
-			 100., 200., 250., 400., 500., 800.,
-			1000.,2000.,2500.,4000.,5000.,8000.,
 			10000.,
+			 8000.,5000.,4000.,2500.,2000.,1000.,
+			  800., 500., 400., 250., 200., 100., 
+			   80.,  50.,  40.,  25.,  20.,  10.,
+			    5.,				
 		};
-		lst_mark.addAll(mod.getMarkDesc());
+		lst_mark.addAll(mm.getMarkDesc());
 		final String opy_showby = showby.get();
 		if(opy_showby.equals(BY_LOCA)) {			
-			lst_fore.addAll(mod.getLocaDesc(loca));
+			lst_fore.addAll(mm.getLocaDesc(loca));
 		}else if(opy_showby.equals(BY_DOSE)) {
-			lst_fore.addAll(mod.getDoseDesc(dose));
+			lst_fore.addAll(mm.getDoseDesc(dose));
 		}
 	}
-	
-	@SuppressWarnings("unchecked")
+
+	private static final String BY_LOCA = "依位置";
+	private static final String BY_DOSE = "依劑量";
+	private static final String BY_PLOT = "圖表顯示";
+
 	public LayAbacus() {
 		
 		//final LineChart<Number,Number> cht = new LineChart<Number,Number>(
@@ -324,10 +380,14 @@ public class LayAbacus extends BorderPane
 		final JFXDatePicker pck_endofday = new JFXDatePicker();
 		pck_endofday.setValue(LocalDate.now());
 		pck_endofday.setPrefWidth(160.);
-		pck_endofday.valueProperty().addListener((obv,oldVal,newVal)->{			
+		pck_endofday.valueProperty().addListener((obv,oldVal,newVal)->{
+			final LocalDateTime day = newVal.atTime(12, 0);
+			model[0].fitting(day);
+			model[1].fitting(day);
+			model[2].fitting(day);
 			update_table();
 		});
-		endof = pck_endofday.valueProperty();
+		endofday = pck_endofday.valueProperty();
 		
 		final JFXComboBox<String> cmb_showby = new JFXComboBox<String>();
 		cmb_showby.getItems().addAll(
@@ -339,15 +399,16 @@ public class LayAbacus extends BorderPane
 		cmb_showby.setOnAction(e->update_table());
 		showby = cmb_showby.getSelectionModel().selectedItemProperty();
 		
-		final JFXComboBox<String> cmb_activity = new JFXComboBox<String>();
+		final JFXComboBox<DevHustIO.Activity> cmb_activity = new JFXComboBox<DevHustIO.Activity>();
 		cmb_activity.getItems().addAll(
-			DevHustIO.ACT_NAME_3Ci,
-			DevHustIO.ACT_NAME_0_5Ci,
-			DevHustIO.ACT_NAME_0_05Ci
+			DevHustIO.Activity.V_3Ci,
+			DevHustIO.Activity.V_05Ci,
+			DevHustIO.Activity.V_005Ci
 		);
-		cmb_activity.getSelectionModel().select(0);
+		cmb_activity.setConverter(DevHustIO.conv_activity);
+		cmb_activity.getSelectionModel().select(1);
 		cmb_activity.setOnAction(e->update_table());
-		activity = cmb_activity.getSelectionModel().selectedItemProperty();
+		modelby = cmb_activity.getSelectionModel().selectedItemProperty();
 
 		/*final JFXComboBox<String> cmb_doseunit = new JFXComboBox<String>();
 		cmb_doseunit.getItems().addAll(
@@ -361,25 +422,26 @@ public class LayAbacus extends BorderPane
 		btn.getStyleClass().add("btn-raised-1");
 		btn.setMaxWidth(Double.MAX_VALUE);
 		
-		final HBox lay_option = new HBox(
-			pck_endofday,
-			cmb_showby,
-			cmb_activity,
-			btn
-		);
-		lay_option.getStyleClass().addAll("box-pad");
-		lay_option.setAlignment(Pos.CENTER_LEFT);
+		final Label txt_markofday = new Label("＊＊＊＊＊");
+		markofday = txt_markofday.textProperty();
 		
+		final GridPane lay_option = new GridPane();
+		lay_option.getStyleClass().addAll("box-pad","font-console");
+		lay_option.addColumn(0, new Label("標定日："), new Label("衰退至："));
+		lay_option.addColumn(1, txt_markofday, pck_endofday);
+		lay_option.addColumn(2, cmb_activity, cmb_showby);
+
 		setCenter(new HBox(
-			gen_table_forecast(),
-			gen_table_marking()
+			gen_table_marking(),
+			gen_table_forecast()			
 		));
-		//setLeft(lay_option);
-		setBottom(lay_option);
-		
+		setTop(lay_option);
 		//update_table();
 	}
 	//-------------------------------//
+	
+	private ObservableList<Description> lst_fore;
+	private ObservableList<Description> lst_mark;
 	
 	@SuppressWarnings("unchecked")
 	private TableView<Description> gen_table_forecast() {
@@ -415,7 +477,7 @@ public class LayAbacus extends BorderPane
 		col[0].setMinWidth(100);
 		col[1].setMinWidth(133);
 		col[2].setMinWidth(70);
-		col[3].setMinWidth(180);
+		col[3].setMinWidth(167);
 		
 		col[0].setCellValueFactory(new PropertyValueFactory<Description,String>("Location"));
 		col[1].setCellValueFactory(new PropertyValueFactory<Description,String>("DoseRate"));
@@ -491,7 +553,7 @@ public class LayAbacus extends BorderPane
 					mm.add(new Mark(exp_day,loca,meas));
 				}
 				//return mm.fitting();
-				return mm;
+				return mm.fitting(endofday.getValue().atTime(12, 0));
 			}
 			
 			@Override
@@ -510,13 +572,7 @@ public class LayAbacus extends BorderPane
 				return 0;
 			}
 		};
-		tsk.setOnSucceeded(e->{
-			final LocalDateTime day = endof.getValue().atTime(12, 0);
-			model[0].fitting(day);
-			model[1].fitting(day);
-			model[2].fitting(day);
-			update_table();
-		});
+		tsk.setOnSucceeded(e->update_table());
 		PanBase.self(this).notifyTask("讀取 "+fs.getName(),tsk);
 	}
 	public void reload(final String name) {

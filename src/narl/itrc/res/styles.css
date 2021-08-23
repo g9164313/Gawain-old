@@ -70,6 +70,7 @@
   -fx-text-fill: BLACK;
 }
 
+
 .jfx-decorator .jfx-decorator-buttons-container {
   -fx-background-color: #1e88e5;
 }
@@ -139,16 +140,16 @@
 .box-pad {
   -fx-font-size: 1.4em;
   -fx-spacing: 13;
-  -fx-padding: 7;
-  -fx-hgap: 7;
-  -fx-vgap: 7;    
+  -fx-padding: 13;
+  -fx-hgap: 13;
+  -fx-vgap: 13;    
 }
 .box-pad-inner {
   -fx-font-size: 1.4em;
   -fx-spacing: 13 0 13 0;
-  -fx-padding:  7 0  7 0;
-  -fx-hgap: 7;
-  -fx-vgap: 7; 
+  -fx-padding: 13 0 13 0;
+  -fx-hgap: 13;
+  -fx-vgap: 13; 
 }
 
 .box-pad-group {

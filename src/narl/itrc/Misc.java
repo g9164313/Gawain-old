@@ -297,7 +297,7 @@ public class Misc {
 	 * @param time - readable time value
 	 * @return tick, unit is millisecond
 	 */
-	public static long time2tick(final String time){
+	public static long text2tick(final String time){
 		if(time.length()==0) {
 			return 0L;
 		}

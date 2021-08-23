@@ -16,6 +16,7 @@ import narl.itrc.DevModbus;
  * @author qq
  *
  */
+@SuppressWarnings("restriction")
 public class DevCDR06 extends DevModbus {
 	
 	public DevCDR06(){
@@ -96,7 +97,7 @@ public class DevCDR06 extends DevModbus {
 	public float getValPression() { return ch_val[0].getValue(); }
 	public float getValHumidity() { return ch_val[1].getValue(); }
 	public float getValTemperature() { return ch_val[2].getValue(); }
-	
+
 	@Override
 	protected void ignite(){
 		/**

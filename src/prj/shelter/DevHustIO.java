@@ -1,6 +1,7 @@
 package prj.shelter;
 
 import java.math.BigDecimal;
+import java.util.concurrent.TimeUnit;
 
 import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXCheckBox;
@@ -10,14 +11,15 @@ import com.sun.glass.ui.Application;
 
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.scene.control.Label;
+import javafx.scene.control.Separator;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
-import javafx.scene.layout.VBox;
+import javafx.util.StringConverter;
 import narl.itrc.DevTTY;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
@@ -29,6 +31,7 @@ import narl.itrc.UtilPhysical;
  * @author qq
  *
  */
+@SuppressWarnings("restriction")
 public class DevHustIO extends DevTTY {
 	
 	private final char NUL = 0;
@@ -83,13 +86,13 @@ public class DevHustIO extends DevTTY {
 	public final BooleanProperty isMoving = new SimpleBooleanProperty();
 	public final BooleanProperty isRadiant= new SimpleBooleanProperty();
 	
-	public final StringProperty locationText = new SimpleStringProperty();
-	public final StringProperty activityName = new SimpleStringProperty(ACT_NAME_0_05Ci);
-	public final StringProperty leftTime = new SimpleStringProperty("00:00:00");
+	public final StringProperty locationText = new SimpleStringProperty("＊＊＊＊＊");
+	public final StringProperty leftTimeText = new SimpleStringProperty("00:00:00");
 	
-	private long left_time_start = -1L;
-	private long left_time_count = -1L;
-	private long left_time_total = -1L;
+	private long left_time_start = -1L;//unit is millisecond
+	private long left_time_count = -1L;//unit is millisecond
+	private long left_time_total = -1L;//unit is millisecond
+	private boolean radiate, move_on;
 	
 	private void parse_report(final String report){
 		
@@ -110,18 +113,17 @@ public class DevHustIO extends DevTTY {
 		final String u_val = txt.substring(13,22).trim();
 		final String r_val = txt.substring(23).trim();
 		
-		final boolean radiant= (r_val.charAt(6)!='1')?(true):(false);
-		final boolean moving = (h_val.charAt(2)=='?')?(true):(false);
+		radiate = (r_val.charAt(6)!='1')?(true):(false);
+		move_on = (h_val.charAt(2)=='?')?(true):(false);
 		
-		if(radiant==true) {
+		if(radiate==true) {
 			if(left_time_start<0L) {
 				left_time_start = System.currentTimeMillis();
 				left_time_count = 0L;
-			}else if(left_time_count>=0L){
+			}else if(left_time_count>0L){
 				left_time_count = System.currentTimeMillis() - left_time_start;
 				if(left_time_count>=left_time_total) {
-					exec("O9005","N01000000");//stop radiation~~~
-					left_time_count = -1L;
+					stop_radiaton();
 				}
 			}
 		}else{
@@ -129,7 +131,7 @@ public class DevHustIO extends DevTTY {
 			left_time_start = -1L;
 			left_time_count = -1L;
 		}
-		
+
 		Application.invokeAndWait(()->{
 			
 			H_code.setValue(h_val);
@@ -137,8 +139,8 @@ public class DevHustIO extends DevTTY {
 			R_code.setValue(r_val);
 			U_code.setValue(u_val);
 			
-			isRadiant.setValue(radiant);
-			isMoving.setValue(moving);
+			isRadiant.setValue(radiate);
+			isMoving.setValue(move_on);
 			
 			BigDecimal u_dec = new BigDecimal(u_val);
 			int pp = u_dec.precision();//digital的數量
@@ -151,7 +153,7 @@ public class DevHustIO extends DevTTY {
 			}
 			
 			if(left_time_count>=0L) {
-				leftTime.set(Misc.tick2text(
+				leftTimeText.set(Misc.tick2text(
 					Math.abs(left_time_count - left_time_total),
 					false,
 					3
@@ -169,45 +171,54 @@ public class DevHustIO extends DevTTY {
 		}
 		writeByte(end);
 	}
-	
-	private void make_radiaton(final String isotope) {
-		exec("O9000","N0000111",isotope);
+			
+	private void make_radiaton(final Activity act) {
+		switch(act) {
+		case V_3Ci  : exec("O9000","N0000111","M03"); break;
+		case V_05Ci : exec("O9000","N0000111","M04"); break;
+		case V_005Ci: exec("O9000","N0000111","M05"); break;
+		}
 		exec("O9005","N10000000");
 	}
-	private void stop_radiaton() {
+	private void stop_radiaton() {		
 		exec("O9005","N01000000");
+		left_time_start = -1L;
+		left_time_count = -1L;
 	}
 	
-	public static final String ACT_CODE_3Ci   = "M03";
-	public static final String ACT_CODE_0_5Ci = "M04";
-	public static final String ACT_CODE_0_05Ci= "M05";
-	public static final String ACT_NAME_3Ci   = "3 Ci";
-	public static final String ACT_NAME_0_5Ci = "0.5 Ci";
-	public static final String ACT_NAME_0_05Ci= "0.05 Ci";
-	
-	public static String act_name2value(final String txt) {
-		if(txt.equals(ACT_NAME_3Ci)==true) {
-			return ACT_CODE_3Ci;
-		}else if(txt.equals(ACT_NAME_0_5Ci)==true) {
-			return ACT_CODE_0_5Ci;
-		}else if(txt.equals(ACT_NAME_0_05Ci)==true) {
-			return ACT_CODE_0_05Ci;
-		}else {
-			Misc.loge("Wrong activity name(%s)", txt);
+	/**
+	 * move tools to position form home point.<p>
+	 * The position represent a physical number.(value and unit).<p>
+	 * Example: "33cm", "12.5mm".<p>
+	 * If position is empty, it means 'home/origin point'.
+	 * The position is an absolute location.<p> 
+	 * @param position - physical number
+	 */
+	public void move_to_abs(final String position){
+		if(position.length()==0){
+			exec("O9005","N00100000");//go home
+		}else{
+			if(position.matches("[\\d]]+(?:[.]\\d+)?")==true) {
+				exec("O9000","N0000111","G01X"+position);
+			}else {
+				String val = UtilPhysical.convertScale(position,"mm");
+				if(val.length()==0) {
+					throw new NumberFormatException();
+				}
+				exec("O9000","N0000111",String.format("G01X%s",val));
+			}
 		}
-		return "";
 	}
-	public static String act_value2name(final String txt) {
-		if(txt.equals(ACT_CODE_3Ci)==true) {
-			return ACT_NAME_3Ci;
-		}else if(txt.equals(ACT_CODE_0_5Ci)==true) {
-			return ACT_NAME_0_5Ci;
-		}else if(txt.equals(ACT_CODE_0_05Ci)==true) {
-			return ACT_NAME_0_05Ci;
-		}else {
-			Misc.loge("Wrong activity value(%s)", txt);
+	public void move_to_abs(
+		final double value, 
+		final String unit
+	){
+		double val = UtilPhysical.convert(value, unit, "mm");
+		if(val<=0.){
+			exec("O9005","N00100000");//go home
+		}else{
+			exec("O9000","N0000111",String.format("G01X%.2f",val));
 		}
-		return "???";
 	}
 	
 	@Override
@@ -223,138 +234,192 @@ public class DevHustIO extends DevTTY {
 		stop_radiaton();
 	}
 	//-------------------------------------------//
+
+	public static enum Activity {
+		
+		V_3Ci,V_05Ci,V_005Ci;
+		
+		public String toString() {
+			return conv_activity.toString(this);
+		}
+	};
+
+	public static StringConverter<DevHustIO.Activity> conv_activity = new StringConverter<DevHustIO.Activity>() {
+		final String TXT_3Ci  = "3 Ci";
+		final String TXT_05Ci = "0.5 Ci";
+		final String TXT_005Ci= "0.05 Ci";
+		@Override
+		public String toString(Activity act) {
+			switch(act) {
+			case V_3Ci  : return TXT_3Ci;
+			case V_05Ci : return TXT_05Ci;
+			case V_005Ci: return TXT_005Ci;
+			}
+			return "???";
+		}
+		@Override
+		public Activity fromString(String txt) {
+			if(txt.equals(TXT_3Ci)==true) {
+				return DevHustIO.Activity.V_3Ci;
+			}else if(txt.equals(TXT_05Ci)==true) {
+				return DevHustIO.Activity.V_05Ci;
+			}else if(txt.equals(TXT_005Ci)==true) {
+				return DevHustIO.Activity.V_005Ci;
+			}
+			return DevHustIO.Activity.V_005Ci;
+		}
+	};
 	
-	public void makeRadiation(
-		final int time_val
+	public final SimpleObjectProperty<Activity> activity = new SimpleObjectProperty<Activity>(Activity.V_005Ci);
+
+	public void asyncRadite(
+		final Activity act_value,
+		final long left_time
 	){
-		final String act_val = act_name2value(activityName.get());
-		asyncBreakIn(()->{
-		left_time_total = time_val;
-		make_radiaton(act_val);
-	});}
-	public void makeRadiation(
-		final String act_name,
-		final int time_val
+		if(isRadiant.get()==true) {
+			return;
+		}	
+		asyncRadite(left_time);
+	}
+	public void asyncRadite(
+		final long left_time
 	){
-		final String act_val = act_name2value(act_name);
-		if(act_val.length()==0) {
+		if(isRadiant.get()==true) {
 			return;
 		}
-		activityName.set(act_name);
-		makeRadiation(time_val);
-	}
-	public void stopRadiation(){
-		//R_code --> 00000018
-		asyncBreakIn(()->stop_radiaton());
+		final Activity act_value = activity.get();
+		asyncBreakIn(()->{
+			left_time_total = left_time;
+			make_radiaton(act_value);
+		});
 	}
 	
+	public void asyncHaltOn(){asyncBreakIn(()->{
+		stop_radiaton();
+	});}
 	
-	/**
-	 * move tools to position form home point.<p>
-	 * The position represent a physical number.(value and unit).<p>
-	 * Example: "33cm", "12.5mm".<p>
-	 * If position is empty, it means 'home/origin point'.
-	 * The position is an absolute location.<p> 
-	 * @param position - physical number
-	 */
-	public void moveToAbs(final String position){
-		if(position.length()==0){
-			exec("O9005","N00100000");//go home
-		}else{
-			double val = UtilPhysical.convert(position, "mm");
-			exec("O9000","N0000111",String.format("G01X%.2f",val));
-		}
-	}
-	public void moveToAbs(
+	public void asyncMoveTo(
+		final String position
+	) {asyncBreakIn(()->{
+		move_to_abs(position);
+	});}
+	
+	public void asyncMoveTo(
 		final double value, 
 		final String unit
-	){
-		double val = UtilPhysical.convert(value, unit, "mm");
-		if(val<=0.){
-			exec("O9005","N00100000");//go home
-		}else{
-			exec("O9000","N0000111",String.format("G01X%.2f",val));
+	) {asyncBreakIn(()->{
+		move_to_abs(value, unit);
+	});}
+	
+	public void asyncWorking(
+		final String position,
+		final long left_time		
+	) {
+		if(isRadiant.get()==true || isMoving.get()==true) {
+			return;
 		}
+		final Activity act_value = activity.get();
+		asyncBreakIn(()->{
+			try {			
+				move_to_abs(position);			
+				do {
+					parse_report(make_report());			
+					TimeUnit.MILLISECONDS.sleep(100);			
+				}while(move_on==true);		
+			
+				left_time_total = left_time;				
+				make_radiaton(act_value);			
+				do {
+					parse_report(make_report());
+					TimeUnit.MILLISECONDS.sleep(100);
+				}while(radiate==true);
+				
+			} catch (InterruptedException e) {
+			}
+		});
+	}
+	
+	public void asyncWorking(
+		final String position,
+		final Activity act_value,
+		final long left_time		
+	) {
+		if(isRadiant.get()==true || isMoving.get()==true) {
+			return;
+		}
+		activity.set(act_value);
+		asyncWorking(position,left_time);
 	}
 	//-------------------------------------------//
 
 	public static Pane genPanel(final DevHustIO dev){
-
-		JFXTextField box_loca = new JFXTextField();
-		box_loca.setPromptText("絕對位置");
-		box_loca.setText("10 cm");
-		box_loca.setPrefColumnCount(8);
-		box_loca.setLabelFloat(true);
-		box_loca.setOnAction(e->{			
-			String[] val = UtilPhysical.split(box_loca.getText());
-			if(val[1].length()==0){
-				PanBase.notifyError("","非法的物理量");
-				return;
-			}
-			try{
-				dev.moveToAbs(Double.valueOf(val[0]), val[1]);
-			}catch(NumberFormatException err){
-				PanBase.notifyError("","非法的數字");
-			}
-		});
-				
-		ToggleGroup grp = new ToggleGroup();
-		JFXRadioButton[] rad = {
+		
+		final JFXTextField box_loca = new JFXTextField();
+		final JFXTextField box_make = new JFXTextField();
+		final JFXButton btn_loca = new JFXButton("移動載台");
+		final JFXButton btn_make = new JFXButton("開始照射");
+		final JFXButton btn_stop = new JFXButton("停止照射");
+		
+		final ToggleGroup grp_act = new ToggleGroup();
+		final JFXRadioButton[] rad_act = {
 			new JFXRadioButton("0.05Ci"),
 			new JFXRadioButton("0.5Ci"),
 			new JFXRadioButton("3Ci")			
 		};
-		rad[0].setToggleGroup(grp);
-		rad[0].setUserData(ACT_CODE_0_05Ci);
-		rad[1].setToggleGroup(grp);
-		rad[1].setUserData(ACT_CODE_0_5Ci);
-		rad[2].setToggleGroup(grp);
-		rad[2].setUserData(ACT_CODE_3Ci);
-		grp.selectToggle(rad[0]);
+		rad_act[0].setToggleGroup(grp_act);
+		rad_act[1].setToggleGroup(grp_act);
+		rad_act[2].setToggleGroup(grp_act);		
+		grp_act.selectToggle(rad_act[0]);
+		rad_act[0].setOnAction(e->dev.activity.set(Activity.V_3Ci));
+		rad_act[1].setOnAction(e->dev.activity.set(Activity.V_05Ci));
+		rad_act[2].setOnAction(e->dev.activity.set(Activity.V_005Ci));
 		
-		JFXButton[] btn = {
-			new JFXButton("move"),
-			new JFXButton("home"),
-			new JFXButton("照射"),
-			new JFXButton("關閉"),
-		};
-		
-		btn[0].getStyleClass().add("btn-raised-1");
-		btn[0].setMaxWidth(Double.MAX_VALUE);
-		btn[0].setOnAction(e->dev.moveToAbs(box_loca.getText()));
-		
-		btn[1].getStyleClass().add("btn-raised-1");
-		btn[1].setMaxWidth(Double.MAX_VALUE);
-		btn[1].setOnAction(e->dev.moveToAbs(""));
-		
-		btn[2].getStyleClass().add("btn-raised-2");
-		btn[2].setMaxWidth(Double.MAX_VALUE);
-		btn[2].setOnAction(e->{
-			String isotope = (String)grp.getSelectedToggle().getUserData();
-			dev.makeRadiation(isotope,3000);
+		box_loca.setPromptText("EX: 10cm");
+		box_loca.setText("10 cm");
+		box_loca.setOnAction(e->{
+			try{
+				dev.asyncMoveTo(box_loca.getText());
+			}catch(NumberFormatException err){
+				PanBase.notifyError("","不合法的數字表示");
+			}
 		});
 		
-		btn[3].getStyleClass().add("btn-raised-2");
-		btn[3].setMaxWidth(Double.MAX_VALUE);
-		btn[3].setOnAction(e->dev.stopRadiation());
+		box_make.setPromptText("EX: 3:27");
+		box_make.setText("03:00");
+		box_make.setPrefColumnCount(8);
+		box_make.setOnAction(e->{
+			final long tick = Misc.text2tick(box_make.getText());
+			if(tick==0) {
+				PanBase.notifyInfo("","請設定照射時間!!");
+				return;
+			}
+			dev.asyncRadite(tick);
+		});
 		
-		/*btn[4].getStyleClass().add("btn-raised-3");
-		btn[4].setMaxWidth(Double.MAX_VALUE);
-		btn[4].setOnAction(e->dev.exec("O9000","N00000010000000001"));
-		btn[5].getStyleClass().add("btn-raised-3");
-		btn[5].setMaxWidth(Double.MAX_VALUE);
-		btn[5].setOnAction(e->dev.exec("O9000","N1"));*/
+		btn_loca.getStyleClass().add("btn-raised-1");
+		btn_loca.setMaxWidth(Double.MAX_VALUE);
+		btn_loca.setOnAction(e->box_loca.getOnAction().handle(e));
 		
-		final Label[] code = {
+		btn_make.getStyleClass().add("btn-raised-1");
+		btn_make.setMaxWidth(Double.MAX_VALUE);
+		btn_make.setOnAction(e->box_make.getOnAction().handle(e));
+		
+		btn_stop.getStyleClass().add("btn-raised-0");
+		btn_stop.setMaxWidth(Double.MAX_VALUE);
+		btn_stop.setOnAction(e->dev.asyncHaltOn());
+
+		final Label[] inf = {
+			new Label(),
 			new Label(),
 			new Label(),
 			new Label(),
 			new Label()
 		};
-		code[0].textProperty().bind(dev.H_code);
-		code[1].textProperty().bind(dev.O_code);
-		code[2].textProperty().bind(dev.R_code);
-		code[3].textProperty().bind(dev.U_code);
+		inf[0].textProperty().bind(dev.H_code);
+		inf[1].textProperty().bind(dev.O_code);
+		inf[2].textProperty().bind(dev.R_code);
+		inf[3].textProperty().bind(dev.U_code);
+		inf[4].textProperty().bind(dev.leftTimeText);
 		
 		final JFXCheckBox[] chk = {
 			new JFXCheckBox("移動中"),
@@ -363,105 +428,25 @@ public class DevHustIO extends DevTTY {
 		chk[0].selectedProperty().bind(dev.isMoving);
 		chk[1].selectedProperty().bind(dev.isRadiant);
 		
-		VBox lay1 = new VBox(
-			new Label(),
-			box_loca,
-			btn[0],	btn[1],
-			rad[0],	rad[1],	rad[2],
-			btn[2], btn[3]
-		);
-		lay1.getStyleClass().addAll("box-pad","font-console");
+		//----------------------------//
 				
-		GridPane lay0 = new GridPane();
+		final GridPane lay0 = new GridPane();
 		lay0.getStyleClass().addAll("box-pad","font-console");
-		lay0.addRow(0, new Label("H"), code[0]);
-		lay0.addRow(1, new Label("O"), code[1]);
-		lay0.addRow(2, new Label("R"), code[2]);
-		lay0.addRow(3, new Label("U"), code[3]);
-		lay0.add(chk[0],0,4,2,1);
-		lay0.add(chk[1],0,5,2,1);
-		
-		return new HBox(lay0,lay1);
+		lay0.addRow(0, new Label("H code："), inf[0]);
+		lay0.addRow(1, new Label("O code："), inf[1]);
+		lay0.addRow(2, new Label("R code："), inf[2]);
+		lay0.addRow(3, new Label("U code："), inf[3]);
+		lay0.addRow(4, chk[0],chk[1]);
+		lay0.addRow(5, new Label("照射時間"), inf[4]);
+		lay0.add(new Separator(), 0, 6, 2, 1);
+		lay0.add(rad_act[0], 0, 7, 2, 1);
+		lay0.add(rad_act[1], 0, 8, 2, 1);
+		lay0.add(rad_act[2], 0, 9, 2, 1);
+		lay0.addRow(10, new Label("載台位置"), box_loca);
+		lay0.addRow(11, new Label("設定計時"), box_make);
+		lay0.add(btn_loca, 0,12, 2, 1);
+		lay0.add(btn_make, 0,13, 2, 1);	
+		lay0.add(btn_stop, 0,14, 2, 1);	
+		return lay0;
 	}	
 }
-
-/**
- * 		String t_loca = lst_code[3];
-		try {
-			float loca = Float.valueOf(t_loca);//location, unit is 'mm'
-			if(loca<=10f) {
-				t_loca = String.format("%8.3f mm", t_loca);
-			}else {
-				loca = loca / 10f;//unit is 'cm'
-				t_loca = String.format("%8.3f cm", t_loca);
-			}
-		}catch(NumberFormatException e) {
-			Misc.loge("%s) wrong U_code-->%s", TAG, t_loca);
-		}
-		final String txt_loca = t_loca;
- */
-
-/**
- 
- 	//* method.2
-	private boolean make_report(){
-		report = readTxt(".*[\\x12].{5,}+[\\x14].*");
-		int beg = report.lastIndexOf(DC2);
-		int end = report.lastIndexOf(DC4);
-		if(end<0 || beg<0){
-			return false;
-		}
-		report = report.substring(beg+1,end);
-		return true;
-	}
-
- 	private void parse_report(final String report){
-		String txt = report
-			.replaceAll("[%|\r]","")
-			.trim();
-		//Misc.logv("[TAG]%s", txt);//debug
-		String[] lst_code = {
-			null,
-			null,
-			null,
-			null
-		};
-		int[] pos = {
-			txt.indexOf('H'),
-			txt.indexOf('O'),
-			txt.indexOf('R'),
-			txt.indexOf('U'),
-			txt.length()
-		};
-		Arrays.sort(pos);
-		for(int i=0; i<pos.length-1; i++){
-			if(pos[i]<0){
-				continue;
-			}
-			lst_code[i] = txt.substring(pos[i],pos[i+1]).trim();
-		}
-		
-		Application.invokeAndWait(()->{
-			for(String val:lst_code){
-				if(val==null){
-					continue;
-				}
-				char tkn = val.charAt(0);
-				val = val.substring(1).trim();				
-				switch(tkn){
-				case 'H': H_code.setValue(val); break;
-				case 'O': O_code.setValue(val); break;
-				case 'R': R_code.setValue(val); break;
-				case 'U': U_code.setValue(val);	break;
-				}
-			}
-			location.setValue(txt_loca);
-			if(radition_flag==true){
-				remain_t.setValue(Misc.tick2text(
-					 System.currentTimeMillis() - radition_tick
-				));
-			}
-		});
-	}
-
- * */

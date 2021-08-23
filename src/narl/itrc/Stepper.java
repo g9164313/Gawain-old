@@ -161,7 +161,7 @@ public abstract class Stepper extends HBox {
 		return (rem>0)?(rem):(0);
 	}
 	protected long waiting_time(final String time){
-		return waiting_time(Misc.time2tick(time));
+		return waiting_time(Misc.text2tick(time));
 	}
 	
 	protected void prepare(){
