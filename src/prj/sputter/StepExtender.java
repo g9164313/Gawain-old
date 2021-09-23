@@ -32,7 +32,7 @@ abstract class StepExtender extends Stepper {
 	
 	protected static DevSQM160 sqm;
 	protected static DevDCG100 dcg;
-	protected static ModCouple cup;
+	protected static DevCouple cup;
 	protected static DevSPIK2k spk;
 	
 	//protected static ScriptEngineManager sc_man = new ScriptEngineManager();

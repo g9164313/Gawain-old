@@ -11,8 +11,10 @@ import com.sun.glass.ui.Application;
 
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.FloatProperty;
+import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleFloatProperty;
+import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.StringProperty;
 import javafx.event.EventHandler;
 import javafx.geometry.Orientation;
@@ -41,6 +43,7 @@ import narl.itrc.PadTouch;
  * @author qq
  *
  */
+@SuppressWarnings("restriction")
 public class DevDCG100 extends DevTTY {
 	
 	public DevDCG100(){
@@ -77,7 +80,10 @@ public class DevDCG100 extends DevTTY {
 		ans = exec("REME");
 		if(ans.contains("*")==true) {			
 			nextState(STG_MONT);
-			Application.invokeLater(()->isRemote.set(true));
+			Application.invokeLater(()->{
+				isRemote.set(true);				
+				SPW.set(Integer.valueOf(v_spw.substring(0, v_spw.length()-1)));
+			});
 		}else {
 			nextState("");//idle!!!
 		}
@@ -98,14 +104,17 @@ public class DevDCG100 extends DevTTY {
 	public final FloatProperty watt = new SimpleFloatProperty(0.f);
 	public final FloatProperty joul = new SimpleFloatProperty(0.f);	
 
-	private int cur_watt = 0;
+	public final IntegerProperty SPW = new SimpleIntegerProperty(0);
+	
+	//private int cur_watt = 0;
 		
 	private void measurement() {
 		final String[] val = {"","","",""};
 		val[0] = cook(exec("MVV"),"");
 		val[1] = cook(exec("MVA"),"");
 		val[2] = cook(exec("MVW"),"");
-		cur_watt = Integer.valueOf(val[2]);
+		
+		//cur_watt = Integer.valueOf(val[2]);
 		//val[3] = cook(exec("MVJ"),"");
 		
 		//output on-time
@@ -205,12 +214,32 @@ public class DevDCG100 extends DevTTY {
 		txt2prop(txt,prop,1f);
 	}
 	
+	
+	public void asyncSetWatt(
+		final int val
+	) {asyncBreakIn(()->{
+		exec("SPW="+val);
+		Application.invokeLater(()->SPW.set(val));
+	});}
+	public void asyncSetWatt(
+		final String val
+	) {
+		if(val.length()==0) { return; }
+		try {
+			int v = Integer.valueOf(val);
+			asyncSetWatt(v);
+		}catch(NumberFormatException e) {			
+		}
+	}
+	
 	public void asyncAdjustWatt(
-		final int watt,
+		final int offset,
 		final int min_v,
 		final int max_v
 	) {asyncBreakIn(()->{
-		int val = cur_watt + watt;
+		v_spw = cook(exec("SPW"),"0W");	
+		final String t_val = v_spw.substring(0, v_spw.length()-1);
+		final int val = Integer.valueOf(t_val) + offset;
 		if(min_v>0 && val<=min_v){
 			return;
 		}
@@ -218,6 +247,7 @@ public class DevDCG100 extends DevTTY {
 			return;
 		}
 		exec("SPW="+val);
+		Application.invokeLater(()->SPW.set(val));
 	});}
 	public void asyncExec(final String... cmd) {asyncBreakIn(()->{
 		for(String cc:cmd){
@@ -232,18 +262,13 @@ public class DevDCG100 extends DevTTY {
 				});
 				return;
 			}
+			Misc.logv("[%s] %s",TAG,cc);//trace DCG command
 			try {
-				TimeUnit.MILLISECONDS.sleep(100);
+				TimeUnit.MILLISECONDS.sleep(200);
 			} catch (Exception e) {
 			}
 		}
-	});}	
-	public void asyncExec(
-		final String cmd,
-		final String val
-	) {
-		asyncExec(cmd+"="+val);
-	}	
+	});}
 	//-------------------------//
 	
 	//regulation mode - Amps('A'), Volts('V'), Watt('W')
@@ -319,8 +344,9 @@ public class DevDCG100 extends DevTTY {
 	public static Pane genCtrlPanel(final DevDCG100 dev) {
 
 		final JFXComboBox<String> cmb = new JFXComboBox<String>();
-		cmb.setMaxWidth(Double.MAX_VALUE);
-		cmb.getItems().addAll("功率","電壓","電流");		
+		cmb.setPrefWidth(100.);
+		cmb.getItems().addAll("功率","電壓","電流");
+		
 		final SingleSelectionModel<String> opt = cmb.getSelectionModel();
 		opt.select(0);
 		cmb.setOnAction(e->{
@@ -336,12 +362,11 @@ public class DevDCG100 extends DevTTY {
 		GridPane.setHgrow(cmb, Priority.ALWAYS);
 		
 		final Label txt_pv = new Label();
-		txt_pv.setMaxWidth(Double.MAX_VALUE);	
-		GridPane.setHgrow(txt_pv, Priority.ALWAYS);
-		
-		final JFXTextField box = new JFXTextField("100");
-		box.setMaxWidth(Double.MAX_VALUE);	
-		GridPane.setHgrow(box, Priority.ALWAYS);
+		txt_pv.setMaxWidth(100.);
+		//GridPane.setHgrow(txt_pv, Priority.ALWAYS);		
+		final JFXTextField box_sv = new JFXTextField("100");
+		box_sv.setMaxWidth(100.);
+		//GridPane.setHgrow(box_sv, Priority.ALWAYS);
 		
 		final JFXButton[] btn = {
 			new JFXButton("ON"), 
@@ -352,7 +377,7 @@ public class DevDCG100 extends DevTTY {
 			GridPane.setHgrow(obj, Priority.ALWAYS);
 		}
 		btn[0].getStyleClass().add("btn-raised-1");		
-		btn[1].getStyleClass().add("btn-raised-2");
+		btn[1].getStyleClass().add("btn-raised-0");
 		
 		btn[0].setOnAction(e->{
 			txt_pv.getStyleClass().add("font-pv1");
@@ -363,7 +388,7 @@ public class DevDCG100 extends DevTTY {
 			case 2: pp.bind(dev.amps.asString("%5.2f A")); break;
 			default: txt_pv.setText("???"); break;
 			}
-			String txt_sv = box.getText().trim();
+			String txt_sv = box_sv.getText().trim();
 			if(txt_sv.matches("\\d+")==false) {
 				return;
 			}
@@ -388,7 +413,7 @@ public class DevDCG100 extends DevTTY {
 		lay.getStyleClass().addAll("box-pad");
 		lay.addRow(0, new Label("調變"), cmb);
 		lay.addRow(1, new Label("輸出"), txt_pv);
-		lay.addRow(2, new Label("輸入"), box);
+		lay.addRow(2, new Label("輸入"), box_sv);
 		lay.add(btn[0], 0, 3, 2, 1);
 		lay.add(btn[1], 0, 4, 2, 1);
 		
@@ -490,7 +515,7 @@ public class DevDCG100 extends DevTTY {
 		btn[6].setOnAction(e->dev.asyncExec("TRG"));
 
 		btn[7].setText("OFF");		
-		btn[7].getStyleClass().add("btn-raised-2");
+		btn[7].getStyleClass().add("btn-raised-0");
 		btn[7].setOnAction(e->dev.asyncExec("OFF"));
 				
 		for(int i=0; i<txt.length; i++) {

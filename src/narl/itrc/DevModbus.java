@@ -14,7 +14,12 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleFloatProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 
-
+/**
+ * Support Modbus device, provide a looper to update or modify registers.
+ * @author qq
+ *
+ */
+@SuppressWarnings("restriction")
 public class DevModbus extends DevBase {
 
 	public DevModbus(){

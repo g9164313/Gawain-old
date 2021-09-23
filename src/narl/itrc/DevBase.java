@@ -1,14 +1,18 @@
 package narl.itrc;
 
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.sun.glass.ui.Application;
 
+import javafx.beans.property.ReadOnlyStringProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 
+@SuppressWarnings("restriction")
 public abstract class DevBase implements Runnable {
 	
 	protected String TAG = "DevBase";
@@ -17,75 +21,61 @@ public abstract class DevBase implements Runnable {
 	abstract public void close();
 	abstract public boolean isLive();
 	
-	//public StringProperty state = new SimpleStringProperty();
+	private final StringProperty prop_state_name = new SimpleStringProperty();
+	public final ReadOnlyStringProperty PropStateName = prop_state_name;
 	
-	public final StringProperty propStateName = new SimpleStringProperty();
-	
-	private String get_next_state_name() {
-		final String name = next_state_name.get();
-		if(name.length()==0) {
-			Application.invokeLater(()->propStateName.set("--idle--"));
-		}else {
-			Application.invokeLater(()->propStateName.set(name));
+	private boolean is_flowing() {
+		if(Blockage.get()==true || Gawain.isKill.get()==true){
+			return false;
 		}
-		return name;
+		return true;
 	}
-	
-	protected final AtomicBoolean isExist = new AtomicBoolean(true);
+
+	protected final AtomicBoolean Blockage = new AtomicBoolean(true);
 	
 	private final ConcurrentHashMap<String,Runnable> state = new ConcurrentHashMap<String,Runnable>();
 	
 	private final AtomicReference<String> next_state_name = new AtomicReference<String>("");
 	
-	private String prev_state_name = "";
-	
-	private static final String STA_BREAK_IN = "__breakIn__";//special state
-	
+	private static final String NAME_BREAK_IN = "__breakIn__";//special state
+
 	@Override
 	public void run() {
 		//main looper
-		do {
-			if(
-				isExist.get()==true ||
-				Gawain.isKill.get()==true
-			){
-				break;
+		while(is_flowing()==true) {
+			//first, check whether we had break-in event.
+			if(state.containsKey(NAME_BREAK_IN)==true) {
+				Application.invokeLater(()->prop_state_name.set(NAME_BREAK_IN));
+				state.get(NAME_BREAK_IN).run();
+				state.remove(NAME_BREAK_IN);
 			}
 			//go through state-flow
-			String name = get_next_state_name();
+			final String name = next_state_name.get();
 			if(name.length()==0) {
-				//if name is empty, it means idle....
+				//if name is empty, it means idle state....
+				Application.invokeLater(()->prop_state_name.set("--idle--"));
 				synchronized(taskFlow) {
 					try {
 						taskFlow.wait();
 					} catch (InterruptedException e) {
+						Misc.logv("%s is interrupted!!", TAG);
 					}
 				}
 				continue;
 			}
-			Runnable work = state.get(name);
+			Application.invokeLater(()->prop_state_name.set(name));
+			//device launch a GUI event, let GUI event decide the end time of emergence.<p>
+			//device only launch the emergence once!!
+			//it will not enter again, if the flag were not set again.!! 
+			final Runnable work = state.get(name);
 			if(work==null) {
-				Misc.loge("[%s] invalid state - %s", TAG,name);
-				next_state_name.set("");
+				//TODO: there is a bug in DevModbus
+				Misc.loge("[%s] invalid state - %s", TAG, name);
+				next_state_name.set("");//edge case, no working, just goto idle.
 			}else {
 				work.run();
-				if(name.equals(STA_BREAK_IN)==true) {
-					state.remove(STA_BREAK_IN);
-					//next state no changed, go back to previous state.
-					name = next_state_name.get();
-					if(name.equals(STA_BREAK_IN)==true) {
-						next_state_name.set(prev_state_name);
-					}
-				}else {
-					//GUI-thread may change state during work.run() function.
-					name = next_state_name.get();					
-					if(name.equals(STA_BREAK_IN)==false) {
-						//update previous state, but ignore special state.
-						prev_state_name = name;
-					}
-				}
 			}
-		}while(true);
+		};
 		Misc.logv("%s --> close", TAG);
 	}
 
@@ -99,7 +89,7 @@ public abstract class DevBase implements Runnable {
 	}
 	
 	public boolean isBreaking(){
-		return state.contains(STA_BREAK_IN);
+		return state.containsKey(NAME_BREAK_IN);
 	}
 	
 	public DevBase addState(
@@ -115,21 +105,21 @@ public abstract class DevBase implements Runnable {
 			return;
 		}
 		next_state_name.set(init_state);
-		isExist.set(false);
+		Blockage.set(false);
 		taskFlow = new Thread(this,TAG);
 		taskFlow.setDaemon(true);
 		taskFlow.start();
 	}
 	
 	public void stopFlow() {
-		isExist.set(true);
+		Blockage.set(true);
 		if(Application.isEventThread()!=true){
 			try {
 				taskFlow.join();
 			} catch (InterruptedException e) {
 			}
 		}
-		taskFlow = null;//reset this flag~~~
+		taskFlow = null;//reset, because thread is 'dead'
 	}
 	
 	public void nextState(final String name) {
@@ -161,11 +151,11 @@ public abstract class DevBase implements Runnable {
 			orph_break_in.start();
 			return this;
 		}
-		if(state.contains(STA_BREAK_IN)==true){
+		if(state.containsKey(NAME_BREAK_IN)==true){
 			return this;
 		}
-		state.put(STA_BREAK_IN, work);
-		nextState(STA_BREAK_IN);
+		state.put(NAME_BREAK_IN, work);
+		nextState(NAME_BREAK_IN);
 		return this;
 	}
 	public boolean isAsyncDone(){
@@ -173,50 +163,77 @@ public abstract class DevBase implements Runnable {
 			return !orph_break_in.isAlive();
 		}
 		if(taskFlow!=null){
-			return !state.contains(STA_BREAK_IN);
+			return !state.containsKey(NAME_BREAK_IN);
 		}
 		return true;
 	}
 	public void asyncBlocking(){
 		while(isAsyncDone()==false) {
 			try {
-				Thread.sleep(25);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
+				TimeUnit.MILLISECONDS.sleep(25L);
+			} catch (InterruptedException e1) {
 			}
 		}
 	}
 	
 	/**
-	 * Device will wait for caller.
+	 * Device will wait for GUI thread.
+	 * Important!! the caller(GUI thread) will be blocking by I/O operation.
 	 * @param work - runnable code
 	 * @return self
 	 */
-	public DevBase syncBreakIn(final Runnable work) {
+	/*public DevBase syncBreakIn(final Runnable work) {
 		if(taskFlow==null) {
 			work.run();
 			return this;
 		}
-		idleState();
-		work.run();
-		nextState(prev_state_name);		
-		return this;
-	}
-	private void idleState() {
-		nextState("");		
+		nextState("");
 		do{
 			try {
-				Thread.sleep(1);
-			} catch (InterruptedException e) {
+				TimeUnit.MILLISECONDS.sleep(25L);
+			} catch (InterruptedException e1) {
 			}
 		}while(taskFlow.getState()!=Thread.State.WAITING);
+		work.run();
+		//nextState(prev_state_name);		
+		return this;
+	}*/
+	
+	//TODO: how to check emergence???
+	private static final AtomicBoolean is_emergent = new AtomicBoolean(false);
+	private static final StringProperty emergency_tag = new SimpleStringProperty();
+	public static final ReadOnlyStringProperty EmergencyTag = emergency_tag;	
+	public static Optional<Runnable> emergency = Optional.empty();
+	
+	protected static synchronized void emergency(final String tag) {
+		if(is_emergent.get()==true) {
+			return;
+		}
+		is_emergent.set(true);
+		Misc.logw("[%s] !!EMERGENCY!!", tag);
+		Application.invokeAndWait(()->{			
+			emergency_tag.set(tag);
+			if(emergency.isPresent()==true) {
+				emergency.get().run();//Let GUI thread set flag again~~~
+			}else {
+				is_emergent.set(false);
+			}
+		});
 	}
 	
-	protected void blocking_delay(final long millisec) {
+	public static void ignore_emergency() {
+		if(Application.isEventThread()==false) {
+			//only GUI-event can decide to exit in an emergency.
+			return;
+		}
+		Misc.logw("~~ Ignore emergency~~");
+		is_emergent.set(false);
+	}
+	
+	protected void sleep(final long millisec) {
 		try {
-			Thread.sleep(millisec);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
+			TimeUnit.MILLISECONDS.sleep(millisec);
+		} catch (InterruptedException e1) {
 		}
 	}
 }

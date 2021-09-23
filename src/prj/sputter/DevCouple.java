@@ -1,9 +1,8 @@
 package prj.sputter;
 
-import com.sun.glass.ui.Application;
-
 import javafx.beans.property.FloatProperty;
 import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.ReadOnlyFloatProperty;
 import javafx.beans.property.SimpleFloatProperty;
 import narl.itrc.DevModbus;
 import narl.itrc.Misc;
@@ -45,8 +44,7 @@ import narl.itrc.Misc;
  * Um - 24V
  * FE - Function Earth
  */
-
-public class ModCouple extends DevModbus {
+public class DevCouple extends DevModbus {
 
 	/**
 	 * h8000       - digital input
@@ -71,7 +69,7 @@ public class ModCouple extends DevModbus {
 	public final IntegerProperty ain1, ain2, ain3, ain4;
 	public final IntegerProperty aout1, aout2, aout3, aout4;
 	
-	public ModCouple(){
+	public DevCouple(){
 		
 		mapAddress("h8000-8010");
 		
@@ -84,6 +82,8 @@ public class ModCouple extends DevModbus {
 		aout2 = mapInteger(8007);
 		aout3 = mapInteger(8008);
 		aout4 = mapInteger(8009);
+		
+		init_flow_property();
 	}
 
 	@Override
@@ -106,7 +106,7 @@ public class ModCouple extends DevModbus {
 		//int v2 = readReg('I',8012);
 		//Misc.logv("#8012=0x%04X",v2);
 		
-		init_flow_prop();
+		//init_flow_prop();
 		
 		super.ignite();//goto next stage~~~~
 	}
@@ -164,7 +164,6 @@ public class ModCouple extends DevModbus {
 		case 4: asyncBreakIn(()->writeVals(8009,val)); break;
 		}
 	}
-	
 	//-------------------------------//
 	
 	/**
@@ -185,80 +184,128 @@ public class ModCouple extends DevModbus {
 		new SimpleFloatProperty(),
 		new SimpleFloatProperty(),
 		new SimpleFloatProperty(),
-	};//unit is sccm!!!
+	};//unit is SCCM!!!
 	
-	public final FloatProperty PV_FlowAr = PV_Flow[0];	
-	public final FloatProperty PV_FlowN2 = PV_Flow[1];
-	public final FloatProperty PV_FlowO2 = PV_Flow[2];
+	public final ReadOnlyFloatProperty PV_FlowAr = PV_Flow[0];
+	public final ReadOnlyFloatProperty PV_FlowN2 = PV_Flow[1];
+	public final ReadOnlyFloatProperty PV_FlowO2 = PV_Flow[2];
 	
-	private final float ar_max_sccm = 100f;
-	private final float n2_max_sccm =  30f;
-	private final float o2_max_sccm =  10f;
+	public final FloatProperty SV_FlowAr = new SimpleFloatProperty();
+	public final FloatProperty SV_FlowN2 = new SimpleFloatProperty();
+	public final FloatProperty SV_FlowO2 = new SimpleFloatProperty();
+	
+	public static final float ar_max_sccm = 100f;
+	public static final float n2_max_sccm =  30f;
+	public static final float o2_max_sccm =  10f;
+	
+	private void init_flow_property() {
+		
+		PV_Flow[0].bind(ain1.divide(1000f).multiply(ar_max_sccm/5f));
+		PV_Flow[1].bind(ain2.divide(1000f).multiply(n2_max_sccm/5f));
+		PV_Flow[2].bind(ain3.divide(1000f).multiply(o2_max_sccm/5f));
+				
+		SV_FlowAr.addListener((obv,oldVal,newVal)->asyncSetMassFlow(newVal.floatValue(),-1.f,-1.f));
+		SV_FlowN2.addListener((obv,oldVal,newVal)->asyncSetMassFlow(-1.f,newVal.floatValue(),-1.f));
+		SV_FlowO2.addListener((obv,oldVal,newVal)->asyncSetMassFlow(-1.f,-1.f,newVal.floatValue()));
+	}
 	
 	private void set_mass_flow(
 		final int aout_addr,
-		String value,
+		final float value_sccm,
 		final float max_sccm
 	){
-		try{
-			value = value.trim();
-			if(value.length()==0){
-				return;
-			}
-			float volt = (Float.valueOf(value) * 5f) / max_sccm;
-			//boundary!!
-			if(volt>5f) { 
-				volt = 5f;
-			}else if(volt<=0f){
-				volt = 0f;
-			}
-			int mvolt = (int)(volt * 1000f);//IB IL format
-			writeVals(aout_addr,mvolt);
-		}catch(NumberFormatException e){
-			Misc.loge("Wrong Format: %s", value);
+		float volt = (value_sccm * 5f) / max_sccm;
+		//boundary!!
+		if(volt>5f) { 
+			volt = 5f;
+		}else if(volt<=0f){
+			volt = 0f;
 		}
+		int mvolt = (int)(volt * 1000f);//IB IL format
+		writeVals(aout_addr,mvolt);
 	}
 	
-	/**
-	 * set mass flow control, unit is SCCM
-	 * @param val_ar
-	 * @param val_n2
-	 * @param val_o2
-	 */
-	public void asynSetMassFlow(
-		final String val_ar,
-		final String val_n2,
-		final String val_o2
-	){asyncBreakIn(()->{
-		set_mass_flow(8006, val_ar, ar_max_sccm);
-		set_mass_flow(8007, val_n2, n2_max_sccm);
-		set_mass_flow(8008, val_o2, o2_max_sccm);
+	public void asyncSetMassFlow(
+		final float ar_sccm,
+		final float n2_sccm,
+		final float o2_sccm
+	) {asyncBreakIn(()->{
+		if(ar_sccm>=0.f) {
+			set_mass_flow(8006, ar_sccm, ar_max_sccm);
+		}
+		if(n2_sccm>=0.f) {
+			set_mass_flow(8007, n2_sccm, n2_max_sccm);
+		}
+		if(o2_sccm>=0.f) {
+			set_mass_flow(8008, o2_sccm, o2_max_sccm);
+		}
 	});}
-	
-	public void asynSetArFlow(
-		final String value
-	){asyncBreakIn(()->{
-		set_mass_flow(8006, value, ar_max_sccm);
-	});}
-	public void asynSetN2Flow(
-		final String value
-	){asyncBreakIn(()->{
-		set_mass_flow(8007, value, n2_max_sccm);
-	});}
-	public void asynSetO2Flow(
-		final String value
-	){asyncBreakIn(()->{
-		set_mass_flow(8008, value, o2_max_sccm);
-	});}
-	
-	private void init_flow_prop() {
-		Application.invokeLater(()->{
-			PV_Flow[0].bind(ain1.divide(1000f).multiply(ar_max_sccm/5f));
-			PV_Flow[1].bind(ain2.divide(1000f).multiply(n2_max_sccm/5f));
-			PV_Flow[2].bind(ain3.divide(1000f).multiply(o2_max_sccm/5f));			
-		});
+	public void asyncSetMassFlow(
+		final String ar_sccm,
+		final String n2_sccm,
+		final String o2_sccm
+	) {
+		float ar_mass=sccm2value(ar_sccm);
+		float n2_mass=sccm2value(n2_sccm);
+		float o2_mass=sccm2value(o2_sccm);
+		asyncSetMassFlow(ar_mass,n2_mass,o2_mass);
+	}
+	public void asyncSetArFlow(final String sccm) {
+		SV_FlowAr.set(sccm2value(sccm));
+	}
+	public void asyncSetN2Flow(final String sccm) {
+		SV_FlowN2.set(sccm2value(sccm));
+	}
+	public void asyncSetO2Flow(final String sccm) {
+		SV_FlowO2.set(sccm2value(sccm));
+	}
+	private float sccm2value(final String sccm) {
+		if(sccm.length()==0) {
+			return -1f;
+		}
+		try{
+			return Float.valueOf(sccm);
+		}catch(NumberFormatException e) {		
+		}
+		return -1f;
 	}
 	
+	public void asyncAdjustArFlow(
+		final float dxx,
+		final float min,
+		final float max
+	){
+		adjust_mass_flow(dxx,min,max,SV_FlowAr);
+	}
+	public void asyncAdjustN2Flow(
+		final float dxx,
+		final float min,
+		final float max
+	){
+		adjust_mass_flow(dxx,min,max,SV_FlowN2);
+	}
+	public void asyncAdjustO2Flow(
+		final float dxx,
+		final float min,
+		final float max
+	){
+		adjust_mass_flow(dxx,min,max,SV_FlowO2);
+	}
+	private void adjust_mass_flow(
+		final float dxx,
+		final float min,
+		final float max,
+		final FloatProperty prop
+	) {
+		float val = prop.get() + dxx;
+		if(val<min) {
+			return;
+		}
+		if(max<val) {
+			return;
+		}
+		prop.set(val);
+	}
 	//-------------------------------//
 	
 	public void asyncSelectGunHub(
@@ -280,8 +327,6 @@ public class ModCouple extends DevModbus {
 				val = val | 8;
 			}
 			writeVals(8005, val);
-		}else {
-			Misc.logv("電極切換:???");
 		}
 	});}
 	

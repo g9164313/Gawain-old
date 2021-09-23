@@ -29,9 +29,9 @@ import narl.itrc.PadTouch;
 
 public class DrawVaccum extends DrawDiagram {
 
-	private final ModCouple coup;
+	private final DevCouple coup;
 		
-	public DrawVaccum(final ModCouple dev) {
+	public DrawVaccum(final DevCouple dev) {
 		coup = dev;
 		
 		Chamber   oo1 = new Chamber()  .locate(300, 10);
@@ -51,7 +51,7 @@ public class DrawVaccum extends DrawDiagram {
 		Pipe1 pp6 = new Pipe1('▔',124,7    ).locate(174,183);
 		Pipe1 pp7 = new Pipe1('▞',124,107,7).locate(174,183);
 
-		FlowValve ff1 = new FlowValve("Ar").locate(10, 10)
+		/*FlowValve ff1 = new FlowValve("Ar").locate(10, 10)
 			.pipe_out(pp5,coup.PV_FlowAr,(obv,oldVal,newVal)->{
 				coup.asynSetArFlow(newVal);
 			});
@@ -62,7 +62,7 @@ public class DrawVaccum extends DrawDiagram {
 		FlowValve ff3 = new FlowValve("O2").locate(10,225)
 			.pipe_out(pp7,coup.PV_FlowO2,(obv,oldVal,newVal)->{
 				coup.asynSetO2Flow(newVal);
-			});
+			});*/
 				
 		oo3.setOnMouseClicked(e->{
 			oo3.next_state();

@@ -30,6 +30,7 @@ import narl.itrc.DevTTY;
  * @author qq
  *
  */
+@SuppressWarnings("restriction")
 public class DevSPIK2k extends DevTTY {
 
 	public DevSPIK2k() {
@@ -40,13 +41,19 @@ public class DevSPIK2k extends DevTTY {
 	public DevSPIK2k(String path_name){
 		this();
 		setPathName(path_name);
-	}
+	}	
 	@Override
 	protected void afterOpen() {
 		addState("init", ()->{
 			fst_value1 = get_register(0,8);
-			//fst_value2 = get_register(26,6);
-			nextState("");
+			//0* Mode: 
+			//1* State: 
+			//3* Error: 
+			//4* Ton +: 2-32000us, duration of the pulse
+			//5* Toff+: 2-32000us, duration of the pause
+			//6* Ton -: 2-32000us, duration of the pulse
+			//7* Toff-: 2-32000us, duration of the pause			
+			nextState("loop");			
 			Application.invokeAndWait(()->{
 				if(fst_value1==null) {
 					return;
@@ -63,6 +70,26 @@ public class DevSPIK2k extends DevTTY {
 				tmpTxt[2].setText(String.format("Ton -: %4d", fst_value1[6]));
 				tmpTxt[3].setText(String.format("Toff-: %4d", fst_value1[7]));
 			});
+		});
+		addState("loop", ()->{
+			//19* ARC_Count: Amount of ARC impulses
+			//20* DC1_V_Act: measurement of DC-1 source
+			//21* DC1_I_Act: measurement of DC-1 source
+			//22* DC1_P_Act: measurement of DC-1 source
+			//23* DC2_V_Act: measurement of DC-2 source
+			//24* DC2_I_Act: measurement of DC-2 source
+			//25* DC2_P_Act: measurement of DC-2 source
+			final int[] reg = get_register(19,7);			
+			Application.invokeLater(()->{
+				ARC_count.set(reg[0]);
+				DC1_V_Act.set(reg[1]);
+				DC1_I_Act.set(reg[2]);
+				DC1_P_Act.set(reg[3]);
+				DC2_V_Act.set(reg[4]);
+				DC2_I_Act.set(reg[5]);
+				DC2_P_Act.set(reg[6]);
+			});			
+			sleep(500);
 		});
 		playFlow("init");
 	}
@@ -167,6 +194,11 @@ public class DevSPIK2k extends DevTTY {
 		//end of talking~~~~
 		
 		//check whether answer is valid....
+		//ans[0:2]--> token
+		//ans[3]  --> error code
+		//ans[-3] --> DLE(3964R)
+		//ans[-2] --> ETX(3954R)
+		//ans[-1] --> unknown in document
 		if(	ans[3]!=0 ||
 			ans[3+1+cnt+0]!=DLE ||
 			ans[3+1+cnt+1]!=ETX 
@@ -246,12 +278,80 @@ public class DevSPIK2k extends DevTTY {
 			}
 		});		
 	});}
+	
+	public void setPulse(
+		final int Ton_P,
+		final int Ton_N,
+		final int Toff_P,
+		final int Toff_N
+	) {
+		//4* Ton +: 2-32000us, duration of the pulse
+		//5* Toff+: 2-32000us, duration of the pause
+		//6* Ton -: 2-32000us, duration of the pulse
+		//7* Toff-: 2-32000us, duration of the pause
+		int msk = 0;
+		if(2<=Ton_P && Ton_P<=3200) {
+			msk = msk | 1;
+		}
+		if(2<=Toff_P && Toff_P<=3200) {
+			msk = msk | 2;
+		}
+		if(2<=Ton_N && Ton_N<=3200) {
+			msk = msk | 4;
+		}
+		if(2<=Toff_N && Toff_N<=3200) {
+			msk = msk | 8;
+		}
+		switch(msk) {
+		case  1: set_register(4,Ton_P ); break;
+		case  2: set_register(5,Toff_P); break;
+		case  4: set_register(6,Ton_N ); break;
+		case  8: set_register(7,Toff_N); break;
+		
+		case  3: set_register(4,Ton_P ,Toff_P); break;
+		case  6: set_register(5,Toff_P,Ton_N ); break;
+		case 12: set_register(6,Ton_N ,Toff_N); break;
+		
+		case  7: set_register(4,Ton_P,Toff_P,Ton_N); break;
+		case 14: set_register(5,Toff_P,Ton_N,Toff_N); break;
+		
+		case 15: set_register(4,Ton_P,Toff_P,Ton_N,Toff_N); break;
+		
+		case 5:
+			set_register(4,Ton_P );
+			set_register(6,Ton_N );
+			break;			
+		case 9:
+			set_register(4,Ton_P );
+			set_register(7,Toff_N);
+			break;
+		case 10:
+			set_register(5,Toff_P);
+			set_register(7,Toff_N);
+			break;
+		case 11:
+			set_register(4,Ton_P,Toff_P);
+			set_register(7,Toff_N);
+			break;
+		case 13:
+			set_register(4,Ton_P );
+			set_register(6,Ton_N,Toff_N);
+			break;		
+		}
+	}
+	public void asyncSetPulse(
+		final int Ton_P,
+		final int Ton_N,
+		final int Toff_P,
+		final int Toff_N
+	) {asyncBreakIn(()->{
+		setPulse(Ton_P,Ton_N,Toff_P,Toff_N);
+	});}
+	
 	//---------------------------------//
 	
 	private int[] fst_value1 = null;//Mode
-	@SuppressWarnings("unused")
-	private int[] fst_value2 = null;
-	
+
 	public final IntegerProperty ARC_count = new SimpleIntegerProperty();//1-10000
 	public final IntegerProperty DC1_V_Act = new SimpleIntegerProperty();//0-4000
 	public final IntegerProperty DC1_I_Act = new SimpleIntegerProperty();//0-4000

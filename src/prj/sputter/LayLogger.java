@@ -203,7 +203,7 @@ public class LayLogger extends BorderPane {
 			return null;
 		}
 		
-		int[] row_idx = {0,0};
+		int[] row_idx = {0,0,0};
 		
 		private void export_mesg(
 			final Workbook wb,
@@ -236,9 +236,13 @@ public class LayLogger extends BorderPane {
 				init_column_name(shx,1);
 				row_idx[0] = row_idx[1] = 1;
 				return shx;
+			}else if(txt.startsWith(LayLadder.TXT_EXPLOIT)==true) {
+				init_exploit_sheet(wb);
+				set_exploit_value(msg);
+				return shx;
 			}
 			if(shx==null) {
-				return shx;
+				return null;
 			}
 			if(txt.startsWith(StepKindler.TAG_KINDLE)==true) {
 				set_column_value(shx,0,msg);
@@ -247,17 +251,17 @@ public class LayLogger extends BorderPane {
 			}			
 			return shx;
 		}
-		private void init_column_name(final Sheet sh,int page) {
+		private void init_column_name(final Sheet shx,int page) {
 			page = page * 10;
-			get_cell(sh, page+0, 0).setCellValue("時間");
-			get_cell(sh, page+1, 0).setCellValue("電壓(V)");
-			get_cell(sh, page+2, 0).setCellValue("電流(A)");
-			get_cell(sh, page+3, 0).setCellValue("功率(W)");
-			get_cell(sh, page+4, 0).setCellValue("mfc-1(sccm)");
-			get_cell(sh, page+5, 0).setCellValue("mfc-2(sccm)");
-			get_cell(sh, page+6, 0).setCellValue("mfc-3(sccm)");
-			get_cell(sh, page+7, 0).setCellValue("速率(Å/s)");
-			get_cell(sh, page+8, 0).setCellValue("厚度(kÅ)");
+			get_cell(shx, page+0, 0).setCellValue("時間");
+			get_cell(shx, page+1, 0).setCellValue("電壓(V)");
+			get_cell(shx, page+2, 0).setCellValue("電流(A)");
+			get_cell(shx, page+3, 0).setCellValue("功率(W)");
+			get_cell(shx, page+4, 0).setCellValue("mfc-1(sccm)");
+			get_cell(shx, page+5, 0).setCellValue("mfc-2(sccm)");
+			get_cell(shx, page+6, 0).setCellValue("mfc-3(sccm)");
+			get_cell(shx, page+7, 0).setCellValue("速率(Å/s)");
+			get_cell(shx, page+8, 0).setCellValue("厚度(kÅ)");
 		}
 		private void set_column_value(
 			final Sheet sh, 
@@ -302,6 +306,35 @@ public class LayLogger extends BorderPane {
 			}
 			row_idx[page]+=1;
 		}
+		
+		Sheet sh_exploit = null;
+		void init_exploit_sheet(final Workbook wb) {
+			if(sh_exploit!=null) {
+				return;
+			}
+			sh_exploit = wb.createSheet("Exploit");
+			get_cell(sh_exploit, 0, 0).setCellValue("時間");
+			get_cell(sh_exploit, 1, 0).setCellValue("功率(W)");
+			get_cell(sh_exploit, 2, 0).setCellValue("mfc-1(sccm)");
+			get_cell(sh_exploit, 3, 0).setCellValue("mfc-2(sccm)");
+			get_cell(sh_exploit, 4, 0).setCellValue("速率(Å/s)");
+			get_cell(sh_exploit, 5, 0).setCellValue("sigma");
+			row_idx[2] = 1;
+		}
+		void set_exploit_value(final Mesg msg) {
+			get_cell(sh_exploit, 0, row_idx[2]).setCellValue(msg.getTickText(""));
+			final String txt = msg.getText();
+			String[] val = txt
+				.substring(txt.indexOf(":")+1)
+				.split(",");
+			get_cell(sh_exploit, 1, row_idx[2]).setCellValue(val[0].substring(0,val[0].length()-1).trim());
+			get_cell(sh_exploit, 2, row_idx[2]).setCellValue(val[1].substring(0,val[1].length()-4).trim());
+			get_cell(sh_exploit, 3, row_idx[2]).setCellValue(val[2].substring(0,val[2].length()-4).trim());
+			get_cell(sh_exploit, 4, row_idx[2]).setCellValue(val[3]);
+			get_cell(sh_exploit, 5, row_idx[2]).setCellValue(val[4]);
+			row_idx[2]+= 1;
+		}
+		
 		private void flush_action(final Sheet sh,final Mesg msg) {
 			int row = sh.getLastRowNum() + 1;
 			final String txt = msg.getText();
@@ -397,7 +430,7 @@ public class LayLogger extends BorderPane {
 	}
 	//-----------------------------------------------//
 	
-	private final Tile gag[] = new Tile[9];
+	private final Tile gag[] = new Tile[10];
 
 	public static Optional<Tile> gag_thick = Optional.empty();
 	
@@ -473,6 +506,13 @@ public class LayLogger extends BorderPane {
 			.build();
 		gag[8].setDecimals(2);
 
+		gag[9] = TileBuilder.create()
+			.skinType(SkinType.SPARK_LINE)
+			.title("ARC")
+			.unit("次數")
+			.build();
+		gag[9].setId("spik_arc");
+			
 		for(Tile obj:gag) {
 			obj.setMaxSize(178.,178.);
 		}
@@ -481,6 +521,7 @@ public class LayLogger extends BorderPane {
 		lay.addRow(0, gag[0],gag[1],gag[2]);
 		lay.addRow(1, gag[3],gag[4],gag[5]);
 		lay.addRow(2, gag[6],gag[7],gag[8]);
+		lay.addRow(3, gag[9]);
 		return lay;
 	}
 	
@@ -508,7 +549,7 @@ public class LayLogger extends BorderPane {
 		);
 		gag[5].setUnit(dev.unitThick.get());
 	}
-	public void bindProperty(final ModCouple dev) {
+	public void bindProperty(final DevCouple dev) {
 		gag[6].valueProperty().bind(dev.PV_FlowAr);
 		gag[7].valueProperty().bind(dev.PV_FlowO2);
 		gag[8].valueProperty().bind(dev.PV_FlowN2);

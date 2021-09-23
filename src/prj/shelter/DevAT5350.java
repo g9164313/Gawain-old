@@ -19,6 +19,8 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleButton;
+import javafx.scene.control.TreeItem;
+import javafx.scene.control.TreeView;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
@@ -41,9 +43,23 @@ public class DevAT5350 extends DevTTY {
 		setPathName(path);
 	}
 
+	private final static String STG_MEAS = "測量";
+	private final static String STG_COMP = "補償";
+	
+	private final Runnable stage_measure = ()->{
+		nextState("");
+	};
+	
+	private final Runnable stage_compensate = ()->{
+		nextState("");
+	};
+	
 	protected void afterOpen() {
-		playFlow("");
-		asyncBreakIn(()->{
+		addState(STG_MEAS, stage_measure);
+		addState(STG_COMP, stage_compensate);
+		playFlow("");//goto idle state~~~
+		
+		/*asyncBreakIn(()->{
 			String[] idn = wxr("*IDN?")
 				.replaceAll("[\n|\\s]", "")
 				.split(",");
@@ -56,7 +72,7 @@ public class DevAT5350 extends DevTTY {
 				Identify[2].setValue(idn[2]);
 				Identify[3].setValue(idn[3]);
 			});	
-		});
+		});*/
 	}
 	
 	public final StringProperty[] Identify ={ 
@@ -228,26 +244,9 @@ public class DevAT5350 extends DevTTY {
 			Misc.logv("%f", numb);
 		}
 	}
-	
 	//-------------------------------------//
 	
-	private final static StringConverter<String> conf_name = new StringConverter<String>(){
-		@Override
-		public String toString(String object) {
-			String txt = object.replace("\\s", "-")
-				.replace(":IDOSe","累積劑量")
-				.replace(":ICHarge","累積電荷")
-				.replace(":DRATe","劑量率")
-				.replace(":DOSE","劑量")
-				.replace(":CHARge","電荷")
-				.replace(":CURRent","電流");
-			return txt;
-		}
-		@Override
-		public String fromString(String string) {
-			return "";
-		}
-	};
+	
 	private static void load_param(
 		final DevAT5350 dev,
 		final ComboBox<String> cmb,
@@ -302,162 +301,43 @@ public class DevAT5350 extends DevTTY {
 		res = dev.wxr("SYSTem:RWLock\n");//lock panel
 		res = dev.wxr("SYSTem:LOCal\n");//unlock panel
 	});}
-	private static void reset_param(
-		final DevAT5350 dev,
-		final ComboBox<String> cmb,
-		final ToggleButton[] opt,
-		final TextField[] val
-	){
-		
-	}
-	
+
 	//AT5350 example:
 	//SEND --> FETC:ARR? 
 	//RECV --> "-1.1279E-08 Sv/min #774","-1.1279E-08 Sv/min #775","-1.1097E-08 Sv/min #776","-1.1097E-08 Sv/min #777","-1.1097E-08 Sv/min #778","-1.1097E-08 Sv/min #779","-1.1097E-08 Sv/min #780","-1.1279E-08 Sv/min #781","-1.1279E-08 Sv/min #782","-1.1279E-08 Sv/min #783","-1.1279E-08 Sv/min #784","-1.1279E-08 Sv/min #785","-1.1279E-08 Sv/min #786","-1.1097E-08 Sv/min #787","-1.1279E-08 Sv/min #788","-1.1097E-08 Sv/min #789","-1.1097E-08 Sv/min #790","-1.1279E-08 Sv/min #791","-1.1097E-08 Sv/min #792","-1.1097E-08 Sv/min #793"
 
 	public static Pane genPanel(final DevAT5350 dev){
 		
-		Label name = new Label();
-		name.textProperty().bind(dev.Identify[1]);
+		final TreeItem<String> fact1 = new TreeItem<String>("TEMP");
+		final TreeItem<String> fact2 = new TreeItem<String>("PRES");
 		
-		final JFXComboBox<String> cmb = new JFXComboBox<String>();
-		cmb.getItems().addAll(
-			":CHARge LOW", ":CHARge HIGH",
-			":DOSE LOW", ":DOSE HIGH",
-			":CURRent LOW", ":CURRent MED", ":CURRent HIGH",
-			":DRATe LOW", ":DRATe MED", ":DRATe HIGH",
-			":ICHarge LOW", ":ICHarge MED", ":ICHarge HIGH",
-			":IDOSe LOW", ":IDOSe MED", ":IDOSe HIGH"
-		);
-		cmb.getSelectionModel().select(7);
-		cmb.setConverter(conf_name);
+		final TreeItem<String> syst1 = new TreeItem<String>("RWLock");
+		final TreeItem<String> syst2 = new TreeItem<String>("LOCal");
 		
-		final JFXToggleButton[] tgl = {
-			new JFXToggleButton(),//FILTer
-			new JFXToggleButton(),//DAMPer
-			new JFXToggleButton(),//HVOLtage
-			new JFXToggleButton(),//CORRection
-			new JFXToggleButton(),//FACTor
-		};
-		final JFXTextField[] box = {
-			new JFXTextField("600"),//FILTer:VALue - 1~3000, unit is 100ms
-			new JFXTextField(),//DAMPer:VALue - 1~99999
-			new JFXTextField("400"),//HVOLtage:VALue - -500~+500 Voltage
-			new JFXTextField(),//FACTor:TEMPerature:VALue 0~60 C
-			new JFXTextField(),//FACTor:PRESsure:VALue 50~140 kPa
-			new JFXTextField("30"),//TRIGger:COUNt 1~500, results in dosimeter
-			new JFXTextField("100"),//TRIGger:ECOunt 1~2^31, every tenth result, this will be 10
-		};
-		for(JFXTextField obj:box){
-			obj.setPrefWidth(90);
-		}
-		box[0].setPromptText("平均(0.1s)");
-		box[0].setLabelFloat(true);
-		box[0].disableProperty().bind(tgl[0].selectedProperty().not());
-		box[1].disableProperty().bind(tgl[1].selectedProperty().not());
-		box[2].disableProperty().bind(tgl[2].selectedProperty().not());
-		box[3].setPromptText("溫度");
-		box[3].disableProperty().bind(tgl[4].selectedProperty().not());
-		box[3].setLabelFloat(true);
-		box[4].setPromptText("壓力");
-		box[4].setLabelFloat(true);
-		box[4].disableProperty().bind(tgl[4].selectedProperty().not());
+		final TreeItem<String> drat1 = new TreeItem<String>("FILTer");
+		final TreeItem<String> drat2 = new TreeItem<String>("DAMPer");
+		final TreeItem<String> drat3 = new TreeItem<String>("CORRection");
 		
-		JFXButton[] btn = new JFXButton[6];
-		for(int i=0; i<btn.length; i++){
-			JFXButton obj = new JFXButton();
-			obj.setMaxWidth(Double.MAX_VALUE);
-			btn[i] = obj;
-		}
+		final TreeItem<String> colon1 = new TreeItem<String>("DRATe");
+		colon1.getChildren().addAll(drat1,drat2,drat3);
 		
-		btn[0].setText("讀取量測");
-		btn[0].getStyleClass().add("btn-raised-1");
-		btn[0].setOnAction(e->{
-			/*String conf = cmb.getSelectionModel().getSelectedItem();
-			boolean[] use = {
-				tgl[0].isSelected(),
-				tgl[1].isSelected(),
-				tgl[2].isSelected(),
-				tgl[3].isSelected(),
-				tgl[4].isSelected()
-			};
-			String[] val = {
-				box[0].getText().trim(),
-				box[1].getText().trim(),
-				box[2].getText().trim(),
-				box[3].getText().trim(),
-				box[4].getText().trim()
-			};
-			int _cnt=20, ecnt=10;
-			try{
-				_cnt = Integer.valueOf(box[5].getText().trim());
-				ecnt = Integer.valueOf(box[5].getText().trim());
-			}catch(NumberFormatException exp){
-				return;
-			}*/
-			dev.measure();
-		});
+		final TreeItem<String> colon2 = new TreeItem<String>("HVOLtage");
 		
-		btn[1].setText("testing~~~");
-		btn[1].getStyleClass().add("btn-raised-1");
-		btn[1].setOnAction(e->{
-			dev.lastMeasure =Gawain.prop().getProperty("lastmeas");
-			dev.split_data();
-			//dev.asyncBreakIn(()->{
-				//String txt = dev.wxr("FETC:ARR? "+20);
-
-			//});
-		});
+		final TreeItem<String> colon3 = new TreeItem<String>("FACTor");
+		colon3.getChildren().addAll(fact1,fact2);
 		
-		btn[2].setText("下載參數");
-		btn[2].getStyleClass().add("btn-raised-2");
-		btn[2].setOnAction(e->load_param(dev,cmb,tgl,box));
+		final TreeItem<String> colon4 = new TreeItem<String>("TRIGger");
 		
-		btn[3].setText("上傳參數");
-		btn[3].getStyleClass().add("btn-raised-2");
-		btn[3].setOnAction(e->save_param(dev,cmb,tgl,box));
+		final TreeItem<String> colon5 = new TreeItem<String>("SYSTem");
+		colon5.getChildren().addAll(syst1,syst2);
 		
-		btn[4].setText("預設參數");
-		btn[4].getStyleClass().add("btn-raised-2");
-		btn[4].setOnAction(e->reset_param(dev,cmb,tgl,box));
-				
-		btn[5].setText("放棄操作");
-		btn[5].getStyleClass().add("btn-raised-3");
-		btn[5].setOnAction(e->dev.abort());
+		final TreeItem<String> root = new TreeItem<String>(":");
+		root.setExpanded(true);
+		root.getChildren().addAll(colon1,colon2,colon3,colon4,colon5);
 		
-		final GridPane lay1  =new GridPane();
-		lay1.getStyleClass().addAll("box-pad","font-console");
-		lay1.add(name, 0, 0, 3, 1);//vendor name
-		lay1.add(cmb, 0, 1, 3, 1);
-		lay1.addColumn(0, 
-			new Label("Filter"), 
-			new Label("Damper"),
-			new Label("高壓電源"),
-			new Label("自動修正"),
-			new Label("校正因子"),
-			new Label(""),
-			new Label("Count"),
-			new Label("ECount")
-		);
-		lay1.addColumn(1, 
-			tgl[0], tgl[1],tgl[2],
-			tgl[3],
-			tgl[4]
-		);
-		lay1.addColumn(2,
-			box[0],box[1],box[2],
-			new Label(),
-			box[3],box[4],
-			box[5],box[6]
-		);
-		final VBox lay2 = new VBox();
-		lay2.getChildren().add(lay1);
-		lay2.getChildren().addAll(btn);
-		lay2.getStyleClass().addAll("box-pad");
-		
-		final BorderPane lay0 = new BorderPane();
-		lay0.setCenter(lay1);
-		lay0.setRight(lay2);
+		final GridPane lay0 = new GridPane();
+		lay0.getStyleClass().addAll("box-pad","font-console");
+		lay0.add(new TreeView<String>(root), 0, 0, 1, 4);
 		return lay0;
 	}
 	

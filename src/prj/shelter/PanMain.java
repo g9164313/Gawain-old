@@ -28,19 +28,10 @@ public class PanMain extends PanBase {
 	
 	final LayAbacus abacus = new LayAbacus();	
 	final LayPogsql pogsql = new LayPogsql();//調閱機器紀錄
-	final LayLadder ladder = new LayLadder(hustio,at5350,cdr06);	
+	final LayLadder ladder = new LayLadder(hustio,at5350,cdr06,abacus);	
 		
 	public PanMain(final Stage stg){
 		super(stg);
-		
-		/*BigDecimal val = new BigDecimal("1.2345");
-		int pp = val.precision();
-		int ss = val.scale();
-		if((pp-ss)>=2) {
-			val = val.movePointLeft(1);
-		}
-		String txt = val.toString();*/
-		
 		stage().setOnShown(e->on_shown());		
 	}
 	
@@ -76,7 +67,7 @@ public class PanMain extends PanBase {
 			new Tab("校正",ladder),			
 			new Tab("設備",lay_dev)
 		);
-		lay_tabs.getSelectionModel().select(1);//預設顯示的頁籤
+		lay_tabs.getSelectionModel().select(3);//預設顯示的頁籤
 
 		final BorderPane lay0 = new BorderPane();
 		lay0.setCenter(lay_tabs);
@@ -103,7 +94,7 @@ public class PanMain extends PanBase {
 		}
 		
 		inf[ 1].textProperty().bind(abacus.endofday.asString());//衰退
-		inf[ 3].textProperty().bind(cdr06.getPropTemperature());//溫度
+		inf[ 3].textProperty().bind(cdr06.getPropCelsius());//溫度
 		inf[ 5].textProperty().bind(cdr06.getPropHumidity());//濕度
 		inf[ 7].textProperty().bind(cdr06.getPropPression());//壓力		
 		inf[ 9].textProperty().bind(hustio.activity.asString());//強度

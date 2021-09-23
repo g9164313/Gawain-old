@@ -350,6 +350,13 @@ public class DevHustIO extends DevTTY {
 		activity.set(act_value);
 		asyncWorking(position,left_time);
 	}
+	
+	public boolean isMoving() {
+		return isMoving.get();
+	}
+	public boolean isRadiant() {
+		return isRadiant.get();
+	} 
 	//-------------------------------------------//
 
 	public static Pane genPanel(final DevHustIO dev){

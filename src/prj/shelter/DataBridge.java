@@ -341,27 +341,3 @@ public class DataBridge{
 }
 
 
-/*stmt[0] = conn.prepareStatement(
-"SELECT * FROM tenure"+
-"WHERE"+
-"LOWER(info[1]) SIMILAR TO ? "+
-"AND "+
-"LOWER(info[1]) SIMILAR TO ? "+
-"ORDER BY info[1] DESC" 
-);
-stmt[1] = conn.prepareStatement(
-"SELECT product.info, tenure.info FROM product "+
-"INNER JOIN tenure ON "+
-"product.tid = tenure.id "+
-"AND "+
-"LOWER(tenure.info[2]) LIKE ? "+
-"LOWER(tenure.info[3]) LIKE ? "+
-"LOWER(tenure.info[4]) LIKE ? "+
-"ORDER BY product.info[1] DESC "
-);
-stmt[2] = conn.prepareStatement(
-"SELECT * FROM product " + 
-"WHERE tid=? ORDER BY stamp DESC" 
-);*/
-
-

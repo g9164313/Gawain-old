@@ -4,7 +4,7 @@ import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
 import com.jfoenix.controls.JFXTextField;
 
-import javafx.beans.property.FloatProperty;
+import javafx.beans.property.ReadOnlyFloatProperty;
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
@@ -17,7 +17,7 @@ import narl.itrc.Stepper;
 
 public class StepFlowCtrl extends Stepper {
 
-	public static ModCouple dev;
+	public static DevCouple dev;
 	
 	public StepFlowCtrl() {
 		set(op1,op2,op3);
@@ -48,7 +48,7 @@ public class StepFlowCtrl extends Stepper {
 	};
 	
 	private boolean reach_stable(
-		final FloatProperty prop,
+		final ReadOnlyFloatProperty prop,
 		final TextField box,
 		final Label txt
 	) {
@@ -81,10 +81,10 @@ public class StepFlowCtrl extends Stepper {
 		arrange_prop(box_sval[0],txt_mean[0]);
 		arrange_prop(box_sval[1],txt_mean[1]);
 		arrange_prop(box_sval[2],txt_mean[2]);
-		dev.asynSetMassFlow(
-			box_sval[0].getText(), 
-			box_sval[2].getText(), 
-			box_sval[1].getText()
+		dev.asyncSetMassFlow(
+			box_sval[0].getText(),
+			box_sval[1].getText(),
+			box_sval[2].getText()
 		);
 		next_step();
 	};
@@ -93,8 +93,8 @@ public class StepFlowCtrl extends Stepper {
 		status.setText("穩定中");
 		boolean flg = true;
 		flg &= reach_stable(dev.PV_FlowAr,box_sval[0],txt_mean[0]);
-		flg &= reach_stable(dev.PV_FlowO2,box_sval[1],txt_mean[1]);
-		flg &= reach_stable(dev.PV_FlowN2,box_sval[2],txt_mean[2]);		
+		flg &= reach_stable(dev.PV_FlowN2,box_sval[1],txt_mean[1]);
+		flg &= reach_stable(dev.PV_FlowO2,box_sval[2],txt_mean[2]);		
 		if(flg==true) {
 			next_step();
 		}else {
@@ -182,9 +182,9 @@ public class StepFlowCtrl extends Stepper {
 		for(JFXTextField obj:box) { 
 			obj.setPrefWidth(63);
 		}
-		box[0].setOnAction(e->dev.asynSetMassFlow(box[0].getText(),"",""));
-		box[1].setOnAction(e->dev.asynSetMassFlow("",box[1].getText(),""));
-		box[2].setOnAction(e->dev.asynSetMassFlow("","",box[2].getText()));
+		box[0].setOnAction(e->dev.asyncSetArFlow(box[0].getText()));
+		box[1].setOnAction(e->dev.asyncSetN2Flow(box[1].getText()));
+		box[2].setOnAction(e->dev.asyncSetO2Flow(box[2].getText()));
 		
 		final Label[] txt = {
 			new Label(),

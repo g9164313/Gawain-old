@@ -75,10 +75,13 @@ public class Ladder extends BorderPane {
 		btn[4].setOnAction(e->pause());
 		//Stop immediately
 		btn[5].setText("停止");
-		btn[5].getStyleClass().add("btn-raised-2");
+		btn[5].getStyleClass().add("btn-raised-0");
 		btn[5].setGraphic(Misc.getIconView("pan_tool.png"));
 		btn[5].disableProperty().bind(is_climbing.not());
-		btn[5].setOnAction(e->abort());
+		btn[5].setOnAction(e->{
+			abort();
+			user_abort();
+		});
 		
 		main_kits.getStyleClass().addAll("box-pad");
 		main_kits.getChildren().addAll(btn);
@@ -302,19 +305,24 @@ public class Ladder extends BorderPane {
 		return timer.isPresent();
 	}
 	
-	public Runnable prelogue = null;
+	public Runnable prelogue = null;	
 	public Runnable epilogue = null;
+	public Runnable user_abort = null;
 	private String uuid_text = "";
+	
 	public String uuid() {
 		return uuid_text;
 	} 
-	private void prelogue() {
+	protected void prelogue() {
 		uuid_text = UtilRandom.uuid(6,16);
 		if(prelogue!=null) { prelogue.run(); }
 	}
-	private void epilogue() {
+	protected void epilogue() {
 		if(epilogue!=null) { epilogue.run(); }
 		uuid_text = "";
+	}
+	protected void user_abort() {
+		if(user_abort!=null) { user_abort.run(); }		
 	}
 	
 	private void starter(){

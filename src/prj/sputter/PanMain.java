@@ -1,6 +1,10 @@
 package prj.sputter;
 
+import java.util.Timer;
+import java.util.TimerTask;
+
 import com.jfoenix.controls.JFXTabPane;
+import com.sun.glass.ui.Application;
 
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Tab;
@@ -10,27 +14,36 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import narl.itrc.Gawain;
-import narl.itrc.Ladder;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
-import narl.itrc.Stepper;
 
 public class PanMain extends PanBase {
 	
-	final ModCouple coup = new ModCouple();
+	final DevCouple coup = new DevCouple();
 	final DevDCG100 dcg1 = new DevDCG100();	
 	final DevSPIK2k spik = new DevSPIK2k();
 	final DevSQM160 sqm1 = new DevSQM160();
 	
 	//final LayGauges gauges = LayGauges.getInstance();
-	final LayLogger logger = new LayLogger();
-	final DrawVaccum  digram = new DrawVaccum(coup);
-	final Ladder    ladder = new Ladder();
-
+	final LayLogger  logger = new LayLogger();	
+	final DrawVaccum digram = new DrawVaccum(coup);	
+	final LayLadder  ladder = new LayLadder(logger,coup,dcg1,spik,sqm1);
+	
 	public PanMain(final Stage stg) {
 		super(stg);
-		init();
 		stage().setOnShown(e->on_shown());
+		
+		/*Timer tt = new Timer();
+		tt.schedule(new TimerTask() {
+			@Override
+			public void run() {
+				if(Application.isEventThread()==true) {
+					Misc.logv("timer is event");
+				}else {
+					Misc.logv("fail!!!");
+				}
+			}
+		}, 3000);*/
 	}
 	
 	private void on_shown(){
@@ -54,50 +67,6 @@ public class PanMain extends PanBase {
 			sqm1.open(arg);
 			logger.bindProperty(sqm1);
 		}
-	}
-	
-	private void init(){
-		//initial step-box for recipe
-		StepFlowCtrl.dev= coup;
-		StepGunsHub.dev = coup;
-		StepExtender.sqm = sqm1;
-		StepExtender.spk = spik;
-		StepExtender.dcg = dcg1;
-		StepExtender.cup = coup;
-
-		ladder.addStep("分隔線",Stepper.Sticker.class);
-		ladder.addStep("薄膜設定",StepSetFilm.class , sqm1);
-		ladder.addStep("流量控制",StepFlowCtrl.class);
-		ladder.addStep("電極切換",StepGunsHub.class);
-		ladder.addStep("脈衝設定",StepSetPulse.class, spik);
-		ladder.addStep("高壓設定",StepKindler.class);		
-		ladder.addStep("厚度監控",StepWatcher.class);		
-		ladder.addSack(
-			"<單層鍍膜.3>", 
-			Stepper.Sticker.class,
-			StepSetFilm.class,
-			StepKindler.class,
-			StepWatcher.class
-		);
-		ladder.addSack(
-			"<單層鍍膜.4>", 
-			Stepper.Sticker.class,
-			StepSetFilm.class,
-			StepGunsHub.class,
-			StepKindler.class,
-			StepWatcher.class
-		);
-		ladder.addSack(
-			"<單層鍍膜.5>", 
-			Stepper.Sticker.class,
-			StepSetFilm.class,
-			StepSetPulse.class,
-			StepGunsHub.class,			
-			StepKindler.class,
-			StepWatcher.class
-		);
-		ladder.prelogue = ()->logger.show_progress();
-		ladder.epilogue = ()->logger.done_progress();
 	}
 	
 	@Override
@@ -134,10 +103,10 @@ public class PanMain extends PanBase {
 		//rad[0].setStyle("-fx-opacity: 1.0;");		
 		final VBox lay0 = new VBox();
 		lay0.getStyleClass().addAll("box-pad");
-		lay0.getChildren().add(Misc.addBorder(StepFlowCtrl.genCtrlPanel()));
 		lay0.getChildren().add(Misc.addBorder(StepGunsHub.genPanel()));
-		lay0.getChildren().addAll(Misc.addBorder(DevDCG100.genCtrlPanel(dcg1)));
-		lay0.getChildren().add(Misc.addBorder(DevSQM160.genCtrlPanel(sqm1)));		
+		lay0.getChildren().add(Misc.addBorder(StepFlowCtrl.genCtrlPanel()));		
+		lay0.getChildren().add(Misc.addBorder(DevDCG100.genCtrlPanel(dcg1)));
+		//lay0.getChildren().add(Misc.addBorder(DevSQM160.genCtrlPanel(sqm1)));		
 		return lay0;
 	}
 }

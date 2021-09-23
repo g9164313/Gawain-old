@@ -88,7 +88,7 @@ public class DevCDR06 extends DevModbus {
 	
 	public StringProperty getPropPression() { return ch_txt[0]; }
 	public StringProperty getPropHumidity() { return ch_txt[1]; }
-	public StringProperty getPropTemperature() { return ch_txt[2]; }
+	public StringProperty getPropCelsius() { return ch_txt[2]; }
 	
 	public String getTxtPression() { return ch_txt[0].getValue(); }
 	public String getTxtHumidity() { return ch_txt[1].getValue(); }

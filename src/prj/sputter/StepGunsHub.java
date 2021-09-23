@@ -16,7 +16,7 @@ import narl.itrc.Stepper;
 
 public class StepGunsHub extends Stepper {
 
-	public static ModCouple dev;
+	public static DevCouple dev;
 
 	public StepGunsHub(){
 		set(op_1,op_2);
