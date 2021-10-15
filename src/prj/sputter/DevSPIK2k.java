@@ -2,6 +2,8 @@ package prj.sputter;
 
 
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXRadioButton;
@@ -20,6 +22,7 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 
 import narl.itrc.DevTTY;
+import narl.itrc.Misc;
 
 /**
  * SPIK2000 is a high voltage pulse generator.<p>
@@ -30,7 +33,6 @@ import narl.itrc.DevTTY;
  * @author qq
  *
  */
-@SuppressWarnings("restriction")
 public class DevSPIK2k extends DevTTY {
 
 	public DevSPIK2k() {
@@ -53,7 +55,7 @@ public class DevSPIK2k extends DevTTY {
 			//5* Toff+: 2-32000us, duration of the pause
 			//6* Ton -: 2-32000us, duration of the pulse
 			//7* Toff-: 2-32000us, duration of the pause			
-			nextState("loop");			
+			//nextState("loop");//disable this feature~~~			
 			Application.invokeAndWait(()->{
 				if(fst_value1==null) {
 					return;
@@ -81,6 +83,11 @@ public class DevSPIK2k extends DevTTY {
 			//25* DC2_P_Act: measurement of DC-2 source
 			final int[] reg = get_register(19,7);			
 			Application.invokeLater(()->{
+				if(reg==null){
+					Misc.logw("[%s] transmission fail",TAG);
+					looper_ms.set(looper_ms.get()+5000);
+					return;
+				}
 				ARC_count.set(reg[0]);
 				DC1_V_Act.set(reg[1]);
 				DC1_I_Act.set(reg[2]);
@@ -89,11 +96,13 @@ public class DevSPIK2k extends DevTTY {
 				DC2_I_Act.set(reg[5]);
 				DC2_P_Act.set(reg[6]);
 			});			
-			sleep(500);
+			sleep(looper_ms.get());
 		});
 		playFlow("init");
 	}
 	//----------------------------------//
+	
+	private AtomicInteger looper_ms = new AtomicInteger(5000);
 	
 	private static final byte STX = 0x02;
 	private static final byte ETX = 0x03;
@@ -279,6 +288,20 @@ public class DevSPIK2k extends DevTTY {
 		});		
 	});}
 	
+	public void high_pin() {		
+		try {
+			set_register(1, 2);//high-pin
+			TimeUnit.SECONDS.sleep(1L);
+			Misc.logv("[%s] 啟動 H-Pin",TAG);
+		} catch (InterruptedException e2) {
+			Misc.logv("[%s] INTERRUPT in high-pin",TAG);
+		}		
+	}
+	public void asyncHighPin(
+	) {asyncBreakIn(()->{
+		high_pin();
+	});}
+
 	public void setPulse(
 		final int Ton_P,
 		final int Ton_N,

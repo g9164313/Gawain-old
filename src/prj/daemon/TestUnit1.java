@@ -15,9 +15,9 @@ import narl.itrc.DevBase;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
 
-public class PanTestUnit extends PanBase {
+public class TestUnit1 extends PanBase {
 
-	public PanTestUnit() {		
+	public TestUnit1() {		
 	}
 	
 	private DevShapeoko shko = new DevShapeoko();

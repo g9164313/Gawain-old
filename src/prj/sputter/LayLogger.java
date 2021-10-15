@@ -50,7 +50,7 @@ public class LayLogger extends BorderPane {
 		final JFXRadioButton r_n2 =	new JFXRadioButton("儀錶");
 		r_n1.setToggleGroup(grp);
 		r_n2.setToggleGroup(grp);
-		r_n1.setSelected(true);
+		r_n2.setSelected(true);
 		
 		n1.visibleProperty().bind(r_n1.selectedProperty());
 		n2.visibleProperty().bind(r_n2.selectedProperty());

@@ -23,6 +23,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 
@@ -267,6 +268,35 @@ public class DevSQM160 extends DevTTY {
 		}
 		return new String(buf,0,len);
 	}
+	//-----------------------------------------------//
+	
+	public void cmd_S_T() {
+		try {
+			stats.clear();
+			Misc.logv("[%s] 清除計錄與時間",TAG);
+			exec("S");
+			TimeUnit.MILLISECONDS.sleep(250);
+			exec("T");
+			TimeUnit.MILLISECONDS.sleep(250);
+		} catch (InterruptedException e1) {
+			Misc.loge("[%s] INTERRUPT in command-S-T",TAG);
+		}
+	}
+	public void cmd_U(final boolean flg) {
+		try {
+			if(flg==true) {
+				Misc.logv("[%s] 打開擋板",TAG);
+				exec("U1");
+			}else {
+				Misc.logv("[%s] 關閉擋板",TAG);
+				exec("U0");
+			}
+			TimeUnit.MILLISECONDS.sleep(250);
+		} catch (InterruptedException e) {
+			Misc.loge("[%s] INTERRUPT in command-U",TAG);
+		}
+	}
+	
 	public void shutter(final boolean flag) {asyncBreakIn(()->{
 		//U1 --> shutter open
 		//U0 --> shutter close
@@ -276,20 +306,9 @@ public class DevSQM160 extends DevTTY {
 		}
 		nextState(STG_MONT);
 	});}
-	
-	private void cmd_S_and_T() {
-		try {
-			stats.clear();
-			exec("S");
-			TimeUnit.MILLISECONDS.sleep(250);
-			exec("T");
-			TimeUnit.MILLISECONDS.sleep(250);
-		} catch (InterruptedException e1) {
-			Misc.loge("INTERRUPT in shutter_and_zero");
-		}
-	}
+		
 	public void zeros() {asyncBreakIn(()->{
-		cmd_S_and_T();
+		cmd_S_T();
 		nextState(STG_MONT);
 	});}
 	public void shutter_and_zeros(
@@ -297,7 +316,7 @@ public class DevSQM160 extends DevTTY {
 		final Runnable event_done,
 		final Runnable event_fail
 	){asyncBreakIn(()->{		
-		cmd_S_and_T();
+		cmd_S_T();
 		final String cmd = (on_off)?("U1"):("U0");
 		if(exec(cmd).charAt(0)=='A') {
 			if(event_done!=null) { event_done.run(); }
@@ -305,7 +324,8 @@ public class DevSQM160 extends DevTTY {
 			if(event_fail!=null) { event_fail.run(); }
 		}
 		nextState(STG_MONT);
-	});}	
+	});}
+	
 	//-------------------------//
 	public final BooleanProperty shutter = new SimpleBooleanProperty(false);
 
@@ -412,22 +432,10 @@ public class DevSQM160 extends DevTTY {
 	
 	public static Pane genCtrlPanel(final DevSQM160 dev) {
 		
-		final JFXButton[] btn = {
-			new JFXButton("選取薄膜"),
-			new JFXButton("計時歸零"),
-			new JFXButton("檔板(開)"), 
-			new JFXButton("檔板(關)")	
-		};
-		for(JFXButton obj:btn) {
-			obj.setMaxWidth(Double.MAX_VALUE);
-			GridPane.setHgrow(obj, Priority.ALWAYS);
-		}
-		btn[0].getStyleClass().add("btn-raised-3");
-		btn[1].getStyleClass().add("btn-raised-3");
-		btn[2].getStyleClass().add("btn-raised-1");		
-		btn[3].getStyleClass().add("btn-raised-2");
-		
-		btn[0].setOnAction(e->{
+		final JFXButton btn_select = new JFXButton("薄膜編號");
+		btn_select.getStyleClass().add("btn-raised-2");
+		btn_select.setMaxWidth(Double.MAX_VALUE);
+		btn_select.setOnAction(e->{
 			PadTouch pad = new PadTouch('N',"薄膜編號:");
 			Optional<String> opt = pad.showAndWait();
 			if(opt.isPresent()==true) {
@@ -438,37 +446,38 @@ public class DevSQM160 extends DevTTY {
 				active_film_gui(dev,idx);
 			}
 		});
-		btn[1].setOnAction(e->dev.zeros());
-		btn[2].setOnAction(e->exec_gui(dev,"U1",null));
-		btn[3].setOnAction(e->exec_gui(dev,"U0",null));
+		GridPane.setHgrow(btn_select, Priority.ALWAYS);
 		
-		final Label[] txt = new Label[5];
-		for(int i=0; i<txt.length; i++) {
-			Label obj = new Label();
-			obj.setMaxWidth(Double.MAX_VALUE);
-			GridPane.setHgrow(obj, Priority.ALWAYS);
-			txt[i] = obj;
+		final JFXButton btn_shutter_on = new JFXButton("檔板開");
+		btn_shutter_on.getStyleClass().add("btn-raised-1");
+		btn_shutter_on.setOnAction(e->exec_gui(dev,"U1",null));
+		
+		final JFXButton btn_shutter_off = new JFXButton("檔板關");
+		btn_shutter_off.getStyleClass().add("btn-raised-0");
+		btn_shutter_off.setOnAction(e->exec_gui(dev,"U0",null));
+
+		
+		final Label[] txt = {
+			new Label("名稱："), new Label(),
+			new Label("速率："), new Label(),
+			new Label("厚度："), new Label(),
+		};
+		for(Label obj:txt) {
+			obj.getStyleClass().add("font-size4");
 		}
-		txt[0].textProperty().bind(dev.filmData[0]);//film name
-		txt[1].textProperty().bind(dev.filmData[4]);//film Density (g/cm3)
-		txt[2].textProperty().bind(dev.rate[0].asString("%5.3f"));
-		txt[3].textProperty().bind(dev.stats_rate_avg);
-		txt[4].textProperty().bind(dev.stats_rate_dev);
+		//film name-->dev.filmData[0]
+		//film Density (g/cm3)-->dev.filmData[4]
+		txt[1].textProperty().bind(dev.filmData[0]);
+		txt[3].textProperty().bind(dev.rate [0].asString("%5.2f ").concat(dev.unitRate));
+		txt[5].textProperty().bind(dev.thick[0].asString("%5.2f ").concat(dev.unitThick));
 		
 		final GridPane lay = new GridPane();
 		lay.getStyleClass().addAll("box-pad");
-		lay.addColumn(0, 
-			new Label("薄膜名稱："),
-			new Label("最終厚度："),
-			new Label("平均速率："),
-			new Label("統計值："),
-			new Label("標準差：")
-		);
-		lay.addColumn(1, txt);
-		lay.add(btn[0], 0, 5, 2, 1);
-		lay.add(btn[1], 0, 6, 2, 1);
-		lay.add(btn[2], 0, 7, 2, 1);
-		lay.add(btn[3], 0, 8, 2, 1);
+		lay.addColumn(0, txt[0], txt[2], txt[4]);
+		lay.addColumn(1, txt[1], txt[3], txt[5]);
+		lay.add(btn_select, 0, 3, 2, 1);
+		lay.add(new HBox(btn_shutter_on,btn_shutter_off), 0, 4, 2, 1);
+
 		return lay;
 	}
 		

@@ -89,7 +89,7 @@ public class DevCouple extends DevModbus {
 	@Override
 	protected void ignite() {
 		
-		//writeVals(8008,	0x8030,0x8030,0x8030,0x8030);//input channel setting
+		//writeVals(8008,0x8030,0x8030,0x8030,0x8030);//input channel setting
 		
 		/*int v1 = readReg('I',8008);//ain.1
 		Misc.logv("#8008=0x%04X",v1);
@@ -224,7 +224,33 @@ public class DevCouple extends DevModbus {
 		int mvolt = (int)(volt * 1000f);//IB IL format
 		writeVals(aout_addr,mvolt);
 	}
-	
+	public void set_all_mass_flow(
+		final String ar_sccm,
+		final String n2_sccm,
+		final String o2_sccm
+	) {
+		set_all_mass_flow(
+			sccm2value(ar_sccm),
+			sccm2value(n2_sccm),
+			sccm2value(o2_sccm)
+		);
+	}	
+	public void set_all_mass_flow(
+		final float ar_val,
+		final float n2_val,
+		final float o2_val
+	) {
+		if(ar_val>=0.f) {
+			set_mass_flow(8006, ar_val, ar_max_sccm);
+		}
+		if(n2_val>=0.f) {
+			set_mass_flow(8007, n2_val, n2_max_sccm);
+		}
+		if(o2_val>=0.f) {
+			set_mass_flow(8008, o2_val, o2_max_sccm);
+		}
+	}
+
 	public void asyncSetMassFlow(
 		final float ar_sccm,
 		final float n2_sccm,

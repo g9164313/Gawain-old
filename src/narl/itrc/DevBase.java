@@ -17,6 +17,8 @@ public abstract class DevBase implements Runnable {
 	
 	protected String TAG = "DevBase";
 	
+	public static final AtomicBoolean shutdown = new AtomicBoolean(false); 
+	
 	abstract public void open();	
 	abstract public void close();
 	abstract public boolean isLive();
@@ -25,15 +27,15 @@ public abstract class DevBase implements Runnable {
 	public final ReadOnlyStringProperty PropStateName = prop_state_name;
 	
 	private boolean is_flowing() {
-		if(Blockage.get()==true || Gawain.isKill.get()==true){
+		if(blockage.get()==true || shutdown.get()==true){
 			return false;
 		}
 		return true;
 	}
 
-	protected final AtomicBoolean Blockage = new AtomicBoolean(true);
+	protected final AtomicBoolean blockage = new AtomicBoolean(true);
 	
-	private final ConcurrentHashMap<String,Runnable> state = new ConcurrentHashMap<String,Runnable>();
+	private final ConcurrentHashMap<String,Runnable> state_task = new ConcurrentHashMap<String,Runnable>();
 	
 	private final AtomicReference<String> next_state_name = new AtomicReference<String>("");
 	
@@ -44,10 +46,11 @@ public abstract class DevBase implements Runnable {
 		//main looper
 		while(is_flowing()==true) {
 			//first, check whether we had break-in event.
-			if(state.containsKey(NAME_BREAK_IN)==true) {
+			if(state_task.containsKey(NAME_BREAK_IN)==true) {
 				Application.invokeLater(()->prop_state_name.set(NAME_BREAK_IN));
-				state.get(NAME_BREAK_IN).run();
-				state.remove(NAME_BREAK_IN);
+				state_task.get(NAME_BREAK_IN).run();
+				state_task.remove(NAME_BREAK_IN);
+				continue;
 			}
 			//go through state-flow
 			final String name = next_state_name.get();
@@ -67,9 +70,8 @@ public abstract class DevBase implements Runnable {
 			//device launch a GUI event, let GUI event decide the end time of emergence.<p>
 			//device only launch the emergence once!!
 			//it will not enter again, if the flag were not set again.!! 
-			final Runnable work = state.get(name);
+			final Runnable work = state_task.get(name);
 			if(work==null) {
-				//TODO: there is a bug in DevModbus
 				Misc.loge("[%s] invalid state - %s", TAG, name);
 				next_state_name.set("");//edge case, no working, just goto idle.
 			}else {
@@ -87,32 +89,28 @@ public abstract class DevBase implements Runnable {
 		}
 		return taskFlow.isAlive();
 	}
-	
-	public boolean isBreaking(){
-		return state.containsKey(NAME_BREAK_IN);
-	}
-	
 	public DevBase addState(
 		final String name,
 		final Runnable work
 	) {
-		state.put(name, work);
+		state_task.put(name, work);
 		return this;
 	}
 	
 	public void playFlow(final String init_state) {
+		//invoked by application thread
 		if(taskFlow!=null) {
 			return;
 		}
 		next_state_name.set(init_state);
-		Blockage.set(false);
+		blockage.set(false);
 		taskFlow = new Thread(this,TAG);
 		taskFlow.setDaemon(true);
 		taskFlow.start();
 	}
-	
 	public void stopFlow() {
-		Blockage.set(true);
+		//invoked by application thread
+		blockage.set(true);
 		if(Application.isEventThread()!=true){
 			try {
 				taskFlow.join();
@@ -121,7 +119,6 @@ public abstract class DevBase implements Runnable {
 		}
 		taskFlow = null;//reset, because thread is 'dead'
 	}
-	
 	public void nextState(final String name) {
 		next_state_name.set(name);
 		if(taskFlow.getState()==Thread.State.WAITING) {
@@ -151,11 +148,10 @@ public abstract class DevBase implements Runnable {
 			orph_break_in.start();
 			return this;
 		}
-		if(state.containsKey(NAME_BREAK_IN)==true){
+		if(state_task.containsKey(NAME_BREAK_IN)==true){
 			return this;
 		}
-		state.put(NAME_BREAK_IN, work);
-		nextState(NAME_BREAK_IN);
+		state_task.put(NAME_BREAK_IN, work);
 		return this;
 	}
 	public boolean isAsyncDone(){
@@ -163,11 +159,11 @@ public abstract class DevBase implements Runnable {
 			return !orph_break_in.isAlive();
 		}
 		if(taskFlow!=null){
-			return !state.containsKey(NAME_BREAK_IN);
+			return !state_task.containsKey(NAME_BREAK_IN);
 		}
 		return true;
 	}
-	public void asyncBlocking(){
+	public void blockWaiting(){
 		while(isAsyncDone()==false) {
 			try {
 				TimeUnit.MILLISECONDS.sleep(25L);

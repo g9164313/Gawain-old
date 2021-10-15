@@ -24,7 +24,7 @@ import narl.itrc.Stepper;
 
 public class LayLadder extends Ladder {
 
-	final LayLogger logger;
+	static LayLogger logger;
 	static DevCouple coup;
 	static DevDCG100 dcg1;	
 	static DevSPIK2k spik;
@@ -33,6 +33,8 @@ public class LayLadder extends Ladder {
 	public final static String TXT_SETTING = "參數設定";
 	public final static String TXT_VOLTAGE = "高壓設定";
 	public final static String TXT_EXPLOIT = "資料探勘";
+	//public final static String TXT_LATENCE = "資料探勘";
+	public final static String TXT_LATENCE = "實驗用-1";
 	public final static String TXT_MONITOR = "厚度監控";
 	
 	public LayLadder(
@@ -47,6 +49,7 @@ public class LayLadder extends Ladder {
 		
 		StepFlowCtrl.dev= coup;
 		StepGunsHub.dev = coup;
+		
 		StepExtender.sqm = sqm1;
 		StepExtender.spk = spik;
 		StepExtender.dcg = dcg1;
@@ -55,9 +58,9 @@ public class LayLadder extends Ladder {
 		addStep("分隔線",Stepper.Sticker.class);
 		addStep("薄膜設定",StepSetFilm.class, sqm1);
 		addStep(TXT_SETTING,StepSetting.class);			
-		addStep(TXT_VOLTAGE,StepKindler.class);	
-		addStep(TXT_EXPLOIT,StepExploit.class);
+		addStep(TXT_VOLTAGE,StepKindler.class);			
 		addStep(TXT_MONITOR,StepWatcher.class);	
+		addStep(TXT_LATENCE,StepLatence.class);
 		
 		/*addSack(
 			"<單層鍍膜.5>", 
@@ -85,6 +88,94 @@ public class LayLadder extends Ladder {
 	protected void user_abort() {
 		dcg1.asyncExec("SPW=0");
 	}
+	//------------------------------------//
+	
+	public static class StepLatence extends StepExtender {		
+		//draw Hysteresis (繪製磁滯曲線)
+
+		final ToggleGroup grp = new ToggleGroup();
+		
+		final Runnable op_watch_data_inc = ()->{
+			log_data("SSS-inc");
+			set_info("抄錄資料");
+			if(waiting_time(3000)==0) {				
+				TextField box = (TextField)(grp.getSelectedToggle().getUserData());
+				final float max = (float)(box.getUserData());
+				final float val = Float.valueOf(box.getText().trim());				
+				if(val<max) {
+					box.setText(String.format("%.1f", val+1.f));
+					next_step(-2);
+				}else {
+					next_step();
+				}				
+			}
+		};
+		
+		final Runnable op_watch_data_dec = ()->{
+			log_data("SSS-dec");
+			set_info("抄錄資料");
+			if(waiting_time(3000)==0) {				
+				TextField box = (TextField)(grp.getSelectedToggle().getUserData());
+				final float val = Float.valueOf(box.getText().trim());				
+				if(val>0.f) {
+					box.setText(String.format("%.1f", val-1.f));
+					next_step(-2);
+				}else {
+					next_step();
+				}				
+			}
+		};
+		
+		@Override
+		public Node getContent() {
+			
+			set(
+				op_shutter_close,
+				op_give_mass_flow,
+				op_wait_mass_flow,
+				op_power_trg,
+				op_wait_fire,
+				op_give_mass_flow,
+				op_wait_mass_flow,
+				op_watch_data_inc,
+				op_give_mass_flow,
+				op_wait_mass_flow,
+				op_watch_data_dec,
+				op_power_off,
+				op_calm_down
+			);
+			
+			final JFXRadioButton ch1 = new JFXRadioButton("通道-1(Ar)");
+			final JFXRadioButton ch2 = new JFXRadioButton("通道-2(N2)");
+			final JFXRadioButton ch3 = new JFXRadioButton("通道-3(O2)");
+			
+			ch1.setToggleGroup(grp);
+			ch1.setUserData(ar_sccm);
+			ch2.setToggleGroup(grp);
+			ch2.setUserData(n2_sccm);
+			ch3.setToggleGroup(grp);
+			ch3.setUserData(o2_sccm);
+			
+			ch3.setSelected(true);
+						
+			final GridPane lay = new GridPane();
+			lay.getStyleClass().addAll("box-pad","font-console");
+			lay.addColumn(0, info[0], info[1], info[2]);
+			
+			lay.add(new Separator(Orientation.VERTICAL), 1, 0, 1, 3);
+			lay.addColumn(2, new Label("輸出功率"), new Label("爬升時間"), new Label("穩定時間"));
+			lay.addColumn(3, spw, spr, w_time);
+			lay.addColumn(4, ch1, ch2, ch3);
+			lay.addColumn(5, ar_sccm, n2_sccm, o2_sccm);
+			return lay;
+		}
+		@Override
+		public void eventEdit() { }
+		@Override
+		public String flatten() { return ""; }
+		@Override
+		public void expand(String txt) { }
+	};
 	//------------------------------------//
 	
 	public static class StepSetting extends Stepper {
@@ -187,7 +278,7 @@ public class LayLadder extends Ladder {
 			}
 		};
 		final Runnable op3 = ()->{
-			boolean flg = spik.isBreaking() | coup.isBreaking();
+			boolean flg = spik.isAsyncDone() | coup.isAsyncDone() ;
 			if(flg==true) {
 				hold_step();
 			}else {
@@ -331,12 +422,12 @@ public class LayLadder extends Ladder {
 		};
 		final TextField[] box = {
 			//power generator
-			new TextField("600"),
-			new TextField("200"),
+			new TextField("500"),
+			new TextField("300"),
 			new TextField("10"),
 			//mass flow - Ar
+			new TextField("30"),
 			new TextField("20"),
-			new TextField("5"),
 			new TextField("5"),
 			//mass flow - O2
 			new TextField("10"),
@@ -389,8 +480,8 @@ public class LayLadder extends Ladder {
 			String txt_mass_Ar(){ return String.valueOf(x[1]); }
 			String txt_mass_O2(){ return String.valueOf(x[2]); }
 		};
-		final ArrayList<ValPack>  s_buffer = new ArrayList<ValPack>();
-		final ArrayDeque<ValPack> s_queue = new ArrayDeque<ValPack>();
+		final ArrayList<ValPack>  s_pooler = new ArrayList<ValPack>();
+		final ArrayDeque<ValPack> s_queuer = new ArrayDeque<ValPack>();
 		final RandomVectorGenerator gen = new SobolSequenceGenerator(3);
 		
 		long tick_beg;		
@@ -402,21 +493,22 @@ public class LayLadder extends Ladder {
 			inf[1].setText("");
 			inf[2].setText("");
 			inf[3].setText("");
+			next_step();
 		};
 		
 		final Runnable op1 = ()->{
 			//prepare and reset data
-			s_buffer.clear();
-			
+			s_pooler.clear();			
 			for(int i=0; i<60; i++) {
 				final double[] val = gen.nextVector();				
-				s_queue.add(new ValPack(val));
+				s_queuer.add(new ValPack(val));
 			}
+			next_step();
 		};
 		
 		final Runnable op2 = ()->{
 			//initialize all variables
-			final ValPack pck = s_queue.getFirst();
+			final ValPack pck = s_queuer.getFirst();
 			cur_pw.setText(pck.txt_power());
 			cur_ar.setText(pck.txt_mass_Ar());
 			cur_o2.setText(pck.txt_mass_O2());
@@ -454,8 +546,9 @@ public class LayLadder extends Ladder {
 			final int ww = stat_rate.getWindowSize();
 			inf[1].setText("統計中");
 			inf[2].setText(String.format(
-				"%4.2",
-				stat_rate.getMean()
+				"%4.2f s %.3f",
+				stat_rate.getMean(),
+				stat_rate.getStandardDeviation()
 			));
 			inf[3].setText(String.format(
 				"%d/%d",
@@ -469,7 +562,7 @@ public class LayLadder extends Ladder {
 			final double avg = stat_rate.getMean();
 			final double dev = stat_rate.getStandardDeviation();
 			
-			s_buffer.add(s_queue.pollFirst().setY(avg,dev));
+			s_pooler.add(s_queuer.pollFirst().setY(avg,dev));
 			
 			Misc.logv(
 				"%s: "+
@@ -479,7 +572,7 @@ public class LayLadder extends Ladder {
 				cur_pw.getText(), cur_ar.getText(), cur_o2.getText(),
 				String.format("%5.2f",avg), String.format("%5.3f",dev) 
 			);
-			if(s_queue.isEmpty()==true) {
+			if(s_queuer.isEmpty()==true) {
 				next_step();
 			}else {
 				next_step(-2);
@@ -491,9 +584,9 @@ public class LayLadder extends Ladder {
 			//find outline value(use min and max)~~~
 			
 			ValPack min,max;
-			min = max = s_buffer.get(0);
-			for(int i=1; i<s_buffer.size(); i++) {
-				ValPack p = s_buffer.get(i);
+			min = max = s_pooler.get(0);
+			for(int i=1; i<s_pooler.size(); i++) {
+				ValPack p = s_pooler.get(i);
 				if(max.y1<p.y1) {
 					max = p;
 				}

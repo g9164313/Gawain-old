@@ -4,20 +4,19 @@ import java.io.File;
 import java.io.FileWriter;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Scanner;
 
 import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXListView;
+import com.sun.glass.ui.Application;
 
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.binding.BooleanBinding;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.scene.control.Accordion;
@@ -33,10 +32,14 @@ import javafx.util.Duration;
  * @author qq
  *
  */
+@SuppressWarnings("restriction")
 public class Ladder extends BorderPane {
 	
 	public Ladder(){
-
+		
+		timer.setCycleCount(Animation.INDEFINITE);
+		//obj.setOnFinished(e->{});//no callback in INDEFINITE mode.
+		
 		final JFXButton[] btn = new JFXButton[6];
 		for(int i=0; i<btn.length; i++) {
 			JFXButton obj = new JFXButton();
@@ -47,37 +50,37 @@ public class Ladder extends BorderPane {
 		btn[0].setText("匯入");
 		btn[0].getStyleClass().add("btn-raised-1");
 		btn[0].setGraphic(Misc.getIconView("database-import.png"));
-		btn[0].disableProperty().bind(is_climbing);
+		btn[0].disableProperty().bind(is_running);
 		btn[0].setOnAction(e->import_step());
 		//Export procedure
 		btn[1].setText("匯出");
 		btn[1].getStyleClass().add("btn-raised-1");
 		btn[1].setGraphic(Misc.getIconView("database-export.png"));
-		btn[1].disableProperty().bind(is_climbing);
+		btn[1].disableProperty().bind(is_running);
 		btn[1].setOnAction(e->export_step());
 		//clear all items
 		btn[2].setText("清除");
 		btn[2].getStyleClass().add("btn-raised-1");
 		btn[2].setGraphic(Misc.getIconView("trash-can.png"));
-		btn[2].disableProperty().bind(is_climbing);
+		btn[2].disableProperty().bind(is_running);
 		btn[2].setOnAction(e->recipe.getItems().clear());		
 		//Run all steps
 		btn[3].setText("執行");
 		btn[3].getStyleClass().add("btn-raised-2");
 		btn[3].setGraphic(Misc.getIconView("run.png"));
-		btn[3].disableProperty().bind(is_climbing);
-		btn[3].setOnAction(e->starter());
+		btn[3].disableProperty().bind(is_running);
+		btn[3].setOnAction(e->start());
 		//Pause the current step~~
 		btn[4].setText("暫停");
 		btn[4].getStyleClass().add("btn-raised-2");
 		btn[4].setGraphic(Misc.getIconView("pause.png"));
-		btn[4].disableProperty().bind(is_climbing.not());
+		btn[4].disableProperty().bind(is_running.not());
 		btn[4].setOnAction(e->pause());
 		//Stop immediately
 		btn[5].setText("停止");
 		btn[5].getStyleClass().add("btn-raised-0");
 		btn[5].setGraphic(Misc.getIconView("pan_tool.png"));
-		btn[5].disableProperty().bind(is_climbing.not());
+		btn[5].disableProperty().bind(is_running.not());
 		btn[5].setOnAction(e->{
 			abort();
 			user_abort();
@@ -88,15 +91,16 @@ public class Ladder extends BorderPane {
 		
 		step_kits.getStyleClass().addAll("box-pad");
 		
-		final TitledPane[] lay2 = {
+		final TitledPane[] lay = {
 			new TitledPane("操作",main_kits),
 			new TitledPane("步驟",step_kits),
 		};
-		final Accordion accr = new Accordion(lay2);
-		accr.setExpandedPane(lay2[0]);
+		final Accordion accr = new Accordion(lay);
+		accr.setExpandedPane(lay[1]);
 		
 		recipe.getStyleClass().addAll("box-pad","ss1","ss2");
-		
+		recipe.setMinWidth(250.);
+
 		setLeft(accr);
 		setCenter(recipe);
 	}
@@ -107,16 +111,16 @@ public class Ladder extends BorderPane {
 	protected JFXListView<Stepper> recipe = new JFXListView<Stepper>();
 
 	/**
-	 * the container of stepper.<p>
+	 * the wrapper of stepper.<p>
 	 * @author qq
 	 *
 	 */
-	private class StepPack {
+	private class StpWrapper {
 		String name;
 		Class<?> clzz;
 		Object[] args;
 		
-		StepPack(
+		StpWrapper(
 			String title,
 			Class<?> class_type, 
 			Object... argument
@@ -139,8 +143,8 @@ public class Ladder extends BorderPane {
 						}
 					}
 				}
-				obj.items = Optional.of(recipe.getItems());
-				obj.ladder= Ladder.this;
+				obj.items= Optional.of(recipe.getItems());
+				obj.uuid = uuid_text;
 				obj = obj.doLayout();
 				recipe.getItems().add(obj);
 				recipe.scrollTo(obj);
@@ -154,19 +158,19 @@ public class Ladder extends BorderPane {
 			return obj;
 		}
 	};
-	private ArrayList<StepPack> stpk = new ArrayList<StepPack>();
+	private ArrayList<StpWrapper> stpk = new ArrayList<StpWrapper>();
 	
-	private StepPack getPack(final Stepper src){
+	private StpWrapper getPack(final Stepper src){
 		final Class<?> s_clzz = src.getClass();
-		for(StepPack dst:stpk){
+		for(StpWrapper dst:stpk){
 			if(dst.clzz==s_clzz){
 				return dst;
 			}
 		}
 		return null;
 	}
-	private StepPack getPack(final String src){
-		for(StepPack obj:stpk){
+	private StpWrapper getPack(final String src){
+		for(StpWrapper obj:stpk){
 			String dst = obj.clzz.getName();
 			if(dst.equals(src)==true){
 				return obj;
@@ -174,8 +178,8 @@ public class Ladder extends BorderPane {
 		}
 		return null;
 	}
-	private StepPack getPack(final Class<?> src){
-		for(StepPack obj:stpk){			
+	private StpWrapper getPack(final Class<?> src){
+		for(StpWrapper obj:stpk){			
 			if(src==obj.clzz){
 				return obj;
 			}
@@ -191,12 +195,12 @@ public class Ladder extends BorderPane {
 		final Class<?> clazz,
 		final Object... argument
 	){
-		final StepPack obj = new StepPack(title,clazz,argument);
+		final StpWrapper obj = new StpWrapper(title,clazz,argument);
 		stpk.add(obj);
 		final JFXButton btn = new JFXButton(title);
 		btn.getStyleClass().add("btn-raised-3");
 		btn.setMaxWidth(Double.MAX_VALUE);
-		btn.disableProperty().bind(is_climbing);
+		btn.disableProperty().bind(is_running);
 		btn.setOnAction(e->obj.instance());
 		step_kits.getChildren().add(btn);
 		return this;
@@ -208,7 +212,7 @@ public class Ladder extends BorderPane {
 		final JFXButton btn = new JFXButton(title);
 		btn.getStyleClass().add("btn-raised-3");
 		btn.setMaxWidth(Double.MAX_VALUE);
-		btn.disableProperty().bind(is_climbing);
+		btn.disableProperty().bind(is_running);
 		btn.setOnAction(e->{
 			for(Class<?> clzz:sack){
 				getPack(clzz).instance();
@@ -231,7 +235,7 @@ public class Ladder extends BorderPane {
 				recipe.getItems().clear();
 			}
 		}
-		final Task<?> tsk = new Task<Integer>(){
+		final Task<?> tsk = new Task<Integer>(){						
 			@Override
 			protected Integer call() throws Exception {
 				Scanner stm = new Scanner(fid);
@@ -244,12 +248,12 @@ public class Ladder extends BorderPane {
 						continue;
 					}
 					final String[] arg = txt.split("[>]|[@]");
-					final StepPack typ = getPack(arg[2].trim());
+					final StpWrapper typ = getPack(arg[2].trim());
 					if(typ==null){
 						Misc.loge("[Ladder] 找不到 class - %s",arg[2]);
 						continue;
 					}
-					Misc.invoke(()->typ.instance().expand(arg[1].trim()));
+					Application.invokeLater(()->typ.instance().expand(arg[1].trim()));
 					updateMessage(String.format("匯入 %s", arg[0]));
 				}
 				stm.close();
@@ -276,16 +280,16 @@ public class Ladder extends BorderPane {
 						i+1, lst.size()
 					));
 					final Stepper stp = lst.get(i);
-					final StepPack typ = getPack(stp);
-					if(typ==null){
+					final StpWrapper wpp = getPack(stp);
+					if(wpp==null){
 						Misc.loge("[Ladder] 找不到 class - %s",stp.toString());
 						continue;
 					}
 					out.write(String.format(
 						"%s> %s @ %s", 
-						typ.name, 
+						wpp.name, 
 						stp.flatten(), 
-						typ.clzz.getName()
+						wpp.clzz.getName()
 					));
 					out.write("\r\n");
 				}				
@@ -297,18 +301,23 @@ public class Ladder extends BorderPane {
 	}
 	//--------------------------------//
 	
-	private BooleanProperty is_climbing = new SimpleBooleanProperty(false);
+	//private BooleanProperty is_climbing = new SimpleBooleanProperty(false);
 	
-	private Optional<Timeline> timer = Optional.empty();
+	private final StpFoot ending = new StpFoot();
 	
-	public boolean isWorking() {
-		return timer.isPresent();
-	}
+	private final ArrayDeque<StpFoot> queue = new ArrayDeque<StpFoot>();
+	
+	private final Timeline timer = new Timeline(new KeyFrame(
+		Duration.seconds(1.),
+		e->climbing()
+	));
+	
+	private final BooleanBinding is_running = timer.statusProperty().isEqualTo(Animation.Status.RUNNING);
 	
 	public Runnable prelogue = null;	
 	public Runnable epilogue = null;
 	public Runnable user_abort = null;
-	private String uuid_text = "";
+	private String uuid_text = "";//every running, we have a new UUID. 
 	
 	public String uuid() {
 		return uuid_text;
@@ -325,57 +334,48 @@ public class Ladder extends BorderPane {
 		if(user_abort!=null) { user_abort.run(); }		
 	}
 	
-	private void starter(){
-		is_climbing.set(true);
-		if(timer.isPresent()==false) {
-			timer = Optional.of(prepare_footstep());
-			timer.get().playFromStart();
-		}else{
-			timer.get().play();
-		}
+	private void start(){		
+		if(timer.getStatus()==Animation.Status.STOPPED) {
+			prepare_all_foot();
+			timer.playFromStart();
+		}else if(timer.getStatus()==Animation.Status.PAUSED){
+			timer.play();
+		}		
 	}
-	private void abort(){
-		try {
-			timer.get().stop();
-			is_climbing.set(false);
-			timer = Optional.empty();
-		}catch(NoSuchElementException e) {
-		}
+	private void abort(){		
+		timer.stop();
+		recipe.getSelectionModel()
+			.getSelectedItem()
+			.imgSign
+			.setVisible(false);
 	}
 	private void pause() {
-		try {
-			timer.get().pause();
-			is_climbing.set(false);
-		}catch(NoSuchElementException e) {
-		}
+		timer.pause();
 	}
 	
-	private static class Footstep {
-		Stepper  step;
+	private static class StpFoot {
+		Stepper  step = null;
 		Runnable work;
-		Footstep(Stepper stp, Runnable wrk){
+		StpFoot(Stepper stp, Runnable wrk){
 			step = stp;			
 			work = wrk;
 		}
-		Footstep(){
+		StpFoot(){
 			//this is special footstep for head and tail
 			step = null;
 			work = null;
 		}
 		void indicate(final boolean flag) {
 			if(step==null) {return;}
-			step.indicator(flag);
+			step.imgSign.setVisible(flag);
 		}
 		void working() {
 			if(work==null) {return;}
 			work.run();
 		}
 	};	
-	private final Footstep ending = new Footstep();
-	
-	private LinkedList<Footstep> queue = new LinkedList<Footstep>();
-	
-	private Timeline prepare_footstep(){
+
+	private Timeline prepare_all_foot(){
 		//flatten all runnable works~~~
 		queue.clear();
 		ObservableList<Stepper> lst = recipe.getItems();
@@ -386,7 +386,7 @@ public class Ladder extends BorderPane {
 				continue;
 			}			
 			for(Runnable wrk:stp.works.get()){
-				queue.addLast(new Footstep(stp,wrk));
+				queue.addLast(new StpFoot(stp,wrk));
 			}
 		}
 		//let timer know the working is ending
@@ -394,38 +394,33 @@ public class Ladder extends BorderPane {
 		//let user prepare something
 		prelogue();
 		//setup timer to repeat all works~~~
-		KeyFrame key = new KeyFrame(
-			Duration.seconds(1.),
-			e->climbing()
-		);
-		Timeline obj = new Timeline(key);
-		obj.setCycleCount(Animation.INDEFINITE);
-		//obj.setOnFinished(e->{});//no calling in INDEFINITE mode.
-		return obj;
+		return timer;
 	}
 	
 	private void climbing(){
-		Footstep cur = queue.getFirst();
-		Footstep prv = queue.getLast();
+		StpFoot cur = queue.getFirst();
+		StpFoot prv = queue.getLast();
 		//check the tail, because it may be the previous step~~~
-		if(cur.equals(ending)==true){
+		if(cur.equals(ending)==true){			
+			prv.indicate(false);
 			abort();
 			epilogue();
 			return;
 		}
 		//update indicator icon in every stepper.
-		//TODO: when backward, how to indicate step?
 		recipe.getSelectionModel().select(cur.step);
-		cur.indicate(true);;
-		prv.indicate(false);
+		cur.indicate(true);
+		if(cur.step.equals(prv.step)==false) {
+			prv.indicate(false);
+		}		
 		//working!! After work is done, check asynchronous state.
-		if(cur.step.isAsync==false){
+		int async = cur.step.async.get();
+		if(async==0){
 			cur.working();	
-		}else{
-			//Asynchronous case, other thread will change flag again.
-			if(cur.step.next.get()!=Stepper.HOLD){
-				cur.step.isAsync = false;//rest for next turn~~~~
-			}
+		}else if(async>0){
+			return;
+		}else if(async<0){
+			cur.step.async.set(0);
 		}
 		//decide forward, backward or camp.
 		//it means running sequence will be reordered.
@@ -433,7 +428,7 @@ public class Ladder extends BorderPane {
 		int cnt = Math.abs(stp);
 		boolean dir = (stp>=0)?(true):(false);		
 		if(cnt>=Stepper.SPEC_JUMP) {
-			if(stp==Stepper.ABORT) {
+			if(stp==Stepper.ABORT) {				
 				abort();
 			}else if(stp==Stepper.PAUSE) {
 				pause();
@@ -443,7 +438,8 @@ public class Ladder extends BorderPane {
 		}else if(stp!=Stepper.HOLD) {
 			minor_jump(cnt,dir);
 		}
-	}	
+	}
+	
 	private void major_jump(final int cnt, final boolean direction) {
 		aligment_foot();
 		for(int i=0; i<cnt; i++) {

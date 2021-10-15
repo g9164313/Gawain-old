@@ -17,9 +17,9 @@ import javafx.util.Duration;
 import narl.itrc.PanBase;
 
 
-public class PanTestUnit2 extends PanBase {
+public class TestUnit2 extends PanBase {
 
-	public PanTestUnit2(final Stage stg) {
+	public TestUnit2(final Stage stg) {
 		super(stg);
 	}
 	

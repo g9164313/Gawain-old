@@ -59,7 +59,7 @@ public class StepSetPulse extends Stepper {
 			final int value= Integer.valueOf(txt.trim());
 			msg1.setText("設定 "+name);
 			msg2.setText("");
-			waiting_async();			
+			wait_async();			
 			spk.asyncBreakIn(()->{
 				spk.set_register(addr, value);
 				next.set(LEAD);

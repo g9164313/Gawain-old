@@ -149,6 +149,7 @@ public class DevDCG100 extends DevTTY {
 		}
 		writeTxt(txt);
 		//writeTxtDelay(5, txt);
+		//Misc.logv(String.format("[%s] %s", txt, TAG));
 		
 		txt = ""; //clear command~~~
 		int ans = 0;

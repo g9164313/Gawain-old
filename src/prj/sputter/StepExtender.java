@@ -3,7 +3,6 @@ package prj.sputter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -20,11 +19,11 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import javafx.concurrent.Task;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
 import narl.itrc.Gawain;
 import narl.itrc.Misc;
 import narl.itrc.Stepper;
 import narl.itrc.UtilPhysical;
-import narl.itrc.init.LogStream;
 import narl.itrc.init.LogStream.Mesg;
 import narl.itrc.init.Terminal;
 
@@ -38,27 +37,213 @@ abstract class StepExtender extends Stepper {
 	//protected static ScriptEngineManager sc_man = new ScriptEngineManager();
 	//protected static ScriptEngine sc_eng = sc_man.getEngineByName("nashorn");
 	
-	protected Label[] msg = {
+	//------------------------------//
+	
+	protected final TextField ar_sccm = new TextField("30");
+	protected final TextField n2_sccm = new TextField();
+	protected final TextField o2_sccm = new TextField("0");
+	
+	protected final Runnable op_give_mass_flow = ()->{
+		wait_async();
+		final float sv_ar_sccm = sccm2value(ar_sccm);
+		final float sv_n2_sccm = sccm2value(n2_sccm);
+		final float sv_o2_sccm = sccm2value(o2_sccm);
+		cup.asyncBreakIn(()->{
+			cup.set_all_mass_flow(
+				sv_ar_sccm, 
+				sv_n2_sccm, 
+				sv_o2_sccm
+			);
+			notify_async();
+		});
+		set_info("注入 sccm");
+	};
+	private float sccm2value(final TextField box) {
+		final String txt = box.getText();
+		if(txt.length()==0) {
+			return -1f;
+		}
+		try{
+			return Float.valueOf(txt);
+		}catch(NumberFormatException e) {		
+		}
+		return -1f;
+	}
+	
+	private float[] old_sccm = {-1.f, -1.f, -1.f};
+	
+	protected final Runnable op_wait_mass_flow = ()->{
+		
+		/*final float[] sv = {
+			sccm2value(ar_sccm),
+			sccm2value(n2_sccm),
+			sccm2value(o2_sccm)
+		};*/
+		final float[] pv = {
+			cup.PV_FlowAr.get(),
+			cup.PV_FlowN2.get(),
+			cup.PV_FlowO2.get()
+		};		
+		set_info(
+			String.format("Ar:%2.1f/%2.1f",pv[0],old_sccm[0]),
+			String.format("N2:%2.1f/%2.1f",pv[1],old_sccm[1]),
+			String.format("O2:%2.1f/%2.1f",pv[2],old_sccm[2])
+		);		
+		boolean flg = false;
+		for(int i=0; i<3; i++) {
+			if(old_sccm[i]<0.f) {
+				old_sccm[i] = pv[i];
+				continue;//skip this item~~~~
+			}
+			if(Math.abs(old_sccm[i]-pv[i])<=0.1f) {
+				flg = flg | true;
+			}else {
+				flg = false;
+				old_sccm[i] = pv[i];
+			}
+		}		
+		if(flg==false) {
+			hold_step();
+		}else {
+			//reset old value~~~
+			old_sccm[0] = -1.f;
+			old_sccm[1] = -1.f;
+			old_sccm[2] = -1.f;
+			next_step();
+		}		
+	};
+	
+	protected final Runnable op_shutter_open = ()->{
+		wait_async();
+		sqm.asyncBreakIn(()->{
+			sqm.cmd_U(true);
+			notify_async();
+		});
+		set_info("打開擋板");
+	};
+	protected final Runnable op_shutter_open_zero = ()->{
+		wait_async();
+		sqm.asyncBreakIn(()->{
+			sqm.cmd_S_T();
+			sqm.cmd_U(true);
+			notify_async();
+		});
+		set_info("打開擋板");
+	};
+	protected final Runnable op_shutter_close= ()->{		
+		wait_async();
+		sqm.asyncBreakIn(()->{
+			sqm.cmd_U(false);
+			notify_async();
+		});
+		set_info("關閉擋板");
+	};
+	
+	protected final Runnable op_high_pin_open = ()->{
+		if(spk.isAsyncDone()==false) {
+			return;
+		}
+		hold_step();
+		spk.asyncBreakIn(()->{
+			spk.high_pin();
+			next_step();
+		});
+		set_info("打開電極");
+	};
+	
+	protected final TextField spw = new TextField("100");
+	protected final TextField spr = new TextField("5");///ramp time
+	protected final TextField w_time = new TextField("30");///wait for stable
+	
+	protected final Runnable op_power_trg = ()->{
+		if(dcg.watt.intValue()!=0) {
+			next_step();
+			return;
+		}
+		wait_async();
+		final int pow_val = Integer.valueOf(spw.getText().trim());
+		final int ramp_ms = (int) Misc.text2tick (spr.getText().trim());
+		dcg.asyncBreakIn(()->{
+			//ensure that 'high-pin' is on!! 
+			spk.asyncHighPin();
+			spk.blockWaiting();
+			//set power~~~~
+			dcg.exec(String.format("SPW=%d",pow_val));
+			dcg.exec(String.format("SPR=%d",ramp_ms));
+			dcg.exec("CHL=W");
+			dcg.exec("CHT=C");
+			dcg.exec("TRG");//go!!!!
+			notify_async();
+		});
+		set_info("開啟高壓電");
+	};	
+	protected final Runnable op_wait_fire = ()->{
+		final int ramp_ms = (int) Misc.text2tick (spr.getText().trim());
+		final int wait_ms = (int) Misc.text2tick (w_time.getText().trim());
+		waiting_time(ramp_ms+wait_ms);
+	};
+			
+	protected final Runnable op_power_off = ()->{
+		wait_async();
+		dcg.asyncBreakIn(()->{
+			dcg.exec("OFF");			
+			notify_async();
+		});
+		set_info("關閉高壓電");
+	};
+	protected final Runnable op_calm_down = ()->{
+		int vv = (int)dcg.volt.get();
+		int ww = (int)dcg.watt.get();
+		set_info(
+			"放電中",
+			String.format("%3d Volt",vv),
+			String.format("%3d Watt",ww)
+		);
+		if(vv<200 && ww<5) {
+			next_step();
+		}else {
+			hold_step();
+		}
+	};
+	
+	//------------------------------//
+	
+	protected Label[] info = {
+		new Label(), new Label(), new Label(),
 		new Label(), new Label(), new Label(),
 	};
 	
 	public StepExtender() {
-		msg[0].setPrefWidth(150);
-		msg[1].setPrefWidth(150);
-		msg[2].setPrefWidth(150);
+		for(Label obj:info) {
+			obj.setPrefWidth(150);
+		}
+		
+		final TextField[] lst = {spw,spr,w_time, ar_sccm,n2_sccm,o2_sccm  };
+		for(TextField box:lst) {
+			box.setMaxWidth(80);
+		}
+		
+		ar_sccm.setUserData(DevCouple.ar_max_sccm);
+		n2_sccm.setUserData(DevCouple.n2_max_sccm);
+		o2_sccm.setUserData(DevCouple.o2_max_sccm);
 	}
-	
-	protected void set_mesg(final String... txt) {
-		for(int i=0; i<msg.length; i++) {
+	protected void set_info(final String... txt) {
+		if(txt.length==0) {
+			for(int i=0; i<info.length; i++) {
+				info[i].setText("");
+			}
+			return;
+		}
+		for(int i=0; i<info.length; i++) {
 			if(i>=txt.length) {
-				msg[i].setText("");
+				info[i].setText("");
 			}else {
-				msg[i].setText(txt[i]);
+				info[i].setText(txt[i]);
 			}
 		}
 	}
 	
-	protected void print_info(final String TAG) {
+	protected void log_data(final String TAG) {
 		
 		final float volt = dcg.volt.get();		
 		final float amps = dcg.amps.get();				
@@ -84,14 +269,14 @@ abstract class StepExtender extends Stepper {
 			rate, unit1, high, unit2
 		);
 	}
-	//-----------------------------//
+	//------------------------------//
 	
 	private static final File study_fs = new File(Gawain.pathSock+"temp.csv");
 	
 	protected static final String pathLogStock= Gawain.pathSock+"監控紀錄"+File.separatorChar;
 	protected static final String pathLogCache= pathLogStock+"cache"+File.separatorChar;
 	
-	private void check_path(final String path) throws Exception {
+	/*private void check_path(final String path) throws Exception {
 		File fs = new File(path);
 		if(fs.exists()==false) {
 			if(fs.mkdirs()==false) {
@@ -99,6 +284,7 @@ abstract class StepExtender extends Stepper {
 			}
 		}
 	}
+	
 	private void flush_record(final boolean flag) {
 		final Task<?> tsk = new Task<Void>() {		
 			@Override
@@ -134,18 +320,18 @@ abstract class StepExtender extends Stepper {
 					updateMessage("快取中...");
 					Misc.serialize2file(mesg,String.format(
 						"%s%s+%s.obj",
-						pathLogCache,ladder.uuid(),Misc.getTickName()
+						pathLogCache,uuid,Misc.getTickName()
 					));
 				}
-				msg[2].textProperty().unbind();
+				info[2].textProperty().unbind();
 				next_step();
 				return null;
 			}
 		};
-		msg[1].setText("匯出紀錄");
-		msg[2].textProperty().bind(tsk.messageProperty());
+		info[1].setText("匯出紀錄");
+		info[2].textProperty().bind(tsk.messageProperty());
 		waiting_async(tsk);
-	}
+	}*/
 
 	public static Task<?> task_dump(final String uuid){ return new Task<Integer>() {
 		@Override

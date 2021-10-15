@@ -324,14 +324,14 @@ public abstract class PanBase {
 	protected List<File> chooseFiles(final String title){
 		final FileChooser dia = new FileChooser();
 		dia.setTitle(title);
-		dia.setInitialDirectory(Gawain.dirHome);
+		dia.setInitialDirectory(Gawain.dirRoot);
 		return dia.showOpenMultipleDialog(stage);
 	}
 
 	public File loadFrom(){
 		final FileChooser dia = new FileChooser();
 		dia.setTitle("讀取檔案...");
-		dia.setInitialDirectory(Gawain.dirHome);
+		dia.setInitialDirectory(Gawain.dirRoot);
 		return dia.showOpenDialog(stage);
 	}
 	
@@ -339,7 +339,7 @@ public abstract class PanBase {
 		final FileChooser dia = new FileChooser();
 		dia.setTitle("儲存成為...");
 		dia.setInitialFileName(default_name);
-		dia.setInitialDirectory(Gawain.dirHome);
+		dia.setInitialDirectory(Gawain.dirRoot);
 		return dia.showSaveDialog(stage);
 	}
 	//----------------------------------------------//

@@ -21,7 +21,7 @@ public class StepWatcher extends StepExtender {
 	public final static String TAG_WATCH = "監控";
 	
 	public StepWatcher(){
-		set_mesg(action_name);
+		set_info(action_name);
 		set(op_1,op_3,
 			op_4,op_5,
 			op_6
@@ -60,8 +60,8 @@ public class StepWatcher extends StepExtender {
 	final Runnable op_1 = ()->{
 		//open shutter
 		final String txt = "開啟檔板";
-		set_mesg(action_name,txt);
-		waiting_async();
+		set_info(action_name,txt);
+		wait_async();
 		sqm.shutter_and_zeros(true, ()->{
 			Misc.logv("%s: %s",action_name, txt);
 			tick_beg = System.currentTimeMillis();
@@ -155,7 +155,7 @@ public class StepWatcher extends StepExtender {
 		//monitor film data~~~
 
 		tick_end = System.currentTimeMillis();
-		set_mesg(
+		set_info(
 			TAG_WATCH, 
 			Misc.tick2text(tick_end-tick_beg,true), 
 			String.format("%5.3f%s", sqm.thick[0].get(), sqm.unitThick.get())
@@ -170,7 +170,7 @@ public class StepWatcher extends StepExtender {
 		}else {
 			stats_dev.setText(String.format("%5.3f", sigma));
 		}
-		print_info(TAG_WATCH);
+		log_data(TAG_WATCH);
 				
 		if(sqm.shutter.get()==false){
 			next_step();
@@ -190,9 +190,9 @@ public class StepWatcher extends StepExtender {
 	};
 	final Runnable op_4 = ()->{
 		//extinguish plasma		
-		set_mesg("關閉高壓");
+		set_info("關閉高壓");
 		Misc.logv("%s: 關閉高壓",action_name);
-		waiting_async();		
+		wait_async();		
 		dcg.asyncBreakIn(()->{
 			if(dcg.exec("OFF").endsWith("*")==false) {
 				abort_step();
@@ -210,13 +210,13 @@ public class StepWatcher extends StepExtender {
 		}else{
 			next.set(LEAD);
 		}
-		set_mesg(
+		set_info(
 			"放電中",
 			String.format("%3dV %3dW",vv,ww)
 		);
 	};
 	final Runnable op_6 = ()->{
-		set_mesg(
+		set_info(
 			action_name,
 			Misc.tick2text(tick_end-tick_beg,true),
 			String.format("%5.3f%s", sqm.thick[0].get(), sqm.unitThick.get())
@@ -253,7 +253,7 @@ public class StepWatcher extends StepExtender {
 
 		GridPane lay = new GridPane();
 		lay.getStyleClass().addAll("box-pad");
-		lay.addColumn(0, msg);
+		lay.addColumn(0, info);
 		lay.add(new Separator(Orientation.VERTICAL), 1, 0, 1, 4);
 		lay.addColumn(2,new Label("統計值"),new Label("標準差"),new Label("週期"));
 		lay.addColumn(3,stats_avg,stats_dev,box_stat_win);

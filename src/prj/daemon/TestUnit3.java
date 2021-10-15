@@ -29,9 +29,9 @@ import narl.itrc.Gawain;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
 
-public class PanTestUnit3 extends PanBase {
+public class TestUnit3 extends PanBase {
 	
-	public PanTestUnit3(final Stage stg) {
+	public TestUnit3(final Stage stg) {
 		try {
 			double[][] val = test();
 			test2(val);

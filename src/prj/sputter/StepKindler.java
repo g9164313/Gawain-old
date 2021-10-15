@@ -31,7 +31,7 @@ public class StepKindler extends StepExtender {
 	public final static String TAG_KINDLE = "點火";
 	
 	public StepKindler(){
-		set_mesg(action_name);		
+		set_info(action_name);		
 		set(op_1,op_2,
 			op_3,op_4,op_6
 		);
@@ -142,8 +142,8 @@ public class StepKindler extends StepExtender {
 	final Runnable op_1 = ()->{
 		//close shutter~~~
 		final String tag = "關閉擋板";
-		set_mesg(tag);
-		waiting_async();
+		set_info(tag);
+		wait_async();
 		sqm.shutter_and_zeros(false,()->{
 			Misc.logv(tag);
 			next_step();
@@ -155,8 +155,8 @@ public class StepKindler extends StepExtender {
 	};
 	final Runnable op_2 = ()->{
 		final String tag = "啟動 H-Pin";
-		set_mesg(tag);
-		waiting_async();
+		set_info(tag);
+		wait_async();
 		spk.asyncBreakIn(()->{
 			spk.set_register(1, 2);//high-pin
 			try {
@@ -183,7 +183,7 @@ public class StepKindler extends StepExtender {
 	private long tick_total = -1L; //unit is millisecond.
 	final Runnable op_3 = ()->{
 		final String tag = "啟動 DCG";
-		set_mesg(tag);
+		set_info(tag);
 		ObservableList<Node> pan = lay_root.getChildren();		
 		final ArrayList<String> cmd = new ArrayList<String>();
 		if(pan.size()<=2) {
@@ -206,7 +206,7 @@ public class StepKindler extends StepExtender {
 			cmd.add("SQU=0");
 			cmd.add("CHT=S");
 		}
-		waiting_async();
+		wait_async();
 		dcg.asyncBreakIn(()->{
 			cmd.add("TRG");
 			String[] _txt = cmd.toArray(new String[1]);
@@ -223,8 +223,8 @@ public class StepKindler extends StepExtender {
 	
 	final Runnable op_4 = ()->{
 		long tick = System.currentTimeMillis() - tick_start;
-		print_info(TAG_KINDLE);		
-		set_mesg(TAG_KINDLE,
+		log_data(TAG_KINDLE);		
+		set_info(TAG_KINDLE,
 			String.format(
 				"倒數:%s/%s",
 				Misc.tick2text(tick,false),
@@ -238,7 +238,7 @@ public class StepKindler extends StepExtender {
 		}
 	};
 	final Runnable op_6 = ()->{
-		set_mesg(action_name);
+		set_info(action_name);
 		Misc.logv(action_name+"結束");
 		next_step();
 	};
@@ -274,7 +274,7 @@ public class StepKindler extends StepExtender {
 	public Node getContent(){
 		GridPane lay0 = new GridPane();
 		lay0.getStyleClass().addAll("box-pad");
-		lay0.addColumn(0, msg);
+		lay0.addColumn(0, info);
 		lay_root.getChildren().addAll(lay0,new PanAction());
 		return lay_root;
 	}

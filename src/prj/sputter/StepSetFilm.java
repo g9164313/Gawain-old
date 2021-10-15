@@ -54,7 +54,7 @@ public class StepSetFilm extends Stepper {
 	
 	final Runnable op_1 = ()->{
 		//set film data and final thickness		
-		waiting_async();
+		wait_async();
 		final String[] vals = {
 			args[0].getText().trim(),//density
 			args[1].getText().trim(),//tooling
@@ -82,7 +82,7 @@ public class StepSetFilm extends Stepper {
 	};
 	
 	final Runnable op_2 = ()->{	
-		waiting_async();
+		wait_async();
 		msg1.setText("切換中");
 		sqm.asyncBreakIn(()->{
 			if(sqm.exec("D1").charAt(0)!='A') {

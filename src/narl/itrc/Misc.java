@@ -11,11 +11,7 @@ import java.io.ObjectOutputStream;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-
-import com.sun.glass.ui.Application;
-
 import javafx.event.ActionEvent;
-
 import javafx.scene.Node;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -616,13 +612,13 @@ public class Misc {
 	/**
 	 * a wrap for GUI-thread application.
 	 */
-	public static void invoke(final Runnable work) {
+	/*public static void invoke(final Runnable work) {
 		if(Application.isEventThread()==true) {
 			work.run();
 		}else {
 			Application.invokeAndWait(work);
 		}
-	}
+	}*/
 }
 
 

@@ -171,7 +171,7 @@ public class StepGunsHub extends Stepper {
 		);
 	}
 	
-	public static Pane genPanel() {
+	public static Pane genCtrlPanel() {
 		
 		final ToggleGroup grp = new ToggleGroup();
 		btn_bipolar.setToggleGroup(grp);

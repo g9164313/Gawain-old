@@ -2,6 +2,7 @@ package narl.itrc;
 
 import java.util.Arrays;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
@@ -18,47 +19,84 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.image.WritableImage;
+import javafx.scene.input.ClipboardContent;
+import javafx.scene.input.DragEvent;
+import javafx.scene.input.Dragboard;
+import javafx.scene.input.TransferMode;
+//import javafx.scene.image.WritableImage;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 
 public abstract class Stepper extends HBox {
 	
-	private static final Image v_empty = new WritableImage(24,24);
-	private static final Image v_arrow = Misc.getIconImage("arrow-right.png");
-	private static final Image v_pen = Misc.getIconImage("pen.png");
-	private static final Image v_tash_can = Misc.getIconImage("trash-can.png");
-		
-	private ImageView imgSign = new ImageView();
+	private static final Image v_id_arrow = Misc.getIconImage("arrow-right.png");
+	private static final Image v_edit_pen = Misc.getIconImage("pen.png");
+	private static final Image v_tash_can = Misc.getIconImage("trash-can.png");	
+	private static final Image v_cube_out = Misc.getIconImage("cube-outline.png");
+
+	public final ImageView imgSign = new ImageView(v_id_arrow);
 
 	private JFXButton btnEdit = new JFXButton();
 	private JFXButton btnDrop = new JFXButton();
 	
 	protected Optional<Runnable[]> works = Optional.empty();
 	protected Optional<ObservableList<Stepper>> items = Optional.empty();//we can see other stepper	
-	protected Ladder ladder;
+	protected String uuid = "";
 	
 	public Stepper(){
-		imgSign.setImage(v_empty);
-	}
-	
-	public void indicator(boolean flag){
-		if(flag){
-			imgSign.setImage(v_arrow);
-		}else{
-			imgSign.setImage(v_empty);
-		}
+		
+		imgSign.setVisible(false);
+		
+		setOnDragDetected(e->{
+			//Misc.logv("setOnDragDetected");
+			
+			//'Dragboard' must have content!!!
+			Dragboard db = startDragAndDrop(TransferMode.MOVE);
+			ClipboardContent content = new ClipboardContent();
+			content.putString(Stepper.this.toString());
+			db.setDragView(v_cube_out);
+            db.setContent(content);
+            
+            e.consume();
+		});
+		setOnDragOver(e->{
+			//'getGestureSource()' is equal to object in 'TransferMode.MOVE'
+			//'getSource()' is equal to object when mouse over
+			if (e.getGestureSource() != this) {
+            	//Misc.logv(e.getGestureSource().toString()+" over "+e.getSource().toString());
+            	e.acceptTransferModes(TransferMode.MOVE);
+            }
+            e.consume();
+		});
+		setOnDragDropped(e->{
+			Stepper dst = (Stepper)e.getSource();
+			Stepper src = (Stepper)e.getGestureSource();
+			if(src==null) {
+				e.consume();
+				return;
+			}
+			//Misc.logv(src.toString() + " dropped in " + dst.toString());
+			ObservableList<Stepper> lst = items.get();
+			lst.remove(src);
+			lst.add(lst.indexOf(dst)+1, src);
+            e.setDropCompleted(true);
+            e.consume();
+		});
+		setOnDragDone(DragEvent::consume);	
 	}
 	
 	public Stepper doLayout(){
 		
-		indicator(false);
+		imgSign.setVisible(false);
 		
 		Node cntx = getContent();
+		if(cntx==null) {
+			cntx = new Label(this.toString());//dummy~~~
+		}
 		HBox.setHgrow(cntx, Priority.ALWAYS);
 		
-		btnEdit.setGraphic(new ImageView(v_pen));
+		btnEdit.setGraphic(new ImageView(v_edit_pen));
 		btnEdit.setOnAction(e->eventEdit());
 		
 		btnDrop.setGraphic(new ImageView(v_tash_can));		
@@ -121,7 +159,12 @@ public abstract class Stepper extends HBox {
 	public static final int PAUSE   =-SPEC_JUMP*1;
 	public static final int BACKWARD=-SPEC_JUMP-1;
 	
-	public boolean isAsync = false;
+	/** 
+	 *  1--> async going!!!!
+	 *  0--> no async
+	 * -1--> async done~~~ 
+	 */
+	public final AtomicInteger async = new AtomicInteger(0);
 	public final AtomicInteger next = new AtomicInteger(LEAD);
 			
 	protected void abort_step(){ next.set(ABORT);}
@@ -135,12 +178,20 @@ public abstract class Stepper extends HBox {
 		next.set((stp>0)?(SPEC_JUMP):(-SPEC_JUMP)+stp); 
 	}
 	
-	protected void waiting_async(){
-		isAsync = true;
+	protected void wait_async(){
+		async.set(1);
 		hold_step();
 	}
+	protected void notify_async(final int stp){
+		async.set(-1);
+		next_step(stp);
+	}
+	protected void notify_async(){
+		notify_async(LEAD);
+	}
+	
 	protected Task<?> waiting_async(final Task<?> tsk) {
-		waiting_async();
+		wait_async();
 		new Thread(tsk,"step-async").start();		
 		return tsk;
 	}
@@ -165,7 +216,7 @@ public abstract class Stepper extends HBox {
 	}
 	
 	protected void prepare(){
-		indicator(false);
+		imgSign.setVisible(false);
 		hold_step();
 	}
 	
