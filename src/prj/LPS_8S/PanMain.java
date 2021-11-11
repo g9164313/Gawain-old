@@ -13,17 +13,12 @@ import eu.hansolo.tilesfx.Tile.SkinType;
 import eu.hansolo.tilesfx.Tile.TextSize;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
-import javafx.event.EventHandler;
-import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
-import javafx.scene.image.ImageView;
-import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
@@ -41,6 +36,8 @@ public class PanMain extends PanBase {
 	private static final String TXT_AXIS_SWING = "擺動軸";
 	private static final String TXT_CYLI_FORCE = "氣缸加壓";
 	private static final String TXT_CYLI_DELTA = "氣缸壓差";
+	private static final String TXT_CYLI_UP_FORCE = "氣缸上推";
+	private static final String TXT_CYLI_DW_FORCE = "氣缸下壓";
 	
 	private ModCoupler coup = new ModCoupler();
 	private ModInsider ibus = new ModInsider(coup);	
@@ -68,6 +65,7 @@ public class PanMain extends PanBase {
 		moto[0].SV_RPM = ibus.MAJOR_RPM_SV;
 		moto[1].SV_RPM = ibus.PRESS_RPM_SV;
 		moto[2].SV_RPM = ibus.SWING_RPM_SV;
+
 		stage().setOnShown(e->on_shown());
 	}
 	private void on_shown() {
@@ -80,8 +78,16 @@ public class PanMain extends PanBase {
 		}		
 		arg = Gawain.prop().getProperty("COUPLER", "");
 		if(arg.length()!=0) {
-			coup.working_press  = ()->notifyEvent(e_working);
-			coup.working_release= ()->notifyEvent(e_halting);
+			coup.working_press  = ()->{
+				toggle_btn(tglMotorMajor,true);
+				if(coup.isArmSuspend()==false) {
+					toggle_btn(tglMotorOther,true);
+				}
+			};
+			coup.working_release= ()->{
+				toggle_btn(tglMotorMajor,false);
+				toggle_btn(tglMotorOther,false);
+			};			
 			coup.emerged_press  = ()->{
 				//coup.giveAlarm(true);
 				toggle_btn(tglMotorMajor,false);
@@ -111,10 +117,7 @@ public class PanMain extends PanBase {
 	private JFXToggleButton tglMotorMajor = new JFXToggleButton();
 	private JFXToggleButton tglMotorOther = new JFXToggleButton();
 	//private JFXButton btnMajorLock;
-	
-	//計時, 抬升，汽缸壓, 電導, 流量, 溫度,
-	private final Tile[] tile = new Tile[6];
-	
+
 	private BooleanProperty startSlurryHeat = new SimpleBooleanProperty(true);
 	private BooleanProperty startSlurryPump = new SimpleBooleanProperty(true);
 	private BooleanProperty startMotorMajor = new SimpleBooleanProperty(true);
@@ -289,42 +292,7 @@ public class PanMain extends PanBase {
 				obj.getOnAction().handle(null);
 			}
 		}
-		
-		final Label txt_dw = new Label();
-		txt_dw.textProperty().bind(coup.armForceDw.asString("下壓 %4.1f V"));
-		txt_dw.setOnMouseClicked(e->{
-			PadTouch pad = new PadTouch('f',"下壓閥門電壓");
-			Optional<String> opt = pad.showAndWait();			
-			if(opt.isPresent()==false) {
-				return;
-			}
-			float val = Float.valueOf(opt.get());
-			coup.armForceDw.set(val);
-		});
-		final Label txt_up = new Label();
-		txt_up.textProperty().bind(coup.armForceUp.asString("上推 %4.1f V"));
-		txt_up.setOnMouseClicked(e->{
-			PadTouch pad = new PadTouch('f',"上推閥門電壓");
-			Optional<String> opt = pad.showAndWait();			
-			if(opt.isPresent()==false) {
-				return;
-			}
-			float val = Float.valueOf(opt.get());
-			coup.armForceUp.set(val);
-		});
-		
-		final JFXButton btn_valve_in = new JFXButton("加壓");
-		btn_valve_in.getStyleClass().add("btn-raised-1");
-		btn_valve_in.setMaxWidth(Double.MAX_VALUE);
-		btn_valve_in.setMinHeight(72.);	
-		btn_valve_in.setOnAction(e->coup.armPression());
-		
-		final JFXButton btn_valve_out= new JFXButton("洩壓");
-		btn_valve_out.getStyleClass().add("btn-raised-0");
-		btn_valve_out.setMaxWidth(Double.MAX_VALUE);
-		btn_valve_out.setMinHeight(72.);
-		btn_valve_out.setOnAction(e->coup.armPression(0f, 0f));
-		
+				
 		final GridPane lay = new GridPane();		
 		lay.getStyleClass().addAll("box-pad","box-border","font-size7");
 		lay.add(new Label("手臂設定"), 0, 0, 2, 1);
@@ -332,10 +300,8 @@ public class PanMain extends PanBase {
 		lay.add(rad[0], 0, 1, 2, 1);
 		lay.add(rad[1], 0, 2, 2, 1);
 		lay.add(rad[2], 0, 3, 2, 1);
-		lay.add(txt_dw, 0, 4, 2, 1);
-		lay.add(txt_up, 0, 5, 2, 1);
-		lay.add(btn_valve_in , 0, 6, 2, 1);
-		lay.add(btn_valve_out, 0, 7, 2, 1);
+		//lay.add(btn_cyli_apply  , 0, 6, 2, 1);
+		//lay.add(btn_cyli_release, 0, 7, 2, 1);
 		return lay;
 	}
 	
@@ -364,13 +330,12 @@ public class PanMain extends PanBase {
 		final JFXToggleButton tgl_heater = new JFXToggleButton();
 		final JFXToggleButton tgl_pumper = new JFXToggleButton();
 
-		
 		tgl_alarm .setText("警報");
 		tgl_heater.setText("加熱器");
 		tgl_pumper.setText("研磨液");
 		tglMotorMajor.setText("旋轉軸");
 		tglMotorOther.setText("加工軸");
-		
+
 		coup.tglDoneAlarm = tgl_alarm;
 		tgl_alarm.setOnAction(e->coup.giveAlarm());
 
@@ -394,6 +359,12 @@ public class PanMain extends PanBase {
 			}
 			coup.kickoff_other(tglMotorOther);
 		});
+		
+		final JFXButton btn_cyli_release= new JFXButton("手臂洩壓");
+		btn_cyli_release.getStyleClass().add("btn-raised-0");
+		btn_cyli_release.setMaxWidth(Double.MAX_VALUE);
+		btn_cyli_release.setMinHeight(72.);
+		btn_cyli_release.setOnAction(e->coup.cyliForceRelease());
 		
 		final JFXButton btn_lock = new JFXButton();
 		btn_lock.getStyleClass().add("btn-raised-0");
@@ -422,7 +393,10 @@ public class PanMain extends PanBase {
 		AnchorPane.setLeftAnchor (lay1, 7.0);
 		AnchorPane.setRightAnchor(lay1, 7.0);
 		
-		final VBox lay2 = new VBox(btn_lock,btn_unlock); 
+		final VBox lay2 = new VBox(
+			btn_cyli_release
+			/*btn_lock,btn_unlock*/
+		); 
 		lay2.getStyleClass().add("box-pad");
 		AnchorPane.setBottomAnchor(lay2, 7.0);
 		AnchorPane.setLeftAnchor  (lay2, 7.0);
@@ -430,6 +404,9 @@ public class PanMain extends PanBase {
 		
 		return new AnchorPane(lay1,lay2);
 	}
+	
+	//計時, 電導, 流量, 溫度, 汽缸（上推）, 汽缸（下推）
+	private final Tile[] tile = new Tile[7];
 	
 	private Pane gen_panel_gauge() {
 		
@@ -441,7 +418,7 @@ public class PanMain extends PanBase {
 			.onAlarm(e->notifyEvent(e_halting_alarm))
 			.build();
 		tile[0].setOnMouseClicked(e->{
-			PadTouch pad = new PadTouch('T',"時：分：秒");
+			final PadTouch pad = new PadTouch('T',"時：分：秒");
 			Optional<String> opt = pad.showAndWait();			
 			if(opt.isPresent()==false) {
 				return;
@@ -485,62 +462,72 @@ public class PanMain extends PanBase {
 			ibus.PV_FA231.divide(10f)
 		);
 		tile[3].setOnMouseClicked(e->{
-			PadTouch pad = new PadTouch('f',"度C");
+			final PadTouch pad = new PadTouch('f',"度C");
 			Optional<String> opt = pad.showAndWait();			
 			if(opt.isPresent()==false) {
 				return;
 			}
 			ibus.set_FA231(Float.valueOf(opt.get()));
 		});
-			
+		
 		tile[4] = TileBuilder.create()
 			.skinType(SkinType.GAUGE)
 			.textSize(TextSize.BIGGER)
-			.title(TXT_CYLI_DELTA)			
-			.unit("kgf/cm2")
+			.title(TXT_CYLI_UP_FORCE)			
+			.unit("kgf/cm²")
 			.maxValue(5)
 			.build();
 		tile[4].setDecimals(2);
-		tile[4].valueProperty().bind(coup.ARM_PRESS_UP.multiply(10.2f));
+		tile[4].valueProperty().bind(coup.ARM_FORCE_UP);
 		tile[4].setOnMouseClicked(e->{
-			PadTouch pad = new PadTouch('i',"%");
+			final PadTouch pad = new PadTouch('f',"kgf/cm²");
 			Optional<String> opt = pad.showAndWait();			
 			if(opt.isPresent()==false) {
 				return;
 			}
-			int val = Integer.valueOf(opt.get());
-			if(val>=100) {
-				val = 100;
-			}
+			coup.cyliApplyForceUp(Float.valueOf(opt.get()));
 		});
 		
 		tile[5] = TileBuilder.create()
-			.skinType(SkinType.SLIDER)
-			.title(TXT_CYLI_FORCE)
-			.minValue(1)
-			.value(1.)
-			.maxValue(9)
+			.skinType(SkinType.GAUGE)
 			.textSize(TextSize.BIGGER)
+			.title(TXT_CYLI_DW_FORCE)			
+			.unit("kgf/cm²")
+			.maxValue(5)
 			.build();
-		tile[5].setDecimals(0);
-		tile[5].valueProperty().addListener((obv,oldVal,newVal)->{
-			int val = tile[5].valueProperty().getValue().intValue();
-			switch(val) {
-			case 1: coup.armPressProp(1.0f,0.7f);break;//0.3 
-			case 2: coup.armPressProp(2.0f,1.4f);break;//0.5 
-			case 3: coup.armPressProp(3.0f,2.3f);break;//0.7
-			case 4: coup.armPressProp(4.0f,3.1f);break;//0.9 
-			case 5: coup.armPressProp(5.0f,3.9f);break;//1.1
-			case 6: coup.armPressProp(6.0f,4.7f);break;//1.3 
-			case 7: coup.armPressProp(7.0f,5.5f);break;//1.5
-			case 8: coup.armPressProp(8.0f,7.3f);break;//1.7 
-			case 9: coup.armPressProp(9.0f,7.0f);break;//1.9
+		tile[5].setDecimals(2);
+		tile[5].valueProperty().bind(coup.ARM_FORCE_DW);
+		tile[5].setOnMouseClicked(e->{
+			final PadTouch pad = new PadTouch('f',"kgf/cm²");
+			Optional<String> opt = pad.showAndWait();			
+			if(opt.isPresent()==false) {
+				return;
 			}
+			coup.cyliApplyForceDw(Float.valueOf(opt.get()));			
 		});
-
+		
+		tile[6] = TileBuilder.create()
+			.skinType(SkinType.GAUGE2)
+			.textSize(TextSize.BIGGER)
+			.title(TXT_CYLI_DELTA)			
+			.unit("kgf/cm²")
+			.maxValue( 10.)
+			.minValue(-10.)
+			.build();
+		tile[6].setDecimals(2);
+		tile[6].valueProperty().bind(coup.ARM_FORCE_DW.subtract(coup.ARM_FORCE_UP));
+		tile[6].setOnMouseClicked(e->{
+			final PadTouch pad = new PadTouch('f',"kgf/cm²");
+			final Optional<String> opt = pad.showAndWait();			
+			if(opt.isPresent()==false) {
+				return;
+			}
+			coup.cyliApplyForceAll(Float.valueOf(opt.get()));
+		});
+		
 		final GridPane lay = new GridPane();
 		lay.getStyleClass().addAll("box-pad");
-		lay.addColumn(0,tile[0],tile[5],tile[4]);
+		lay.addColumn(0,tile[4],tile[6],tile[5]);
 		lay.addColumn(1,moto[1],moto[2],moto[0]);
 		lay.addColumn(2,tile[1],tile[2],tile[3]);		
 		return lay;

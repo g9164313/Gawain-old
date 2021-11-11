@@ -15,6 +15,7 @@ import javafx.scene.control.Dialog;
 import javafx.scene.control.DialogPane;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.util.Callback;
 
@@ -25,6 +26,34 @@ import javafx.util.Callback;
  *
  */
 public class PadTouch extends Dialog<String> {
+	
+	//--------------------------------//
+	
+	public PadTouch(
+		final char numeric_style,
+		final String numeric_name,
+		final String numeric_value			
+	) {
+		final DialogPane pan = new NumericPad(
+			numeric_style,
+			numeric_name,
+			numeric_value
+		);
+		pan.getButtonTypes().addAll(ButtonType.OK,ButtonType.CANCEL);
+		setDialogPane(pan);		
+	}
+	public PadTouch(
+		final char numeric_pad_style,
+		final String item_name
+	) {
+		this(numeric_pad_style,item_name,"");
+	}
+	public PadTouch(final char numeric_pad_style) {
+		this(numeric_pad_style,"輸入","");
+	}
+	public PadTouch() {
+		this('i',"輸入","");
+	}
 	
 	private class NumericPad extends PadPaneBase {
 		NumericPad(
@@ -130,11 +159,11 @@ public class PadTouch extends Dialog<String> {
 			}
 			
 			final VBox lay0 = new VBox();
-			lay0.getStyleClass().addAll("box-pad-inner");
+			lay0.getStyleClass().addAll("box-pad");
 			lay0.getChildren().addAll(txt[0], txt[1], lay1);				
 			setContent(lay0);
 		}
-		
+
 		private static final int BTN_SIZE = 64;
 		
 		private GridPane gen_number_pad(
@@ -168,32 +197,6 @@ public class PadTouch extends Dialog<String> {
 			return lay;
 		}
 	};
-	
-	public PadTouch(
-		final char numeric_style,
-		final String numeric_name,
-		final String numeric_value			
-	) {
-		DialogPane pan = new NumericPad(
-			numeric_style,
-			numeric_name,
-			numeric_value
-		);
-		setDialogPane(pan);		
-		pan.getButtonTypes().addAll(ButtonType.OK,ButtonType.CANCEL);
-	}
-	public PadTouch(
-		final char numeric_pad_style,
-		final String item_name
-	) {
-		this(numeric_pad_style,item_name,"");
-	}
-	public PadTouch(final char numeric_pad_style) {
-		this(numeric_pad_style,"輸入","");
-	}
-	public PadTouch() {
-		this('i',"輸入","");
-	}
 	
 	private void append(final Button btn, final Label txt) {
 		String v = txt.getText();
@@ -264,18 +267,24 @@ public class PadTouch extends Dialog<String> {
 		}
 		return "0";
 	}
-	
+
 	//--------------------------------//
 	
+	public PadTouch(final String combo_value) {
+		String[] lst = combo_value.split("[,，]");
+		String[][] cmb = new String[lst.length][2];
+		for(int i=0; i<lst.length; i++) {
+			String[] val = lst[i].split("[:=]");
+			cmb[i][0] = val[0].trim();
+			cmb[i][1] = val[1].trim();
+		}
+		final DialogPane pan = new ComboPad(cmb);
+		pan.getButtonTypes().add(ButtonType.CANCEL);
+		setDialogPane(pan);
+	}
+	
 	private class ComboPad extends PadPaneBase {
-		ComboPad(final String combo_value){
-			String[] lst = combo_value.split(",");
-			String[][] cmb = new String[lst.length][2];
-			for(int i=0; i<lst.length; i++) {
-				String[] val = lst[i].split(":");
-				cmb[i][0] = val[0].trim();
-				cmb[i][1] = val[1].trim();
-			}
+		ComboPad(final String[][] cmb){
 			setContent(layout(cmb));
 		}
 		private Node layout(final String[][] combo) {
@@ -298,15 +307,11 @@ public class PadTouch extends Dialog<String> {
 				});
 			}
 			final VBox lay0 = new VBox();
-			lay0.getStyleClass().addAll("box-pad-inner");
+			lay0.getStyleClass().addAll("box-pad");
 			lay0.getChildren().addAll(lst);		
 			return lay0;
 		}
 	};
-		
-	public PadTouch(final String combo_value) {
-		setDialogPane(new ComboPad(combo_value));	
-	}	
 	//--------------------------------//
 	
 	private class PadPaneBase extends DialogPane {
@@ -320,22 +325,29 @@ public class PadTouch extends Dialog<String> {
 			final JFXButton button = new JFXButton(buttonType.getText());
 			button.getStyleClass().addAll("btn-raised-3","font-console");
 			button.setPrefSize(48*2, 48);
-			
+
 	        final ButtonData buttonData = buttonType.getButtonData();
-	        ButtonBar.setButtonData(button, buttonData);
-	        button.setDefaultButton(buttonType != null && buttonData.isDefaultButton());
-	        button.setCancelButton(buttonType != null && buttonData.isCancelButton());
-	        button.addEventHandler(ActionEvent.ACTION, ae -> {
-	            if (ae.isConsumed()) return;
-	            if (this != null) {
-	                this.impl_setResultAndClose(buttonType, true);
-	            }
-	        });
+		    ButtonBar.setButtonData(button, buttonData);
+		    button.setDefaultButton(buttonType != null && buttonData.isDefaultButton());
+		    button.setCancelButton(buttonType != null && buttonData.isCancelButton());
+		    button.addEventHandler(ActionEvent.ACTION, ae -> {
+		    	if (ae.isConsumed()) return;
+		    	if (this != null) {
+		    		this.impl_setResultAndClose(buttonType, true);
+		    	}
+		    });
 	        return button;
 		}
 	    void impl_setResultAndClose(ButtonType cmd, boolean close) {
-	        Callback<ButtonType, String> resultConverter = getResultConverter();
-	        String priorResultValue = getResult();
+	    	if(cmd==ButtonType.CANCEL) {
+	    		//remember!!, close dialog then, set result
+	    		//don't change sequence.....
+	    		close();
+	    		setResult(null);
+	    		return;
+	    	}
+	    	Callback<ButtonType, String> resultConverter = getResultConverter();	        
+	    	String priorResultValue = getResult();
 	        String newResultValue = null;
 	        newResultValue = resultConverter.call(cmd);
 	        setResult(newResultValue);

@@ -18,7 +18,6 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import narl.itrc.DevTTY;
-import narl.itrc.Gawain;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
 
@@ -268,7 +267,7 @@ public class PanTTY extends PanBase {
 	
 	private static void init_dev_name(final ComboBox<String> box){
 		ObservableList<String> lst = box.getItems();
-		if(Gawain.isPOSIX==true){
+		if(Misc.isUnix()==true){
 			//how to list device file??
 			File fs = new File("/dev");
 			String[] names = fs.list(new FilenameFilter(){

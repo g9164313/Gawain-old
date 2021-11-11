@@ -19,6 +19,9 @@ import javafx.stage.Window;
 
 public class Misc {
 	
+	public static boolean isUnix() {
+		return System.getProperty("os.name").toLowerCase().contains("win")==false;
+	}
 	/**
 	 * just show messages, it is like 'stdout'
 	 * @param fmt - pass to 'String.printf()' 

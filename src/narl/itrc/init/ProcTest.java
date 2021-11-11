@@ -14,7 +14,7 @@ public class ProcTest implements Runnable {
 		try {
 			
 			Process pp = new ProcessBuilder("udisksctl","monitor")
-				.directory(Gawain.dirSock)
+				.directory(Gawain.dirRoot)
 				.start();
 			new Thread("looper").start();
 

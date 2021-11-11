@@ -579,6 +579,6 @@ public class LayAbacus extends BorderPane
 		reload(new File(name));
 	}
 	public void reloadLast() {
-		reload(Gawain.pathSock+"mark-2018.xlsx");
+		reload(Gawain.dirRoot.getAbsolutePath()+"mark-2018.xlsx");
 	}
 }

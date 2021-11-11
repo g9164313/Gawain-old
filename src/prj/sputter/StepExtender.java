@@ -271,9 +271,9 @@ abstract class StepExtender extends Stepper {
 	}
 	//------------------------------//
 	
-	private static final File study_fs = new File(Gawain.pathSock+"temp.csv");
+	private static final File study_fs = new File(Gawain.getRootPath()+"temp.csv");
 	
-	protected static final String pathLogStock= Gawain.pathSock+"監控紀錄"+File.separatorChar;
+	protected static final String pathLogStock= Gawain.getRootPath()+"監控紀錄"+File.separatorChar;
 	protected static final String pathLogCache= pathLogStock+"cache"+File.separatorChar;
 	
 	/*private void check_path(final String path) throws Exception {

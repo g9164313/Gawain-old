@@ -13,7 +13,7 @@ import narl.itrc.Gawain;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
 
-public class PanMainV3 extends PanBase {
+public class PanMainV1 extends PanBase {
 	
 	final DevDCG100 dcg1 = new DevDCG100();	
 	final DevSPIK2k spik = new DevSPIK2k();
@@ -23,9 +23,10 @@ public class PanMainV3 extends PanBase {
 	final LayLogger  logger = new LayLogger();		
 	final LayLadder  ladder = new LayLadder(logger,null,dcg1,spik,sqm1);
 	
-	public PanMainV3(final Stage stg) {
+	public PanMainV1(final Stage stg) {
 		super(stg);
-		stage().setOnShown(e->on_shown());
+		stg.setTitle("一號機");
+		stg.setOnShown(e->on_shown());
 	}
 	
 	private void on_shown(){
@@ -66,7 +67,7 @@ public class PanMainV3 extends PanBase {
 			new Tab("製程",ladder),
 			new Tab("裝置",lay3)
 		);
-		lay1.getSelectionModel().select(1);
+		lay1.getSelectionModel().select(0);
 
 		final BorderPane lay0 = new BorderPane();
 		lay0.setCenter(lay1);

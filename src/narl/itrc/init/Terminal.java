@@ -62,7 +62,7 @@ public class Terminal {
 		String txt = "";
 		try {
 			Process proc = new ProcessBuilder(cmd)
-				.directory(Gawain.dirSock)
+				.directory(Gawain.dirRoot)
 				.start();
 			proc.waitFor();
 			InputStream stdin = proc.getInputStream();

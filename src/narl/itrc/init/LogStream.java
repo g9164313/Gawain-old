@@ -200,11 +200,11 @@ public class LogStream {
 		String[] name = {null,null};
 		if(Gawain.propFlag("LOG_KEEP")==true) {
 			String postfix = Misc.getDateName();
-			name[0] = Gawain.pathSock+"stdout-"+postfix+".txt";
-			name[1] = Gawain.pathSock+"stderr-"+postfix+".txt";
+			name[0] = Gawain.getRootPath()+"stdout-"+postfix+".txt";
+			name[1] = Gawain.getRootPath()+"stderr-"+postfix+".txt";
 		}else {
-			name[0] = Gawain.pathSock+"stdout"+".txt";
-			name[1] = Gawain.pathSock+"stderr"+".txt";
+			name[0] = Gawain.getRootPath()+"stdout"+".txt";
+			name[1] = Gawain.getRootPath()+"stderr"+".txt";
 		}
 		pip[0].setFile(name[0]);
 		pip[1].setFile(name[1]);

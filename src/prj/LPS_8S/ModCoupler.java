@@ -74,7 +74,7 @@ public class ModCoupler extends DevModbus {
 	//private final int AOUT_VAL1 = 8005;
 	//private final int AOUT_VAL2 = 8006;
 	private final int AOUT_ARM_BASE_DW_UP = 8013;//base address
-	//private final int AOUT_ARM_BASE_DW = 8013;//下壓
+	private final int AOUT_ARM_BASE_DW = 8013;//下壓
 	private final int AOUT_ARM_BASE_UP = 8014;//上推
 	
 	public final BooleanProperty pumperUnclog = new SimpleBooleanProperty(false);
@@ -85,9 +85,6 @@ public class ModCoupler extends DevModbus {
 	public final IntegerProperty ARM_MVOLT_DW;
 	public final IntegerProperty FD_Q20C_AOUT;
 	
-	public final FloatProperty ARM_PRESS_UP = new SimpleFloatProperty();//unit is MPa
-	public final FloatProperty ARM_PRESS_DW = new SimpleFloatProperty();//unit is MPa
-
 	public Runnable working_press = null;
 	public Runnable working_release = null;
 	public Runnable emerged_press = null;
@@ -104,8 +101,8 @@ public class ModCoupler extends DevModbus {
 		FD_Q20C_AOUT = ain[2] = mapInteger(AIN2_VAL1);
 		ain[3] = mapInteger(AIN2_VAL2);
 		
-		ARM_PRESS_DW.bind(ARM_MVOLT_DW.divide(1000f).multiply(0.1992).subtract(0.1694f));
-		ARM_PRESS_UP.bind(ARM_MVOLT_DW.divide(1000f).multiply(0.1726).subtract(0.1239f)); 
+		ARM_FORCE_DW.bind(ARM_MVOLT_DW.divide(1000f).multiply(2.125f).subtract(1.625f));
+		ARM_FORCE_UP.bind(ARM_MVOLT_UP.divide(1000f).multiply(2.125f).subtract(1.625f)); 
 	}
 	
 	public ModInsider ibus = null;
@@ -207,7 +204,6 @@ public class ModCoupler extends DevModbus {
 		pumperUnclog .set((value&(1<<3))!=0);
 	}
 	
-	
 	private void detect_edge(
 		final int oldVal,
 		final int newVal,
@@ -244,8 +240,89 @@ public class ModCoupler extends DevModbus {
 	private int IBIL_V(final float val) {
 		return (int)(val*3000f);//value change to IBIL format
 	}
+		
+	public final FloatProperty ARM_FORCE_UP = new SimpleFloatProperty();//unit is kgf/cm²
+	public final FloatProperty ARM_FORCE_DW = new SimpleFloatProperty();//unit is kgf/cm²
+
+	/**
+	 * Total ≒ 60psi or 4bar(0.4MPa), 1 MPa=10 kgf/cm²
+	 * IVT2050-31???
+	 * DBNB63N100 -- 內徑:63mm (17mm@2.26cm²)，行程：100mm
+	 * 輸入(V) --> 0~10V --> 0MPa~0.9MPa --> 0kgf~9kgf
+	 * 響應(V) --> 1~5 V --> 0.05MPa~0.9MPa --> 0.5kgf~9kgf -->
+	 * 輸入(V) 指示(MPa) 響應(V)  
+	 * 0      0.05      0.9      
+	 * 1      0.09      1.3      
+	 * 2      0.179     1.7      
+	 * 3      0.27      2.2      
+	 * 4      0.36      2.5      
+	 * 5      0.397     2.7      
+	 */
+	public void cyliApplyForceAll(final float delta) {
+		final float base = 1f;
+		final float up_force = (delta>0.)?(base      ):(base+delta);
+		final float dw_force = (delta>0.)?(base+delta):(base      );
+		final float up_volt = (10f*up_force)/9f;
+		final float dw_volt = (10f*dw_force)/9f;
+		Misc.logv("apply volt(up,dw)=%.3f,%.3f", up_volt, dw_volt);
+		asyncBreakIn(()->{
+			writeVals(AOUT_ARM_BASE_DW_UP, 0, 0);//洩壓
+			blocking_delay(100);
+			writeVals(AOUT_ARM_BASE_DW_UP, IBIL_V(dw_volt), IBIL_V(up_volt));//加壓
+		});
+	}
+	public void cyliApplyForceUp(final float value) {
+		cyli_apply_force(AOUT_ARM_BASE_UP,value);
+	}
+	public void cyliApplyForceDw(final float value) {
+		cyli_apply_force(AOUT_ARM_BASE_DW,value);
+	}	
+	private void cyli_apply_force(final int addr,final float value) {
+		float v = (10f*value)/9f;
+		if(v>=10) {
+			v=10f;
+		}else if(v<=0){
+			v= 0f;
+		}
+		final float volt = v;
+		asyncBreakIn(()->{
+			writeVals(addr, IBIL_V(volt));
+			blocking_delay(100);
+		});
+	}
+	public void cyliForceRelease() {
+		asyncBreakIn(()->{
+			writeVals(AOUT_ARM_BASE_DW_UP, 0, 0);//洩壓
+			blocking_delay(100);
+		});
+	}
+
+	private Runnable act_arm_up = ()->{asyncBreakIn(()->{
+		writeVals(AOUT_ARM_BASE_DW_UP, 0, 0);//洩壓
+		blocking_delay(100);
+		writeVals(AOUT_ARM_BASE_DW_UP, 0, IBIL_V((2.0f*10f)/9f));
+		blocking_delay(10);
+		writeVals(AOUT_ARM_BASE_DW_UP, 0, IBIL_V((0.7f*10f)/9f));
+		blocking_delay(10);
+		writeVals(AOUT_ARM_BASE_DW_UP, 0, IBIL_V((0.3f*10f)/9f));
+		blocking_delay(10);
+		writeVals(AOUT_ARM_BASE_DW_UP, 0, IBIL_V((0.1f*10f)/9f));
+		blocking_delay(10);
+		writeVals(AOUT_ARM_BASE_DW_UP, 0, 0);//洩壓
+	});};
+	private Runnable act_arm_dw = ()->{asyncBreakIn(()->{
+		writeVals(AOUT_ARM_BASE_DW_UP, 0, 0);//洩壓
+		blocking_delay(100);
+		writeVals(AOUT_ARM_BASE_DW_UP, IBIL_V((2.0f*10f)/9f), 0);
+		blocking_delay(10);
+		writeVals(AOUT_ARM_BASE_DW_UP, IBIL_V((0.7f*10f)/9f), IBIL_V((0.5f*10f)/9f));
+		blocking_delay(10);
+		writeVals(AOUT_ARM_BASE_DW_UP, IBIL_V((0.3f*10f)/9f), IBIL_V((0.3f*10f)/9f));
+		blocking_delay(10);	
+	});};
 	
-	private Runnable act_arm_up = ()->{
+	/*private Runnable act_arm_up = ()->{
+		//抬升手臂~~~
 		writeVals(
 			AOUT_ARM_BASE_DW_UP, 
 			IBIL_V(0.0f),
@@ -256,7 +333,6 @@ public class ModCoupler extends DevModbus {
 		blocking_delay(150);
 		writeVals(AOUT_ARM_BASE_UP, IBIL_V(ArmUpSP3));
 	};
-
 	private Runnable act_arm_dw = ()->{
 		//將手臂保持水平位置~~~
 		writeVals(
@@ -270,32 +346,15 @@ public class ModCoupler extends DevModbus {
 			IBIL_V(ArmDwSP2_1),
 			IBIL_V(ArmDwSP2_2)
 		);
-	};
+	};*/
 	
-	public FloatProperty armForceDw = new SimpleFloatProperty(1.0f);
-	public FloatProperty armForceUp = new SimpleFloatProperty(0.7f);
-	
-	public void armPressProp(final float dw, final float up) {
-		armForceDw.set(dw);
-		armForceUp.set(up);
-	}
-	
-	public void armPression() {
-		final float dw = armForceDw.get();
-		final float up = armForceUp.get();
-		asyncBreakIn(()->{
-			writeVals(AOUT_ARM_BASE_DW_UP, IBIL_V(dw), IBIL_V(up));
-		});
-	}	
-	public void armPression(final float dw, final float up) {
-		asyncBreakIn(()->{
-			writeVals(AOUT_ARM_BASE_DW_UP, IBIL_V(dw), IBIL_V(up));
-		});
+	public boolean isArmSuspend() {
+		return (din.get() & (1<<1))!=0;
 	}
 	
 	public void pumpSlurry(final boolean flg) {asyncBreakIn(()->{
 		if(flg) {
-			writeSet(DOUT_ADDR1,0);// 開汞  and 開水
+			writeSet(DOUT_ADDR1,0);// 開汞 and 開水
 		}else {
 			writeCls(DOUT_ADDR1,0);// 關汞 and 關水
 		}

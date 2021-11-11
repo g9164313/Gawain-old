@@ -127,7 +127,7 @@ public class TestUnit3 extends PanBase {
 	
 	private double[][] test() throws IOException {
 		DataFormatter fmt = new DataFormatter();
-		File fs = new File(Gawain.pathSock+"製程紀錄-20210625-1416.xlsx");
+		File fs = new File(Gawain.getRootPath()+"製程紀錄-20210625-1416.xlsx");
 		Workbook wb = WorkbookFactory.create(fs);
 		FormulaEvaluator eva = wb.getCreationHelper().createFormulaEvaluator();
 		Sheet sh = wb.getSheetAt(1);

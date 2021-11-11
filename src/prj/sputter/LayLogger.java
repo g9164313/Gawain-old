@@ -62,7 +62,7 @@ public class LayLogger extends BorderPane {
 		btn_review.setOnAction(e->{
 			final FileChooser diag = new FileChooser();
 			diag.setTitle("");
-			diag.setInitialDirectory(Gawain.dirSock);
+			diag.setInitialDirectory(Gawain.dirRoot);
 			diag.getExtensionFilters().add(new FileChooser.ExtensionFilter("紀錄檔","*.txt","*.obj"));
 			final File fs = diag.showOpenDialog(Misc.getParent(e));
 			if(fs==null) {
@@ -104,7 +104,7 @@ public class LayLogger extends BorderPane {
 	private Optional<Badge> badge = Optional.empty();
 	*/
 
-	private static final String pathLogStock = Gawain.pathSock+"監控紀錄"+File.separatorChar;
+	private static final String pathLogStock = Gawain.getRootPath()+"監控紀錄"+File.separatorChar;
 	private static final String pathLogCache = pathLogStock+"cache"+File.separatorChar;	
 	private static final SimpleDateFormat fmt_time = new SimpleDateFormat("HH:mm:ss.SSS");
 	
@@ -430,7 +430,7 @@ public class LayLogger extends BorderPane {
 	}
 	//-----------------------------------------------//
 	
-	private final Tile gag[] = new Tile[10];
+	private final Tile gag[] = new Tile[9];
 
 	public static Optional<Tile> gag_thick = Optional.empty();
 	
@@ -506,12 +506,12 @@ public class LayLogger extends BorderPane {
 			.build();
 		gag[8].setDecimals(2);
 
-		gag[9] = TileBuilder.create()
+		/*gag[9] = TileBuilder.create()
 			.skinType(SkinType.SPARK_LINE)
 			.title("ARC")
 			.unit("次數")
 			.build();
-		gag[9].setId("spik_arc");
+		gag[9].setId("spik_arc");*/
 			
 		for(Tile obj:gag) {
 			obj.setMaxSize(178.,178.);
@@ -521,7 +521,7 @@ public class LayLogger extends BorderPane {
 		lay.addRow(0, gag[0],gag[1],gag[2]);
 		lay.addRow(1, gag[3],gag[4],gag[5]);
 		lay.addRow(2, gag[6],gag[7],gag[8]);
-		lay.addRow(3, gag[9]);
+		//lay.addRow(3, gag[9]);
 		return lay;
 	}
 	

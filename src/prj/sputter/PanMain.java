@@ -27,7 +27,8 @@ public class PanMain extends PanBase {
 	
 	public PanMain(final Stage stg) {
 		super(stg);
-		stage().setOnShown(e->on_shown());
+		stg.setTitle("濺鍍機");
+		stg.setOnShown(e->on_shown());
 	}
 	
 	private void on_shown(){

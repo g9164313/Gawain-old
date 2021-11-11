@@ -24,18 +24,9 @@ public class Loader {
 		PanSplash.updateProgress(-1,-1);
 	}
 	
-	private static void check_socket_dir() {
-		PanSplash.updateMessage("準備資源... ");
-		final File fs = new File(Gawain.pathSock);
-		if(fs.exists()==false) {
-			//In fact, logger will create this directory
-			if(fs.mkdirs()==false) {
-				PanSplash.updateMessage("致命錯誤，無法建立資料夾！！");
-				System.exit(-1);
-			}
-		}
-		
+	private static void check_socket_dir() {		
 		//step.1: scan resource files in package
+		PanSplash.updateMessage("開始準備資源... ");
 		final String appx = "^.class;.css";
 		final URL url = Loader.class.getResource("/narl/itrc/res");
 		if(url==null) {
@@ -48,12 +39,14 @@ public class Loader {
 			appx, lstRes
 		);
 		//step.2: list files in sock directory
+		PanSplash.updateMessage("檢查內部資料夾...");
 		ArrayList<File> lstSock = new ArrayList<File>();
 		Misc.listFiles(
-			Gawain.dirSock,false,
+			Gawain.dirRoot,false,
 			appx, lstSock
-		);
+		);		
 		//step.3: check whether we need to copy it
+		PanSplash.updateMessage("複製資料...");
 		for(int i=0; i<lstRes.size(); i++) {
 			PanSplash.updateProgress(i+1, lstRes.size());
 			File rr = lstRes.get(i);
@@ -72,7 +65,7 @@ public class Loader {
 				try {
 					Files.copy(
 						rr.toPath(), 
-						new File(Gawain.pathSock+rr.getName()).toPath()
+						new File(Gawain.getRootPath()+rr.getName()).toPath()
 					);
 				} catch (IOException e) {					
 					e.printStackTrace();
@@ -85,14 +78,16 @@ public class Loader {
 		
 		LinkedList<LibFile> lst = new LinkedList<LibFile>();
 		
-		util_list_all(Gawain.pathSock,lst);
+		PanSplash.updateMessage("讀取原生函式庫...");
+		util_list_all(Gawain.getRootPath(),lst,false);
+		
 		for(String key:Gawain.prop().stringPropertyNames()) {
 			if(key.matches("LIB_PATH[\\d]*")==false) {
 				continue;
 			}
 			String path = Gawain.prop().getProperty(key);
-			PanSplash.updateMessage("列舉: "+path);
-			util_list_all(path,lst);
+			PanSplash.updateMessage("原生函式庫: "+path);
+			util_list_all(path,lst,true);
 		}
 				
 		int barCur=0, barMax=lst.size();
@@ -105,19 +100,27 @@ public class Loader {
 				String name = fs.getName();
 				Misc.logv("load "+name);
 				barCur+=1L;
-				PanSplash.updateMessage("載入依賴："+name);
+				PanSplash.updateMessage("載入："+name);
 				PanSplash.updateProgress(barCur, barMax);				
 			} catch (UnsatisfiedLinkError e1) {
 				fs.fail+=1;
 				if(fs.fail>(barMax-barCur)){
 					//we can't solve the dependency problem, so drop it out.
-					PanSplash.updateMessage("拋棄："+fs.getName());//fs.getAbsolutePath()
-					break;
+					lst.remove(fs);
+					PanSplash.updateMessage("拋棄："+fs.getName());//fs.getAbsolutePath()					
 				}else{
 					//this file have the dependency problem, deal with it later.
 					lst.addLast(fs);
 					PanSplash.updateMessage("重排："+fs.getName());
-				}				
+				}
+			} catch (SecurityException e2) {
+				//we can't handle this error, just drop this file~~~
+				lst.remove(fs);
+				PanSplash.updateMessage("安全問題："+fs.getName());
+			} catch (NullPointerException e3) {
+				//we can't handle this error, just drop this file~~~
+				lst.remove(fs);
+				PanSplash.updateMessage("非法檔名："+fs.getName());
 			}			
 		}
 	}
@@ -183,7 +186,11 @@ public class Loader {
 	 * @param rootName - path
 	 * @param lst - result
 	 */
-	public static void util_list_all(String rootName, LinkedList<LibFile> lst) {
+	public static void util_list_all(
+		final String rootName, 
+		final LinkedList<LibFile> lst,
+		final boolean travel
+	) {
 		
 		File dir = new File(rootName);
 		if(dir.exists()==false){
@@ -198,8 +205,8 @@ public class Loader {
 	        	if(tkn.isValid()==true){
 	        		lst.add(tkn);
 	        	}
-	        }else if(fs.isDirectory()==true){
-	        	util_list_all(fs.getAbsolutePath(), lst);
+	        }else if(fs.isDirectory()==true && travel==true){
+	        	util_list_all(fs.getAbsolutePath(), lst, travel);
 	        }
 	    }
 	}
@@ -237,7 +244,7 @@ public class Loader {
 		/**
 		 * there is difference about suffix.
 		 */
-		private final String suffix = (Gawain.isPOSIX==true)?(".so"):(".dll");  
+		private final String suffix = (Misc.isUnix()==true)?(".so"):(".dll");  
 		public int fail = 0;
 		public LibFile(String pathname) {
 			super(pathname);
@@ -249,7 +256,7 @@ public class Loader {
 				return name;
 			}
 			name = name.substring(0,pos);
-			if(Gawain.isPOSIX==true){
+			if(Misc.isUnix()==true){
 				if(name.startsWith("lib")==true){
 					name = name.substring(3);
 				}
@@ -270,7 +277,7 @@ public class Loader {
 			}
 			String name = getName();	
 			if(name.endsWith(suffix)==true){	        		
-	    		if(Gawain.isPOSIX==true){
+	    		if(Misc.isUnix()==true){
 	    			if(name.startsWith("lib")==true){
 	    				return true;
 	    			}

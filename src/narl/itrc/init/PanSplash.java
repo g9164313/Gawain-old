@@ -34,7 +34,7 @@ public class PanSplash extends Application {
 		//do layout~~~
 		final ImageView img = Misc.getIconView("logo.jpg");
 		
-		final Label txt = new Label("ggyy");		
+		final Label txt = new Label("");		
 		
 		final ProgressBar bar = new ProgressBar();
 		bar.prefWidthProperty().bind(stg.widthProperty().subtract(3));
@@ -149,16 +149,14 @@ public class PanSplash extends Application {
 				return;
 			}
 		}		
-		if(argv.length!=0) {
-			for(String txt:argv) {
-				//System.out.print(txt);
-				if(txt.equals(ARG_TAG)==true) {
-					launch();
-					break;
-				}
+		
+		//check all arguments, decide whether this is child process (process-bar)~~
+		for(int i=0; i<argv.length; i++){
+			if(argv[i].equals(ARG_TAG)==true){
+				launch(argv);
+				return;
 			}
-			System.exit(-88);
-		}
+		}		
 		
 		final String cmd = System.getProperty("java.home") + 
 			File.separatorChar + "bin" + 
@@ -168,20 +166,21 @@ public class PanSplash extends Application {
 			ProcessBuilder build = new ProcessBuilder();
 			if(Gawain.jarName.length()==0) {
 				//when we are debugging(in IDE), there is no jar file.					
-				String clp = Gawain.prop().getProperty("CLASSPATH", "");
-				if(clp.length()==0) {
-					//no class-path will fail~~
-					return; 
-				}
-				build.command(cmd,"-classpath",clp,"narl.itrc.Gawain",ARG_TAG);
+				String clp = new File(".").getAbsolutePath()+File.separatorChar+"bin";
+				build.command(cmd,
+					"-classpath",clp,"narl.itrc.Gawain",
+					ARG_TAG
+				);
 			}else {
-				build.command(cmd,"-jar",Gawain.jarName,ARG_TAG);
+				build.command(cmd,
+					"-jar",Gawain.jarName,
+					ARG_TAG
+				);
 			}
 			//build.redirectError(new File("splash.err"));
 			//build.redirectOutput(new File("splash.txt"));
 			Process proc = build.start();
 			writer = new PrintWriter(proc.getOutputStream());
-
 		} catch (IOException e) {
 		}
 	}
