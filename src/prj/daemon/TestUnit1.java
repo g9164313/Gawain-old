@@ -11,13 +11,14 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
 import narl.itrc.DevBase;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
 
 public class TestUnit1 extends PanBase {
 
-	public TestUnit1() {		
+	public TestUnit1(final Stage stg) {		
 	}
 	
 	private DevShapeoko shko = new DevShapeoko();

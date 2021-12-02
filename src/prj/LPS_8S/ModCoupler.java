@@ -101,8 +101,8 @@ public class ModCoupler extends DevModbus {
 		FD_Q20C_AOUT = ain[2] = mapInteger(AIN2_VAL1);
 		ain[3] = mapInteger(AIN2_VAL2);
 		
-		ARM_FORCE_DW.bind(ARM_MVOLT_DW.divide(1000f).multiply(2.125f).subtract(1.625f));
-		ARM_FORCE_UP.bind(ARM_MVOLT_UP.divide(1000f).multiply(2.125f).subtract(1.625f)); 
+		ARM_FORCE_DW.bind(ARM_MVOLT_DW.divide(1000f).multiply(1.998f).add(-1.52f));
+		ARM_FORCE_UP.bind(ARM_MVOLT_UP.divide(1000f).multiply(1.998f).add(-1.52f)); 
 	}
 	
 	public ModInsider ibus = null;
@@ -223,20 +223,6 @@ public class ModCoupler extends DevModbus {
 		}
 	}
 	
-	//public float ArmUpSP2 = 0.3f;//good for 主軸伸 0mm
-	//public float ArmUpSP3 = 0.1f;//good for 主軸伸 0mm
-	public float ArmUpSP2 = 0.9f;//good for 主軸伸 180mm
-	public float ArmUpSP3 = 0.1f;//good for 主軸伸 180mm
-	//public float ArmUpSP2 = 1.2f;//good for 主軸伸 250mm
-	//public float ArmUpSP3 = 0.2f;//good for 主軸伸 250mm
-	
-	//public float ArmDwSP2_1 = 0.9f;//good for 主軸伸 0mm
-	//public float ArmDwSP2_2 = 1.1f;//good for 主軸伸 0mm
-	public float ArmDwSP2_1 = 1.7f;//good for 主軸伸 180mm
-	public float ArmDwSP2_2 = 2.2f;//good for 主軸伸 180mm
-	//public float ArmDwSP2_1 = 1.9f;//good for 主軸伸 250mm
-	//public float ArmDwSP2_2 = 2.5f;//good for 主軸伸 250mm
-	
 	private int IBIL_V(final float val) {
 		return (int)(val*3000f);//value change to IBIL format
 	}
@@ -259,6 +245,10 @@ public class ModCoupler extends DevModbus {
 	 * 5      0.397     2.7      
 	 */
 	public void cyliApplyForceAll(final float delta) {
+		if(delta==0f) {
+			cyliForceRelease();
+			return;
+		}
 		final float base = 1f;
 		final float up_force = (delta>0.)?(base      ):(base+delta);
 		final float dw_force = (delta>0.)?(base+delta):(base      );
@@ -290,64 +280,38 @@ public class ModCoupler extends DevModbus {
 			blocking_delay(100);
 		});
 	}
-	public void cyliForceRelease() {
-		asyncBreakIn(()->{
-			writeVals(AOUT_ARM_BASE_DW_UP, 0, 0);//洩壓
-			blocking_delay(100);
-		});
+	public void cyliForceRelease() {asyncBreakIn(()->{
+			cyli_force_release();
+	});}
+	private void cyli_force_release() {
+		writeVals(AOUT_ARM_BASE_DW_UP, 0, 0);//洩壓
+		blocking_delay(500);
 	}
-
+	private void cyli_force_setpoint(final float[][] sp) {
+		for(int i=0; i<sp.length; i++) {
+			final int v_dw = IBIL_V((sp[i][0]*10f)/9f);
+			final int v_up = IBIL_V((sp[i][1]*10f)/9f);
+			writeVals(AOUT_ARM_BASE_DW_UP, v_dw, v_up);
+			blocking_delay((int)sp[i][2]);
+		}
+	}
 	private Runnable act_arm_up = ()->{asyncBreakIn(()->{
-		writeVals(AOUT_ARM_BASE_DW_UP, 0, 0);//洩壓
-		blocking_delay(100);
-		writeVals(AOUT_ARM_BASE_DW_UP, 0, IBIL_V((2.0f*10f)/9f));
-		blocking_delay(10);
-		writeVals(AOUT_ARM_BASE_DW_UP, 0, IBIL_V((0.7f*10f)/9f));
-		blocking_delay(10);
-		writeVals(AOUT_ARM_BASE_DW_UP, 0, IBIL_V((0.3f*10f)/9f));
-		blocking_delay(10);
-		writeVals(AOUT_ARM_BASE_DW_UP, 0, IBIL_V((0.1f*10f)/9f));
-		blocking_delay(10);
-		writeVals(AOUT_ARM_BASE_DW_UP, 0, 0);//洩壓
+		//cyli_force_release();
+		final float sp[][] = {
+			{0.7f, 2.1f, 300f},
+			{1.1f, 1.6f, 10f},
+		};
+		cyli_force_setpoint(sp);
 	});};
 	private Runnable act_arm_dw = ()->{asyncBreakIn(()->{
-		writeVals(AOUT_ARM_BASE_DW_UP, 0, 0);//洩壓
-		blocking_delay(100);
-		writeVals(AOUT_ARM_BASE_DW_UP, IBIL_V((2.0f*10f)/9f), 0);
-		blocking_delay(10);
-		writeVals(AOUT_ARM_BASE_DW_UP, IBIL_V((0.7f*10f)/9f), IBIL_V((0.5f*10f)/9f));
-		blocking_delay(10);
-		writeVals(AOUT_ARM_BASE_DW_UP, IBIL_V((0.3f*10f)/9f), IBIL_V((0.3f*10f)/9f));
-		blocking_delay(10);	
+		//cyli_force_release();
+		final float sp[][] = {
+			{1.5f, 1.1f, 550f},
+			{1.7f, 2.1f, 10f},
+		};
+		cyli_force_setpoint(sp);
 	});};
-	
-	/*private Runnable act_arm_up = ()->{
-		//抬升手臂~~~
-		writeVals(
-			AOUT_ARM_BASE_DW_UP, 
-			IBIL_V(0.0f),
-			IBIL_V(1.0f)
-		);
-		blocking_delay(250);
-		writeVals(AOUT_ARM_BASE_UP, IBIL_V(ArmUpSP2));
-		blocking_delay(150);
-		writeVals(AOUT_ARM_BASE_UP, IBIL_V(ArmUpSP3));
-	};
-	private Runnable act_arm_dw = ()->{
-		//將手臂保持水平位置~~~
-		writeVals(
-			AOUT_ARM_BASE_DW_UP, 
-			IBIL_V(1.0f),
-			IBIL_V(0.3f)
-		);
-		blocking_delay(450);		
-		writeVals(
-			AOUT_ARM_BASE_DW_UP, 
-			IBIL_V(ArmDwSP2_1),
-			IBIL_V(ArmDwSP2_2)
-		);
-	};*/
-	
+
 	public boolean isArmSuspend() {
 		return (din.get() & (1<<1))!=0;
 	}

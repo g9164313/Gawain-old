@@ -195,7 +195,6 @@ public class PanMain extends PanBase {
 		lay0.setCenter(gen_panel_gauge());
 		lay0.setRight(new HBox(
 			new VBox(
-				gen_arm_setting(),
 				gen_motorB_setting("加壓軸",ModInsider.ID_PRESS),
 				gen_motorB_setting("擺動軸",ModInsider.ID_SWING)
 			),
@@ -256,52 +255,6 @@ public class PanMain extends PanBase {
 		lay.add(rad[0], 0, 1, 2, 1);
 		lay.add(rad[1], 0, 2, 2, 1);
 		lay.add(btn   , 0, 3, 2, 1);
-		return lay;
-	}
-	
-	private Pane gen_arm_setting() {
-		
-		final ToggleGroup grp = new ToggleGroup();
-		final JFXRadioButton[] rad = {
-			new JFXRadioButton("臂長-短"),
-			new JFXRadioButton("臂長-中"),
-			new JFXRadioButton("臂長-長"),
-		};
-		rad[0].setOnAction(e->{
-			coup.ArmUpSP2  = 0.3f; 
-			coup.ArmUpSP3  = 0.1f;
-			coup.ArmDwSP2_1= 0.9f;
-			coup.ArmDwSP2_2= 1.1f;
-		});
-		rad[1].setOnAction(e->{
-			coup.ArmUpSP2  = 0.9f; 
-			coup.ArmUpSP3  = 0.1f;
-			coup.ArmDwSP2_1= 1.7f;
-			coup.ArmDwSP2_2= 2.2f;
-		});
-		rad[2].setOnAction(e->{
-			coup.ArmUpSP2  = 1.3f; 
-			coup.ArmUpSP3  = 0.1f;
-			coup.ArmDwSP2_1= 1.9f;
-			coup.ArmDwSP2_2= 2.5f;
-		});		
-		rad[2].setSelected(true);
-		for(JFXRadioButton obj:rad) {
-			obj.setToggleGroup(grp);
-			if(obj.isSelected()==true) {
-				obj.getOnAction().handle(null);
-			}
-		}
-				
-		final GridPane lay = new GridPane();		
-		lay.getStyleClass().addAll("box-pad","box-border","font-size7");
-		lay.add(new Label("手臂設定"), 0, 0, 2, 1);
-		lay.disableProperty().bind(tglMotorMajor.selectedProperty().or(tglMotorOther.selectedProperty()));
-		lay.add(rad[0], 0, 1, 2, 1);
-		lay.add(rad[1], 0, 2, 2, 1);
-		lay.add(rad[2], 0, 3, 2, 1);
-		//lay.add(btn_cyli_apply  , 0, 6, 2, 1);
-		//lay.add(btn_cyli_release, 0, 7, 2, 1);
 		return lay;
 	}
 	
@@ -507,7 +460,7 @@ public class PanMain extends PanBase {
 		});
 		
 		tile[6] = TileBuilder.create()
-			.skinType(SkinType.GAUGE2)
+			.skinType(SkinType.GAUGE_SPARK_LINE)
 			.textSize(TextSize.BIGGER)
 			.title(TXT_CYLI_DELTA)			
 			.unit("kgf/cm²")

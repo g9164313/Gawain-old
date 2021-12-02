@@ -11,8 +11,8 @@ import com.sun.glass.ui.Application;
 import javafx.beans.property.ReadOnlyStringProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+import jssc.SerialPort;
 
-@SuppressWarnings("restriction")
 public abstract class DevBase implements Runnable {
 	
 	protected String TAG = "DevBase";
@@ -232,5 +232,83 @@ public abstract class DevBase implements Runnable {
 		} catch (InterruptedException e1) {
 		}
 	}
+	
+	//-----------------------------------//
+	
+	public static class TTY_NAME {
+		
+		public String path = "";
+		public int baudrate = SerialPort.BAUDRATE_9600;
+		public int databit = SerialPort.DATABITS_8;
+		public int stopbit = SerialPort.PARITY_NONE;
+		public int parity = SerialPort.STOPBITS_1;
+		/*
+		 * Open tty device and parser name text.<p>
+		 * Format is "[device name/path]:[baud rate],[data bits][mask][stop bit]".<p>
+		 * Data bit:<p>
+		 *   7,8 <p>
+		 * Mask type:<p>
+		 *   'n' mean "none".<p>
+		 *   'o' mean "odd".<p>
+		 *   'e' mean "event".<p>
+		 *   'm' mean "mark".<p>
+		 *   's' mean "space".<p>
+		 * Stop bit:<p>
+		 *   1,2 <p>
+		 */
+		public TTY_NAME(final String txt) {
+			if(txt.matches("^[\\/\\w]{3,}[:][\\d]{3,}[,][5678][noems][123]")==false) {
+				Misc.loge("invalid tty name pattern: %s", txt);
+				return;
+			}			
+			String[] val = txt.split("[:,]");
+			if(val.length!=3) {
+				return;
+			}
+			
+			path = val[0];//let jssc decide whether name is valid~~~
+
+			int baud = Integer.valueOf(val[1]);
+			switch(baud){
+			case    300: baudrate = SerialPort.BAUDRATE_300; break;
+			case    600: baudrate = SerialPort.BAUDRATE_600; break;
+			case   1200: baudrate = SerialPort.BAUDRATE_1200; break;
+			case   2400: baudrate = SerialPort.BAUDRATE_2400; break;
+			case   4800: baudrate = SerialPort.BAUDRATE_4800; break;
+			case   9600: baudrate = SerialPort.BAUDRATE_9600; break;
+			case  14400: baudrate = SerialPort.BAUDRATE_14400; break;
+			case  19200: baudrate = SerialPort.BAUDRATE_19200; break;
+			case  38400: baudrate = SerialPort.BAUDRATE_38400; break;
+			case  57600: baudrate = SerialPort.BAUDRATE_57600; break;
+			case 115200: baudrate = SerialPort.BAUDRATE_115200; break;
+			case 128000: baudrate = SerialPort.BAUDRATE_128000; break;
+			case 256000: baudrate = SerialPort.BAUDRATE_256000; break;
+			default:
+				baudrate = baud;
+				Misc.loge("invalid baudrate value: %d", baud);
+				break;
+			}
+						
+			final char[] attr = val[2].toLowerCase().toCharArray();
+			switch(attr[0]) {
+			case '5': databit = SerialPort.DATABITS_5; break;
+			case '6': databit = SerialPort.DATABITS_6; break;
+			case '7': databit = SerialPort.DATABITS_7; break;
+			case '8': databit = SerialPort.DATABITS_8; break;
+			}
+			switch(attr[1]) {
+			case 'n': parity = SerialPort.PARITY_NONE; break;
+			case 'o': parity = SerialPort.PARITY_ODD;  break;
+			case 'e': parity = SerialPort.PARITY_EVEN; break;
+			case 'm': parity = SerialPort.PARITY_MARK; break;
+			case 's': parity = SerialPort.PARITY_SPACE;break;
+			}
+			switch(attr[2]) {
+			case '1': stopbit = SerialPort.STOPBITS_1; break;
+			case '2': stopbit = SerialPort.STOPBITS_2; break;
+			case '3': stopbit = SerialPort.STOPBITS_1_5; break;
+			}
+		}
+	};
 }
 

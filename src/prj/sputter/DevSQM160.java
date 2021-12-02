@@ -32,6 +32,11 @@ import narl.itrc.Gawain;
 import narl.itrc.Misc;
 import narl.itrc.PadTouch;
 
+/**
+ * INFICON STM-160 Milti-Film Rate/Thickness Monitor.<p>
+ * @author qq
+ *
+ */
 public class DevSQM160 extends DevTTY {
 
 	public DevSQM160() {

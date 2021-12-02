@@ -165,12 +165,14 @@ public class PanSplash extends Application {
 		try {
 			ProcessBuilder build = new ProcessBuilder();
 			if(Gawain.jarName.length()==0) {
+				//we are debugging(in IDE), let program just running~~~~
+				return;				
 				//when we are debugging(in IDE), there is no jar file.					
-				String clp = new File(".").getAbsolutePath()+File.separatorChar+"bin";
+				/*String clp = new File(".").getAbsolutePath()+File.separatorChar+"bin";
 				build.command(cmd,
 					"-classpath",clp,"narl.itrc.Gawain",
 					ARG_TAG
-				);
+				);*/
 			}else {
 				build.command(cmd,
 					"-jar",Gawain.jarName,

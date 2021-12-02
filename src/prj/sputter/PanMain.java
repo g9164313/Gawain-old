@@ -19,6 +19,7 @@ public class PanMain extends PanBase {
 	final DevDCG100 dcg1 = new DevDCG100();	
 	final DevSPIK2k spik = new DevSPIK2k();
 	final DevSQM160 sqm1 = new DevSQM160();
+	final DevSQM2Usb sqm2 = new DevSQM2Usb();
 	
 	//final LayGauges gauges = LayGauges.getInstance();
 	final LayLogger  logger = new LayLogger();	
@@ -52,10 +53,13 @@ public class PanMain extends PanBase {
 			sqm1.open(arg);
 			logger.bindProperty(sqm1);
 		}
+		sqm2.open();
 	}
 	
 	@Override
 	public Pane eventLayout(PanBase self) {
+		//rad[0].setDisable(true);
+		//rad[0].setStyle("-fx-opacity: 1.0;");
 		
 		final HBox lay3 = new HBox();
 		lay3.getStyleClass().addAll("box-pad");
@@ -78,21 +82,30 @@ public class PanMain extends PanBase {
 		lay1.getSelectionModel().select(2);
 
 		final BorderPane lay0 = new BorderPane();
-		lay0.setCenter(lay1);
+		lay0.setLeft(lay_info());
+		lay0.setCenter(lay1);		
 		lay0.setRight(lay_ctrl());
 		return lay0;
 	}
 	
+	private Pane lay_info() {
+		final VBox lay = new VBox();
+		lay.getStyleClass().addAll("box-pad");
+		lay.getChildren().addAll(
+			Misc.addBorder(DevSQM2Usb.genCtrlPanel(sqm2)),
+			Misc.addBorder(DevSQM160.genCtrlPanel(sqm1))	
+		);
+		return lay;
+	}	
 	private Pane lay_ctrl() {
-		//rad[0].setDisable(true);
-		//rad[0].setStyle("-fx-opacity: 1.0;");		
-		final VBox lay0 = new VBox();
-		lay0.getStyleClass().addAll("box-pad");
-		lay0.getChildren().add(Misc.addBorder(DevSQM160.genCtrlPanel(sqm1)));
-		lay0.getChildren().add(Misc.addBorder(StepGunsHub.genCtrlPanel()));
-		lay0.getChildren().add(Misc.addBorder(StepFlowCtrl.genCtrlPanel()));		
-		lay0.getChildren().add(Misc.addBorder(DevDCG100.genCtrlPanel(dcg1)));				
-		return lay0;
+		final VBox lay = new VBox();
+		lay.getStyleClass().addAll("box-pad");
+		lay.getChildren().addAll(
+			Misc.addBorder(StepGunsHub.genCtrlPanel()),
+			Misc.addBorder(StepFlowCtrl.genCtrlPanel()),		
+			Misc.addBorder(DevDCG100.genCtrlPanel(dcg1))
+		);				
+		return lay;
 	}
 }
 
