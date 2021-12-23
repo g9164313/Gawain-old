@@ -249,10 +249,10 @@ abstract class StepExtender extends Stepper {
 		final float amps = dcg.amps.get();				
 		final int   watt = (int)dcg.watt.get();
 		
-		final float rate = sqm.rate[0].get();
+		final float rate = sqm.meanRate.get();
 		final String unit1 = sqm.unitRate.get();
 		
-		final float high = sqm.thick[0].get();
+		final float high = sqm.meanThick.get();
 		final String unit2 = sqm.unitThick.get();
 		
 		final float mfc1 = cup.PV_FlowAr.get();

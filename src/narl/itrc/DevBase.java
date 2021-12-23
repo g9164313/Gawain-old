@@ -77,7 +77,7 @@ public abstract class DevBase implements Runnable {
 			}else {
 				work.run();
 			}
-		};
+		}
 		Misc.logv("%s --> close", TAG);
 	}
 
@@ -257,7 +257,7 @@ public abstract class DevBase implements Runnable {
 		 *   1,2 <p>
 		 */
 		public TTY_NAME(final String txt) {
-			if(txt.matches("^[\\/\\w]{3,}[:][\\d]{3,}[,][5678][noems][123]")==false) {
+			if(txt.matches("^[\\/\\w]{3,}[:,][\\d]{3,}[,][5678][noems][123]")==false) {
 				Misc.loge("invalid tty name pattern: %s", txt);
 				return;
 			}			

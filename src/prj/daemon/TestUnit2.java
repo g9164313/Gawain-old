@@ -3,6 +3,7 @@ package prj.daemon;
 import javafx.animation.Interpolator;
 import javafx.animation.RotateTransition;
 import javafx.scene.Group;
+import javafx.scene.Node;
 import javafx.scene.PerspectiveCamera;
 import javafx.scene.SubScene;
 import javafx.scene.layout.Pane;
@@ -60,7 +61,7 @@ public class TestUnit2 extends PanBase {
 	}
 
 	@Override
-	public Pane eventLayout(PanBase self) {
+	public Node eventLayout(PanBase self) {
 		
 		/*MeshView obj = loadMeshView();
 		

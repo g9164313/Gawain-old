@@ -540,7 +540,7 @@ public class LayLadder extends Ladder {
 		
 		final Runnable op4 = ()->{
 			
-			stat_rate.addValue(sqm1.rate[0].get());			
+			stat_rate.addValue(sqm1.meanRate.get());			
 			
 			final int nn = (int)stat_rate.getN();
 			final int ww = stat_rate.getWindowSize();

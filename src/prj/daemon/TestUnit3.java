@@ -22,6 +22,7 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 
+import javafx.scene.Node;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
@@ -162,7 +163,7 @@ public class TestUnit3 extends PanBase {
 	}
 	
 	@Override
-	public Pane eventLayout(PanBase self) {
+	public Node eventLayout(PanBase self) {
 		
 		final BorderPane lay = new BorderPane();
 		return lay;

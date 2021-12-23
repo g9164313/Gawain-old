@@ -124,30 +124,10 @@ public class StepSetFilm extends Stepper {
 		}
 		if(opt.isPresent()==false) {
 			return;
-		}		
-		active_film(Integer.valueOf(opt.get()));
+		}
+		sqm.activeFilm(Integer.valueOf(opt.get()));
 	}
-	private void active_film(final int ID) {
-		final char id = (char)(48+ID);
-		sqm.asyncBreakIn(()->{
-			String txt = sqm.exec(String.format("A%c?", id));
-			if(txt.charAt(0)=='A'){
-				//restore film data~~~
-				Application.invokeAndWait(()->{
-					String[] val = sqm.parse_a_value(txt);
-					if(val==null){
-						return;
-					}
-					for(int i=0; i<args.length; i++){
-						args[i].setText(val[i+1]);
-					}
-				});
-			}else{
-				Application.invokeAndWait(()->PanBase.notifyError("錯誤","無法讀取薄膜資料!!"));
-			}				
-		});
-	}
-		
+
 	@Override
 	public Node getContent(){
 		msg1.setPrefWidth(150);

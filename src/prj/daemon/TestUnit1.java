@@ -3,6 +3,7 @@ package prj.daemon;
 import com.jfoenix.controls.JFXButton;
 
 import javafx.concurrent.Task;
+import javafx.scene.Node;
 import javafx.scene.control.Accordion;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
@@ -58,7 +59,7 @@ public class TestUnit1 extends PanBase {
 	};
 	
 	@Override
-	public Pane eventLayout(PanBase self) {
+	public Node eventLayout(PanBase self) {
 		
 		stage().setOnShown(e->{
 			/*String txt;

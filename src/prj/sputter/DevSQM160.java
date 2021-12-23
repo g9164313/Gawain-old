@@ -3,8 +3,6 @@ package prj.sputter;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
-
 import com.jfoenix.controls.JFXButton;
 import com.sun.glass.ui.Application;
 
@@ -14,198 +12,373 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleFloatProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
-import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
-import javafx.scene.control.Alert.AlertType;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ButtonBar.ButtonData;
+import javafx.scene.image.ImageView;
 import javafx.scene.control.Dialog;
+import javafx.scene.control.DialogPane;
 import javafx.scene.control.Label;
-import javafx.scene.control.Separator;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
-
-import narl.itrc.DevTTY;
+import javafx.scene.layout.StackPane;
+import jssc.SerialPort;
+import jssc.SerialPortException;
+import narl.itrc.DevBase;
 import narl.itrc.Gawain;
 import narl.itrc.Misc;
 import narl.itrc.PadTouch;
+import narl.itrc.PanBase;
 
 /**
  * INFICON STM-160 Milti-Film Rate/Thickness Monitor.<p>
  * @author qq
  *
  */
-public class DevSQM160 extends DevTTY {
+public class DevSQM160 extends DevBase {
 
 	public DevSQM160() {
-		TAG = "SQM-160";
-		readTimeout = 500;
-	}
-	public DevSQM160(String path_name) {
-		this();
-		setPathName(path_name);
+		TAG = "SQM160";
 	}
 	
-	private final String STG_INIT = "init";
-	private final String STG_MONT = "monitor";
+	private Optional<SerialPort> port = Optional.empty();
 	
-	private float[] w_value = new float[18];
-	private float   m_value = 0.f;
-	private float   o_value = 0.f;
-	private String[] a_value= new String[0];
-	private String[] b_value= new String[0];
-	private String[] c_value= new String[0];
-	private boolean  u_value = false;
-
-	private void state_init() {
-		String res;
-		//res = exec("@");//!#@O7 --> !0AMON_Ver_4.13(85)(119)
-		res = exec("A0?");
-		parse_a_value(res);
-		
-		res = exec("B?");
-		if(res.charAt(0)=='A') {
-			res = res.substring(1).trim();
-			b_value = res.split("\\s+");
-		}
-		res = exec("C?");
-		if(res.charAt(0)=='A') {
-			res = res.substring(1).trim();
-			c_value = res.split("\\s+");
-		}
-		res = exec("U?");
-		if(res.charAt(0)=='A') {
-			res = res.substring(1).trim(); 
-			u_value = (Integer.valueOf(res)>0)?(true):(false);
-		}
-		Application.invokeAndWait(()->{
-			if(a_value.length>=8) {
-				for(int i=0; i<a_value.length; i++) {
-					a_value[i] = a_value[i].trim();
-					filmData[i].set(a_value[i]);
-				}
-			}
-			if(b_value.length>=11) {
-				switch(Integer.valueOf(b_value[3])) {
-				case 0:
-					unitRate.set("A/s");//Å, font problem
-					unitThick.set("kA");//thick
-					break;
-				case 1:
-					unitRate.set("nm/s");
-					unitThick.set("μm");//thick
-					break;
-				case 2:
-					unitRate.set("Hz");
-					unitThick.set("Hz");//thick
-					break;
-				case 3:
-					unitRate.set("ng/cm²/s");
-					unitThick.set("μg/cm²");//thick
-					break;
-				}
-			}
-			if(c_value.length>=7) {
-				freqRange[0].set(Float.valueOf(c_value[0]));
-				freqRange[1].set(Float.valueOf(c_value[1]));
-				rateRange[0].set(Float.valueOf(c_value[2]));
-				rateRange[1].set(Float.valueOf(c_value[3]));
-				thickRange[0].set(Float.valueOf(c_value[4]));
-				thickRange[1].set(Float.valueOf(c_value[5]));
-			}
-			shutter.set(u_value);
-		});
-		nextState(STG_MONT);
-		//nextState("");
-	}
-	private void state_monitor() {
-		try {
-			Thread.sleep(250);
-		} catch (InterruptedException e) {
+	public void open(final String name) {
+		if(port.isPresent()==true) {
 			return;
 		}
-		String res;
-		String[] col;
 		try {
-			res = exec("M");
-			if(res.charAt(0)=='A') {
-				res = res.substring(1).trim();
-				col = res.split("\\s+");
-				m_value = Float.valueOf(col[0]);
-			}else {
-				return;
-			}
-			res = exec("O");
-			if(res.charAt(0)=='A') {
-				res = res.substring(1).trim();
-				col = res.split("\\s+");
-				o_value = Float.valueOf(col[0]);
-			}else {
-				return;
-			}
-			res = exec("U?");
-			if(res.charAt(0)=='A') {
-				res = res.substring(1).trim(); 
-				u_value = (Integer.valueOf(res)>0)?(true):(false);
-			}
-		}catch(NumberFormatException e) {
-			Misc.logv("[%s] %s",TAG,e.getMessage());
+			final TTY_NAME tty = new TTY_NAME(name);			
+			final SerialPort dev = new SerialPort(tty.path);
+			dev.openPort();
+			dev.setParams(
+				tty.baudrate,
+				tty.databit,
+				tty.stopbit,
+				tty.parity
+			);			
+			port = Optional.of(dev);
+			
+			addState(STG_INIT,()->state_initial()).
+			addState(STG_LIFE,()->state_chk_life()).
+			addState(STG_MONT,()->state_monitor());			
+			playFlow(STG_INIT);
+			
+		} catch (SerialPortException e) {
+			e.printStackTrace();
 		}
-		
-		stats.addValue(m_value);
-		
-		Application.invokeAndWait(()->{
-			
-			stats_rate_avg.set(String.format("%5.3f", stats.getMean()));
-			double sigma = stats.getVariance();
-			if(sigma==Double.NaN) {
-				stats_rate_dev.set("NaN");
-			}else {
-				stats_rate_dev.set(String.format("%5.4f", sigma));
-			}
-			
-			shutter.set(u_value);
-			rate[0].set(m_value);
-			thick[0].set(o_value);
-			for(int i=1; i<=6; i++) {
-				rate[i].set(w_value[i+(6*0-1)]);
-				thick[i].set(w_value[i+(6*1-1)]);
-				freq[i].set(w_value[i+(6*2-1)]);
-			}
-		});
-	}
-	protected void afterOpen() {
-		addState(STG_INIT, ()->state_init()).
-		addState(STG_MONT, ()->state_monitor());
-		playFlow(STG_INIT);
 	}
 	
-	public String[] parse_a_value(String res) {
-		if(res.length()==0){
-			return null;
+	@Override
+	public void open() {		
+		final String prop = Gawain.prop().getProperty(TAG, "");
+		if(prop.length()==0) {
+			Misc.logw("No default tty path...");
+			return;
 		}
-		a_value = new String[8];
-		for(int i=0; i<a_value.length; i++) {
-			a_value[i] = "???";
-		}
-		if(res.charAt(0)!='A') {
-			return null;
-		}
-		res = res.substring(1).trim();
-		if(res.length()<8){
-			return null;
-		}
-		a_value[0] = res.substring(0,8);
-		String[] cols = res.substring(8).trim().split("\\s+");
-		for(int i=1; i<a_value.length; i++) {
-			a_value[i] = cols[i-1];
-		}
-		return a_value;
+		open(prop);
 	}
+
+	@Override
+	public void close() {
+		if(port.isPresent()==false) {
+			return;
+		}
+		try {
+			port.get().closePort();
+		} catch (SerialPortException e) {				
+			e.printStackTrace();
+		}
+		port = Optional.empty();
+	}
+
+	@Override
+	public boolean isLive() {
+		if(port.isPresent()==false) {
+			return false;
+		}
+		return port.get().isOpened();
+	}	
+	//------------------------------------//
+	
+	public final BooleanProperty shutter = new SimpleBooleanProperty(false);
+
+	public final StringProperty filmName = new SimpleStringProperty("");
+	
+	public final StringProperty unitRate = new SimpleStringProperty("？");
+	public final StringProperty unitThick= new SimpleStringProperty("？");
+	
+	public final FloatProperty meanRate = new SimpleFloatProperty();
+	public final FloatProperty meanThick= new SimpleFloatProperty();
+	
+	public final FloatProperty minRate = new SimpleFloatProperty(0f);
+	public final FloatProperty maxRate = new SimpleFloatProperty(100f);
+	public final FloatProperty minThick= new SimpleFloatProperty(0f);
+	public final FloatProperty maxThick= new SimpleFloatProperty(100f);
+	
+	//SQM-160 can connect 6 sensors~~~
+	public final SimpleStringProperty[] rate = {
+		new SimpleStringProperty("？"),//average rate value
+		new SimpleStringProperty(),
+		new SimpleStringProperty(),
+		new SimpleStringProperty(),
+		new SimpleStringProperty(),
+		new SimpleStringProperty(),
+		new SimpleStringProperty()
+	};
+	public final SimpleStringProperty[] thick= {
+		new SimpleStringProperty("？"),//average thick value
+		new SimpleStringProperty(),
+		new SimpleStringProperty(),
+		new SimpleStringProperty(),
+		new SimpleStringProperty(),
+		new SimpleStringProperty(),
+		new SimpleStringProperty()
+	};
+	//Frequency for each sensor, no average reading~~~
+	public final SimpleStringProperty[] freq = {
+		null,
+		new SimpleStringProperty(),
+		new SimpleStringProperty(),
+		new SimpleStringProperty(),
+		new SimpleStringProperty(),
+		new SimpleStringProperty(),
+		new SimpleStringProperty()
+	};
+	//Crystal Life for each sensor, no average reading, 2 decimal digital~~~
+	public final FloatProperty[] life = {
+		null,
+		new SimpleFloatProperty(),
+		new SimpleFloatProperty(),
+		new SimpleFloatProperty(),
+		new SimpleFloatProperty(),
+		new SimpleFloatProperty(),
+		new SimpleFloatProperty()
+	};
+	
+	private int film_indx = 0;
+	private final String[] film_data = {
+		"?",// Name or title
+		"0",// Density (0.50 to 99.99 g/cm³)
+		"0",// Tooling (10~399 %)
+		"0.1",// Z-ratio/factor (0.10~9.999)
+		"0.0",// Final Thickness (0.000~9999.000 kÅ)
+		"0.0",// Thickness Set-point (0.000~9999 kÅ)
+		"0",// Time Set-point (0~5999 second)
+		"63",// Sensor Average (decimal, map to which sensor)
+	};//current film data
+	private void split_a_text(final String txt) {
+		film_data[0] = "？？？？";//rest old name
+		if(txt.length()==0){  return; }
+		if(txt.charAt(0)!='A') { return; }
+		film_data[0] = txt.substring(1,9);
+		final String[] arg = txt.substring(9).trim().split("\\s+");
+		for(int i=0; i<arg.length; i++) {
+			if(i>=film_data.length){
+				break;
+			}
+			film_data[1+i] = arg[i];
+		}
+	}
+	public String get_film_name() {
+		return String.format("[%02d]%s", film_indx, film_data[0]);
+	}
+	
+	private final String[] sys1_param = {
+		"",// Time Base
+		"",// Simulate Mode (0 or 1)
+		"",// Display Mode (0:Å/s,kÅ, 1:nm/s,μm, 2:Hz, 3:ng/cm²/s,μg/cm²)
+		"",// Rate Resolution (0:0.1 Å/s, 1:0.01 Å/s)
+		"",// Rate Filter (1~20, sample reading)
+		"",// Crystal Tooling-1 (10~399 %)
+		"",// Crystal Tooling-2
+		"",// Crystal Tooling-3
+		"",// Crystal Tooling-4
+		"",// Crystal Tooling-5
+		"",// Crystal Tooling-6
+	};	
+	private final String[] sys2_param = {
+		"",// Minimum Frequency (1.000~6.400 MHz)
+		"",// Maximum Frequency (1.000~6.400 MHz)
+		"",// Minimum Rate (-99~999 Å/s)
+		"",// Maximum Rate
+		"",// Minimum Thickness (0.000~9999 Å)
+		"",// Maximum Thickness
+		"",// Etch Mode (0:Off, 1:On)
+	};
+	private final String[] sensor_v = {
+		"", "", "", //sensor-1
+		"", "", "", //sensor-2
+		"", "", "", //sensor-3
+		"", "", "", //sensor-4	
+		"", "", "", //sensor-5
+		"", "", "", //sensor-6	
+	};
+	private void split_text(final String txt, final String[] lst) {
+		for(int i=0; i<lst.length; i++) {
+			lst[i] = "";//clear old data~~~
+		}
+		if(txt.length()==0){  return; }
+		if(txt.charAt(0)!='A') { return; }
+		final String[] arg = txt.substring(1).trim().split("\\s+");
+		int cnt = arg.length;
+		if(cnt>=lst.length) { cnt = lst.length; }
+		for(int i=0; i<cnt; i++) {
+			if(i>=lst.length){
+				break;
+			}
+			lst[i] = arg[i];
+		}
+	}
+	
+	private static final String STG_INIT = "initial";
+	private static final String STG_LIFE = "chklife";
+	private static final String STG_MONT = "monitor";
+	
+	private void state_initial() {		
+		//final String version = exec("@");//!#@O7 --> !0AMON_Ver_4.13(85)(119)
 		
-	private short calc_crc(short crc, int val) {
+		final String a_txt = exec(String.format("A%c?", (film_indx+48)));
+		split_a_text(a_txt);
+		
+		final String b_txt = exec("B?");
+		split_text(b_txt, sys1_param);
+		
+		final String c_txt = exec("C?");
+		split_text(c_txt, sys2_param);
+		
+		final boolean u_val = txt2boolean(exec("U?"));
+		
+		Application.invokeLater(()->{
+			refresh_sys_info();
+			filmName.set(get_film_name());
+			shutter.set(u_val);
+		});
+		nextState(STG_MONT);
+		//nextState(STG_LIFE);
+	}
+	private void state_chk_life() {
+		final float[] r_val = {0, 0, 0, 0, 0, 0,};
+		String r_txt;
+		for(int i=0; i<6; i++){
+			r_txt = exec(String.format("R%d",i+1));
+			r_val[i] = txt2float(r_txt);
+		}
+		Application.invokeLater(()->{
+			for(int i=1; i<life.length; i++){
+				life[i].set(r_val[i-1]);
+			}
+		});
+		nextState(STG_MONT);
+	}
+	
+	private long monitor_tick = 0L;
+	
+	private void state_monitor() {
+
+		final String m_txt = exec("M");//read average Rate		
+		final float m_val = txt2float(m_txt);
+		
+		final String o_txt = exec("O");//read average Thickness
+		final float o_val = txt2float(o_txt);
+		
+		final String w_txt = exec("W");//read all for each sensor, simultaneously
+		split_text(w_txt, sensor_v);
+		
+		final boolean u_val = txt2boolean(exec("U?"));
+				
+		Application.invokeLater(()->{
+			meanRate.set(m_val);
+			meanThick.set(o_val);
+			rate[0].set(m_txt.substring(2));
+			thick[0].set(o_txt.substring(2));
+			for(int i=1; i<rate.length; i++) {
+				rate[i].set(sensor_v[(i-1)*3+0]);
+			}		
+			for(int i=1; i<thick.length; i++) {
+				thick[i].set(sensor_v[(i-1)*3+1]);
+			}
+			for(int i=1; i<freq.length; i++) {
+				freq[i].set(sensor_v[(i-1)*3+2]);
+			}
+			shutter.set(u_val);
+		});
+		sleep(500);
+		
+		final long current_tick = System.currentTimeMillis();//millis second
+		if((current_tick-monitor_tick)>=(10*60*1000)){
+			monitor_tick = current_tick;//update tick!!!
+			nextState(STG_LIFE);
+		}else{
+			nextState(STG_MONT);
+		} 
+	}
+	
+	public String exec(final String cmd) {
+		if(port.isPresent()==false){
+			return "";
+		}
+		final SerialPort dev = port.get();
+		
+		//Command Packet (Host to SQM-160 Message)
+		//<Sync character> <Length character> <Message> <CRC1><CRC2>
+		//max-length is 190 byte
+		//test command: !#@O7
+		final byte[] buf = new byte[200];
+		int len = cmd.length();
+		short crc;
+		
+		buf[0] = (byte)('!');
+		buf[1] = (byte)(len+34);
+		crc = 0x3fff;
+		crc = calculate_crc(crc,buf[1]);		
+		for(int i=0; i<len; i++) {			
+			int val = cmd.charAt(i) & 0xFF;					
+			crc = calculate_crc(crc,val);
+			buf[2+i] = (byte)val;
+		}
+		buf[2+len] = (byte) (((crc   ) & 0x7f) + 34);
+		buf[3+len] = (byte) (((crc>>7) & 0x7f) + 34);
+				
+		try {
+			dev.purgePort(SerialPort.PURGE_RXCLEAR);
+			//ready to send package(Host to SQM-160)
+			dev.writeBytes(buf);
+			//get response package (SQM-160 to Host Message)
+			buf[0] = dev.readBytes(1)[0];//!, synchronize
+			buf[1] = dev.readBytes(1)[0];//package length, it is ASCII code
+			len = ((int)buf[1]&0xFF)-35;
+			byte[] txt = dev.readBytes(len+2);//include CRC!!
+			for(int i=0; i<txt.length; i++) {
+				buf[2+i] = txt[i];
+			}
+		} catch (SerialPortException e) {
+			Misc.loge(e.getMessage());
+			return "";
+		}
+		
+		//verify CRC...
+		crc = 0x3fff;	
+		for(int i=1; i<(1+1+len); i++) {
+			//避開 sync 字元，所以偏移多加 1，而且 length 也要算進 CRC
+			int val = buf[i] & 0xFF;			
+			crc = calculate_crc(crc,val);
+		}
+		byte chk1 = (byte) (((crc   ) & 0x7f) + 34);
+		byte chk2 = (byte) (((crc>>7) & 0x7f) + 34);
+		//不知道怎麼把 CRC 逆算回去2個 byte，似乎只能順向
+		final String resp = new String(buf,2,len);
+		if(chk1!=buf[2+len] || chk2!=buf[3+len]){
+			Misc.logw("[%s] CRC is invalid!! (%s)-(%s)", TAG, cmd, resp);
+			//return "E";
+		}
+		return resp;
+	}
+	private short calculate_crc(short crc, int val) {
 		crc = (short) (crc ^ (short)val);
 		for (int ix = 0; ix < 8; ix++) {
 			short tmpCRC = crc;
@@ -217,67 +390,58 @@ public class DevSQM160 extends DevTTY {
 		return (short) (crc & 0x3fff);
 	}
 	
-	public String exec(final String cmd) {
-		
-		//Command Packet (Host to SQM-160 Message)
-		//<Sync character> <Length character> <Message> <CRC1><CRC2>
-		//max-length is 190 byte
-		//test command: !#@O7
-		final byte[] buf = new byte[200];
-		int len = cmd.length();
-		short crc;
-		
-		buf[0] = (byte)(len+34);
-		crc = 0x3fff;
-		crc = calc_crc(crc,buf[0]);		
-		for(int i=0; i<len; i++) {			
-			int val = cmd.charAt(i) & 0xFF;			
-			buf[i+1] = (byte)val;			
-			crc = calc_crc(crc,val);
+	private boolean txt2boolean(final String txt) {
+		if(txt.length()==0){  return false; }
+		if(txt.charAt(0)!='A') { return false; }
+		if(txt.charAt(1)=='1') { return true; }
+		return false;
+	}
+	private float txt2float(final String txt) {
+		if(txt.length()==0){  return Float.NaN; }
+		if(txt.charAt(0)!='A') { return Float.NaN; }
+		try {
+			return Float.valueOf(txt.substring(1).trim());
+		}catch(NumberFormatException e) {
+			Misc.loge(e.getMessage());
 		}
-		buf[len+1] = (byte) (((crc   ) & 0x7f) + 34);
-		buf[len+2] = (byte) (((crc>>7) & 0x7f) + 34);
-				
-		writeByte('!');//write sync character~~~
-		writeByte(buf,0,1);//write length
-		writeByte(buf,1,len+2);//write command and CRC
-		
-		//Response package (SQM-160 to Host Message)
-		do{
-			buf[0] = readByte();
-			//Misc.loge("[%s] no sync character...", TAG);
-		}while(buf[0]!='!');
-		
-		buf[0] = readByte();//package length, it must be ASCII code
-		len = (buf[0]&0xFF)-35;
-		if(buf[0]<0x20 || 0x7E<buf[0] || len<=0) {
-			Misc.loge("[%s] wrong package length...", TAG);
-			return "E";//what is going on?
+		return Float.NaN;
+	}
+	
+	private void refresh_sys_info() {
+		int mod = -1;
+		try {
+			mod = Integer.valueOf(sys1_param[2].trim());			
+			minRate.set(Float.valueOf(sys2_param[2]));
+			maxRate.set(Float.valueOf(sys2_param[3]));			
+			minThick.set(Float.valueOf(sys2_param[4]));
+			maxThick.set(Float.valueOf(sys2_param[5]));			
+		}catch(NumberFormatException e) {
+			Misc.loge(e.getMessage());
+			return;
 		}
-		readByte(buf,0,len+2);//include CRC
-		
-		//verify CRC...
-		crc = 0x3fff;
-		crc = calc_crc(crc,len+35);		
-		for(int i=0; i<len; i++) {			
-			int val = buf[i] & 0xFF;			
-			crc = calc_crc(crc,val);
+		switch(mod) {
+		case 0:
+			unitRate.set("Å/s");//Å, font problem
+			unitThick.set("kÅ");//thick
+			break;
+		case 1:
+			unitRate.set("nm/s");
+			unitThick.set("μm");//thick
+			break;
+		case 2:
+			unitRate.set("Hz");
+			unitThick.set("Hz");//thick
+			break;
+		case 3:
+			unitRate.set("ng/cm²/s");
+			unitThick.set("μg/cm²");//thick
+			break;
 		}
-		if((((crc   )&0x7f)+34)!=(buf[len+0]&0xFF) ){
-			Misc.loge("[%s] CRC is wrong!!", TAG);
-			return "E";
-		}
-		if((((crc>>7)&0x7f)+34)!=(buf[len+1]&0xFF) ){
-			Misc.loge("[%s] CRC is wrong!!", TAG);
-			return "E";
-		}
-		return new String(buf,0,len);
 	}
 	//-----------------------------------------------//
 	
 	public void cmd_S_T() {
 		try {
-			stats.clear();
 			Misc.logv("[%s] 清除計錄與時間",TAG);
 			exec("S");
 			TimeUnit.MILLISECONDS.sleep(250);
@@ -305,9 +469,13 @@ public class DevSQM160 extends DevTTY {
 	public void shutter(final boolean flag) {asyncBreakIn(()->{
 		//U1 --> shutter open
 		//U0 --> shutter close
-		String res = exec((flag)?("U1"):("U0"));
-		if(res.charAt(0)=='A'){
-			Application.invokeAndWait(()->shutter.set(flag));
+		final String u_txt = exec((flag)?("U1"):("U0"));
+		if(u_txt.length()==0) {
+			Misc.logw("[%s] shutter command fail!!!", TAG);
+			return;
+		}
+		if(u_txt.charAt(0)!='A'){
+			Misc.logw("[%s] shutter fail!!!", TAG);
 		}
 		nextState(STG_MONT);
 	});}
@@ -323,7 +491,8 @@ public class DevSQM160 extends DevTTY {
 	){asyncBreakIn(()->{		
 		cmd_S_T();
 		final String cmd = (on_off)?("U1"):("U0");
-		if(exec(cmd).charAt(0)=='A') {
+		final String u_txt = exec(cmd);
+		if(u_txt.charAt(0)=='A') {
 			if(event_done!=null) { event_done.run(); }
 		}else{
 			if(event_fail!=null) { event_fail.run(); }
@@ -331,383 +500,193 @@ public class DevSQM160 extends DevTTY {
 		nextState(STG_MONT);
 	});}
 	
-	//-------------------------//
-	public final BooleanProperty shutter = new SimpleBooleanProperty(false);
-
-	public final StringProperty unitRate = new SimpleStringProperty("??");
-	public final StringProperty unitThick= new SimpleStringProperty("??");
-	
-	public final StringProperty[] filmData = {
-		new SimpleStringProperty("??"),//name
-		new SimpleStringProperty("??"),//density
-		new SimpleStringProperty("??"),//tooling
-		new SimpleStringProperty("??"),//z-ratio
-		new SimpleStringProperty("??"),//final thickness
-		new SimpleStringProperty("??"),//thickness set-point
-		new SimpleStringProperty("??"),//time set-point
-		new SimpleStringProperty("??"),//sensor Average
-	};
-
-	public final FloatProperty[] freqRange = {
-		new SimpleFloatProperty(1f),
-		new SimpleFloatProperty(6.4e6f)
-	};//min and max value
-	public final FloatProperty[] rateRange = {
-		new SimpleFloatProperty(-99f ),
-		new SimpleFloatProperty( 999f)
-	};//min and max value
-	public final FloatProperty[] thickRange = {
-		new SimpleFloatProperty(0f   ),
-		new SimpleFloatProperty(9999f)
-	};//min and max value
-	
-	//SQM-160 can connect 6 sensors~~~
-	public final FloatProperty[] rate = {
-		new SimpleFloatProperty(),//average rate value
-		new SimpleFloatProperty(),
-		new SimpleFloatProperty(),
-		new SimpleFloatProperty(),
-		new SimpleFloatProperty(),
-		new SimpleFloatProperty(),
-		new SimpleFloatProperty()
-	};
-	public final FloatProperty[] thick= {
-		new SimpleFloatProperty(),//average thick value
-		new SimpleFloatProperty(),
-		new SimpleFloatProperty(),
-		new SimpleFloatProperty(),
-		new SimpleFloatProperty(),
-		new SimpleFloatProperty(),
-		new SimpleFloatProperty()
-	};
-	//Frequency for each sensor, no average reading~~~
-	public final FloatProperty[] freq = {
-		null,
-		new SimpleFloatProperty(),
-		new SimpleFloatProperty(),
-		new SimpleFloatProperty(),
-		new SimpleFloatProperty(),
-		new SimpleFloatProperty(),
-		new SimpleFloatProperty()
-	};
-	//Crystal Life for each sensor, no average reading~~~
-	public final FloatProperty[] life = {
-		null,
-		new SimpleFloatProperty(),
-		new SimpleFloatProperty(),
-		new SimpleFloatProperty(),
-		new SimpleFloatProperty(),
-		new SimpleFloatProperty(),
-		new SimpleFloatProperty()
-	};
-	
-	private final DescriptiveStatistics stats = new DescriptiveStatistics(60);
-	public final StringProperty stats_rate_avg = new SimpleStringProperty();
-	public final StringProperty stats_rate_dev = new SimpleStringProperty();
-	
-	public static void exec_gui(
-		final DevSQM160 dev,
-		final String cmd,
-		final ReadBack hook
-	) { dev.asyncBreakIn(()->{
-		if(cmd.length()==0) {
+	public void activeFilm(final int ID) {
+		if(ID<0 || 100<ID) {
+			PanBase.notifyError("錯誤的ID",String.format("非法的ID(%d), 1~99",ID));
 			return;
 		}
-		final String res = dev.exec(cmd);
-		if(hook!=null) {
-			hook.callback(res);
-		}else {
-			switch(res.charAt(0)) {
-			case 'A':
-				//normal response, do nothing~~~
-				break;
-			case 'C':
-				Misc.logv("[%s] CMD:%s--> invalid", dev.TAG, cmd);
-				break;
-			case 'D':
-				Misc.logv("[%s] CMD:%s--> problem data", dev.TAG, cmd);
-				break;
-			default:
-				Misc.logv("[%s] CMD:%s--> internal error", dev.TAG, cmd);
-				break;
-			}
-		}
-		dev.nextState(dev.STG_MONT);
-	});}
-	
-	public static Pane genCtrlPanel(final DevSQM160 dev) {
-		
-		final JFXButton btn_select = new JFXButton("薄膜編號");
-		btn_select.getStyleClass().add("btn-raised-2");
-		btn_select.setMaxWidth(Double.MAX_VALUE);
-		btn_select.setOnAction(e->{
-			PadTouch pad = new PadTouch('N',"薄膜編號:");
-			Optional<String> opt = pad.showAndWait();
-			if(opt.isPresent()==true) {
-				int idx = Integer.valueOf(opt.get());
-				if(idx==0) {
-					return;
-				}
-				active_film_gui(dev,idx);
+		asyncBreakIn(()->{
+			final char id = (char)(ID+48);
+			//read film data~~~
+			final String a_txt = exec(String.format("A%c?",id));			
+			//active film data~~~
+			final String d_txt = exec(String.format("D%c",id));
+			if(d_txt.charAt(0)=='A') {
+				film_indx = ID;//update index~~~
+				split_a_text(a_txt);				
+				Application.invokeLater(()->filmName.set(get_film_name()));
+			}else {
+				Application.invokeLater(()->PanBase.notifyError("內部錯誤","無法啟動薄膜ID-"+ID));
 			}
 		});
-		GridPane.setHgrow(btn_select, Priority.ALWAYS);
+	}
+	
+	public void updateFilm(final String cmd) {asyncBreakIn(()->{
+		String a_txt = exec(cmd);
+		final String resp = a_txt; 
+		if(a_txt.charAt(0)!='A') {
+			Application.invokeLater(()->PanBase.notifyError("內部錯誤","無法更新薄膜資料("+resp+")"));
+		}else {
+			a_txt = exec(String.format("A%c?",cmd.charAt(1)));
+			film_indx = cmd.charAt(1) - 48;//update index~~~
+			split_a_text(a_txt);
+			Application.invokeLater(()->filmName.set(get_film_name()));
+		}		
+	});}	
+	//-------------------------//
+
+	public static Pane genCtrlPanel(final DevSQM160 dev) {
+		
+		final Label[] info = new Label[6];
+		for(int i=0; i<info.length; i++) {
+			info[i] = new Label();
+			info[i].setMinWidth(80);
+			info[i].getStyleClass().addAll("font-size4");
+			GridPane.setHgrow(info[i], Priority.ALWAYS);
+		}
+		info[0].setText("速率："); info[1].setPrefWidth(200.); info[1].textProperty().bind(dev.rate [0].concat(dev.unitRate)); 
+		info[2].setText("厚度："); info[3].setPrefWidth(140.); info[3].textProperty().bind(dev.thick[0].concat(dev.unitThick)); 
+		info[4].setText("薄膜："); info[5].setPrefWidth(140.); info[5].textProperty().bind(dev.filmName);
+		
+		final Button btn_film_pick = new Button("選取");
+		btn_film_pick.setFocusTraversable(false);
+		btn_film_pick.setOnAction(e->{
+			PadTouch pad = new PadTouch('N',"薄膜編號:");
+			Optional<String> opt = pad.showAndWait();
+			if(opt.isPresent()==false) {
+				return;
+			}
+			dev.activeFilm(Integer.valueOf(opt.get()));
+		});
+		
+		final JFXButton btn_film_data = new JFXButton("薄膜設定");
+		btn_film_data.getStyleClass().add("btn-raised-1");
+		btn_film_data.setMaxWidth(Double.MAX_VALUE);
+		btn_film_data.setOnAction(e->{
+			final DialogFilm dia = new DialogFilm(dev.film_data);
+			final Optional<String> opt = dia.showAndWait();
+			if(opt.isPresent()==false) {
+				return;
+			}
+			dev.updateFilm(opt.get());
+		});
+
+		final JFXButton btn_zeros_all = new JFXButton("歸零鍍膜");
+		btn_zeros_all.getStyleClass().add("btn-raised-1");
+		btn_zeros_all.setMaxWidth(Double.MAX_VALUE);
+		btn_zeros_all.setOnAction(e->dev.zeros());
 		
 		final JFXButton btn_shutter_on = new JFXButton("檔板開");
-		btn_shutter_on.getStyleClass().add("btn-raised-1");
-		btn_shutter_on.setOnAction(e->exec_gui(dev,"U1",null));
+		btn_shutter_on.getStyleClass().add("btn-raised-2");
+		btn_shutter_on.setMaxWidth(Double.MAX_VALUE);
+		btn_shutter_on.setOnAction(e->dev.shutter(true));
 		
 		final JFXButton btn_shutter_off = new JFXButton("檔板關");
 		btn_shutter_off.getStyleClass().add("btn-raised-0");
-		btn_shutter_off.setOnAction(e->exec_gui(dev,"U0",null));
+		btn_shutter_off.setMaxWidth(Double.MAX_VALUE);
+		btn_shutter_off.setOnAction(e->dev.shutter(false));
 
-		
-		final Label[] txt = {
-			new Label("名稱："), new Label(),
-			new Label("速率："), new Label(),
-			new Label("厚度："), new Label(),
-		};
-		for(Label obj:txt) {
-			obj.getStyleClass().add("font-size4");
-		}
-		//film name-->dev.filmData[0]
-		//film Density (g/cm3)-->dev.filmData[4]
-		txt[1].textProperty().bind(dev.filmData[0]);
-		txt[3].textProperty().bind(dev.rate [0].asString("%5.2f ").concat(dev.unitRate));
-		txt[5].textProperty().bind(dev.thick[0].asString("%5.2f ").concat(dev.unitThick));
+		final ImageView img_sh1 =  Misc.getIconView("lock-open-outline.png");
+		final ImageView img_sh2 =  Misc.getIconView("lock-outline.png");
+		img_sh1.visibleProperty().bind(dev.shutter);
+		img_sh1.visibleProperty().bind(dev.shutter.not());
 		
 		final GridPane lay = new GridPane();
 		lay.getStyleClass().addAll("box-pad");
-		lay.addColumn(0, txt[0], txt[2], txt[4]);
-		lay.addColumn(1, txt[1], txt[3], txt[5]);
-		lay.add(btn_select, 0, 3, 2, 1);
-		lay.add(new HBox(btn_shutter_on,btn_shutter_off), 0, 4, 2, 1);
-
+		lay.add(info[0], 0, 0, 1, 1);
+		lay.add(info[1], 1, 0, 2, 1);
+		lay.add(info[2], 0, 1, 1, 1);
+		lay.add(info[3], 1, 1, 2, 1);		
+		lay.addRow(2, info[4], info[5], btn_film_pick);
+		lay.add(btn_film_data, 0, 3, 3, 1);
+		lay.add(btn_zeros_all, 0, 4, 3, 1);
+		lay.add(new StackPane(img_sh1,img_sh2), 0, 5, 1, 1);
+		lay.add(new HBox(btn_shutter_on, btn_shutter_off), 1, 5, 2, 1);
 		return lay;
 	}
-		
-	public static Pane genPanel(final DevSQM160 dev) {
-		
-		final Label[] txt = new Label[8];
-		for(int i=0; i<txt.length; i++) {
-			txt[i] = new Label();
-			txt[i].setMaxWidth(Double.MAX_VALUE);			
-			GridPane.setHgrow(txt[i], Priority.ALWAYS);
-		}
-		txt[0].textProperty().bind(dev.rate[0].asString("%6.3f"));
-		txt[1].textProperty().bind(dev.unitRate);
-		txt[2].textProperty().bind(dev.thick[0].asString("%6.3f"));
-		txt[3].textProperty().bind(dev.unitThick);
-		txt[4].textProperty().bind(dev.filmData[0]);//film name
-		txt[5].textProperty().bind(dev.filmData[1]);//film Density (g/cm3)
-		txt[6].textProperty().bind(dev.filmData[2]);//film Tooling (%)
-		txt[7].textProperty().bind(dev.filmData[3]);//film Z-Ratio
-		
-		final JFXButton[] btn = new JFXButton[6];
-		for(int i=0; i<btn.length; i++) {
-			btn[i] = new JFXButton();			
-			btn[i].setMaxWidth(Double.MAX_VALUE);			
-			GridPane.setHgrow(btn[i], Priority.ALWAYS);
-		}
-		btn[0].getStyleClass().add("btn-raised-1");
-		btn[0].setText("讀值歸零");
-		btn[0].setOnAction(e->dev.zeros());
-		btn[1].getStyleClass().add("btn-raised-2");
-		btn[1].setText("選取薄膜");
-		btn[1].setOnAction(e->{
-			PadTouch pad = new PadTouch('N',"薄膜編號:");
-			Optional<String> opt = pad.showAndWait();
-			if(opt.isPresent()==true) {
-				int idx = Integer.valueOf(opt.get());
-				if(idx==0) {
-					return;
-				}
-				active_film_gui(dev,idx);
-			}		
-		});
-		btn[2].getStyleClass().add("btn-raised-2");
-		btn[2].setText("設定薄膜");
-		btn[2].setOnAction(e->dev.updateFilm());
-		btn[3].getStyleClass().add("btn-raised-3");
-		btn[3].setText("擋板-開");
-		btn[3].setOnAction(e->exec_gui(dev,"U1",null));
-		btn[4].getStyleClass().add("btn-raised-3");
-		btn[4].setText("擋板-關");
-		btn[4].setOnAction(e->exec_gui(dev,"U0",null));
-
-		final GridPane lay0 = new GridPane();
-		lay0.getStyleClass().addAll("box-pad");
-		lay0.add(new Separator(), 0, 1, 3, 1);
-		lay0.addRow(2, new Label("速率："), txt[0], txt[1]);
-		lay0.addRow(3, new Label("厚度："), txt[2], txt[3]);
-		lay0.add(new Label("薄膜參數"), 0, 4, 3, 1);
-		lay0.addRow(5, new Label("名稱："), txt[4]);
-		lay0.addRow(6, new Label("密度："), txt[5], new Label("g/cm³"));
-		lay0.addRow(7, new Label("Tooling："), txt[6], new Label("%"));
-		lay0.addRow(8, new Label("Z-Ratio："), txt[7]);
-		lay0.add(new Separator(), 0, 9, 3, 1);
-		lay0.add(btn[0], 0, 10, 3, 1);
-		lay0.add(btn[1], 0, 11, 3, 1);
-		lay0.add(btn[2], 0, 12, 3, 1);
-		lay0.add(btn[3], 0, 13, 3, 1);
-		lay0.add(btn[4], 0, 14, 3, 1);
-		return lay0;
-	}
-	//------------------------------
+	//-------------------------//
 	
-	private static void active_film_gui(
-		final DevSQM160 dev,
-		final int idx
-	) { dev.asyncBreakIn(()->{
-		char id = (char)(idx+48);
-		String cmd,res;
-		//active film parameter
-		cmd = String.format("D%c", id);		
-		res = dev.exec(cmd);
-		if(res.charAt(0)=='A') {
-			//update information~~~
-			cmd = String.format("A%c?", id);
-			res = dev.exec(cmd);
-			if(res.charAt(0)=='A') {
-				dev.parse_a_value(res);
-				Application.invokeAndWait(()->{
-					for(int i=0; i<dev.a_value.length; i++) {
-						dev.filmData[i].set(dev.a_value[i].trim());
-					}
-				});
-			}
-		}else{
-			Application.invokeAndWait(()->{
-				Alert alert = new Alert(AlertType.ERROR);
-				alert.setTitle("!!錯誤!!");
-				alert.setHeaderText("無法使用薄膜-"+idx);
-				alert.setContentText(null);
-				alert.showAndWait();
-			});
-		}	
-	});}
-	
-	private static class DialogFilm extends Dialog<String[]> {		
-		//public DialogFilm() {
-		//	this(null);
-		//}
-		public DialogFilm(String[] param){		
-			getDialogPane().setContent(create_layout(param));
-			getDialogPane().getStylesheets().add(Gawain.sheet);
-			getDialogPane().getButtonTypes().addAll(
-				ButtonType.CANCEL, ButtonType.OK
-			);
-		}
-		private GridPane create_layout(final String[] param) {
-			String[] arg = {
-				"0",//film index
-				null, null, null, null,
-				null, null, null, null,
+	private static class DialogFilm extends Dialog<String>{
+		public DialogFilm(final String[] param){
+			
+			final TextField arg_name = new TextField(param[0]);
+			final TextField arg_density = new TextField(param[1]);//g/cm³
+			final TextField arg_tooling = new TextField(param[2]);//%
+			final TextField arg_z_ratio = new TextField(param[3]);//no unit~~~
+			final TextField arg_thick_final = new TextField(param[4]);// kÅ
+			final TextField arg_thick_setpoint = new TextField(param[5]);// kÅ
+			
+			final TextField arg_time_setpoint = new TextField(
+				Misc.tick2text(Long.valueOf(param[6])*1000L)
+			);// seconds
+			final CheckBox[] arg_sensor_bit = {
+				new CheckBox("1"), new CheckBox("2"), new CheckBox("3"),
+				new CheckBox("4"), new CheckBox("5"), new CheckBox("6"),
 			};
-			if(param.length==8) {
-				for(int i=0; i<param.length; i++) {
-					arg[i+1] = param[i];
+			final int bits = Integer.valueOf(param[7]);
+			for(int i=0; i<arg_sensor_bit.length; i++) {
+				if((bits & (1<<(i)))!=0) {
+					arg_sensor_bit[i].setSelected(true);
+				}else {
+					arg_sensor_bit[i].setSelected(false);
 				}
-			}else {
-				//default value~~~
-				arg[1] = "FILM";//name
-				arg[2] = "0.5";//density
-				arg[3] = "10";//tooling
-				arg[4] = "0.1";//z-ratio
-				arg[5] = "0.0";//final thickness
-				arg[6] = "0.0";//thickness set-point(kA)
-				arg[7] = "60";//time set-point (mm:ss)
-				arg[8] = "32";//active sensor
 			}
 			
-			final TextField[] box = new TextField[9];
-			for(int i=0; i<box.length; i++) {
-				TextField obj = new TextField(arg[i]);
-				obj.setPrefColumnCount(9);
-				box[i] = obj;
-			}
+			final GridPane lay = new GridPane();
+			lay.getStyleClass().addAll("box-pad");
+			lay.addRow(0, new Label("薄膜名稱："), arg_name);
+			lay.addRow(1, new Label("薄膜密度(g/cm³)："), arg_density);
+			lay.addRow(2, new Label("tooling(%)："), arg_tooling);
+			lay.addRow(3, new Label("z-ratio："), arg_z_ratio);
+			lay.addRow(4, new Label("最終厚度(kÅ)："), arg_thick_final);
+			lay.addRow(5, new Label("厚度停止點(kÅ)："), arg_thick_setpoint);
+			lay.addRow(6, new Label("時間停止點(mm:ss)："), arg_time_setpoint);
+			lay.addRow(7, new Label("偵測器編號："), new HBox(arg_sensor_bit));
+			
+			final DialogPane pan = getDialogPane();			
+			pan.getStylesheets().add(Gawain.sheet);
+			pan.getButtonTypes().addAll(ButtonType.CANCEL,ButtonType.OK);
+			pan.setContent(lay);
+			
+			//setTitle(String.format("薄膜編號"));
 			setResultConverter(dia->{
-				ButtonData btn = (dia==null)?(null):(dia.getButtonData());
+				final ButtonData btn = (dia==null)?(null):(dia.getButtonData());
 				if(btn!=ButtonData.OK_DONE) {
 					return null;				
 				}
-				String[] res = new String[9];
-				for(int i=0; i<res.length; i++) {
-					res[i] = box[i].getText().trim();
-				}
-				return res;
-			});
-						
-			final GridPane lay = new GridPane();
-			lay.getStyleClass().addAll("box-pad");
-			lay.addRow(0, new Label("薄膜編號："), box[0]);
-			lay.addRow(1, new Label("薄膜名稱："), box[1]);
-			lay.addRow(2, new Label("薄膜密度："), box[2]);
-			lay.addRow(3, new Label("tooling："), box[3]);
-			lay.addRow(4, new Label("z-ratio："), box[4]);
-			lay.addRow(5, new Label("最終厚度："), box[5]);
-			lay.addRow(6, new Label("厚度停止點："), box[6]);
-			lay.addRow(7, new Label("時間停止點："), box[7]);
-			lay.addRow(8, new Label("偵測器編號："), box[8]);
-			return lay;
-		}
-	};
-	
-	//call by GUI-thread
-	public void updateFilm(){
-		DialogFilm dia = new DialogFilm(a_value);
-		Optional<String[]> opt = dia.showAndWait();
-		if(opt.isPresent()==true) {
-			update_film_gui(this,opt.get());
-		}
-	}
-	
-	private static void update_film_gui(
-		final DevSQM160 dev,
-		final String[] arg
-	) { dev.asyncBreakIn(()->{
-		char id = (char)(48+Integer.valueOf(arg[0]));
-		int cnt = arg[1].length();
-		if(cnt<8){
-			//padding~~~
-			cnt = 8 - cnt;
-			for(int i=0; i<cnt; i++){
-				arg[1] = arg[1] + ' ';
-			}
-		}else{
-			arg[1] = arg[1].substring(0,8);
-		}
-		arg[1] = arg[1]
-			.replace(' ', '_')
-			.toUpperCase();
-		String cmd = String.format(
-			"A%C%s %s %s %s %s %s %s %s",
-			id, arg[1], 
-			arg[2], arg[3], arg[4], arg[5], 
-			arg[6], arg[7], arg[8]
-		);
-		if(dev.exec(cmd).charAt(0)=='A') {
-			if(id!=48){
-				return;
-			}
-			String res = dev.exec("A0?");
-			if(res.charAt(0)=='A') {
-				dev.parse_a_value(res);
-				Application.invokeAndWait(()->{
-					for(int i=0; i<dev.a_value.length; i++) {
-						dev.a_value[i] = dev.a_value[i].trim();
-						dev.filmData[i].set(dev.a_value[i]);
+				char[] name_buff = {
+					'_', '_', '_', '_',
+					'_', '_', '_', '_'
+				};
+				final String name_user = arg_name.getText().trim().toUpperCase();
+				for(int i=0; i<name_buff.length; i++){
+					if(i>=name_user.length()){
+						break;
 					}
-				});
-			}
-		}else{
-			Application.invokeAndWait(()->{
-				Alert alert = new Alert(AlertType.ERROR);
-				alert.setTitle("!!錯誤!!");
-				alert.setHeaderText("無法設定薄膜參數");
-				alert.setContentText(null);
-				alert.showAndWait();
+					final char cc = name_user.charAt(i);
+					if((48<=cc && cc<=56) || (65<=cc && cc<=90)) {
+						name_buff[i] = cc;
+					}					
+				}
+				int bit_sum = 0;
+				for(int i=0; i<arg_sensor_bit.length; i++) {
+					if(arg_sensor_bit[i].isSelected()==true) {
+						bit_sum = bit_sum + (1<<i);
+					}
+				}
+				return String.format(
+					"A%c%s %s %s %s %s %s %d %d",
+					0+48, 
+					new String(name_buff),
+					arg_density.getText().trim(),
+					arg_tooling.getText().trim(),
+					arg_z_ratio.getText().trim(),
+					arg_thick_final.getText().trim(),
+					arg_thick_setpoint.getText().trim(),
+					Misc.text2tick(arg_time_setpoint.getText().trim()) / 1000,
+					bit_sum
+				);
 			});
-		}
-	});}
+		} 
+	};
 }

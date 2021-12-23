@@ -39,11 +39,6 @@ import narl.itrc.PadTouch;
  * @author qq
  * 
  */
-/**
- * @author qq
- *
- */
-@SuppressWarnings("restriction")
 public class DevDCG100 extends DevTTY {
 	
 	public DevDCG100(){

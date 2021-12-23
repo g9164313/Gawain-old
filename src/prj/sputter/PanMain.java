@@ -2,6 +2,7 @@ package prj.sputter;
 
 import com.jfoenix.controls.JFXTabPane;
 
+import javafx.scene.Node;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Tab;
 import javafx.scene.layout.BorderPane;
@@ -48,16 +49,15 @@ public class PanMain extends PanBase {
 		if(arg.length()>0) {
 			spik.open(arg);
 		}
-		arg = Gawain.prop().getProperty("SQM160", "");
-		if(arg.length()>0) {			
-			sqm1.open(arg);
-			logger.bindProperty(sqm1);
-		}
+		
+		sqm1.open();		
 		sqm2.open();
+		
+		logger.bindProperty(sqm1);
 	}
 	
 	@Override
-	public Pane eventLayout(PanBase self) {
+	public Node eventLayout(PanBase self) {
 		//rad[0].setDisable(true);
 		//rad[0].setStyle("-fx-opacity: 1.0;");
 		
@@ -65,8 +65,7 @@ public class PanMain extends PanBase {
 		lay3.getStyleClass().addAll("box-pad");
 		lay3.getChildren().addAll(
 			DevDCG100.genPanel(dcg1),
-			DevSPIK2k.genPanel(spik),
-			DevSQM160.genPanel(sqm1)
+			DevSPIK2k.genPanel(spik)
 		);
 		final ScrollPane lay2 = new ScrollPane(lay3);
 		lay2.setPrefViewportWidth(800);

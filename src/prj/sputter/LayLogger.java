@@ -533,33 +533,19 @@ public class LayLogger extends BorderPane {
 	}
 	public void bindProperty(final DevSQM160 dev) {
 		
-		gag[4].valueProperty().bind(dev.rate[0]);
-		gag[4].setMinValue(dev.rateRange[0].doubleValue());
-		set_max_limit(
-			gag[4],
-			dev.rateRange[1].doubleValue()
-		);
+		gag[4].valueProperty().bind(dev.meanRate);
+		gag[4].setMinValue(dev.minRate.get());
+		gag[4].setMaxValue(dev.maxRate.get());
 		gag[4].setUnit(dev.unitRate.get());
 		
-		gag[5].valueProperty().bind(dev.thick[0]);
-		gag[5].setMinValue(dev.thickRange[0].doubleValue());
-		set_max_limit(
-			gag[5],
-			dev.thickRange[1].doubleValue()
-		);
+		gag[5].valueProperty().bind(dev.meanThick);
+		gag[5].setMinValue(dev.minThick.get());
+		gag[5].setMinValue(dev.maxThick.get());
 		gag[5].setUnit(dev.unitThick.get());
 	}
 	public void bindProperty(final DevCouple dev) {
 		gag[6].valueProperty().bind(dev.PV_FlowAr);
 		gag[7].valueProperty().bind(dev.PV_FlowO2);
 		gag[8].valueProperty().bind(dev.PV_FlowN2);
-	}
-	
-	private void set_max_limit(
-		final Tile obj,
-		final double val
-	) {
-		obj.setMaxValue(val);
-		obj.setThreshold(val-0.7);
 	}
 }

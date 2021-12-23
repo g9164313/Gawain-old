@@ -46,26 +46,30 @@
 
 
 .btn-raised-0 {
-	-fx-button-type: RAISED;
-	-fx-font-size: 1.5em;
-	-fx-background-color: #c2185b;
-	-fx-text-fill: WHITE;
+  -fx-button-type: RAISED;
+  -fx-font-size: 1.3em;
+  -fx-min-height: 3em;
+  -fx-background-color: #c2185b;
+  -fx-text-fill: WHITE;
 }
 .btn-raised-1{
-	-fx-button-type: RAISED;
-	-fx-font-size: 1.5em;
-	-fx-background-color: #aed581;
-	-fx-text-fill: BLACK;
+  -fx-button-type: RAISED;
+  -fx-font-size: 1.3em;
+  -fx-min-height: 3em;
+  -fx-background-color: #aed581;
+  -fx-text-fill: BLACK;
 }
 .btn-raised-2 {
   -fx-button-type: RAISED;
-  -fx-font-size: 1.5em; 
+  -fx-font-size: 1.3em;
+  -fx-min-height: 3em;
   -fx-background-color: #4db6ac;
   -fx-text-fill: BLACK;
 }
 .btn-raised-3 {
   -fx-button-type: RAISED;
-  -fx-font-size: 1.5em;
+  -fx-font-size: 1.3em;
+  -fx-min-height: 3em;
   -fx-background-color: #64b5f6;
   -fx-text-fill: BLACK;
 }
@@ -138,19 +142,13 @@
 }
 
 .box-pad {
-  -fx-font-size: 1.4em;
-  -fx-spacing: 13;
-  -fx-padding: 13;
-  -fx-hgap: 13;
-  -fx-vgap: 13;    
+  -fx-font-size: 1.5em;
+  -fx-spacing: 7px;
+  -fx-padding: 7px;
+  -fx-hgap: 7px;
+  -fx-vgap: 7px;    
 }
-.box-pad-inner {
-  -fx-font-size: 1.4em;
-  -fx-spacing: 13 0 13 0;
-  -fx-padding: 13 0 13 0;
-  -fx-hgap: 13;
-  -fx-vgap: 13; 
-}
+
 
 .box-pad-group {
   -fx-padding:  13 0 7 0; 

@@ -74,11 +74,11 @@ public abstract class PanBase {
 	private static final KeyCombination kb_console = KeyCombination.keyCombination("Ctrl+Shift+C");
 	
 	public void initLayout() {
-		final Pane face = eventLayout(this);
+		final Node face = eventLayout(this);
 		StackPane.setAlignment(face, Pos.BOTTOM_LEFT);
         StackPane.setAlignment(face, Pos.TOP_RIGHT);
         final Pane root = new StackPane(face);
-		//final Pane root = eventLayout(this);
+		//final Node root = eventLayout(this);
 		root.getStyleClass().addAll("background");
 		if(Gawain.propFlag("JFX_DECORATE")==true) {
 			scene = new Scene(new JFXDecorator(stage,root));
@@ -141,12 +141,11 @@ public abstract class PanBase {
 	}
 
 	/**
-	 * Create all objects on panel, this is run by other thread.<p>
-	 * So, don't bind any property in this method, or make anything doing by GUI-thread.<p>
+	 * Create all objects on panel.<p>
 	 * @param self - super class,
 	 * @return
 	 */
-	public abstract Pane eventLayout(PanBase self);
+	public abstract Node eventLayout(PanBase self);
 
 	//----------------------------------------------//
 		

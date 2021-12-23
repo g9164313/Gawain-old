@@ -7,6 +7,7 @@ import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXComboBox;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.ObservableList;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
@@ -43,7 +44,7 @@ public class PanTTY extends PanBase {
 	private SimpleBooleanProperty isOpen = new SimpleBooleanProperty();
 	
 	@Override
-	public Pane eventLayout(PanBase self) {
+	public Node eventLayout(PanBase self) {
 		
 		final JFXComboBox<String> cmbDevName = new JFXComboBox<String>();
 		init_dev_name(cmbDevName);

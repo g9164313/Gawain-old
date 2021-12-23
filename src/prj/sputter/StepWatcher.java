@@ -136,7 +136,7 @@ public class StepWatcher extends StepExtender {
 		}catch(NumberFormatException e) {
 			return;
 		}
-		final float rate = sqm.rate[0].get();		
+		final float rate = sqm.meanRate.get();		
 		if(min_rate<=rate && rate<=max_rate) {
 			hit_count+=1;
 			return;
@@ -161,7 +161,7 @@ public class StepWatcher extends StepExtender {
 			String.format("%5.3f%s", sqm.thick[0].get(), sqm.unitThick.get())
 		);
 		
-		stats.addValue(sqm.rate[0].get());
+		stats.addValue(sqm.meanRate.get());
 		
 		stats_avg.setText(String.format("%5.3f", stats.getMean()));
 		double sigma = stats.getVariance();

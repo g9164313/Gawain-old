@@ -5,6 +5,7 @@ import com.jfoenix.controls.JFXCheckBox;
 import com.jfoenix.controls.JFXToggleButton;
 
 import javafx.beans.binding.BooleanBinding;
+import javafx.scene.Node;
 import javafx.scene.control.Accordion;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
@@ -45,7 +46,7 @@ public class PanDropper extends PanBase {
 	}
 	
 	@Override
-	public Pane eventLayout(PanBase self) {
+	public Node eventLayout(PanBase self) {
 		
 		stage().setOnShown(e->{
 			Gawain.prop().getProperty("SHAPEOKO","");

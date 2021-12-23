@@ -33,12 +33,12 @@ import narl.itrc.Misc;
  */
 public class DevSQM2Usb extends DevBase {
 	
-	private Optional<SerialPort> port = Optional.empty();
-
 	public DevSQM2Usb() {
 		TAG = "SQM2Usb";
 	}
 	
+	private Optional<SerialPort> port = Optional.empty();
+
 	public void open(final String name) {
 		if(port.isPresent()==true) {
 			return;
@@ -71,7 +71,7 @@ public class DevSQM2Usb extends DevBase {
 			Misc.logw("No default tty path...");
 			return;
 		}
-		this.open(prop);
+		open(prop);
 	}
 
 	@Override
@@ -96,16 +96,16 @@ public class DevSQM2Usb extends DevBase {
 	}	
 	//------------------------------------//
 
-	private final String STG_INIT = "init";
+	private final String STG_INIT = "initial";
 	private final String STG_MONT = "monitor";
 	
 	private String serial = "";
 	
 	private String[] film_data = {
-		"",// name or title
-		"",// density
+		"",// Name or title
+		"",// Density
 		"",// Z-ratio
-		"",// tooling
+		"",// Tooling
 	};
 		
 	private static final String UNKNOW_HIGH = "??? Å";
@@ -232,10 +232,11 @@ public class DevSQM2Usb extends DevBase {
 		if(port.isPresent()==false) {
 			return "";
 		}
+		final SerialPort dev = port.get();
+		
 		byte buf0, chkm;
 		int indx=data.length();
-		String recv = "";
-		final SerialPort dev = port.get();
+		String recv = "";		
 		try {
 			final byte[] send = new byte[1+1+1+indx+1+1+1];
 			send[0] = (byte) 0x02;//STX
@@ -331,6 +332,63 @@ public class DevSQM2Usb extends DevBase {
 		});
 	}
 	//----------------------------------------------------------------------//
+		
+	public static Pane genCtrlPanel(final DevSQM2Usb dev) {
+		
+		final Label[] info = new Label[8];
+		for(int i=0; i<info.length; i++) {
+			info[i] = new Label();
+			info[i].setMinWidth(80);
+			info[i].getStyleClass().addAll("font-size4");
+			GridPane.setHgrow(info[i], Priority.ALWAYS);
+		}
+		info[0].setText("速率："); info[1].setPrefWidth(200.); info[1].textProperty().bind(dev.rate); 
+		info[2].setText("厚度："); info[3].setPrefWidth(140.); info[3].textProperty().bind(dev.high); 
+		info[4].setText("時間："); info[5].setPrefWidth(140.); info[5].textProperty().bind(dev.time); 
+		info[6].setText("薄膜："); info[7].setPrefWidth(140.); info[7].textProperty().bind(dev.filmTitle);
+		
+		final Button btn_zero_high = new Button("歸零");
+		btn_zero_high.setFocusTraversable(false);
+		btn_zero_high.setOnAction(e->dev.zeroThickness());
+		
+		final Button btn_zero_time = new Button("歸零");
+		btn_zero_time.setFocusTraversable(false);
+		btn_zero_time.setOnAction(e->dev.zeroTimer());
+		
+		final Button btn_film_pick = new Button("選取");
+		btn_film_pick.setFocusTraversable(false);
+		btn_film_pick.setOnAction(e->{});
+		
+		final JFXButton btn_film_data = new JFXButton("薄膜設定");
+		btn_film_data.getStyleClass().add("btn-raised-1");
+		btn_film_data.setMaxWidth(Double.MAX_VALUE);
+		btn_film_data.setOnAction(e->{
+			final DialogFilm dia = new DialogFilm(dev.film_data);
+			final Optional<String[]> opt = dia.showAndWait();
+			if(opt.isPresent()==true) {
+				dev.setFilmData(opt.get());
+			}
+		});
+		
+		final JFXButton btn_zeros_all = new JFXButton("歸零鍍膜");
+		btn_zeros_all.getStyleClass().add("btn-raised-1");
+		btn_zeros_all.setMaxWidth(Double.MAX_VALUE);
+		btn_zeros_all.setOnAction(e->dev.zeros());
+		
+		final GridPane lay = new GridPane(); 
+		lay.getStyleClass().addAll("box-pad");
+		lay.add(info[0], 0, 0);
+		lay.add(info[1], 1, 0, 2, 1);
+		lay.addRow(1, info[2], info[3]);
+		lay.addRow(2, info[4], info[5]);
+		lay.addRow(3, info[6], info[7]);
+		lay.add(btn_zero_high, 2, 1, 1, 1);
+		lay.add(btn_zero_time, 2, 2, 1, 1);
+		lay.add(btn_film_pick, 2, 3, 1, 1);
+		lay.add(btn_film_data, 0, 4, 3, 1);
+		lay.add(btn_zeros_all, 0, 5, 3, 1);
+		return lay;
+	}
 	
 	private static class DialogFilm extends Dialog<String[]>{
 		DialogFilm(final String[] arg){
@@ -377,61 +435,4 @@ public class DevSQM2Usb extends DevBase {
 			});
 		}		
 	};
-		
-	public static Pane genCtrlPanel(final DevSQM2Usb dev) {
-		
-		final Label[] info = new Label[8];
-		for(int i=0; i<info.length; i++) {
-			info[i] = new Label();
-			info[i].setMinWidth(80);
-			info[i].getStyleClass().addAll("font-size5");
-			GridPane.setHgrow(info[i], Priority.ALWAYS);
-		}
-		info[0].setText("速率："); info[1].setPrefWidth(200.); info[1].textProperty().bind(dev.rate); 
-		info[2].setText("厚度："); info[3].setPrefWidth(140.); info[3].textProperty().bind(dev.high); 
-		info[4].setText("時間："); info[5].setPrefWidth(140.); info[5].textProperty().bind(dev.time); 
-		info[6].setText("薄膜："); info[7].setPrefWidth(140.); info[7].textProperty().bind(dev.filmTitle);
-		
-		final Button btn_zero_high = new Button("歸零");
-		btn_zero_high.setFocusTraversable(false);
-		btn_zero_high.setOnAction(e->dev.zeroThickness());
-		
-		final Button btn_zero_time = new Button("歸零");
-		btn_zero_time.setFocusTraversable(false);
-		btn_zero_time.setOnAction(e->dev.zeroTimer());
-		
-		final Button btn_film_pick = new Button("選取");
-		btn_film_pick.setFocusTraversable(false);
-		//btn_film_pick.setOnAction(e->{});
-		
-		final JFXButton btn_film = new JFXButton("薄膜設定");
-		btn_film.getStyleClass().add("btn-raised-1");
-		btn_film.setMaxWidth(Double.MAX_VALUE);
-		btn_film.setOnAction(e->{
-			final DialogFilm dia = new DialogFilm(dev.film_data);
-			final Optional<String[]> opt = dia.showAndWait();
-			if(opt.isPresent()==true) {
-				dev.setFilmData(opt.get());
-			}
-		});
-		
-		final JFXButton btn_zero = new JFXButton("歸零鍍膜");
-		btn_zero.getStyleClass().add("btn-raised-1");
-		btn_zero.setMaxWidth(Double.MAX_VALUE);
-		btn_zero.setOnAction(e->dev.zeros());
-		
-		final GridPane lay = new GridPane(); 
-		lay.getStyleClass().addAll("box-pad");
-		lay.add(info[0], 0, 0);
-		lay.add(info[1], 1, 0, 2, 1);
-		lay.addRow(1, info[2], info[3]);
-		lay.addRow(2, info[4], info[5]);
-		lay.addRow(3, info[6], info[7]);
-		lay.add(btn_zero_high, 2, 1, 1, 1);
-		lay.add(btn_zero_time, 2, 2, 1, 1);
-		lay.add(btn_film_pick, 2, 3, 1, 1);
-		lay.add(btn_film, 0, 4, 3, 1);
-		lay.add(btn_zero, 0, 5, 3, 1);
-		return lay;
-	}
 }

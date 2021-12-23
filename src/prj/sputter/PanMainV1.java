@@ -2,6 +2,7 @@ package prj.sputter;
 
 import com.jfoenix.controls.JFXTabPane;
 
+import javafx.scene.Node;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Tab;
 import javafx.scene.layout.BorderPane;
@@ -48,14 +49,13 @@ public class PanMainV1 extends PanBase {
 	}
 	
 	@Override
-	public Pane eventLayout(PanBase self) {
+	public Node eventLayout(PanBase self) {
 		
 		final HBox lay3 = new HBox();
 		lay3.getStyleClass().addAll("box-pad");
 		lay3.getChildren().addAll(
 			DevDCG100.genPanel(dcg1),
-			DevSPIK2k.genPanel(spik),
-			DevSQM160.genPanel(sqm1)
+			DevSPIK2k.genPanel(spik)
 		);
 		final ScrollPane lay2 = new ScrollPane(lay3);
 		lay2.setPrefViewportWidth(800);

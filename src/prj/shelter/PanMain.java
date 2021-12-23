@@ -4,6 +4,7 @@ import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXTabPane;
 import com.jfoenix.controls.JFXTextField;
 
+import javafx.scene.Node;
 import javafx.scene.control.Control;
 import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
@@ -51,7 +52,7 @@ public class PanMain extends PanBase {
 	}
 	
 	@Override
-	public Pane eventLayout(PanBase self) {
+	public Node eventLayout(PanBase self) {
 		
 		final HBox lay_dev = new HBox();
 		lay_dev.getStyleClass().addAll("box-pad");

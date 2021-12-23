@@ -107,7 +107,7 @@ public class TestLadder extends PanBase {
 	}
 	
 	@Override
-	public Pane eventLayout(PanBase self) {
+	public Node eventLayout(PanBase self) {
 		
 		ladder.addStep("aaa", aaa.class);
 		ladder.addStep("bbb", bbb.class);

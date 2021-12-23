@@ -26,6 +26,7 @@ import javafx.animation.Timeline;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
+import javafx.scene.Node;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.TableColumn;
@@ -430,7 +431,7 @@ public class LogStream {
 		}
 		PanBase obj = new PanBase(stg){
 			@Override
-			public Pane eventLayout(PanBase self) {
+			public Node eventLayout(PanBase self) {
 				return layout_console(self);
 			}
 		};

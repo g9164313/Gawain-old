@@ -14,6 +14,7 @@ import eu.hansolo.tilesfx.Tile.TextSize;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
@@ -190,7 +191,7 @@ public class PanMain extends PanBase {
 	};
 	
 	@Override
-	public Pane eventLayout(PanBase self) {		
+	public Node eventLayout(PanBase self) {		
 		final BorderPane lay0 = new BorderPane();
 		lay0.setCenter(gen_panel_gauge());
 		lay0.setRight(new HBox(
