@@ -156,9 +156,9 @@ public class Gawain extends Application {
 			NoSuchMethodException |
 			SecurityException | 
 			ClassNotFoundException e
-		) {
-			//e.printStackTrace();
-			Misc.loge("啟動失敗!!");
+		) {			
+			Misc.loge("啟動失敗!!\n");
+			e.printStackTrace();
 			mainPanel = LogStream.getInstance().showConsole(stg);
 		}
 		tick = System.currentTimeMillis()-tick;		

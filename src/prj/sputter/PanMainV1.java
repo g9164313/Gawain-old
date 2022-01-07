@@ -17,12 +17,12 @@ import narl.itrc.PanBase;
 public class PanMainV1 extends PanBase {
 	
 	final DevDCG100 dcg1 = new DevDCG100();	
-	final DevSPIK2k spik = new DevSPIK2k();
+	final DevCESAR  csar = new DevCESAR();
 	final DevSQM160 sqm1 = new DevSQM160();
 	
 	//final LayGauges gauges = LayGauges.getInstance();
 	final LayLogger  logger = new LayLogger();		
-	final LayLadder  ladder = new LayLadder(logger,null,dcg1,spik,sqm1);
+	final LayLadder  ladder = new LayLadder(logger,null,dcg1,csar,sqm1);
 	
 	public PanMainV1(final Stage stg) {
 		super(stg);
@@ -37,9 +37,9 @@ public class PanMainV1 extends PanBase {
 			dcg1.open(arg);
 			logger.bindProperty(dcg1);
 		}
-		arg = Gawain.prop().getProperty("SPIK2k", "");
+		arg = Gawain.prop().getProperty("CESAR", "");
 		if(arg.length()>0) {
-			spik.open(arg);
+			csar.open(arg);
 		}
 		arg = Gawain.prop().getProperty("SQM160", "");
 		if(arg.length()>0) {			
@@ -55,7 +55,7 @@ public class PanMainV1 extends PanBase {
 		lay3.getStyleClass().addAll("box-pad");
 		lay3.getChildren().addAll(
 			DevDCG100.genPanel(dcg1),
-			DevSPIK2k.genPanel(spik)
+			DevCESAR.genCtrlPanel(csar)
 		);
 		final ScrollPane lay2 = new ScrollPane(lay3);
 		lay2.setPrefViewportWidth(800);

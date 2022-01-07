@@ -43,7 +43,7 @@ public class LayLadder extends Ladder {
 	) {
 		logger = obj;
 		coup = (DevCouple)dev[0];
-		dcg1 = (DevDCG100)dev[1];	
+		//dcg1 = (DevDCG100)dev[1];	
 		spik = (DevSPIK2k)dev[2];
 		sqm1 = (DevSQM160)dev[3];
 		

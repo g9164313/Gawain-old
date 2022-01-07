@@ -578,25 +578,6 @@ public class DevDCG100 extends DevTTY {
 }
 
 /**
- * DCG-100 analog control
- * pin.1 -->I1-2.1 (ch.B: out, DC on read-back
- * pin.2 -->AI-1.1 (ch.A: out, voltage get
- * pin.3 -->AI-1.2 (ch.A: out, power get
- * pin.4 -->O1-1.1 (ch.A: in , closure relay
- * pin.5 -->AO-1.1 (ch.A: in , power set
- * pin.6 -->AI-2.1 (    : GND, analog common
- * pin.7 -->I1-1.1 (ch.A: out, DC on read-back
- * pin.8 -->I1-1.3 (    : GND, DC read common
- * pin.9 -->O1-1.2 (    : GND, closure common
- * pin.10-->AO-2.1 (ch.B: in , power set
- * pin.11-->O1-1.4 (    : in , safety lock
- * pin.12-->O1-2.2 (    : GND, safety lock common
- * pin.13-->O1-2.1 (ch.B: in , closure relay
- * pin.14-->AI-1.3 (ch.B: out, voltage get
- * pin.15-->AI-1.4 (ch.B: out, power get
- */
-
-/**
 ----DCG-100 System report----
 
 System Total KW:                10

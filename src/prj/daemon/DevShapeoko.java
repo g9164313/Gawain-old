@@ -15,682 +15,430 @@ import javafx.beans.property.SimpleFloatProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckBox;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.DialogPane;
 import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleGroup;
+import javafx.scene.control.ButtonBar.ButtonData;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.text.TextAlignment;
+import jssc.SerialPort;
+import jssc.SerialPortException;
+import jssc.SerialPortTimeoutException;
 import narl.itrc.DevTTY;
+import narl.itrc.DevTTY2;
+import narl.itrc.Gawain;
 import narl.itrc.Misc;
 import prj.sputter.DevDCG100;
 
 @SuppressWarnings("unused")
-public class DevShapeoko extends DevTTY {
+public class DevShapeoko extends DevTTY2 {
 
 	public DevShapeoko() {
-		TAG = "dev-shapeoko";
-		readTimeout = 5;
+		TAG = "shapeoko";
 	}
 	
-	private final static String STG_INIT = "initial";
-	private final static String STG_MONT = "monitor";
-
-	private void state_initialize() {
-		String ans = readTxt(2000);//message is very slow.... 
-		if(ans.contains("Grbl")==false) {
-			Misc.loge("No Grbl controller!!");
-			nextState("");
-			return;
-		}
-		Misc.logv(ans);
-		exec("$X" ,txt->{Application.invokeAndWait(()->{
-			isReady.set(true);
-		});});//unlock device
-		exec("M05",null);//spindle off
-		exec("G21",null);//set units to Millimeters
-		exec("~"  ,null);		
-		nextState(STG_MONT);
-		//nextState.set(null);
-	}
-	private void state_monitor() {
-		exec("?",txt->update_property(txt));
-		//nextState.set(STG_PIPE);
-	}
 	@Override
-	protected void afterOpen() {
-		addState(STG_INIT, ()->state_initialize()).
-		addState(STG_MONT, ()->state_monitor());
+	public void afterOpen() {
+		addState(STG_INIT,()->state_init()).
+		addState(STG_LOOP,()->state_loop()).
 		playFlow(STG_INIT);
 	}
+	private static final String STG_INIT = "init";
+	private static final String STG_LOOP = "loop";
 
-	private final AtomicBoolean isIdle = new AtomicBoolean(false);//mirror for state flag.
+	private void state_init() {
+		if(check_grbl()==false) {
+			return;
+		}
+		String txt;
+		//exec("~"  ,null);//???	
+		exec("$X");//unlock device~~
+		exec("M05");//spindle off
+		exec("G21");//set units to Millimeters
+		nextState(STG_LOOP);
+	}
+
+	private boolean is_idle = false;
 	
-	private final BooleanProperty isReady = new SimpleBooleanProperty(false);
+	public final BooleanProperty isIdle = new SimpleBooleanProperty(is_idle);
 	
-	public final StringProperty State= new SimpleStringProperty("Reset"); 
+	public final StringProperty lastError = new SimpleStringProperty();
 	
-	public final FloatProperty MPosX = new SimpleFloatProperty();
-	public final FloatProperty MPosY = new SimpleFloatProperty();
-	public final FloatProperty MPosZ = new SimpleFloatProperty();
+	public final StringProperty State= new SimpleStringProperty("???"); 
+
+	public final StringProperty MPosX = new SimpleStringProperty();
+	public final StringProperty MPosY = new SimpleStringProperty();
+	public final StringProperty MPosZ = new SimpleStringProperty();
 	
 	public final IntegerProperty Bf1 = new SimpleIntegerProperty();
 	public final IntegerProperty Bf2 = new SimpleIntegerProperty();
 	
-	public final IntegerProperty Fs1 = new SimpleIntegerProperty();
-	public final IntegerProperty Fs2 = new SimpleIntegerProperty();
+	public final IntegerProperty FS1 = new SimpleIntegerProperty();
+	public final IntegerProperty FS2 = new SimpleIntegerProperty();
 	
-	public final FloatProperty WCOX = new SimpleFloatProperty();
-	public final FloatProperty WCOY = new SimpleFloatProperty();
-	public final FloatProperty WCOZ = new SimpleFloatProperty();
+	public final StringProperty WCOX = new SimpleStringProperty();
+	public final StringProperty WCOY = new SimpleStringProperty();
+	public final StringProperty WCOZ = new SimpleStringProperty();
 	
 	public final IntegerProperty Ov1= new SimpleIntegerProperty();
 	public final IntegerProperty Ov2= new SimpleIntegerProperty();
 	
-	private void update_property(final String txt) {
-		
-		int p1 = txt.indexOf('<');
-		int p2 = txt.indexOf('>');
-		if(p1<0 || p2<=0 || p1>=p2) {
+	private void state_loop() {
+		sleep(50);
+		//status text example:
+		//<Idle|MPos:0.000,0.000,0.000|Bf:14,127|FS:0,0|WCO:0.000,0.000,0.000>
+		final String txt = exec("?").replaceAll("[\r\n]", "");
+		if(txt.matches("^<[\\w]+([|][\\w]+[:][\\-0-9.,]+)+>$")==false) {
 			return;
 		}
-		String[] col = txt
-			.substring(p1+1,p2)
-			.split("[|]");
-		if(col[0].toLowerCase().equals("idle")==true) {
-			isIdle.set(true);
-		}else {
-			isIdle.set(false);
+		final String[] col = txt.replaceAll("[<>]", "").split("\\|");
+		
+		final String state = col[0];
+		final String[] mpos= {"","",""}, wco={"", "", ""};
+		final int[] bf={0,0}, fs= {0,0}, ov={0, 0};
+		
+		is_idle = state.toLowerCase().equals("idle");
+		
+		for(int i=1; i<col.length; i++) {
+			String[] val = col[i].split("[:,]");
+			if(val[0].startsWith("MPos")==true) {
+				mpos[0] = val[1];
+				mpos[1] = val[2];
+				mpos[2] = val[3];
+			}else if(val[0].startsWith("Bf")==true) {
+				bf[0] = Integer.valueOf(val[1]);
+				bf[1] = Integer.valueOf(val[2]);
+			}else if(val[0].startsWith("FS")==true) {
+				fs[0] = Integer.valueOf(val[1]);
+				fs[1] = Integer.valueOf(val[2]);
+			}else if(val[0].startsWith("WCO")==true) {
+				wco[0] = val[1];
+				wco[1] = val[2];
+				wco[2] = val[3];
+			}else if(val[0].startsWith("Ov")==true) {
+				ov[0] = Integer.valueOf(val[1]);
+				ov[1] = Integer.valueOf(val[2]);
+			}else {
+				Misc.logw("[%s] unknow status: %s", TAG, col[i]);
+			}
 		}
-		Application.invokeAndWait(()->{
-			State.set(col[0]);		
-			for(int i=1; i<col.length; i++){
-				String itm = col[i];
-				try{
-					String[] val;
-					if(itm.startsWith("MPos:")==true){
-						val = itm.substring(5).split(",");
-						MPosX.set(Float.valueOf(val[0]));
-						MPosY.set(Float.valueOf(val[1]));
-						MPosZ.set(Float.valueOf(val[2]));
-					}else if(itm.startsWith("Bf:")==true){
-						val = itm.substring(3).split(",");
-						Bf1.set(Integer.valueOf(val[0]));
-						Bf2.set(Integer.valueOf(val[1]));
-					}else if(itm.startsWith("FS:")==true){
-						val = itm.substring(3).split(",");
-						Fs1.set(Integer.valueOf(val[0]));
-						Fs2.set(Integer.valueOf(val[1]));
-					}else if(itm.startsWith("WCO:")==true){
-						val = itm.substring(4).split(",");
-						WCOX.set(Float.valueOf(val[0]));
-						WCOY.set(Float.valueOf(val[1]));
-						WCOZ.set(Float.valueOf(val[2]));
-					}else if(itm.startsWith("Ov:")==true){
-						val = itm.substring(3).split(",");
-						Ov1.set(Integer.valueOf(val[0]));
-						Ov2.set(Integer.valueOf(val[1]));
-					}else if(itm.startsWith("Pn:")==true){
-						//touch to limit!!!
-					}else {
-						Misc.loge("Wrong Item: %s",itm);
-					}
-				}catch(NumberFormatException e){
-					Misc.loge("Wrong Fromat: %s",itm);
+		Application.invokeLater(()->{
+			isIdle.set(is_idle);
+			State.set(state);
+			MPosX.set(mpos[0]);
+			MPosY.set(mpos[1]);
+			MPosZ.set(mpos[2]);
+			WCOX.set(wco[0]);
+			WCOY.set(wco[1]);
+			WCOZ.set(wco[2]);
+			Bf1.set(bf[0]);
+			Bf2.set(bf[1]);
+			FS1.set(fs[0]);
+			FS2.set(fs[1]);
+			Ov1.set(ov[0]);
+			Ov2.set(ov[1]);
+		});
+	}
+	private void wait_idle() {
+		do{ 
+			state_loop(); 
+		}while(is_idle==false);	
+	}
+
+	private String exec(String cmd) {
+		final SerialPort dev = port.get();
+		try {
+			if(dev.isOpened()==false) {
+				return "No opened~~";
+			}
+			cmd = cmd.replaceAll("[\r|\n]", "");
+			dev.writeString(cmd+'\n');
+			String msg = "";
+			int retry = 0;//if device have no response, just return to looper~~~
+			for(;retry<10;){
+				final String txt = wait_one_line(dev);
+				if(txt.length()==0) {
+					retry+=1;
+				}else {
+					retry =0;
+					msg = msg + txt;
+				}
+				if(msg.contains("ok")==true) {
+					int pos = msg.indexOf("ok");
+					return msg.substring(0,pos);
+				}else if(
+					msg.contains("error")==true ||
+					msg.contains("ALARM")==true ||
+					msg.contains("Hold")==true ||
+					msg.contains("Door")==true
+				) {	
+					return error_code_to_mesg(cmd,msg);
 				}
 			}
-		});
-	}
-		
-	public String exec(
-		final String cmd,
-		final ReadBack event
-	) {
-		String _cmd = cmd.toUpperCase();
-		if(_cmd.endsWith("\n")==false) {
-			_cmd = _cmd + "\n";
-		}		
-		writeTxt(_cmd);
-		final String ans = readTxt("(?s).*(ok|error).*\\r\\n$");
-		if(ans.contains("ok")==true) {
-			if(event!=null) { event.callback(ans); }
-		}else {
-			Misc.loge("%s",ans);
+		}catch(SerialPortException e) {
+			Misc.loge(e.getMessage());
 		}
-		return ans;
+		return "!!Escape!!";
 	}
-	public String exec(final String cmd) {
-		return exec(cmd,null);
-	}
-	
-	/**
-	 * Move probe head, but only one direction.<p>
-	 * @param axis
-	 * @param val
-	 * @param abs
-	 */
-	public void move(
-		final boolean abs,
-		final char axis,
-		final float val		
-	){
-		final String cmd = String.format(
-			"%s\nG00%C%.1f\n",
-			(abs==true)?("G90"):("G91"),
-			axis, val
-		);
-		asyncBreakIn(()->{
-			exec(cmd,null);
-			nextState(STG_MONT);
-		});
-	}
-	
-	/**
-	 * Move probe head.User can assign any position.<p>
-	 * @param abs : relative or absolute position value
-	 * @param xx : x-axis position value.
-	 * @param yy : y-axis position value.
-	 * @param zz : y-axis position value.
-	 */
-	public void move(
-		final boolean abs,
-		final float xx, 
-		final float yy,
-		final float zz		
-	){
-		final String cmd = String.format(
-			"%sG00X%.1fY%.1fZ%.1f\n",
-			(abs==true)?("G90\n"):("G91\n"),
-			xx,yy,zz
-		);
-		asyncBreakIn(()->{
-			exec(cmd,null);
-			nextState(STG_MONT);
-		});
-	}
-	public void moveAbs(
-		float xx, 
-		float yy,
-		float zz
-	){
-		move(true,xx,yy,zz);
-	}
-	public void moveRel(
-		float xx, 
-		float yy, 
-		float zz
-	){
-		move(false,xx,yy,zz);
-	}
-		
-	/**
-	 * Same as 'move()', but block current thread(caller).<p>
-	 * @param abs : relative or absolute position value
-	 * @param xx : x-axis position value.
-	 * @param yy : y-axis position value.
-	 * @param zz : y-axis position value.
-	 */
-	public void syncMove(
-		final boolean abs,
-		final float xx, 
-		final float yy,
-		final float zz		
-	) {
-		final String cmd = String.format(
-			"%sG00X%.1fY%.1fZ%.1f\n",
-			(abs==true)?("G90\n"):("G91\n"),
-			xx,yy,zz
-		);		
-		asyncBreakIn(()->{
-			isIdle.set(true);
-			exec(cmd,null);
-			nextState(STG_MONT);
-		});
-		while(isIdle.get()==false) {
+	private String wait_one_line(final SerialPort dev) throws SerialPortException {
+		String txt = "";
+		int counter = 0;
+		do {
+			char cc;
 			try {
-				Thread.sleep(10);
-			} catch (InterruptedException e) {
-			}
+				cc = (char)dev.readBytes(1,100)[0];
+				txt = txt + cc;
+				if(cc=='\n') {
+					break;
+				}
+			} catch (SerialPortTimeoutException e) {
+				counter+=1;
+				if(counter>30) {
+					return txt;
+				}else {
+					continue;
+				}
+			}			
+		}while(true);		
+		return txt;
+	}
+	private String error_code_to_mesg(final String cmd,String txt) {
+		if(txt.contains("error:8")==true) {
+			txt = "command cannot be used unless Grbl is IDLE.";
+		}else if(txt.contains("error:16")==true) {
+			txt = "Jog command with no ‘=’ or contains prohibited g-code.";
+		}else if(txt.contains("error:22")==true) {
+			txt = "Feed rate has not yet been set or is undefined.";
 		}
-	}
-	public void syncMoveAbs(
-		float xx, 
-		float yy,
-		float zz
-	){
-		syncMove(true,xx,yy,zz);
-	}
-	public void syncMoveRel(
-		float xx, 
-		float yy, 
-		float zz
-	){
-		syncMove(false,xx,yy,zz);
+		final String msg = txt;
+		Misc.logw("[%s][NG] %s-->%s", TAG, cmd, msg);
+		Application.invokeLater(()->lastError.set("["+cmd+"] "+msg));
+		return txt;
 	}
 	
-	/**
-	 * scan a rectangle.<p>
-	 * if step is positive, move along x-axis and step by y-axis.<p>
-	 * if step is negative, move along y-axis and step by x-axis.<p>
-	 * @param step - step size, how many segments.
-	 * @param points - step size, start and end point (X and Y).
-	 */
-	public void travelScan(
-		final int step,
-		final float... points
-	) {asyncBreakIn(()->{
-		
-		final float LF = Math.min(points[0],points[2]);//left
-		final float RH = Math.max(points[0],points[2]);//right
-		final float TP = Math.max(points[1],points[3]);//top
-		final float BM = Math.min(points[1],points[3]);//bottom
-		final float stp = (step>0)?(
-			-Math.abs((TP-BM)/step)
-		):(
-			-Math.abs((RH-LF)/step)
-		);
-		int cnt = Math.abs(step);
-		
-		float[][] line = new float[cnt][4];	
-		
-		if(step>0) {
-			//step is vertical
-			//fist line coordinate
-			line[0][0] = LF; line[0][1] = TP;
-			line[0][2] = RH; line[0][3] = TP;
-			//last line coordinate
-			line[cnt-1][0] = LF; line[cnt-1][1] = BM;
-			line[cnt-1][2] = RH; line[cnt-1][3] = BM;
-			//other segments~~~
-			for(int i=1; i<cnt-1; i+=1) {
-				line[i][0] = LF; line[i][1] = TP + i*stp;
-				line[i][2] = RH; line[i][3] = TP + i*stp;
-			}
-		}else {
-			//step is horizontal
-			//fist line coordinate
-			line[0][0] = LF; line[0][1] = TP;
-			line[0][2] = LF; line[0][3] = BM;
-			//last line coordinate
-			line[cnt-1][0] = RH; line[cnt-1][1] = TP;
-			line[cnt-1][2] = RH; line[cnt-1][3] = BM;
-			//other segments~~~
-			for(int i=1; i<cnt-1; i+=1) {
-				line[i][0] = LF + i*stp; line[i][1] = TP;
-				line[i][2] = LF + i*stp; line[i][3] = BM;
-			}
-		}
-		
-		String cmd = "G90\n";
-		for(int i=0; i<cnt; i+=1) {
-			float x1 = line[i][(0+2*(i%2))%4];
-			float y1 = line[i][(1+2*(i%2))%4];
-			float x2 = line[i][(2+2*(i%2))%4];
-			float y2 = line[i][(3+2*(i%2))%4];
-			cmd = cmd + String.format(
-				"G01X%.1fY%.1fF5000\n"+
-				"G01X%.1fY%.1fF5000\n",
-				x1,y1, x2,y2
-			);
-		}
-		cmd = cmd + String.format(
-			"G01X%.1fY%.1fF5000\n",
-			(LF+RH)/2f, (TP+BM)/2f
-		);//go to original point
-		Misc.logv("\n"+cmd);//dry-run~~
-		exec(cmd);
-		nextState(STG_MONT);
-	});}
-	//---------------------------------------//
-	
-	private static void move_gui(
-		final DevShapeoko dev,
-		final char token,
-		final CheckBox chkJog,
-		final CheckBox chkAbs,
-		final TextField boxVal
-	) {	
-		float val = 0f;
+	private boolean check_grbl() {
+		//try to empty input buffer after connection~~
+		final SerialPort dev = port.get();
 		try {
-			val = Float.valueOf(boxVal.getText());
-		}catch(NumberFormatException e) {
-			return;
+			if(dev.isOpened()==true) {
+				String txt = "";
+				txt = txt + wait_one_line(dev);
+				txt = txt + wait_one_line(dev);
+				txt = txt + wait_one_line(dev);
+				return txt.contains("Grbl");
+			}
+		}catch(SerialPortException e) {
+			Misc.loge(e.getMessage());
 		}
-		char axs = 'X';
-		switch(token) {
+		return false;
+	}
+	
+	public void asyncHome() {asyncBreakIn(()->{
+		exec("$H");	
+	});}
+	public void asyncJogging(
+		final char axs,
+		final char dir
+	) {asyncBreakIn(()->{
+		String cmd="";
+		int val = 0;
+		switch(axs) {
 		case 'x':
 		case 'X':
-			axs = 'X';
+			val = (dir=='+')?(840):(-840);
+			cmd=String.format("$J=G91 X%d F3000",val); 
 			break;
-		case 'y':
-		case 'Y':
-			axs = 'Y';
+		case 'Y': 
+			val = (dir=='+')?(840):(-840);
+			cmd=String.format("$J=G91 Y%d F3000",val); 
 			break;
 		case 'z':
-		case 'Z': 
-			axs = 'Z';
-			break;
-		case 'm':
-		case 'M':
-			axs = 'X';
-			val = -1f * val;
-			break;
-		case 'n':
-		case 'N':
-			axs = 'Y';
-			val = -1f * val;
-			break;
-		case 'o':
-		case 'O':
-			axs = 'Z';
-			val = -1f * val;
-			break;
-		default: Misc.logw("invalid direction token."); return;
+		case 'Z':
+			val = (dir=='+')?(80):(-80);
+			cmd=String.format("$J=G91 Z%d F3000",val); 
+			break;		
+		default: cmd="!"; break;
 		}
-		dev.move(chkAbs.isSelected(), axs, val);
-	}
-	
-	private static final String FMT_VAL = "%#7.1f mm";
-	
-	private static String cook(final String txt) {
-		return txt.substring(0,txt.length()-3);
-	}
-	
-	public static Pane genPanel(final DevShapeoko dev) {
-		
-		final Label[] txt = new Label[10];
-		for(int i=0; i<txt.length; i++) {
-			txt[i] = new Label();
-			txt[i].setMaxWidth(Double.MAX_VALUE);			
-			GridPane.setFillWidth(txt[i], true);
-		}		
-		txt[0].textProperty().bind(dev.State);
-		txt[1].textProperty().bind(dev.MPosX.asString(FMT_VAL));
-		txt[2].textProperty().bind(dev.MPosY.asString(FMT_VAL));
-		txt[3].textProperty().bind(dev.MPosZ.asString(FMT_VAL));
-		txt[4].setText(String.format(FMT_VAL, -30.00));
-		txt[5].setText(String.format(FMT_VAL,  30.00));
-		txt[6].setText(String.format(FMT_VAL,  30.00));
-		txt[7].setText(String.format(FMT_VAL, -30.00));
-		
-		final JFXCheckBox chkJog = new JFXCheckBox("Jogging");
-		GridPane.setFillWidth(chkJog, true);
-		
-		final Label txtMove = new Label("偏移：");
-		
-		final JFXCheckBox chkMove = new JFXCheckBox("相對移動");
-		chkMove.disableProperty().bind(chkJog.selectedProperty());
-		chkMove.setOnAction(e->{
-			if(chkMove.isSelected()==true){
-				chkMove.setText("絕對位置");
-				txtMove.setText("位置：");
-			}else{
-				chkMove.setText("相對移動");
-				txtMove.setText("偏移：");
+		exec(cmd);
+	});}
+
+	public void asyncGridPath(			
+		final Runnable handler,
+		final int grid_x, 
+		final int grid_y,
+		final float step_x,
+		final float step_y
+	) {
+		final String val_orig_x = MPosX.get();
+		final String val_orig_y = MPosY.get();
+		final int val_grid_x = Math.abs(grid_x);
+		final int val_grid_y = Math.abs(grid_y);
+		final String txt_step_x = String.format("%.3f", step_x);
+		final String txt_step_y = String.format("%.3f", step_y);
+		asyncBreakIn(()->{		
+		for(int gy=0; gy<val_grid_y; gy++) {
+			for(int gx=0; gx<val_grid_x; gx++) {				
+				if(gy%2==0) {
+					if(handler!=null) {
+						Application.invokeAndWait(handler);
+					}
+					exec(String.format("G91 G0X+%s",txt_step_x));
+					wait_idle();
+				}else {
+					exec(String.format("G91 G0X-%s",txt_step_x));
+					wait_idle();
+					if(handler!=null) {
+						Application.invokeAndWait(handler);
+					}
+				}		
 			}
-		});
-		GridPane.setFillWidth(chkMove, true);
+			//end of one row, goto the next line~~~
+			exec(String.format("G91 G0Y%s",txt_step_y));
+			wait_idle();
+		}
+		exec(String.format("G90 G0X%sY%s",val_orig_x,val_orig_y));
+		wait_idle();
+	});}	
+	//---------------------------------------//
+	
+	private static final String unit1 = "mm"; 
+	
+	public static Node genCtrlPanel(final DevShapeoko dev) {
 		
-		final TextField[] box = {
-			new TextField(),
-			new TextField(),
+		final Label[] txt = {
+			new Label("狀態："), new Label(), new Label(),
+			new Label("X 軸："), new Label(), new Label(unit1),
+			new Label("Y 軸："), new Label(), new Label(unit1),
+			new Label("Z 軸："), new Label(), new Label(unit1),
 		};
-		for(TextField obj:box) {
-			obj.setMaxWidth(Double.MAX_VALUE);
-			obj.setPrefWidth(80);
-			GridPane.setFillWidth(obj, true);
-		}
-		
-		box[0].disableProperty().bind(chkJog.selectedProperty());			
-		box[0].setText("15");
-		
-		box[1].setText("5");//grid for segment lines
-		
-		final JFXButton[] btn = new JFXButton[11];
-		for(int i=0; i<btn.length; i++) {
-			JFXButton obj = new JFXButton();
+		for(Label obj:txt) {			
+			//obj.getStyleClass().addAll("font-size7","box-border");
+			obj.getStyleClass().addAll("font-size7");
 			obj.setMaxWidth(Double.MAX_VALUE);
 			GridPane.setFillWidth(obj, true);
-			btn[i] = obj;
 		}
-		btn[0].setGraphic(Misc.getIconView("dir-up.png"));
-		btn[0].setOnAction(e->move_gui(dev,'Y',chkJog,chkMove,box[0]));
-		
-		btn[1].setGraphic(Misc.getIconView("arrow-up.png"));
-		btn[1].setOnAction(e->move_gui(dev,'Z',chkJog,chkMove,box[0]));
-		
-		btn[2].setGraphic(Misc.getIconView("dir-left.png"));
-		btn[2].setOnAction(e->move_gui(dev,'M',chkJog,chkMove,box[0]));
-		
-		btn[3].setGraphic(Misc.getIconView("dir-down.png"));
-		btn[3].setOnAction(e->move_gui(dev,'N',chkJog,chkMove,box[0]));
-		
-		btn[4].setGraphic(Misc.getIconView("dir-right.png"));
-		btn[4].setOnAction(e->move_gui(dev,'X',chkJog,chkMove,box[0]));
-		
-		btn[5].setGraphic(Misc.getIconView("arrow-down.png"));
-		btn[5].setOnAction(e->move_gui(dev,'O',chkJog,chkMove,box[0]));
-		
-		btn[6].setText("歸零");
-		btn[6].setGraphic(Misc.getIconView("home.png"));
-		btn[6].getStyleClass().add("btn-raised-1");
-		//btn[6].setOnAction();
-		
-		final GridPane lay3 = new GridPane();
-		lay3.getStyleClass().addAll("box-pad");
-		lay3.add(btn[0], 1, 0);
-		lay3.add(btn[1], 3, 0);
-		lay3.addRow(1, btn[2], btn[3], btn[4], btn[5]);
-		lay3.add(chkJog , 0, 2, 2, 1);
-		lay3.add(chkMove, 2, 2, 2, 1);
-		lay3.add(txtMove, 0, 4, 1, 1);
-		lay3.add(box[0], 1, 4, 3, 1);
-		lay3.add(btn[6], 0, 5, 4, 1);
-		
-		final GridPane lay1 = new GridPane();		
-		lay1.getStyleClass().addAll("box-pad");
-		lay1.addRow(0, new Label("狀態："), txt[0]);
-		lay1.addRow(1, new Label("X 軸："), txt[1]);
-		lay1.addRow(2, new Label("Y 軸："), txt[2]);
-		lay1.addRow(3, new Label("Z 軸："), txt[3]);
-		lay1.add(new Separator(), 0, 4, 2, 1);
-		
-		lay1.add(lay3, 0, 5, 2, 1);
-		lay1.disableProperty().bind(dev.isReady.not());
-		return lay1;
-	}
-	
-	public static Pane genPanelInfo(final DevShapeoko dev) {
-		
-		final Label[] txt = new Label[4];
-		for(int i=0; i<txt.length; i++) {
-			txt[i] = new Label();
-			txt[i].setMaxWidth(Double.MAX_VALUE);			
-			GridPane.setFillWidth(txt[i], true);
-		}		
-		txt[0].textProperty().bind(dev.State);
-		txt[1].textProperty().bind(dev.MPosX.asString(FMT_VAL));
-		txt[2].textProperty().bind(dev.MPosY.asString(FMT_VAL));
-		txt[3].textProperty().bind(dev.MPosZ.asString(FMT_VAL));
-		
-		final GridPane lay = new GridPane();
-		lay.disableProperty().bind(dev.isReady.not());
-		lay.getStyleClass().addAll("box-border");
-		lay.addRow(0, new Label("狀態："), txt[0]);
-		lay.addRow(1, new Label("X 軸："), txt[1]);
-		lay.addRow(2, new Label("Y 軸："), txt[2]);
-		lay.addRow(3, new Label("Z 軸："), txt[3]);		
-		return lay;
-	}
-	
-	public static Pane genPanelMove(final DevShapeoko dev) {
-		
-		final JFXCheckBox chkJog = new JFXCheckBox("Jogging");
-		GridPane.setFillWidth(chkJog, true);
-		
-		final Label txtMove = new Label("偏移：");
-		
-		final JFXCheckBox chkMove = new JFXCheckBox("相對移動");
-		chkMove.disableProperty().bind(chkJog.selectedProperty());
-		chkMove.setOnAction(e->{
-			if(chkMove.isSelected()==true){
-				chkMove.setText("絕對位置");
-				txtMove.setText("位置：");
-			}else{
-				chkMove.setText("相對移動");
-				txtMove.setText("偏移：");
-			}
-		});
-		GridPane.setFillWidth(chkMove, true);
-		
-		final TextField boxVal = new TextField();
-		boxVal.setMaxWidth(Double.MAX_VALUE);
-		boxVal.setPrefWidth(80);
-		GridPane.setFillWidth(boxVal, true);
-			
-		boxVal.disableProperty().bind(chkJog.selectedProperty());			
-		boxVal.setText("15");
-			
-		final JFXButton[] btn = new JFXButton[7];
-		for(int i=0; i<btn.length; i++) {
-			JFXButton obj = new JFXButton();
-			obj.setMaxWidth(Double.MAX_VALUE);
-			GridPane.setFillWidth(obj, true);
-			btn[i] = obj;
+		final Label[] txt_axis = {
+			txt[4], txt[7], txt[10]
+		};
+		for(Label obj:txt_axis) {
+			obj.setMinWidth(143);
+			obj.setAlignment(Pos.BASELINE_RIGHT);
 		}
-		btn[0].setGraphic(Misc.getIconView("dir-up.png"));
-		btn[0].setOnAction(e->move_gui(dev,'Y',chkJog,chkMove,boxVal));
-			
-		btn[1].setGraphic(Misc.getIconView("arrow-up.png"));
-		btn[1].setOnAction(e->move_gui(dev,'Z',chkJog,chkMove,boxVal));
-			
-		btn[2].setGraphic(Misc.getIconView("dir-left.png"));
-		btn[2].setOnAction(e->move_gui(dev,'M',chkJog,chkMove,boxVal));
-			
-		btn[3].setGraphic(Misc.getIconView("dir-down.png"));
-		btn[3].setOnAction(e->move_gui(dev,'N',chkJog,chkMove,boxVal));
+		txt[ 1].textProperty().bind(dev.State);
+		txt[ 4].textProperty().bind(dev.MPosX);
+		txt[ 7].textProperty().bind(dev.MPosY);
+		txt[10].textProperty().bind(dev.MPosZ);
+
+		final JFXButton btn_setting = new JFXButton();
+		btn_setting.setGraphic(Misc.getIconView("settings.png"));
 		
-		btn[4].setGraphic(Misc.getIconView("dir-right.png"));
-		btn[4].setOnAction(e->move_gui(dev,'X',chkJog,chkMove,boxVal));
-			
-		btn[5].setGraphic(Misc.getIconView("arrow-down.png"));
-		btn[5].setOnAction(e->move_gui(dev,'O',chkJog,chkMove,boxVal));
+		final JFXButton btn_home = new JFXButton();
+		btn_home.setGraphic(Misc.getIconView("home.png"));
+		btn_home.setOnAction(e->dev.asyncHome());
 		
-		btn[6].setText("歸零");
-		btn[6].setGraphic(Misc.getIconView("home.png"));
-		btn[6].getStyleClass().add("btn-raised-1");
+		final JFXButton btn_AXIS_X_LF = new JFXButton();		
+		final JFXButton btn_AXIS_X_RH = new JFXButton();
+		btn_AXIS_X_LF.setGraphic(Misc.getIconView("dir-left.png"));		
+		btn_AXIS_X_RH.setGraphic(Misc.getIconView("dir-right.png"));
+
+		final JFXButton btn_AXIS_Y_LF = new JFXButton();
+		final JFXButton btn_AXIS_Y_RH = new JFXButton();
+		btn_AXIS_Y_LF.setGraphic(Misc.getIconView("dir-left.png"));
+		btn_AXIS_Y_RH.setGraphic(Misc.getIconView("dir-right.png"));
 		
-		final GridPane lay = new GridPane();
-		lay.disableProperty().bind(dev.isReady.not());
+		final JFXButton btn_AXIS_Z_LF = new JFXButton();
+		final JFXButton btn_AXIS_Z_RH = new JFXButton();
+		btn_AXIS_Z_LF.setGraphic(Misc.getIconView("dir-left.png"));
+		btn_AXIS_Z_RH.setGraphic(Misc.getIconView("dir-right.png"));
+		
+		btn_AXIS_X_LF.setOnMousePressed (e->dev.asyncJogging('X','+'));
+		btn_AXIS_X_LF.setOnMouseReleased(e->dev.asyncJogging(' ',' '));
+		btn_AXIS_X_RH.setOnMousePressed (e->dev.asyncJogging('X','-'));
+		btn_AXIS_X_RH.setOnMouseReleased(e->dev.asyncJogging(' ',' '));
+		
+		btn_AXIS_Y_LF.setOnMousePressed (e->dev.asyncJogging('Y','+'));
+		btn_AXIS_Y_LF.setOnMouseReleased(e->dev.asyncJogging(' ',' '));
+		btn_AXIS_Y_RH.setOnMousePressed (e->dev.asyncJogging('Y','-'));
+		btn_AXIS_Y_RH.setOnMouseReleased(e->dev.asyncJogging(' ',' '));
+		
+		btn_AXIS_Z_LF.setOnMousePressed (e->dev.asyncJogging('Z','-'));
+		btn_AXIS_Z_LF.setOnMouseReleased(e->dev.asyncJogging(' ',' '));
+		btn_AXIS_Z_RH.setOnMousePressed (e->dev.asyncJogging('Z','+'));
+		btn_AXIS_Z_RH.setOnMouseReleased(e->dev.asyncJogging(' ',' '));
+		
+		final Label txt_error_msg = new Label();
+		txt_error_msg.textProperty().bind(dev.lastError);
+		
+		final JFXButton btn_path_pane = new JFXButton("scan grid");
+		btn_path_pane.getStyleClass().add("btn-raised-1");
+		btn_path_pane.setMaxWidth(Double.MAX_VALUE);
+		btn_path_pane.setOnAction(e->new DialogGridPath(dev).show());
+		GridPane.setFillWidth(btn_path_pane, true);
+
+		final GridPane lay = new GridPane();		
 		lay.getStyleClass().addAll("box-pad");
-		lay.add(btn[0], 1, 0);
-		lay.add(btn[1], 3, 0);
-		lay.addRow(1, btn[2], btn[3], btn[4], btn[5]);
-		lay.add(chkJog , 0, 2, 2, 1);
-		lay.add(chkMove, 2, 2, 2, 1);
-		lay.add(txtMove, 0, 4, 1, 1);
-		lay.add(boxVal , 1, 4, 3, 1);
-		lay.add(btn[6] , 0, 5, 4, 1);
-		
+		lay.add(txt[0], 0, 0, 1, 1);
+		lay.add(txt[1], 1, 0, 2, 1);
+		lay.addRow(0, btn_setting, btn_home);
+		lay.addRow(1, txt[3], btn_AXIS_X_LF, txt[ 4], txt[ 5], btn_AXIS_X_RH);
+		lay.addRow(2, txt[6], btn_AXIS_Y_LF, txt[ 7], txt[ 8], btn_AXIS_Y_RH);
+		lay.addRow(3, txt[9], btn_AXIS_Z_LF, txt[10], txt[11], btn_AXIS_Z_RH);
+		lay.add(txt_error_msg, 0, 4, 5, 1);
+		lay.add(btn_path_pane, 0, 5, 5, 1);
 		return lay;
 	}
-	//---- below functions are for convenience
 	
-	/**
-	 * convenience function for generating absolute location.<p> 
-	 * @param offsetX
-	 * @param offsetY
-	 * @param width  - grid width (mm).
-	 * @param height - grid height (mm).
-	 * @param gridX  - sample points in horizontal
-	 * @param gridY  - sample points in vertical
-	 * @return float array
-	 */
-	public static float[][] genGridPoint(
-		final float offsetX,
-		final float offsetY,
-		final float width,
-		final float height,
-		final int gridX,
-		final int gridY		
-	){
-		float[][] grid = new float[gridX*gridY+1][3];
-		float[] step = {
-			width /(float)(gridX - 1),
-			height/(float)(gridY - 1),	
-		};
-		float[] loca = { 
-			-width /2f, 
-			 height/2f
-		};
-		float dir = 1f;
-		for(int gy=0; gy<gridY; gy+=1) {			
-			for(int gx=0; gx<gridX; gx+=1) {
-				int i = gx + gy * gridX;
-				grid[i][0] = loca[0] + offsetX;
-				grid[i][1] = loca[1] + offsetY;
-				if(gx<gridX-1) {
-					loca[0] = loca[0] + dir * step[0];
+	private static String txt_grid_x = "5";	
+	private static String txt_grid_y = "5";
+	private static String txt_step_x = "10";
+	private static String txt_step_y = "10";
+
+	private static class DialogGridPath extends Dialog<Integer>{
+		
+		DialogGridPath(final DevShapeoko dev){
+			
+			final TextField box_grid_x = new TextField(txt_grid_x);			
+			final TextField box_grid_y = new TextField(txt_grid_y);
+			final TextField box_step_x = new TextField(txt_step_x);
+			final TextField box_step_y = new TextField(txt_step_y);
+
+			final GridPane lay = new GridPane();
+			lay.getStyleClass().addAll("box-pad");
+			lay.addRow(0, new Label(), new Label("步伐"), new Label("位移（mm）"));
+			lay.addRow(1, new Label("X 軸："), box_grid_x, box_step_x);
+			lay.addRow(2, new Label("Y 軸："), box_grid_y, box_step_y);
+
+			final DialogPane pan = getDialogPane();			
+			pan.getStylesheets().add(Gawain.sheet);
+			pan.getButtonTypes().addAll(ButtonType.CANCEL,ButtonType.OK);			
+			pan.setContent(lay);
+			
+			setResultConverter(dia->{
+				final ButtonData btn = dia.getButtonData();
+				if(btn!=ButtonData.OK_DONE) {
+					return -1;				
 				}
-			}
-			loca[1] = loca[1] - step[1];
-			dir = dir * -1f;
+				txt_grid_x = box_grid_x.getText();
+				txt_grid_y = box_grid_y.getText();
+				txt_step_x = box_step_x.getText();
+				txt_step_y = box_step_y.getText();
+				dev.asyncGridPath(
+					null,
+					Integer.valueOf(txt_grid_x), Integer.valueOf(txt_grid_y), 
+					Float.valueOf  (txt_step_x), Float.valueOf  (txt_step_y)
+				);
+				return 0;
+			});
 		}
-		//last location~~~
-		grid[gridX*gridY][0] = offsetX;
-		grid[gridX*gridY][1] = offsetY;
-		return grid;
-	}
-	public static float[][] genGridPoint(
-		final float width,
-		final float height,
-		final int gridX,
-		final int gridY		
-	){
-		return genGridPoint(
-			0f,0f,
-			width,height,
-			gridX,gridY
-		);
-	}
-	
-	
-	//lay1.addRow(5, new Label("切片數："), box[1]);
-	//lay1.add(btn[8], 0, 6, 2, 1);
-	//lay1.addRow(7, new Label("X-1："), txt[4]);
-	//lay1.addRow(8, new Label("Y-1："), txt[5]);
-	//lay1.add(btn[9], 0, 9, 2, 1);
-	//lay1.addRow(10, new Label("X-2："), txt[6]);
-	//lay1.addRow(11, new Label("Y-2："), txt[7]);
-	//lay1.add(new Separator(), 0, 12, 2, 1);
-	
-	/*btn[7].setText("掃描");
-	btn[7].setGraphic(Misc.getIconView("walk.png"));
-	btn[7].getStyleClass().add("btn-raised-2");
-	btn[7].setOnAction(e->{
-		int stp = Integer.valueOf(box[1].getText());
-		float[] pts = {
-			Float.valueOf(cook(txt[4].getText())),
-			Float.valueOf(cook(txt[5].getText())),
-			Float.valueOf(cook(txt[6].getText())),
-			Float.valueOf(cook(txt[7].getText()))
-		};				
-		dev.travelScan(stp, pts);
-	});		
-	btn[8].setText("標定-1");
-	btn[8].setGraphic(Misc.getIconView("flag.png"));
-	btn[8].setOnAction(e->{
-		txt[4].setText(String.format(FMT_VAL,dev.MPosX.get()));
-		txt[5].setText(String.format(FMT_VAL,dev.MPosY.get()));
-	});
-	btn[9].setText("標定-2");
-	btn[9].setGraphic(Misc.getIconView("flag.png"));
-	btn[9].setOnAction(e->{
-		txt[6].setText(String.format(FMT_VAL,dev.MPosX.get()));
-		txt[7].setText(String.format(FMT_VAL,dev.MPosY.get()));
-	});*/
+	};	
 }

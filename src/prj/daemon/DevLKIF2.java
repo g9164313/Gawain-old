@@ -23,7 +23,7 @@ import narl.itrc.DevBase;
 public class DevLKIF2 extends DevBase {
 
 	public DevLKIF2() {	
-		TAG = "LK-IF";
+		TAG = "LKIF";
 		for(int i=0; i<txtValue.length; i++) {
 			txtValue[i] = new SimpleStringProperty("???");
 		}
