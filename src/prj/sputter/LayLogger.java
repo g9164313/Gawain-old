@@ -37,6 +37,9 @@ import narl.itrc.Misc;
 import narl.itrc.PanBase;
 import narl.itrc.init.LogStream;
 import narl.itrc.init.LogStream.Mesg;
+import prj.sputter.action.StepExploit;
+import prj.sputter.action.StepKindler;
+import prj.sputter.action.StepWatcher;
 
 public class LayLogger extends BorderPane {
 
@@ -70,7 +73,7 @@ public class LayLogger extends BorderPane {
 			}
 			PanBase.self(this).notifyTask("輸出紀錄",new Dumping(fs));
 		});
-		final JFXButton btn_rever = new JFXButton("test");
+		final JFXButton btn_rever = new JFXButton("rever");
 		btn_rever.getStyleClass().add("btn-raised-1");
 		btn_rever.setOnAction(e->{
 			//if(badge.isPresent()==false) {
@@ -236,7 +239,7 @@ public class LayLogger extends BorderPane {
 				init_column_name(shx,1);
 				row_idx[0] = row_idx[1] = 1;
 				return shx;
-			}else if(txt.startsWith(LayLadder.TXT_EXPLOIT)==true) {
+			}else if(txt.startsWith(StepExploit.TXT_EXPLOIT)==true) {
 				init_exploit_sheet(wb);
 				set_exploit_value(msg);
 				return shx;

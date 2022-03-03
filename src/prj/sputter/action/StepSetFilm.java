@@ -1,4 +1,4 @@
-package prj.sputter;
+package prj.sputter.action;
 
 import java.util.Optional;
 
@@ -18,14 +18,9 @@ import narl.itrc.PadTouch;
 import narl.itrc.PanBase;
 import narl.itrc.Stepper;
 
-public class StepSetFilm extends Stepper {
-
-	private DevSQM160 sqm;
+public class StepSetFilm extends Bumper {
 	
-	public StepSetFilm(
-		final DevSQM160 dev
-	){
-		sqm = dev;
+	public StepSetFilm(){
 		set(op_1,op_2,op_3);
 	}
 	
@@ -41,30 +36,36 @@ public class StepSetFilm extends Stepper {
 	private Label msg1 = new Label(init_txt);
 
 	private TextField[] args = {
+		new TextField(),//film name
 		new TextField(),//density
 		new TextField(),//tooling
-		new TextField(),//z-factor
+		new TextField(),//z-ratio/factor
 		new TextField(),//final thickness
 		new TextField("0.000"),//thickness set-point
 		new TextField("0"),//Time set-point
 		new TextField(),//sensor number
 	};
-	
-	public final TextField boxZFactor = args[2]; 
+	public final TextField box_density = args[1];
+	public final TextField box_tooling = args[2];
+	public final TextField box_z_ratio = args[3];
+	public final TextField box_f_thick = args[4];
+	public final TextField box_s_thick = args[5];
+	public final TextField box_s_time  = args[6];
+	public final TextField box_sensor  = args[7];
 	
 	final Runnable op_1 = ()->{
 		//set film data and final thickness		
 		wait_async();
 		final String[] vals = {
-			args[0].getText().trim(),//density
-			args[1].getText().trim(),//tooling
-			args[2].getText().trim(),//z-factor
-			args[3].getText().trim(),//final thickness
-			args[4].getText().trim(),//thickness set-point(kA)
-			args[5].getText().trim(),//time set-point (mm:ss)
-			args[6].getText().trim(),//active sensor
+			args[1].getText().trim(),//density
+			args[2].getText().trim(),//tooling
+			args[3].getText().trim(),//z-factor
+			args[4].getText().trim(),//final thickness
+			args[5].getText().trim(),//thickness set-point(kA)
+			args[6].getText().trim(),//time set-point (mm:ss)
+			args[7].getText().trim(),//active sensor
 		};
-		sqm.asyncBreakIn(()->{
+		sqm1.asyncBreakIn(()->{
 			//reset film data, include its tooling and final thick
 			String cmd = String.format(
 				"A%C%s %s %s %s %s %s %s %s",
@@ -72,7 +73,7 @@ public class StepSetFilm extends Stepper {
 				vals[0], vals[1], vals[2], vals[3], 
 				vals[4], vals[5], vals[6]
 			);
-			if(sqm.exec(cmd).charAt(0)!='A') {
+			if(sqm1.exec(cmd).charAt(0)!='A') {
 				abort_step();
 				Application.invokeLater(()->PanBase.notifyError("失敗", "無法設定薄膜參數!!"));
 				return;
@@ -84,8 +85,8 @@ public class StepSetFilm extends Stepper {
 	final Runnable op_2 = ()->{	
 		wait_async();
 		msg1.setText("切換中");
-		sqm.asyncBreakIn(()->{
-			if(sqm.exec("D1").charAt(0)!='A') {
+		sqm1.asyncBreakIn(()->{
+			if(sqm1.exec("D1").charAt(0)!='A') {
 				abort_step();
 				Application.invokeLater(()->PanBase.notifyError("失敗", "無法使用薄膜參數!!"));
 				return;
@@ -96,12 +97,8 @@ public class StepSetFilm extends Stepper {
 	
 	final Runnable op_3 = ()->{
 		msg1.setText(init_txt);
-		double val = Double.valueOf(args[3].getText().trim());//final thickness
-		val = val + 0.01;
-		if(LayLogger.gag_thick.isPresent()==true) {
-			Tile obj = LayLogger.gag_thick.get();
-			obj.setMaxValue(val);
-		}
+		float val = Float.valueOf(box_f_thick.getText().trim());//final thickness
+		sqm1.maxThick.set(val+0.01f);
 		next_step();
 	};
 	
@@ -124,10 +121,27 @@ public class StepSetFilm extends Stepper {
 		}
 		if(opt.isPresent()==false) {
 			return;
-		}
-		sqm.activeFilm(Integer.valueOf(opt.get()));
+		}		
+		active_film(Integer.valueOf(opt.get()));
 	}
-
+	private void active_film(final int ID) {
+		final char id = (char)(48+ID);
+		sqm1.asyncBreakIn(()->{
+			final String txt = sqm1.exec(String.format("A%c?", id));
+			if(txt.charAt(0)=='A'){
+				//restore film data to GUI box~~~
+				Application.invokeAndWait(()->{
+					String[] val = sqm1.split_a_text(txt);
+					for(int i=0; i<args.length; i++){
+						args[i].setText(val[i+1]);
+					}
+				});
+			}else{
+				Application.invokeAndWait(()->PanBase.notifyError("錯誤","無法讀取薄膜資料!!"));
+			}				
+		});
+	}
+		
 	@Override
 	public Node getContent(){
 		msg1.setPrefWidth(150);
@@ -147,15 +161,15 @@ public class StepSetFilm extends Stepper {
 		lay.addColumn(0, msg1);
 		lay.add(new Separator(Orientation.VERTICAL), 1, 0, 1, 4);
 		lay.addColumn(2, 
-			new Label("密度"), args[0], 
-			new Label("Z 因子"), args[2]
+			new Label("密度"), box_density, 
+			new Label("Z 因子"), box_z_ratio
 		);
 		lay.addColumn(3, 
-			new Label("Tooling"), args[1],
-			new Label("感測器編號"), args[6]
+			new Label("Tooling"), box_tooling,
+			new Label("感測器編號"), box_sensor
 		);
 		lay.add(new Separator(Orientation.VERTICAL), 4, 0, 1, 4);
-		lay.addColumn(5, new Label("最終厚度(kÅ)"), args[3]);
+		lay.addColumn(5, new Label("最終厚度(kÅ)"), box_f_thick);
 		lay.add(btn, 5, 2, 1, 2);
 		
 		return lay;
@@ -169,13 +183,13 @@ public class StepSetFilm extends Stepper {
 	public String flatten() {
 		return String.format(
 			"%s:%s,  %s:%s,  %s:%s,  %s:%s,  %s:%s,  %s:%s,  %s:%s", 
-			TAG0, args[0].getText(),
-			TAG1, args[1].getText(),
-			TAG2, args[2].getText(),
-			TAG3, args[3].getText(),
-			TAG4, args[4].getText(),
-			TAG5, args[5].getText(),
-			TAG6, args[6].getText()
+			TAG0, args[1].getText(),
+			TAG1, args[2].getText(),
+			TAG2, args[3].getText(),
+			TAG3, args[4].getText(),
+			TAG4, args[5].getText(),
+			TAG5, args[6].getText(),
+			TAG6, args[7].getText()
 		);
 	}
 	@Override
@@ -189,21 +203,21 @@ public class StepSetFilm extends Stepper {
 			String tag = arg[i+0].trim();
 			String val = arg[i+1].trim();
 			if(tag.equals(TAG0)==true){
-				args[0].setText(val);
-			}else if(tag.equals(TAG1)==true){
 				args[1].setText(val);
-			}else if(tag.equals(TAG2)==true){
+			}else if(tag.equals(TAG1)==true){
 				args[2].setText(val);
-			}else if(tag.equals(TAG3)==true){
+			}else if(tag.equals(TAG2)==true){
 				args[3].setText(val);
+			}else if(tag.equals(TAG3)==true){
+				args[4].setText(val);
 			}else if(tag.equals(TAG4)==true){
 				if(val.length()==0) { val = "0.000"; }
-				args[4].setText(val);				
+				args[5].setText(val);				
 			}else if(tag.equals(TAG5)==true){
 				if(val.length()==0) { val = "0"; }
-				args[5].setText(val);
-			}else if(tag.equals(TAG6)==true){
 				args[6].setText(val);
+			}else if(tag.equals(TAG6)==true){
+				args[7].setText(val);
 			}
 		}
 	}

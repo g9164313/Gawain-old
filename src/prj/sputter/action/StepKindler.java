@@ -1,4 +1,4 @@
-package prj.sputter;
+package prj.sputter.action;
 
 import java.util.ArrayList;
 import java.util.Optional;
@@ -25,13 +25,13 @@ import javafx.scene.layout.VBox;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
 
-public class StepKindler extends StepExtender {
+public class StepKindler extends Bumper {
 		
 	private final static String action_name = "高壓設定";
 	public final static String TAG_KINDLE = "點火";
 	
 	public StepKindler(){
-		set_info(action_name);		
+		set_mesg(action_name);		
 		set(op_1,op_2,
 			op_3,op_4,op_6
 		);
@@ -142,9 +142,9 @@ public class StepKindler extends StepExtender {
 	final Runnable op_1 = ()->{
 		//close shutter~~~
 		final String tag = "關閉擋板";
-		set_info(tag);
+		set_mesg(tag);
 		wait_async();
-		sqm.shutter_and_zeros(false,()->{
+		sqm1.shutter_and_zeros(false,()->{
 			Misc.logv(tag);
 			next_step();
 		}, ()->{
@@ -155,10 +155,10 @@ public class StepKindler extends StepExtender {
 	};
 	final Runnable op_2 = ()->{
 		final String tag = "啟動 H-Pin";
-		set_info(tag);
+		set_mesg(tag);
 		wait_async();
-		spk.asyncBreakIn(()->{
-			spk.set_register(1, 2);//high-pin
+		spik.asyncBreakIn(()->{
+			spik.set_register(1, 2);//high-pin
 			try {
 				TimeUnit.SECONDS.sleep(1);
 			} catch (InterruptedException e2) {
@@ -183,7 +183,7 @@ public class StepKindler extends StepExtender {
 	private long tick_total = -1L; //unit is millisecond.
 	final Runnable op_3 = ()->{
 		final String tag = "啟動 DCG";
-		set_info(tag);
+		set_mesg(tag);
 		ObservableList<Node> pan = lay_root.getChildren();		
 		final ArrayList<String> cmd = new ArrayList<String>();
 		if(pan.size()<=2) {
@@ -207,7 +207,7 @@ public class StepKindler extends StepExtender {
 			cmd.add("CHT=S");
 		}
 		wait_async();
-		dcg.asyncBreakIn(()->{
+		dcg1.asyncBreakIn(()->{
 			cmd.add("TRG");
 			String[] _txt = cmd.toArray(new String[1]);
 			exec(_txt);
@@ -223,8 +223,8 @@ public class StepKindler extends StepExtender {
 	
 	final Runnable op_4 = ()->{
 		long tick = System.currentTimeMillis() - tick_start;
-		log_data(TAG_KINDLE);		
-		set_info(TAG_KINDLE,
+		print_info(TAG_KINDLE);		
+		set_mesg(TAG_KINDLE,
 			String.format(
 				"倒數:%s/%s",
 				Misc.tick2text(tick,false),
@@ -238,7 +238,7 @@ public class StepKindler extends StepExtender {
 		}
 	};
 	final Runnable op_6 = ()->{
-		set_info(action_name);
+		set_mesg(action_name);
 		Misc.logv(action_name+"結束");
 		next_step();
 	};
@@ -255,7 +255,7 @@ public class StepKindler extends StepExtender {
 		if(cmd.length()==0) {
 			return true;
 		}
-		boolean res = dcg.exec(cmd).endsWith("*");
+		boolean res = dcg1.exec(cmd).endsWith("*");
 		if(res==false) {
 			String _txt = cmd + "設定失效!!";
 			abort_step();
@@ -274,7 +274,7 @@ public class StepKindler extends StepExtender {
 	public Node getContent(){
 		GridPane lay0 = new GridPane();
 		lay0.getStyleClass().addAll("box-pad");
-		lay0.addColumn(0, info);
+		lay0.addColumn(0, msg);
 		lay_root.getChildren().addAll(lay0,new PanAction());
 		return lay_root;
 	}

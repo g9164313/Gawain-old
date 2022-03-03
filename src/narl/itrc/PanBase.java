@@ -38,9 +38,8 @@ public abstract class PanBase {
 	private Stage stage;
 	
 	public PanBase(){
-		stage = new Stage();
-	}
-	
+		this(null);
+	}	
 	public PanBase(final Stage stg){
 		if(stg==null) {
 			stage = new Stage();
@@ -75,11 +74,13 @@ public abstract class PanBase {
 	
 	public void initLayout() {
 		final Node face = eventLayout(this);
-		StackPane.setAlignment(face, Pos.BOTTOM_LEFT);
-        StackPane.setAlignment(face, Pos.TOP_RIGHT);
+		//StackPane.setAlignment(face, Pos.BOTTOM_LEFT);
+        //StackPane.setAlignment(face, Pos.TOP_RIGHT);
+        
         final Pane root = new StackPane(face);
-		//final Node root = eventLayout(this);
-		root.getStyleClass().addAll("background");
+        root.setMinSize(135,137);
+		root.getStyleClass().add("background");
+		
 		if(Gawain.propFlag("JFX_DECORATE")==true) {
 			scene = new Scene(new JFXDecorator(stage,root));
 		}else {
@@ -95,7 +96,7 @@ public abstract class PanBase {
 				kb_quit.match(event)==true &&
 				Gawain.mainPanel.equals(PanBase.this)==true
 			) {
-				if(notifyConfirm("！！注意！！","確認離開主程式？")==ButtonType.OK){
+				if(notifyConfirm("！！注意！！","確認關閉主程式？")==ButtonType.OK){
 					stage.close();
 				}
 			}
@@ -110,16 +111,14 @@ public abstract class PanBase {
 		if(Gawain.mainPanel==this) {
 			if(Gawain.propFlag("PANEL_FULL")==true) {
 				stage.setFullScreen(true);
+				return;
 			}else if(Gawain.propFlag("PANEL_MAX")==true) {
 				stage.setMaximized(true);
-			}else {
-				stage.sizeToScene();
-				stage.centerOnScreen();
+				return;
 			}
-		}else {
-			stage.sizeToScene();
-			stage.centerOnScreen();
 		}
+		stage.sizeToScene();
+		stage.centerOnScreen();
 	}
 		
 	/**

@@ -224,7 +224,7 @@ public class DevCouple extends DevModbus {
 		int mvolt = (int)(volt * 1000f);//IB IL format
 		writeVals(aout_addr,mvolt);
 	}
-	public void set_all_mass_flow(
+	/*private void set_all_mass_flow(
 		final String ar_sccm,
 		final String n2_sccm,
 		final String o2_sccm
@@ -235,7 +235,7 @@ public class DevCouple extends DevModbus {
 			sccm2value(o2_sccm)
 		);
 	}	
-	public void set_all_mass_flow(
+	private void set_all_mass_flow(
 		final float ar_val,
 		final float n2_val,
 		final float o2_val
@@ -249,7 +249,7 @@ public class DevCouple extends DevModbus {
 		if(o2_val>=0.f) {
 			set_mass_flow(8008, o2_val, o2_max_sccm);
 		}
-	}
+	}*/
 
 	public void asyncSetMassFlow(
 		final float ar_sccm,

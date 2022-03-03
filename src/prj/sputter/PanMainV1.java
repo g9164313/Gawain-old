@@ -22,11 +22,11 @@ public class PanMainV1 extends PanBase {
 	
 	//final LayGauges gauges = LayGauges.getInstance();
 	final LayLogger  logger = new LayLogger();		
-	final LayLadder  ladder = new LayLadder(logger,null,dcg1,csar,sqm1);
+	final LayLadder  ladder = new LayLadder();
 	
 	public PanMainV1(final Stage stg) {
 		super(stg);
-		stg.setTitle("一號機");
+		stg.setTitle("一號濺鍍機");
 		stg.setOnShown(e->on_shown());
 	}
 	

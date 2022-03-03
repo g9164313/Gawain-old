@@ -13,8 +13,9 @@ import javafx.stage.Stage;
 import narl.itrc.Gawain;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
+import prj.sputter.action.Bumper;
 
-public class PanMain extends PanBase {
+public class PanMainV2 extends PanBase {
 	
 	final DevCouple coup = new DevCouple();
 	final DevDCG100 dcg1 = new DevDCG100();	
@@ -22,17 +23,23 @@ public class PanMain extends PanBase {
 	final DevSQM160 sqm1 = new DevSQM160();
 	final DevSQM2Usb sqm2 = new DevSQM2Usb();
 	
-	//final LayGauges gauges = LayGauges.getInstance();
 	final LayLogger  logger = new LayLogger();	
 	final DrawVaccum digram = new DrawVaccum(coup);	
-	final LayLadder  ladder = new LayLadder(logger,coup,dcg1,spik,sqm1);
+	final LayLadder  ladder = new LayLadder();
 	
-	public PanMain(final Stage stg) {
+	public PanMainV2(final Stage stg) {
 		super(stg);
-		stg.setTitle("濺鍍機");
+		stg.setTitle("二號濺鍍機");
 		stg.setOnShown(e->on_shown());
+		ladder.logger = logger;
+		ladder.dcg1 = dcg1;
+		Bumper.coup = coup;		
+		Bumper.dcg1 = dcg1;
+		Bumper.spik = spik;
+		Bumper.sqm1 = sqm1;
+		Bumper.logg = logger;
 	}
-	
+
 	private void on_shown(){
 		String arg;
 		arg = Gawain.prop().getProperty("modbus", "");
@@ -49,10 +56,8 @@ public class PanMain extends PanBase {
 		if(arg.length()>0) {
 			spik.open(arg);
 		}
-		
 		sqm1.open();		
 		sqm2.open();
-		
 		logger.bindProperty(sqm1);
 	}
 	
@@ -100,8 +105,8 @@ public class PanMain extends PanBase {
 		final VBox lay = new VBox();
 		lay.getStyleClass().addAll("box-pad");
 		lay.getChildren().addAll(
-			Misc.addBorder(StepGunsHub.genCtrlPanel()),
-			Misc.addBorder(StepFlowCtrl.genCtrlPanel()),		
+			//Misc.addBorder(StepGunsHub.genCtrlPanel()),
+			//Misc.addBorder(StepFlowCtrl.genCtrlPanel()),		
 			Misc.addBorder(DevDCG100.genCtrlPanel(dcg1))
 		);				
 		return lay;

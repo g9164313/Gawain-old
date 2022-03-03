@@ -1,4 +1,4 @@
-package prj.sputter;
+package prj.sputter.action;
 
 import com.jfoenix.controls.JFXCheckBox;
 import com.jfoenix.controls.JFXRadioButton;
@@ -15,8 +15,6 @@ import narl.itrc.Misc;
 import narl.itrc.Stepper;
 
 public class StepGunsHub extends Stepper {
-
-	public static DevCouple dev;
 
 	public StepGunsHub(){
 		set(op_1,op_2);
@@ -163,7 +161,7 @@ public class StepGunsHub extends Stepper {
 		chk.setStyle("-fx-opacity: 1.0;");
 	}
 	private static void select_gunhub() {
-		dev.asyncSelectGunHub(
+		Bumper.coup.asyncSelectGunHub(
 			btn_bipolar.isSelected(), 
 			btn_unipolar.isSelected(), 
 			chk_gun1.isSelected(), 
@@ -171,7 +169,7 @@ public class StepGunsHub extends Stepper {
 		);
 	}
 	
-	public static Pane genCtrlPanel() {
+	public static Pane genPanel() {
 		
 		final ToggleGroup grp = new ToggleGroup();
 		btn_bipolar.setToggleGroup(grp);

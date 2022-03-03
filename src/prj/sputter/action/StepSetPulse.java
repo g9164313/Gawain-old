@@ -1,4 +1,4 @@
-package prj.sputter;
+package prj.sputter.action;
 
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
@@ -7,19 +7,11 @@ import javafx.scene.control.Separator;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
 import narl.itrc.Misc;
-import narl.itrc.Stepper;
 
-public class StepSetPulse extends Stepper {
+public class StepSetPulse extends Bumper {
 
-	private DevSPIK2k spk;
-	
-	public StepSetPulse(
-		final DevSPIK2k dev1
-	){
-		spk = dev1;
-		set(op_1,op_2,op_3,op_4,
-			op_5
-		);
+	public StepSetPulse(){
+		set(op_1,op_2,op_3,op_4,op_5);
 	}
 	
 	private static final String TAG0 = "Ton+";
@@ -60,8 +52,8 @@ public class StepSetPulse extends Stepper {
 			msg1.setText("設定 "+name);
 			msg2.setText("");
 			wait_async();			
-			spk.asyncBreakIn(()->{
-				spk.set_register(addr, value);
+			spik.asyncBreakIn(()->{
+				spik.set_register(addr, value);
 				next.set(LEAD);
 			});	
 		}catch(NumberFormatException e){

@@ -120,6 +120,13 @@ public class DevSQM160 extends DevBase {
 	public final FloatProperty minThick= new SimpleFloatProperty(0f);
 	public final FloatProperty maxThick= new SimpleFloatProperty(100f);
 	
+	public String getTextRate() {
+		return rate[0].get()+unitRate.get();
+	}
+	public String getTextThick() {
+		return thick[0].get()+unitThick.get();
+	}
+
 	//SQM-160 can connect 6 sensors~~~
 	public final SimpleStringProperty[] rate = {
 		new SimpleStringProperty("？"),//average rate value
@@ -162,19 +169,19 @@ public class DevSQM160 extends DevBase {
 	
 	private int film_indx = 0;
 	private final String[] film_data = {
-		"?",// Name or title
-		"0",// Density (0.50 to 99.99 g/cm³)
-		"0",// Tooling (10~399 %)
+		"?",  // Name or title
+		"0",  // Density (0.50 to 99.99 g/cm³)
+		"0",  // Tooling (10~399 %)
 		"0.1",// Z-ratio/factor (0.10~9.999)
 		"0.0",// Final Thickness (0.000~9999.000 kÅ)
 		"0.0",// Thickness Set-point (0.000~9999 kÅ)
-		"0",// Time Set-point (0~5999 second)
-		"63",// Sensor Average (decimal, map to which sensor)
+		"0",  // Time Set-point (0~5999 second)
+		"63", // Sensor Average (decimal, map to which sensor)
 	};//current film data
-	private void split_a_text(final String txt) {
+	public String[] split_a_text(final String txt) {
 		film_data[0] = "？？？？";//rest old name
-		if(txt.length()==0){  return; }
-		if(txt.charAt(0)!='A') { return; }
+		if(txt.length()==0){  return film_data; }
+		if(txt.charAt(0)!='A') { return film_data; }
 		film_data[0] = txt.substring(1,9);
 		final String[] arg = txt.substring(9).trim().split("\\s+");
 		for(int i=0; i<arg.length; i++) {
@@ -183,6 +190,7 @@ public class DevSQM160 extends DevBase {
 			}
 			film_data[1+i] = arg[i];
 		}
+		return film_data;
 	}
 	public String get_film_name() {
 		return String.format("[%02d]%s", film_indx, film_data[0]);
