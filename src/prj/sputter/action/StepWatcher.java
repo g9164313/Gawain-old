@@ -13,14 +13,15 @@ import javafx.scene.layout.GridPane;
 
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
+import narl.itrc.Stepper;
 
 public class StepWatcher extends Bumper {
 	
-	private final static String action_name = "厚度監控";
-	public final static String TAG_WATCH = "監控";
+	public final static String ACT_NAME = "厚度監控";
+	public final static String TAG_WATCH= "監控";
 	
 	public StepWatcher(){
-		set_mesg(action_name);
+		set_mesg(ACT_NAME);
 		set(op_1,op_3,
 			op_4,op_5,
 			op_6
@@ -49,14 +50,14 @@ public class StepWatcher extends Bumper {
 	final Runnable op_1 = ()->{
 		//open shutter
 		final String txt = "開啟檔板";
-		set_mesg(action_name,txt);
+		set_mesg(ACT_NAME,txt);
 		wait_async();
 		sqm1.shutter_and_zeros(true, ()->{
-			Misc.logv("%s: %s",action_name, txt);
+			Misc.logv("%s: %s", ACT_NAME, txt);
 			tick_beg = System.currentTimeMillis();
-			next.set(LEAD);
+			notify_async();
 		}, ()->{
-			Misc.logv("%s: %s",action_name, txt+"失敗");
+			Misc.logv("%s: %s", ACT_NAME, txt+"失敗");
 			abort_step();
 			Application.invokeLater(()->PanBase.notifyError("失敗", "無法控制擋板!!"));
 		});
@@ -107,7 +108,7 @@ public class StepWatcher extends Bumper {
 		//monitor shutter
 		tick_end = System.currentTimeMillis();
 		set_mesg(
-			action_name,
+			ACT_NAME,
 			Misc.tick2text(tick_end-tick_beg,true),
 			sqm1.getTextThick()
 		);
@@ -137,14 +138,14 @@ public class StepWatcher extends Bumper {
 	final Runnable op_4 = ()->{
 		//extinguish plasma		
 		set_mesg("關閉高壓");
-		Misc.logv("%s: 關閉高壓",action_name);
+		Misc.logv("%s: 關閉高壓",ACT_NAME);
 		wait_async();		
 		dcg1.asyncBreakIn(()->{
 			if(dcg1.exec("OFF").endsWith("*")==false) {
 				abort_step();
 				Application.invokeLater(()->PanBase.notifyError("失敗", "無法關閉!!"));
 			}else {
-				next_step();
+				notify_async();
 			}
 		});
 	};	
@@ -152,9 +153,9 @@ public class StepWatcher extends Bumper {
 		int vv = (int)dcg1.volt.get();
 		int ww = (int)dcg1.watt.get();
 		if(vv>=30 && ww>=1){
-			next.set(HOLD);
+			hold_step();
 		}else{
-			next.set(LEAD);
+			next_step();
 		}
 		set_mesg(
 			"放電中",
@@ -162,10 +163,18 @@ public class StepWatcher extends Bumper {
 		);
 	};
 	final Runnable op_6 = ()->{
+		final String time = Misc.tick2text(tick_end-tick_beg,true);
 		set_mesg(
-			action_name,
-			Misc.tick2text(tick_end-tick_beg,true),
+			ACT_NAME,
+			time,
 			sqm1.getTextThick()
+		);
+		Misc.logv(
+			"%s: %s [%s][%s]", 
+			ACT_NAME, 
+			Stepper.LAST_STICKER,
+			time,
+			sqm1.getTextThick() 			
 		);
 	};
 	

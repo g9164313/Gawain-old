@@ -146,7 +146,7 @@ public class StepKindler extends Bumper {
 		wait_async();
 		sqm1.shutter_and_zeros(false,()->{
 			Misc.logv(tag);
-			next_step();
+			notify_async();
 		}, ()->{
 			Misc.logv(tag+"失敗");
 			abort_step();
@@ -158,14 +158,14 @@ public class StepKindler extends Bumper {
 		set_mesg(tag);
 		wait_async();
 		spik.asyncBreakIn(()->{
-			spik.set_register(1, 2);//high-pin
+			//TODO:!!!! spik.set_register(1, 2);//high-pin
 			try {
 				TimeUnit.SECONDS.sleep(1);
 			} catch (InterruptedException e2) {
 				e2.printStackTrace();
 			}
 			Misc.logv(tag);
-			next_step();
+			notify_async();
 		});
 	};
 	
@@ -217,7 +217,7 @@ public class StepKindler extends Bumper {
 			}
 			Misc.logv("[DCG] : %s",flat);
 			tick_start = System.currentTimeMillis();
-			next_step();
+			notify_async();
 		});
 	};
 	

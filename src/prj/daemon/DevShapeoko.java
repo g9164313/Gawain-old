@@ -35,13 +35,12 @@ import jssc.SerialPort;
 import jssc.SerialPortException;
 import jssc.SerialPortTimeoutException;
 import narl.itrc.DevTTY;
-import narl.itrc.DevTTY2;
 import narl.itrc.Gawain;
 import narl.itrc.Misc;
 import prj.sputter.DevDCG100;
 
 @SuppressWarnings("unused")
-public class DevShapeoko extends DevTTY2 {
+public class DevShapeoko extends DevTTY {
 
 	public DevShapeoko() {
 		TAG = "shapeoko";
@@ -53,6 +52,10 @@ public class DevShapeoko extends DevTTY2 {
 		addState(STG_LOOP,()->state_loop()).
 		playFlow(STG_INIT);
 	}
+	@Override
+	public void beforeClose() {
+	}
+	
 	private static final String STG_INIT = "init";
 	private static final String STG_LOOP = "loop";
 
@@ -94,7 +97,7 @@ public class DevShapeoko extends DevTTY2 {
 	public final IntegerProperty Ov2= new SimpleIntegerProperty();
 	
 	private void state_loop() {
-		sleep(50);
+		block_sleep_msec(50);
 		//status text example:
 		//<Idle|MPos:0.000,0.000,0.000|Bf:14,127|FS:0,0|WCO:0.000,0.000,0.000>
 		final String txt = exec("?").replaceAll("[\r\n]", "");

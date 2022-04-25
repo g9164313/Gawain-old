@@ -196,4 +196,33 @@ public class StepGunsHub extends Stepper {
 		lay.addColumn(1, chk_gun1, chk_gun2);
 		return lay;
 	}
+	//---------------------
+	
+	public static Pane genCtrlPanel() {
+		
+		final ToggleGroup grp = new ToggleGroup();
+		btn_bipolar.setToggleGroup(grp);
+		btn_unipolar.setToggleGroup(grp);
+		
+		btn_bipolar.setOnAction(e->{
+			fix_selected(chk_gun1,true);
+			fix_selected(chk_gun2,true);
+			chk_gun1.setOnAction(null);
+			chk_gun2.setOnAction(null);
+			select_gunhub();
+		});		
+		btn_unipolar.setOnAction(e->{
+			fix_selected(chk_gun1,false);
+			fix_selected(chk_gun2,false);
+			chk_gun1.setOnAction(e1->select_gunhub());
+			chk_gun2.setOnAction(e1->select_gunhub());
+			select_gunhub();
+		});
+		
+		final GridPane lay = new GridPane();
+		lay.getStyleClass().addAll("box-pad");
+		lay.addColumn(0, btn_bipolar, btn_unipolar);
+		lay.addColumn(1, chk_gun1, chk_gun2);
+		return lay;
+	}	
 }

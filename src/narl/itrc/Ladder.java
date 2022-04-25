@@ -32,7 +32,6 @@ import javafx.util.Duration;
  * @author qq
  *
  */
-@SuppressWarnings("restriction")
 public class Ladder extends BorderPane {
 	
 	public Ladder(){
@@ -158,11 +157,11 @@ public class Ladder extends BorderPane {
 			return obj;
 		}
 	};
-	private ArrayList<StpWrapper> stpk = new ArrayList<StpWrapper>();
+	private ArrayList<StpWrapper> stp_wrapper = new ArrayList<StpWrapper>();
 	
 	private StpWrapper getPack(final Stepper src){
 		final Class<?> s_clzz = src.getClass();
-		for(StpWrapper dst:stpk){
+		for(StpWrapper dst:stp_wrapper){
 			if(dst.clzz==s_clzz){
 				return dst;
 			}
@@ -170,7 +169,7 @@ public class Ladder extends BorderPane {
 		return null;
 	}
 	private StpWrapper getPack(final String src){
-		for(StpWrapper obj:stpk){
+		for(StpWrapper obj:stp_wrapper){
 			String dst = obj.clzz.getName();
 			if(dst.equals(src)==true){
 				return obj;
@@ -179,7 +178,7 @@ public class Ladder extends BorderPane {
 		return null;
 	}
 	private StpWrapper getPack(final Class<?> src){
-		for(StpWrapper obj:stpk){			
+		for(StpWrapper obj:stp_wrapper){			
 			if(src==obj.clzz){
 				return obj;
 			}
@@ -196,7 +195,7 @@ public class Ladder extends BorderPane {
 		final Object... argument
 	){
 		final StpWrapper obj = new StpWrapper(title,clazz,argument);
-		stpk.add(obj);
+		stp_wrapper.add(obj);
 		final JFXButton btn = new JFXButton(title);
 		btn.getStyleClass().add("btn-raised-3");
 		btn.setMaxWidth(Double.MAX_VALUE);
@@ -308,7 +307,8 @@ public class Ladder extends BorderPane {
 	private final ArrayDeque<StpFoot> queue = new ArrayDeque<StpFoot>();
 	
 	private final Timeline timer = new Timeline(new KeyFrame(
-		Duration.seconds(1.),
+		Duration.millis(200),
+		//Duration.seconds(1),
 		e->climbing()
 	));
 	
@@ -342,7 +342,7 @@ public class Ladder extends BorderPane {
 			timer.play();
 		}		
 	}
-	private void abort(){		
+	private void abort(){	
 		timer.stop();
 		recipe.getSelectionModel()
 			.getSelectedItem()
@@ -420,13 +420,14 @@ public class Ladder extends BorderPane {
 		}else if(async>0){
 			return;
 		}else if(async<0){
-			cur.step.async.set(0);
+			cur.step.async.set(0);//reset async flag!!!
 		}
 		//decide forward, backward or camp.
 		//it means running sequence will be reordered.
-		int stp = cur.step.next.get();
-		int cnt = Math.abs(stp);
-		boolean dir = (stp>=0)?(true):(false);		
+		final int stp = cur.step.next.get();
+		final int cnt = Math.abs(stp);
+		final boolean dir = (stp>=0)?(true):(false);
+		
 		if(cnt>=Stepper.SPEC_JUMP) {
 			if(stp==Stepper.ABORT) {				
 				abort();
@@ -438,6 +439,8 @@ public class Ladder extends BorderPane {
 		}else if(stp!=Stepper.HOLD) {
 			minor_jump(cnt,dir);
 		}
+		//reset the 'next' counter!!!
+		cur.step.next_step();
 	}
 	
 	private void major_jump(final int cnt, final boolean direction) {

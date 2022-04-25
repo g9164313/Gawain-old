@@ -1,14 +1,9 @@
 package prj.shelter;
 
 import java.util.ArrayList;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.math3.stat.StatUtils;
 
-import com.jfoenix.controls.JFXButton;
-import com.jfoenix.controls.JFXComboBox;
-import com.jfoenix.controls.JFXTextField;
-import com.jfoenix.controls.JFXToggleButton;
 import com.sun.glass.ui.Application;
 
 import javafx.beans.property.SimpleStringProperty;
@@ -16,18 +11,16 @@ import javafx.beans.property.StringProperty;
 import javafx.concurrent.Task;
 import javafx.scene.Node;
 import javafx.scene.control.ComboBox;
-import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
-import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
-import javafx.scene.layout.VBox;
-import javafx.util.StringConverter;
+
+import jssc.SerialPort;
+import jssc.SerialPortException;
 import narl.itrc.DevTTY;
-import narl.itrc.Gawain;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
 import narl.itrc.UtilPhysical;
@@ -36,29 +29,12 @@ public class DevAT5350 extends DevTTY {
 
 	public DevAT5350(){
 		TAG="AT5350";
-		readTimeout = 3000;
 	}
-	public DevAT5350(final String path){
-		this();
-		setPathName(path);
-	}
-
-	private final static String STG_MEAS = "測量";
-	private final static String STG_COMP = "補償";
-	
-	private final Runnable stage_measure = ()->{
-		nextState("");
-	};
-	
-	private final Runnable stage_compensate = ()->{
-		nextState("");
-	};
-	
-	protected void afterOpen() {
+	@Override
+	public void afterOpen() {
 		addState(STG_MEAS, stage_measure);
 		addState(STG_COMP, stage_compensate);
 		playFlow("");//goto idle state~~~
-		
 		/*asyncBreakIn(()->{
 			String[] idn = wxr("*IDN?")
 				.replaceAll("[\n|\\s]", "")
@@ -74,6 +50,22 @@ public class DevAT5350 extends DevTTY {
 			});	
 		});*/
 	}
+	@Override
+	public void beforeClose(){		
+	}
+	
+	private final static String STG_MEAS = "測量";
+	private final static String STG_COMP = "補償";
+	
+	private final Runnable stage_measure = ()->{
+		nextState("");
+	};
+	
+	private final Runnable stage_compensate = ()->{
+		nextState("");
+	};
+	
+
 	
 	public final StringProperty[] Identify ={ 
 		new SimpleStringProperty("＊＊＊＊"),
@@ -145,8 +137,6 @@ public class DevAT5350 extends DevTTY {
 	 * 		Filter, damper, High-Voltage, Temperature, Pressure.<p>
 	 */
 	public void measure(){asyncBreakIn(()->{
-		
-		String res;
 		int coun,eco;
 		try{
 			coun= Integer.valueOf(wxr("TRIG:COUN?"));
@@ -174,8 +164,6 @@ public class DevAT5350 extends DevTTY {
 		});
 	});}
 
-	private static boolean verbose = true;
-	
 	private boolean get_flag(final String cmd){
 		String res = wxr(cmd);
 		try{
@@ -194,24 +182,31 @@ public class DevAT5350 extends DevTTY {
 		if(cmd.endsWith("\n")==false){
 			cmd = cmd + "\n";
 		}
-		//the correct communication is that:
-		//Send character, then Receive .
-		for(char cc:cmd.toCharArray()) {
-			writeByte(cc);
-			cc = (char)readByte();
-			//Misc.logv("recv=%c(%d)",cc,(int)cc);
+		final SerialPort dev = port.get();
+		if(dev.isOpened()==false) {
+			return "";
 		}
-		String res = "";
-		if(cmd.contains("?")==false) {
-			return res;
+		String recv = "";
+		try {
+			//the correct communication is that:
+			//Send character, then Receive .
+			for(char cc:cmd.toCharArray()) {			
+				dev.writeByte((byte)cc);			
+				cc = (char)dev.readBytes(1)[0];			
+			}		
+			if(cmd.contains("?")==false) {
+				//no query statement, just go back~~~
+				return recv;
+			}
+			while(true) {			
+				char cc = (char)dev.readBytes(1)[0];
+				if(cc==0x0A) { break; }
+				recv = recv + cc;
+			}
+		} catch (SerialPortException e) {			
+			Misc.loge("[%s] wxr - %s", TAG, e.getMessage());
 		}
-		char rr=0;
-		while(true) {
-			rr = (char)readByte();
-			if(rr==0x0A) { break; }
-			res = res + (char)rr;
-		}
-		return res;	
+		return recv;	
 	}
 	private String[] split_measurement_text(String txt){
 		ArrayList<String> vals = new ArrayList<String>(10);

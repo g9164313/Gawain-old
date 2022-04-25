@@ -36,7 +36,7 @@ import jssc.SerialPort;
 import jssc.SerialPortException;
 import jssc.SerialPortTimeoutException;
 import narl.itrc.DevBase;
-import narl.itrc.DevTTY2;
+import narl.itrc.DevTTY;
 import narl.itrc.Misc;
 
 /**
@@ -45,7 +45,7 @@ import narl.itrc.Misc;
  * @author qq
  *
  */
-public class DevTDS3000 extends DevTTY2 {
+public class DevTDS3000 extends DevTTY {
 
 	public DevTDS3000() {
 		TAG = "TDS3000";
@@ -58,6 +58,10 @@ public class DevTDS3000 extends DevTTY2 {
 		addState(STG_ACQU,()->state_acquire());
 		playFlow(STG_INIT);
 	}
+	@Override
+	public void beforeClose() {
+	}
+	
 	private static final String STG_IDLE = "idle";
 	private static final String STG_INIT = "initial";
 	private static final String STG_ACQU = "acquire";
@@ -91,7 +95,7 @@ public class DevTDS3000 extends DevTTY2 {
 			Misc.loge("[%s] ggyy %s", TAG, e.getMessage());
 			return;
 		}
-		sleep(500);
+		block_sleep_msec(500);
 		nextState(STG_IDLE);
 	}
 	private void state_initial() {

@@ -53,7 +53,7 @@ public class StepSetPulse extends Bumper {
 			msg2.setText("");
 			wait_async();			
 			spik.asyncBreakIn(()->{
-				spik.set_register(addr, value);
+				//TODO!!!:spik.set_register(addr, value);
 				next.set(LEAD);
 			});	
 		}catch(NumberFormatException e){

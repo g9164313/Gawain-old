@@ -28,6 +28,9 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import jssc.SerialPort;
+import jssc.SerialPortException;
+import jssc.SerialPortTimeoutException;
 import narl.itrc.DevTTY;
 import narl.itrc.Misc;
 import narl.itrc.PadTouch;
@@ -42,13 +45,17 @@ import narl.itrc.PadTouch;
 public class DevDCG100 extends DevTTY {
 	
 	public DevDCG100(){
-		TAG = "DCG-100";
-		readTimeout = 500;
+		TAG = "DCG100";
 	}
-
-	public DevDCG100(String path_name){
-		this();
-		setPathName(path_name);
+	
+	@Override
+	public void afterOpen() {
+		addState(STG_INIT, ()->state_init()).
+		addState(STG_MONT, ()->state_monitor());
+		playFlow(STG_INIT);
+	}
+	@Override
+	public void beforeClose() {
 	}
 	
 	private final static String STG_INIT = "init";
@@ -56,12 +63,12 @@ public class DevDCG100 extends DevTTY {
 	
 	private void state_init() {
 		String ans;
-		//ans = exec("REP");
+		//ans = exec("REP");// TODO Auto-generated catch block
 		//Misc.logv(ans);
 		v_spr = cook(exec("SPR"),"5");
 		v_spv = cook(exec("SPV"),"100.0V");
 		v_spa = cook(exec("SPA"),"0.01A");
-		v_spw = cook(exec("SPW"),"0W");
+		v_spw = cook(exec("SPW"),"0");
 		v_spt = cook(exec("SPT"),"30.000");
 		v_spj = cook(exec("SPJ"),"0");
 		ans = cook(exec("CHL"),"W");
@@ -73,16 +80,17 @@ public class DevDCG100 extends DevTTY {
 		//ans = exec("REM1");
 		//change to remote control
 		ans = exec("REME");
-		if(ans.contains("*")==true) {			
+		if(ans.contains("*")==false){
+			nextState("");//idle!!!
+		}else{
 			nextState(STG_MONT);
 			Application.invokeLater(()->{
 				isRemote.set(true);				
 				SPW.set(Integer.valueOf(v_spw.substring(0, v_spw.length()-1)));
 			});
-		}else {
-			nextState("");//idle!!!
 		}
-	}	
+	}
+	
 	private void state_monitor() {
 		try { 
 			Thread.sleep(500); 
@@ -104,7 +112,7 @@ public class DevDCG100 extends DevTTY {
 	//private int cur_watt = 0;
 		
 	private void measurement() {
-		final String[] val = {"","","",""};
+		final String[] val = {"","","",""};// TODO Auto-generated catch block
 		val[0] = cook(exec("MVV"),"");
 		val[1] = cook(exec("MVA"),"");
 		val[2] = cook(exec("MVW"),"");
@@ -132,38 +140,35 @@ public class DevDCG100 extends DevTTY {
 			//txt2prop(val[3], joul);
 		});
 	}
-	protected void afterOpen() {
-		addState(STG_INIT, ()->state_init()).
-		addState(STG_MONT, ()->state_monitor());
-		playFlow(STG_INIT);
-	}
 	
 	public String exec(String txt) {
 		if(txt.endsWith("\r")==false) {
 			txt = txt + "\r";
 		}
-		writeTxt(txt);
-		//writeTxtDelay(5, txt);
-		//Misc.logv(String.format("[%s] %s", txt, TAG));
-		
-		txt = ""; //clear command~~~
-		int ans = 0;
-		int cnt = 0;
-		do{
-			ans = readByte();
-			if(cnt>=50){
-				return "?";
-			}
-			if(ans==0){
-				cnt+=1;
-				continue;
-			}
-			if((ans&0x80)!=0){
-				cnt+=1;
-				continue;
-			}
-			txt = txt + (char)ans;
-		}while(!(ans=='*' || ans=='?'));
+		final SerialPort dev = port.get();
+		if(dev.isOpened()==false) {
+			return "";
+		}
+		try {
+			dev.writeString(txt);
+			txt = ""; //clear command~~~
+			char cc = 0;
+			do{			
+				cc = (char)dev.readBytes(1,500)[0];	
+				if(cc==0 || (cc&0x80)!=0){
+					//we got null or non-ASCII character
+					//repeat again!!!
+					continue;
+				}
+				txt = txt + cc;
+				//'*' means that device accepted command
+				//'?' means that device ignore command
+			}while( (cc=='*' || cc=='?')==false );
+		} catch (SerialPortException e) {
+			Misc.loge("[%s], TTY fail!! - %s", TAG, e.getMessage());
+			return "";
+		} catch (SerialPortTimeoutException e) {
+		}
 		txt = txt
 			.replace("\r\n", "\n")
 			.replace("\n\r", "\n")
@@ -210,16 +215,17 @@ public class DevDCG100 extends DevTTY {
 		txt2prop(txt,prop,1f);
 	}
 	
-	
 	public void asyncSetWatt(
 		final int val
-	) {asyncBreakIn(()->{
+	) {
+		if(port.isPresent()==false) { return; }
+		asyncBreakIn(()->{
 		exec("SPW="+val);
 		Application.invokeLater(()->SPW.set(val));
 	});}
 	public void asyncSetWatt(
 		final String val
-	) {
+	) {		
 		if(val.length()==0) { return; }
 		try {
 			int v = Integer.valueOf(val);
@@ -232,7 +238,9 @@ public class DevDCG100 extends DevTTY {
 		final int offset,
 		final int min_v,
 		final int max_v
-	) {asyncBreakIn(()->{
+	) {
+		if(port.isPresent()==false) { return; }
+		asyncBreakIn(()->{
 		v_spw = cook(exec("SPW"),"0W");	
 		final String t_val = v_spw.substring(0, v_spw.length()-1);
 		final int val = Integer.valueOf(t_val) + offset;
@@ -245,7 +253,9 @@ public class DevDCG100 extends DevTTY {
 		exec("SPW="+val);
 		Application.invokeLater(()->SPW.set(val));
 	});}
-	public void asyncExec(final String... cmd) {asyncBreakIn(()->{
+	public void asyncExec(final String... cmd) {
+		if(port.isPresent()==false) { return; }
+		asyncBreakIn(()->{
 		for(String cc:cmd){
 			final String res = exec(cc);
 			if(res.endsWith("*")==false) {
@@ -253,12 +263,12 @@ public class DevDCG100 extends DevTTY {
 					Alert alt = new Alert(AlertType.ERROR);
 					alt.setTitle("DCG100");
 					alt.setHeaderText("無效的命令");
-					alt.setContentText(cmd+" ("+res+")");
+					alt.setContentText(cc+" ("+res+")");
 					alt.showAndWait();
 				});
 				return;
 			}
-			Misc.logv("[%s] %s",TAG,cc);//trace DCG command
+			Misc.logv("[%s] %s",TAG,res);//trace DCG command
 			try {
 				TimeUnit.MILLISECONDS.sleep(200);
 			} catch (Exception e) {
@@ -315,7 +325,7 @@ public class DevDCG100 extends DevTTY {
 			return value;
 		}
 		String _val = val.get();
-		dev.asyncExec(cmd, _val);
+		dev.asyncExec(cmd+"="+_val);
 		return _val;
 	}	
 	private static String set_millisec(

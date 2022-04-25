@@ -14,8 +14,10 @@ import narl.itrc.Gawain;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
 import prj.sputter.action.Bumper;
+import prj.sputter.action.StepFlowCtrl;
+import prj.sputter.action.StepGunsHub;
 
-public class PanMainV2 extends PanBase {
+public class PanMain2 extends PanBase {
 	
 	final DevCouple coup = new DevCouple();
 	final DevDCG100 dcg1 = new DevDCG100();	
@@ -27,7 +29,7 @@ public class PanMainV2 extends PanBase {
 	final DrawVaccum digram = new DrawVaccum(coup);	
 	final LayLadder  ladder = new LayLadder();
 	
-	public PanMainV2(final Stage stg) {
+	public PanMain2(final Stage stg) {
 		super(stg);
 		stg.setTitle("二號濺鍍機");
 		stg.setOnShown(e->on_shown());
@@ -47,16 +49,9 @@ public class PanMainV2 extends PanBase {
 			coup.open(arg);
 			logger.bindProperty(coup);
 		}
-		arg = Gawain.prop().getProperty("DCG100", "");
-		if(arg.length()>0) {			
-			dcg1.open(arg);
-			logger.bindProperty(dcg1);
-		}
-		arg = Gawain.prop().getProperty("SPIK2k", "");
-		if(arg.length()>0) {
-			spik.open(arg);
-		}
-		sqm1.open();		
+		dcg1.open();
+		spik.open();
+		sqm1.open();
 		sqm2.open();
 		logger.bindProperty(sqm1);
 	}
@@ -95,18 +90,19 @@ public class PanMainV2 extends PanBase {
 	private Pane lay_info() {
 		final VBox lay = new VBox();
 		lay.getStyleClass().addAll("box-pad");
-		lay.getChildren().addAll(
-			Misc.addBorder(DevSQM2Usb.genCtrlPanel(sqm2)),
-			Misc.addBorder(DevSQM160.genCtrlPanel(sqm1))	
+		lay.getChildren().addAll(			
+			Misc.addBorder(DevSQM160.genCtrlPanel(sqm1)),
+			Misc.addBorder(DevSQM2Usb.genCtrlPanel(sqm2))
 		);
 		return lay;
-	}	
+	}
 	private Pane lay_ctrl() {
 		final VBox lay = new VBox();
 		lay.getStyleClass().addAll("box-pad");
 		lay.getChildren().addAll(
-			//Misc.addBorder(StepGunsHub.genCtrlPanel()),
-			//Misc.addBorder(StepFlowCtrl.genCtrlPanel()),		
+			//Misc.addBorder(DevSQM160.genCtrlPanel(sqm1)),
+			Misc.addBorder(StepGunsHub.genCtrlPanel()),
+			Misc.addBorder(StepFlowCtrl.genCtrlPanel()),		
 			Misc.addBorder(DevDCG100.genCtrlPanel(dcg1))
 		);				
 		return lay;

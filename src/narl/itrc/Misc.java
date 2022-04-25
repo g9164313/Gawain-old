@@ -11,6 +11,8 @@ import java.io.ObjectOutputStream;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.UUID;
+
 import javafx.event.ActionEvent;
 import javafx.scene.Node;
 import javafx.scene.image.Image;
@@ -506,47 +508,72 @@ public class Misc {
 		}
 		return txt.substring(beg,end);
 	}
+	//------------------------------------------
+	
+	public static void dump_byte(final byte[] buf) {
+		try {
+			final String name = Gawain.getRootPath()+"pack_"+UUID.randomUUID().toString()+".bin";
+			FileOutputStream fs = new FileOutputStream(name);
+			fs.write(buf);
+			fs.close();
+			Misc.loge("[Dump] %s", name);
+		}catch(SecurityException | IOException e) {			
+			Misc.loge("[Dump] %s", e.getMessage());
+		}
+	}
+	
+	public static byte[] list2byte(final ArrayList<Byte> src) {
+		final int cnt = src.size();
+		byte[] dst = new byte[cnt];
+		for(int i=0; i<cnt; i++) {
+			dst[i] = src.get(i).byteValue();
+		}
+		return dst;
+	}
 	
 	public static int[] list2int(final ArrayList<Integer> src) {
-		int cnt = src.size();
+		final int cnt = src.size();
 		int[] dst = new int[cnt];
 		for(int i=0; i<cnt; i++) {
 			dst[i] = src.get(i).intValue();
 		}
 		return dst;
 	}
-	@SuppressWarnings("unchecked")
-	public static float[] list2float(final ArrayList<?> src, final Class<?> lst_type) {		
-		int cnt = src.size();
+
+	public static float[] list2float(final ArrayList<?> src) {		
+		final int cnt = src.size();
 		float[] dst = new float[cnt];
-		if(lst_type==Float.TYPE) {			
-			ArrayList<Float> _src = (ArrayList<Float>) src;
+		if(cnt==0) {
+			return dst;
+		}
+		Class<?> clzz = src.get(0).getClass();
+		if(clzz==Float.TYPE) {
 			for(int i=0; i<cnt; i++) {				
-				dst[i] = _src.get(i).floatValue();
+				dst[i] = ((Float)src.get(i)).floatValue();
 			}
-		}else if(lst_type==Double.TYPE){
-			ArrayList<Double> _src = (ArrayList<Double>) src;
+		}else if(clzz==Double.TYPE) {
 			for(int i=0; i<cnt; i++) {				
-				dst[i] = _src.get(i).floatValue();
+				dst[i] = ((Double)src.get(i)).floatValue();
 			}
-		}		
+		}			
 		return dst;
 	}
-	@SuppressWarnings("unchecked")
-	public static double[] list2double(final ArrayList<?> src, final Class<?> lst_type) {		
-		int cnt = src.size();
+	public static double[] list2double(final ArrayList<?> src) {	
+		final int cnt = src.size();
 		double[] dst = new double[cnt];
-		if(lst_type==Float.TYPE) {			
-			ArrayList<Float> _src = (ArrayList<Float>) src;
+		if(cnt==0) {
+			return dst;
+		}
+		Class<?> clzz = src.get(0).getClass();
+		if(clzz==Float.TYPE) {
 			for(int i=0; i<cnt; i++) {				
-				dst[i] = _src.get(i).doubleValue();
+				dst[i] = ((Float)src.get(i)).doubleValue();
 			}
-		}else if(lst_type==Double.TYPE){
-			ArrayList<Double> _src = (ArrayList<Double>) src;
+		}else if(clzz==Double.TYPE) {
 			for(int i=0; i<cnt; i++) {				
-				dst[i] = _src.get(i).doubleValue();
+				dst[i] = ((Double)src.get(i)).doubleValue();
 			}
-		}		
+		}			
 		return dst;
 	}
 	//----------------------------------------//

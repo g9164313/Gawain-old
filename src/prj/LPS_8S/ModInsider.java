@@ -1,7 +1,6 @@
 package prj.LPS_8S;
 
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.jfoenix.controls.JFXCheckBox;
 import com.jfoenix.controls.JFXToggleButton;
@@ -16,7 +15,6 @@ import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
 import narl.itrc.DevModbus;
-import narl.itrc.Misc;
 import narl.itrc.PadTouch;
 
 /**
@@ -30,9 +28,6 @@ public class ModInsider extends DevModbus {
 	//SDA - A綠，B棕白
 	//SDE - A藍白 ，B藍
 	//平板電腦: A白，B黑
-	
-	public final int DEFAULT_SPEED = 1000;
-	
 	
 	public static final int ID_MAJOR = 3;//主軸
 	public static final int ID_PRESS = 2;//加壓軸

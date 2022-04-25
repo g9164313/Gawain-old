@@ -109,12 +109,12 @@ public class StepSetting extends Stepper {
 		
 		info[1].setText("調整脈衝");			
 		try{
-			spik.asyncSetPulse(
+			/* TODO: spik.asyncSetPulse(
 				Integer.valueOf(t_on_p), 
 				Integer.valueOf(t_on_n), 
 				Integer.valueOf(toff_p),
 				Integer.valueOf(toff_n)
-			);
+			);*/
 		}catch(NumberFormatException e){
 			Misc.loge(e.getMessage());
 			abort_step();

@@ -45,7 +45,7 @@ public class DevSQM2Usb extends DevBase {
 		}
 		try {
 			final TTY_NAME tty = new TTY_NAME(name);			
-			final SerialPort dev = new SerialPort(tty.path);
+			final SerialPort dev = new SerialPort(tty.path);			
 			dev.openPort();
 			dev.setParams(
 				tty.baudrate,
@@ -214,7 +214,7 @@ public class DevSQM2Usb extends DevBase {
 			freq.set(v_freq);
 			life.set(v_life);
 		});
-		sleep(500);
+		block_sleep_msec(500);
 	}
 	
 	/**

@@ -315,7 +315,7 @@ public class DevSQM160 extends DevBase {
 			}
 			shutter.set(u_val);
 		});
-		sleep(500);
+		block_sleep_msec(500);
 		
 		final long current_tick = System.currentTimeMillis();//millis second
 		if((current_tick-monitor_tick)>=(10*60*1000)){

@@ -19,7 +19,7 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
-import narl.itrc.DevTTY2;
+import narl.itrc.DevTTY;
 import narl.itrc.Misc;
 import narl.itrc.PadTouch;
 
@@ -30,7 +30,7 @@ import narl.itrc.PadTouch;
  * @author qq
  *
  */
-public class DevCESAR extends DevTTY2 {
+public class DevCESAR extends DevTTY {
 
 	public DevCESAR() {
 		TAG = "CESAR";
@@ -41,6 +41,9 @@ public class DevCESAR extends DevTTY2 {
 		addState(STG_INIT ,()->state_initial()).
 		addState(STG_WATCH,()->state_watcher());
 		playFlow(STG_INIT);
+	}
+	@Override
+	public void beforeClose() {
 	}
 	
 	private static final String STG_INIT = "initial";
@@ -141,7 +144,7 @@ public class DevCESAR extends DevTTY2 {
 				powerDelived.set(v_power_delived);
 			}
 		});
-		sleep(50);
+		block_sleep_msec(50);
 	}
 	
 	public final StringProperty last_cmd_status = new SimpleStringProperty("");

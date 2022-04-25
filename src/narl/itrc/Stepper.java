@@ -2,14 +2,12 @@ package narl.itrc;
 
 import java.util.Arrays;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
 import com.jfoenix.controls.JFXButton;
 
 import javafx.collections.ObservableList;
-import javafx.concurrent.Task;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -118,11 +116,9 @@ public abstract class Stepper extends HBox {
 		Runnable[] tmp = {run};
 		works = Optional.of(tmp);
 	}
-	
 	protected void set(Runnable... runs){
 		works = Optional.of(runs);
 	}
-	
 	protected void addRun(Runnable... runs){
 		if(works.isPresent()==false) {
 			set(runs);
@@ -148,7 +144,7 @@ public abstract class Stepper extends HBox {
 	}	
 	//-----------------------------------//
 	
-	public static final int SPEC_JUMP = 0x100000;
+	public static final int SPEC_JUMP = 0x800000;
 	
 	public static final int LEAD =  1;
 	public static final int HOLD =  0;
@@ -159,15 +155,9 @@ public abstract class Stepper extends HBox {
 	public static final int PAUSE   =-SPEC_JUMP*1;
 	public static final int BACKWARD=-SPEC_JUMP-1;
 	
-	/** 
-	 *  1--> async going!!!!
-	 *  0--> no async
-	 * -1--> async done~~~ 
-	 */
-	public final AtomicInteger async = new AtomicInteger(0);
 	public final AtomicInteger next = new AtomicInteger(LEAD);
 			
-	protected void abort_step(){ next.set(ABORT);}
+	protected void abort_step(){ next.set(ABORT); async.set(0); }
 	protected void pause_step(){ next.set(PAUSE);}
 	protected void hold_step() { next.set(HOLD); }	
 	protected void next_step() { next.set(LEAD); }
@@ -177,43 +167,19 @@ public abstract class Stepper extends HBox {
 	protected void step_jump(final int stp) {
 		next.set((stp>0)?(SPEC_JUMP):(-SPEC_JUMP)+stp); 
 	}
-	
-	protected void wait_async(){
-		async.set(1);
-		hold_step();
-	}
-	protected void notify_async(final int stp){
-		async.set(-1);
-		next_step(stp);
-	}
-	protected void notify_async(){
-		notify_async(LEAD);
-	}
-	
-	protected Task<?> waiting_async(final Task<?> tsk) {
-		wait_async();
-		new Thread(tsk,"step-async").start();		
-		return tsk;
-	}
-		
-	private long tick = -1L;	
-	protected long waiting_time(long period){
-		if(tick<=0L){
-			tick = System.currentTimeMillis();
+	protected void next_step(final Runnable beg,final Runnable end) {
+		if(works.isPresent()==false) {
+			return;
 		}
-		long pass = System.currentTimeMillis() - tick;
-		if(pass>=period){
-			tick = -1L;//reset for next turn~~~
-			next_step();
-		}else{
-			hold_step();
+		Runnable[] lst = works.get();
+		int bb=0, ee=0;
+		for(int i=0; i<lst.length; i++) {
+			if(beg==lst[i]) { bb = i; }
+			if(end==lst[i]) { ee = i; }
 		}
-		long rem = period - pass;
-		return (rem>0)?(rem):(0);
+		next.set(ee-bb);
 	}
-	protected long waiting_time(final String time){
-		return waiting_time(Misc.text2tick(time));
-	}
+	//--------------------------------------------//
 	
 	protected void prepare(){
 		imgSign.setVisible(false);
@@ -235,24 +201,24 @@ public abstract class Stepper extends HBox {
 	
 	//--------below lines are common stepper for ladder
 	
-	public static class Replay extends Stepper {
+	public static class Counter extends Stepper {
 		int index = 0;
 		int count = 0;
 		final Label msg1 = new Label();
 		final TextField arg1 = new TextField("1");
 		final TextField arg2 = new TextField("1");
-		public Replay() {
+		public Counter() {
 			set(jump);//it must be atomic operation!!
 		}
 		final Runnable jump = ()->{			
-			if(index>=count){
-				next.set(LEAD);
+			if((index+1)>=count){
+				next_step();
 			}else{
 				int val = Integer.valueOf(arg1.getText());
-				next.set(-val-SPEC_JUMP);
-				index+=1;
-				update_msg();
+				step_jump(-val);				
 			}
+			index+=1;
+			update_msg();
 		};
 		void update_msg(){
 			msg1.setText(String.format("%3d/%3d",index,count));
@@ -273,8 +239,8 @@ public abstract class Stepper extends HBox {
 			lay.getStyleClass().addAll("box-pad");
 			lay.addColumn(0, msg1);
 			lay.add(new Separator(Orientation.VERTICAL), 1, 0, 1, 2);
-			lay.addColumn(2,new Label("回跳步驟"),new Label("重複次數"));
-			lay.addColumn(3,arg1,arg2);
+			lay.addRow(2, new Label("回跳步驟"), arg1);
+			lay.addRow(3, new Label("重複次數"), arg2);
 			return lay;
 		}
 		@Override
@@ -312,8 +278,59 @@ public abstract class Stepper extends HBox {
 			}
 		}
 	};
+	//--------------------------------------------//
 	
-	private static String def_stick_text = "";
+	/** 
+	 *  1--> async going!!!!
+	 *  0--> no async
+	 * -1--> async done~~~ 
+	 */
+	public final AtomicInteger async= new AtomicInteger(0);	
+	protected void wait_async(){
+		async.set(1);
+		hold_step();
+	}
+	protected void wait_async(final Runnable tsk) {
+		if(async.get()==1) {
+			return;
+		}
+		wait_async();
+		new Thread(()->{
+			tsk.run();
+			notify_async();			
+		},"steper-task").start();
+	}
+	protected void notify_async(final int stp){
+		async.set(-1);
+		next_step(stp);
+	}
+	protected void notify_async(){
+		notify_async(LEAD);
+	}
+
+	private long tick = -1L;	
+	protected long waiting_time(long msec){
+		if(tick<=0L){
+			tick = System.currentTimeMillis();
+		}
+		long pass = System.currentTimeMillis() - tick;
+		if(pass>=msec){
+			tick = -1L;//reset for next turn~~~
+			next_step();
+		}else{
+			hold_step();
+		}
+		long rem = msec - pass;
+		return (rem>0)?(rem):(0);
+	}
+	protected long waiting_time(final String time){
+		return waiting_time(Misc.text2tick(time));
+	}
+	//--------------------------------------------//
+	
+	private static String default_stick_text = "";
+	
+	public static String LAST_STICKER = "";
 	
 	public static class Sticker extends Stepper {
 		final Label msg = new Label();
@@ -324,8 +341,9 @@ public abstract class Stepper extends HBox {
 				if(txt.length()==0){
 					txt = "STICKER";
 				}
-				Misc.logv(">> %s <<", txt); 
-				next.set(LEAD);
+				Misc.logv(">> %s <<", txt);
+				LAST_STICKER = txt;
+				next_step();
 			});
 			Separator ss1 = new Separator();
 			Separator ss2 = new Separator();
@@ -339,7 +357,7 @@ public abstract class Stepper extends HBox {
 		public void eventEdit(){
 			String init_text = msg.getText();
 			if(init_text.length()==0) {
-				init_text = def_stick_text;
+				init_text = default_stick_text;
 			}
 			TextInputDialog dia = new TextInputDialog(init_text);
 			//dia.setTitle("Text Input Dialog");
@@ -347,8 +365,8 @@ public abstract class Stepper extends HBox {
 			dia.setContentText("內容:");
 			Optional<String> res = dia.showAndWait();
 			if (res.isPresent()){
-				def_stick_text = res.get();
-				msg.setText(def_stick_text);			   
+				default_stick_text = res.get();
+				msg.setText(default_stick_text);			   
 			}
 		}
 		public Sticker editValue(final String txt){

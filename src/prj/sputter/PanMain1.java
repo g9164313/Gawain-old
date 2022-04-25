@@ -14,7 +14,7 @@ import narl.itrc.Gawain;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
 
-public class PanMainV1 extends PanBase {
+public class PanMain1 extends PanBase {
 	
 	final DevDCG100 dcg1 = new DevDCG100();	
 	final DevCESAR  csar = new DevCESAR();
@@ -24,7 +24,7 @@ public class PanMainV1 extends PanBase {
 	final LayLogger  logger = new LayLogger();		
 	final LayLadder  ladder = new LayLadder();
 	
-	public PanMainV1(final Stage stg) {
+	public PanMain1(final Stage stg) {
 		super(stg);
 		stg.setTitle("一號濺鍍機");
 		stg.setOnShown(e->on_shown());

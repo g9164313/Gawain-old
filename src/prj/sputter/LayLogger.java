@@ -37,7 +37,6 @@ import narl.itrc.Misc;
 import narl.itrc.PanBase;
 import narl.itrc.init.LogStream;
 import narl.itrc.init.LogStream.Mesg;
-import prj.sputter.action.StepExploit;
 import prj.sputter.action.StepKindler;
 import prj.sputter.action.StepWatcher;
 
@@ -226,23 +225,41 @@ public class LayLogger extends BorderPane {
 				shx = flush_recipe(shx,wb,msg[i]);	
 			}
 		}
+
+		private void flush_action(final Sheet sh,final Mesg msg) {
+			int row = sh.getLastRowNum() + 1;
+			final String txt = msg.getText();
+			if(
+				txt.startsWith(StepKindler.TAG_KINDLE)==true ||
+				txt.startsWith(StepWatcher.TAG_WATCH)==true
+			) {				
+				return;
+			}
+			//put time stamp~~
+			get_cell(sh, 0, row).setCellValue(msg.getTickText(""));
+			//put action text~~~
+			get_cell(sh, 1, row).setCellValue(txt);
+		}
 		private Sheet flush_recipe(
 			Sheet shx,
 			final Workbook wb,
 			final Mesg msg
 		) {
-			final String txt = msg.getText();			
-			if(txt.matches("^[\\>\\>].+[\\<\\<]$")==true) {
-				//create a new sheet~~~
-				shx = wb.createSheet(txt.substring(2,txt.length()-2).trim());
-				init_column_name(shx,0);
-				init_column_name(shx,1);
-				row_idx[0] = row_idx[1] = 1;
-				return shx;
-			}else if(txt.startsWith(StepExploit.TXT_EXPLOIT)==true) {
-				init_exploit_sheet(wb);
-				set_exploit_value(msg);
-				return shx;
+			String txt = msg.getText();			
+			if(txt.matches("^[\\>\\>].+[\\<\\<]$")==true) {				
+				txt = txt.substring(2,txt.length()-2).trim(); 
+				shx = wb.getSheet(txt);
+				if(shx==null) {
+					//create a new sheet~~~
+					shx = wb.createSheet(txt);
+					init_column_name(shx,0);
+					init_column_name(shx,1);
+					row_idx[0] = row_idx[1] = 1;//two page for TAG_KINDLE and TAG_WATCH
+					return shx;
+				}else {
+					//change to old sheet, re-count number of rows
+					row_idx[0] = row_idx[1] = 1 + shx.getLastRowNum();
+				}				
 			}
 			if(shx==null) {
 				return null;
@@ -310,48 +327,6 @@ public class LayLogger extends BorderPane {
 			row_idx[page]+=1;
 		}
 		
-		Sheet sh_exploit = null;
-		void init_exploit_sheet(final Workbook wb) {
-			if(sh_exploit!=null) {
-				return;
-			}
-			sh_exploit = wb.createSheet("Exploit");
-			get_cell(sh_exploit, 0, 0).setCellValue("時間");
-			get_cell(sh_exploit, 1, 0).setCellValue("功率(W)");
-			get_cell(sh_exploit, 2, 0).setCellValue("mfc-1(sccm)");
-			get_cell(sh_exploit, 3, 0).setCellValue("mfc-2(sccm)");
-			get_cell(sh_exploit, 4, 0).setCellValue("速率(Å/s)");
-			get_cell(sh_exploit, 5, 0).setCellValue("sigma");
-			row_idx[2] = 1;
-		}
-		void set_exploit_value(final Mesg msg) {
-			get_cell(sh_exploit, 0, row_idx[2]).setCellValue(msg.getTickText(""));
-			final String txt = msg.getText();
-			String[] val = txt
-				.substring(txt.indexOf(":")+1)
-				.split(",");
-			get_cell(sh_exploit, 1, row_idx[2]).setCellValue(val[0].substring(0,val[0].length()-1).trim());
-			get_cell(sh_exploit, 2, row_idx[2]).setCellValue(val[1].substring(0,val[1].length()-4).trim());
-			get_cell(sh_exploit, 3, row_idx[2]).setCellValue(val[2].substring(0,val[2].length()-4).trim());
-			get_cell(sh_exploit, 4, row_idx[2]).setCellValue(val[3]);
-			get_cell(sh_exploit, 5, row_idx[2]).setCellValue(val[4]);
-			row_idx[2]+= 1;
-		}
-		
-		private void flush_action(final Sheet sh,final Mesg msg) {
-			int row = sh.getLastRowNum() + 1;
-			final String txt = msg.getText();
-			if(
-				txt.startsWith(StepKindler.TAG_KINDLE)==true ||
-				txt.startsWith(StepWatcher.TAG_WATCH)==true
-			) {				
-				return;
-			}
-			//put time stamp~~
-			get_cell(sh, 0, row).setCellValue(msg.getTickText(""));
-			//put action text~~~
-			get_cell(sh, 1, row).setCellValue(txt);
-		}
 		private void export_book(final Workbook wb) throws IOException {
 			updateMessage("匯出試算表");
 			FileOutputStream dst = new FileOutputStream(String.format(
@@ -403,33 +378,15 @@ public class LayLogger extends BorderPane {
 	};
 
 	public void show_progress() {
-		/*Badge node;
-		if(badge.isPresent()==false) {
-			node = new Badge();
-			badge = Optional.of(node);
-		}else {
-			node = badge.get();
-		}
-		lay_status.getChildren().add(node);		
-		AnchorPane.setTopAnchor(node, 0.);
-		AnchorPane.setRightAnchor(node, 0.);*/
 		LogStream.getInstance().usePool(true);
 	}
 	
 	public void done_progress() {
 		LogStream.getInstance().usePool(false);
-		final PanBase pan = PanBase.self(this);
-		final Task<?> tsk = new Dumping();
-		//TODO: how to remove badge??
-		/*if(badge.isPresent()==true) {
-			Badge node = badge.get();
-			node.bar.progressProperty().bind(tsk.progressProperty());
-			node.txt.textProperty().bind(tsk.messageProperty());
-			tsk.setOnSucceeded(e->{
-				lay_status.getChildren().remove(node);
-			});
-		}*/
-		pan.notifyTask("輸出紀錄",tsk);
+		PanBase.self(this).notifyTask(
+			"輸出紀錄",
+			new Dumping()
+		);
 	}
 	//-----------------------------------------------//
 	

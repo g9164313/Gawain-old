@@ -1,9 +1,7 @@
 package prj.sputter;
 
-
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXRadioButton;
@@ -20,7 +18,9 @@ import javafx.scene.control.Alert.AlertType;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
-
+import jssc.SerialPort;
+import jssc.SerialPortException;
+import jssc.SerialPortTimeoutException;
 import narl.itrc.DevTTY;
 import narl.itrc.Misc;
 
@@ -36,346 +36,28 @@ import narl.itrc.Misc;
 public class DevSPIK2k extends DevTTY {
 
 	public DevSPIK2k() {
-		TAG = "SPIK-2000";
-		flowControl = 0x10;//disable all controls
-		readTimeout = 500;
-	}
-	public DevSPIK2k(String path_name){
-		this();
-		setPathName(path_name);
+		TAG = "SPIK2k";
 	}	
 	@Override
-	protected void afterOpen() {
-		addState("init", ()->{
-			fst_value1 = get_register(0,8);
-			//0* Mode: 
-			//1* State: 
-			//3* Error: 
-			//4* Ton +: 2-32000us, duration of the pulse
-			//5* Toff+: 2-32000us, duration of the pause
-			//6* Ton -: 2-32000us, duration of the pulse
-			//7* Toff-: 2-32000us, duration of the pause			
-			//nextState("loop");//disable this feature~~~			
-			Application.invokeAndWait(()->{
-				if(fst_value1==null) {
-					return;
-				}
-				switch(fst_value1[0] & 0x7) {
-				case 1: tmpRad[0].setSelected(true); break;
-				case 2: tmpRad[1].setSelected(true); break;
-				case 3: tmpRad[2].setSelected(true); break;
-				case 4: tmpRad[3].setSelected(true); break;
-				case 5: tmpRad[4].setSelected(true); break;
-				}
-				tmpTxt[0].setText(String.format("Ton +: %4d", fst_value1[4]));
-				tmpTxt[1].setText(String.format("Toff+: %4d", fst_value1[5]));
-				tmpTxt[2].setText(String.format("Ton -: %4d", fst_value1[6]));
-				tmpTxt[3].setText(String.format("Toff-: %4d", fst_value1[7]));
-			});
-		});
-		addState("loop", ()->{
-			//19* ARC_Count: Amount of ARC impulses
-			//20* DC1_V_Act: measurement of DC-1 source
-			//21* DC1_I_Act: measurement of DC-1 source
-			//22* DC1_P_Act: measurement of DC-1 source
-			//23* DC2_V_Act: measurement of DC-2 source
-			//24* DC2_I_Act: measurement of DC-2 source
-			//25* DC2_P_Act: measurement of DC-2 source
-			final int[] reg = get_register(19,7);			
-			Application.invokeLater(()->{
-				if(reg==null){
-					Misc.logw("[%s] transmission fail",TAG);
-					looper_ms.set(looper_ms.get()+5000);
-					return;
-				}
-				ARC_count.set(reg[0]);
-				DC1_V_Act.set(reg[1]);
-				DC1_I_Act.set(reg[2]);
-				DC1_P_Act.set(reg[3]);
-				DC2_V_Act.set(reg[4]);
-				DC2_I_Act.set(reg[5]);
-				DC2_P_Act.set(reg[6]);
-			});			
-			sleep(looper_ms.get());
-		});
-		playFlow("init");
+	public void afterOpen() {
+		addState("listen", listen);
+		addState("looper", looper);
+		//playFlow("init");
+		playFlow("looper");
+	}
+	@Override
+	public void beforeClose() {
 	}
 	//----------------------------------//
-	
-	private AtomicInteger looper_ms = new AtomicInteger(5000);
-	
-	private static final byte STX = 0x02;
-	private static final byte ETX = 0x03;
-	private static final byte DLE = 0x10;//跳出資料通訊
-	//private static final byte X25 = 0x25;//unknown token
-	
-	private int checksum(
-		final byte[] data, 
-		final int start, 
-		final int length
-	){
-		int bcc = 0x00;		
-		for(int i=start; i<length; i++){
-			bcc = bcc ^ ((int)data[i] & 0xFF);
-		}
-		return bcc;
-	}
-	
-	private byte pack(
-		final byte[] buf,
-		final char tkn2, 
-		final char tkn3,
-		int addr,
-		int size,
-		int off
-	) {
-		//RK512 header
-		buf[0] = 0x00; 
-		buf[1] = 0x00;
-		buf[2] = (byte)tkn2; 
-		buf[3] = (byte)tkn3;
-		buf[4] = (byte)((addr&0xFF00)>>8);
-		buf[5] = (byte)((addr&0x00FF));
-		buf[6] = (byte)((size&0xFF00)>>8);
-		buf[7] = (byte)((size&0x00FF));
-		buf[8] = (byte)(0xFF);
-		buf[9] = (byte)(0xFF);
-		//3964R tail
-		off += 10;						
-		buf[off+0] = DLE;
-		buf[off+1] = ETX;
-		buf[off+2] = (byte)checksum(buf,0,off+2);
-		return buf[off+2];
-	}
-	
-	private boolean tell_3964R() {
-		long t0 = System.currentTimeMillis();
-		long dt = 0L;
-		writeByte(STX);
-		byte cc = 0;
-		do{
-			cc = readByte();
-			if(cc==DLE) {
-				return true;
-			}
-			dt = System.currentTimeMillis() - t0;
-		}while(dt<5000);
-		return false;
-	}
-	
-	private void wait_3964R(final byte BCC) {
-		final byte[] res = {DLE,ETX,BCC};
-		writeByte(res,0,3);
-		purgeByte(res,0,2);
-		//if(res[0]!=DLE || res[1]!=STX) {
-		// return; ???
-		//}
-		writeByte(DLE);
-	}
-	
-	public int[] get_register(
-		final int addr, 
-		final int size
-	) {
-		//trick!! read byte one by one!!
-		int cnt = size * 2;
-		byte[] ans;
-		if(cnt>=6) {
-			ans = new byte[4+cnt+3];
-		}else {
-			ans = new byte[4+6+3];
-		}
-		final byte BCC = pack(ans,'E','D',addr,size,0);
-		
-		//step.1 - give start code and waiting.
-		if(tell_3964R()==false) {
-			return null;
-		}
-		//step.2 - give device RK512 header.		
-		writeByte(ans,0,13-3);
-		wait_3964R(BCC);
-		//step.3 - get frame:
-		//	token(3byte), error-code(1byte), 
-		//	data package(size*2),
-		//	DLE, ETX, CRC
-		purgeByte(ans,0,(3+1+cnt+3));
-		writeByte(DLE);
-		//end of talking~~~~
-		
-		//check whether answer is valid....
-		//ans[0:2]--> token
-		//ans[3]  --> error code
-		//ans[-3] --> DLE(3964R)
-		//ans[-2] --> ETX(3954R)
-		//ans[-1] --> unknown in document
-		if(	ans[3]!=0 ||
-			ans[3+1+cnt+0]!=DLE ||
-			ans[3+1+cnt+1]!=ETX 
-		) {
-			return null;
-		}
-		//collect data and value~~~
-		int[] val = new int[size];
-		for(int i=0; i<size; i++){
-			int aa = (int)(ans[4+i*2+0]);
-			int bb = (int)(ans[4+i*2+1]);
-			aa = (aa<<8) & 0xFF00;
-			bb = (bb   ) & 0x00FF;
-			val[i] = aa | bb;
-		}
-		return val;
-	}
-	
-	public boolean set_register(
-		final int addr, 
-		final int... vals
-	) {
-		int cnt = vals.length;
-		//prepare RK512, Data
-		byte[] ans = new byte[10+cnt*2+3];
-		for(int i=0; i<cnt; i++) {
-			ans[10+i*2+0] = (byte)((vals[i] & 0xFF00)>>8);
-			ans[10+i*2+1] = (byte)((vals[i] & 0x00FF)   );
-		}
-		final byte BCC = pack(ans,'A','D',addr,cnt,cnt*2);
-		//step.1 - give start code and waiting.
-		if(tell_3964R()==false) {
-			return false;
-		}
-		//step.2 - give device RK512 header.
-		writeByte(ans,0,ans.length-3);
-		wait_3964R(BCC);
-		//step.3 - fetch echo ???
-		purgeByte(ans,0,7);
-		writeByte(DLE);
-		//end of talking~~~~
-		return true;
-	}
 
-	private interface Callback {
-		void call(int[] val);
-	}
-	
-	public void getRegister(
-		final Callback event,
-		final int addr, 
-		final int size		
-	) {asyncBreakIn(()->{
-		int[] val = get_register(addr,size);
-		Application.invokeAndWait(()->{
-			if(val==null) {
-				show_fail(addr,size);
-			}else if(event!=null) {
-				event.call(val);
-			}
-		});
-	});}
-	
-	public void setRegister(
-		final Callback event,
-		final int addr,
-		final int... vals
-	) {asyncBreakIn(()->{		
-		boolean flag = set_register(addr,vals);
-		Application.invokeAndWait(()->{
-			if(flag==false) {
-				show_fail(addr,vals[0]);
-				return;
-			}
-			if(event!=null) {
-				event.call(vals);
-			}
-		});		
-	});}
-	
-	public void high_pin() {		
-		try {
-			set_register(1, 2);//high-pin
-			TimeUnit.SECONDS.sleep(1L);
-			Misc.logv("[%s] 啟動 H-Pin",TAG);
-		} catch (InterruptedException e2) {
-			Misc.logv("[%s] INTERRUPT in high-pin",TAG);
-		}		
-	}
-	public void asyncHighPin(
-	) {asyncBreakIn(()->{
-		high_pin();
-	});}
-
-	public void setPulse(
-		final int Ton_P,
-		final int Ton_N,
-		final int Toff_P,
-		final int Toff_N
-	) {
-		//4* Ton +: 2-32000us, duration of the pulse
-		//5* Toff+: 2-32000us, duration of the pause
-		//6* Ton -: 2-32000us, duration of the pulse
-		//7* Toff-: 2-32000us, duration of the pause
-		int msk = 0;
-		if(2<=Ton_P && Ton_P<=3200) {
-			msk = msk | 1;
-		}
-		if(2<=Toff_P && Toff_P<=3200) {
-			msk = msk | 2;
-		}
-		if(2<=Ton_N && Ton_N<=3200) {
-			msk = msk | 4;
-		}
-		if(2<=Toff_N && Toff_N<=3200) {
-			msk = msk | 8;
-		}
-		switch(msk) {
-		case  1: set_register(4,Ton_P ); break;
-		case  2: set_register(5,Toff_P); break;
-		case  4: set_register(6,Ton_N ); break;
-		case  8: set_register(7,Toff_N); break;
-		
-		case  3: set_register(4,Ton_P ,Toff_P); break;
-		case  6: set_register(5,Toff_P,Ton_N ); break;
-		case 12: set_register(6,Ton_N ,Toff_N); break;
-		
-		case  7: set_register(4,Ton_P,Toff_P,Ton_N); break;
-		case 14: set_register(5,Toff_P,Ton_N,Toff_N); break;
-		
-		case 15: set_register(4,Ton_P,Toff_P,Ton_N,Toff_N); break;
-		
-		case 5:
-			set_register(4,Ton_P );
-			set_register(6,Ton_N );
-			break;			
-		case 9:
-			set_register(4,Ton_P );
-			set_register(7,Toff_N);
-			break;
-		case 10:
-			set_register(5,Toff_P);
-			set_register(7,Toff_N);
-			break;
-		case 11:
-			set_register(4,Ton_P,Toff_P);
-			set_register(7,Toff_N);
-			break;
-		case 13:
-			set_register(4,Ton_P );
-			set_register(6,Ton_N,Toff_N);
-			break;		
-		}
-	}
-	public void asyncSetPulse(
-		final int Ton_P,
-		final int Ton_N,
-		final int Toff_P,
-		final int Toff_N
-	) {asyncBreakIn(()->{
-		setPulse(Ton_P,Ton_N,Toff_P,Toff_N);
-	});}
-	
-	//---------------------------------//
-	
-	private int[] fst_value1 = null;//Mode
-
-	public final IntegerProperty ARC_count = new SimpleIntegerProperty();//1-10000
+	//0* Mode: 
+	//1* State: 
+	//3* Error: 
+	//4* Ton +: 2-32000us, duration of the pulse
+	//5* Toff+: 2-32000us, duration of the pause
+	//6* Ton -: 2-32000us, duration of the pulse
+	//7* Toff-: 2-32000us, duration of the pause
+	public final IntegerProperty ARC_count = new SimpleIntegerProperty();//0-10000
 	public final IntegerProperty DC1_V_Act = new SimpleIntegerProperty();//0-4000
 	public final IntegerProperty DC1_I_Act = new SimpleIntegerProperty();//0-4000
 	public final IntegerProperty DC1_P_Act = new SimpleIntegerProperty();//0-4000
@@ -383,15 +65,186 @@ public class DevSPIK2k extends DevTTY {
 	public final IntegerProperty DC2_I_Act = new SimpleIntegerProperty();//0-4000
 	public final IntegerProperty DC2_P_Act = new SimpleIntegerProperty();//0-4000
 	
-	private void show_fail(final int addr, final int value) {
-		final Alert diag = new Alert(AlertType.ERROR);
-		diag.setTitle("錯誤！！");
-		diag.setHeaderText(String.format(
-			"存取失敗: Addr:%2d, Value:%2d",
-			addr,value
-		));
-		diag.showAndWait();
-	}	
+	private Runnable listen = ()->{
+		final SerialPort dev = port.get();
+		if(dev.isOpened()==false) {
+			stopFlow();
+			return;
+		}
+		try {
+			byte[] buf = protocol_3964R_listen(50);
+			if(buf.length==0) {
+				//something error happened, listen again!!!!
+				nextState("listen");
+				return;
+			}
+			//it should AD packet
+			int[] val = RK512_unpack_AD(buf);			
+			if(val.length>=8 && val[0]==19) {
+				Application.invokeLater(()->{
+					ARC_count.set(val[1]);
+					DC1_V_Act.set(val[2]);
+					DC1_I_Act.set(val[3]);
+					DC1_P_Act.set(val[4]);
+					DC2_V_Act.set(val[5]);
+					DC2_I_Act.set(val[6]);
+					DC2_P_Act.set(val[7]);						
+				});
+			}			
+			nextState("listen");			
+		}catch(SerialPortTimeoutException e1) {
+			//device no response, check whether host has works.
+			//Misc.loge("[%s] listen - %s", TAG, e1.getMessage());
+			nextState("looper");
+		} catch (SerialPortException e2) {			
+			Misc.loge("[%s] listen - %s", TAG, e2.getMessage());
+			nextState("listen");
+		}
+	};
+	
+	public static interface TokenNotify {
+		void token_notify(final Token tkn);
+	};
+	public static class Token {
+		public final int address;
+		public final int count;
+		public int[] values;//如果是 null, 就是讀取資料
+		public byte[] response;
+		TokenNotify event;
+		Token(final int addr, final int cnt){
+			address= addr;
+			count  = cnt;
+			values = null;
+		}
+		Token(final int addr, final int[] val){
+			address= addr;
+			count  = val.length;
+			values = val;
+		}
+		void unpack() {
+			if(values!=null) {
+				return;
+			}
+			values = new int[count];
+			for(int i=0; i<count; i++) {
+				byte aa = response[4+i*2];
+				byte bb = response[5+i*2];
+				values[i] = (((int)aa)&0x00FF)<<8 | bb;
+			}
+		}
+	};
+		
+	private final AtomicReference<Token> ref_tkn = new AtomicReference<Token>();
+	
+	private Runnable looper = ()->{
+		final SerialPort dev = port.get();
+		if(dev.isOpened()==false) {
+			stopFlow();
+			return;
+		}
+		final Token tkn = ref_tkn.get();
+		if(tkn!=null) {
+			Misc.loge("[%s] looper - transmit",TAG);
+			if(protocol_3964R_reveal(tkn.address, tkn.count, tkn.values)==true) {
+				try {
+					tkn.response = protocol_3964R_listen(-1);
+				} catch (SerialPortTimeoutException | SerialPortException e) {
+					Misc.loge("[%s] looper - %s", TAG, e.getMessage());
+					nextState("listen");
+					return;
+				}
+				tkn.unpack();
+			}			
+			if(tkn.event!=null) {
+				Application.invokeLater(()->tkn.event.token_notify(tkn));
+			}
+			ref_tkn.set(null);//for nest turn~~~~
+		}
+		nextState("listen");
+	};
+	
+	public void asyncSetRegister(TokenNotify event, final int addr, int... val) {
+		Token tkn = new Token(addr,val);
+		tkn.event = event;//e->{
+			//buf[0:2]--> token
+			//buf[  3]--> error code
+			//buf[  4]--> DLE
+			//buf[  5]--> ETX
+			//buf[  6]--> checksum
+			//byte cc = e.response[0];
+		//}; 
+		ref_tkn.set(tkn);
+	}
+	public void asyncGetRegister(
+		final TokenNotify event, 
+		final int addr, 
+		final int count
+	) {
+		Token token = new Token(addr,count);
+		token.event = event;/*tkn->{
+			String txt = "addr="+tkn.address+", vals= {\n";
+			for(int v:tkn.values) {
+				txt = txt + v + ",\n";
+			}
+			System.out.println(txt+"}\n");
+		};*/
+		ref_tkn.set(token);
+	} 
+	
+	public void setRunning(boolean flg) {
+		asyncSetRegister(null,1,(flg==true)?(2):(1));
+	}
+	
+	//device setting values
+	//4* Ton +: 2-32000us, duration of the pulse
+	//5* Toff+: 2-32000us, duration of the pause
+	//6* Ton -: 2-32000us, duration of the pulse
+	//7* Toff-: 2-32000us, duration of the pause
+	public void set_Ton_P(final int us) {
+		asyncSetRegister(null,4,us);
+	}
+	public void set_Toff_P(final int us) {
+		asyncSetRegister(null,5,us);
+	}
+	public void set_Ton_N(final int us) {
+		asyncSetRegister(null,6,us);
+	}
+	public void set_Toff_N(final int us) {
+		asyncSetRegister(null,7,us);
+	}
+	
+	public void set_T_pos(final int on_us,final int off_us) {
+		asyncSetRegister(null,4,on_us,off_us);
+	}
+	public void set_T_neg(final int on_us,final int off_us) {
+		asyncSetRegister(null,6,on_us,off_us);
+	}
+	
+	public void set_pulse(
+		final int Ton_P_us,
+		final int Toff_P_us,
+		final int Ton_N_us,
+		final int Toff_N_us
+	) {
+		asyncSetRegister(null,4,Ton_P_us,Toff_P_us,Ton_N_us,Toff_N_us);
+	}
+	//---------------------------------//
+	
+	private static void show_error(Token tkn) {
+		if(tkn.response[3]==0) {
+			return;
+		}
+		String txt = String.format(
+			"Addr:%d+%d, Error:%d",
+			tkn.address,tkn.count,(int)tkn.response[3]
+		);
+		Misc.logv("[SPIK2000] %s",txt);
+		//error code
+		final Alert dia = new Alert(AlertType.ERROR);
+		dia.setTitle("錯誤！！");
+		dia.setHeaderText(txt);
+		dia.showAndWait();
+	}
 	
 	private static void set_txt_value(
 		final DevSPIK2k dev, 
@@ -403,24 +256,24 @@ public class DevSPIK2k extends DevTTY {
 			.getText()
 			.substring(0,_p);
 		
-		final TextInputDialog diag = new TextInputDialog();
-		diag.setTitle("設定 "+pref);
-		diag.setContentText("時間(us)");
-		Optional<String> res = diag.showAndWait();
+		final TextInputDialog dd1 = new TextInputDialog();
+		dd1.setTitle("設定 "+pref);
+		dd1.setContentText("時間(us)");		
+		Optional<String> res = dd1.showAndWait();
 		if(res.isPresent()==false) {
 			return;
 		}
+		
 		try {
 			int val = Integer.valueOf(res.get());
-			dev.setRegister(_v->{
-				txt.setText(String.format("%s: %4d", pref, val));
-			}, addr, val);			
-		}catch(NumberFormatException exp) {			
+			dev.asyncSetRegister(tkn->show_error(tkn), addr, val);			
+		}catch(NumberFormatException exp) {
+			final Alert dia = new Alert(AlertType.ERROR);
+			dia.setTitle("錯誤！！");
+			dia.setHeaderText("輸入必須為整數");
+			dia.showAndWait();
 		}
 	}
-	
-	private static JFXRadioButton[] tmpRad = null;
-	private static Label[] tmpTxt = null;
 	
 	public static Pane genPanel(final DevSPIK2k dev) {
 		
@@ -437,14 +290,13 @@ public class DevSPIK2k extends DevTTY {
 			rad[i].setToggleGroup(grp);
 			rad[i].setUserData(i+1);
 			rad[i].setOnAction(e->{
-				dev.setRegister(
-					_v->{},
+				dev.asyncSetRegister(
+					tkn->show_error(tkn),
 					0,
 					(int)grp.getSelectedToggle().getUserData()
 				);
 			});
 		}
-		tmpRad = rad;
 		
 		final JFXButton[] btn = new JFXButton[6];
 		for(int i=0; i<btn.length; i++) {
@@ -459,12 +311,12 @@ public class DevSPIK2k extends DevTTY {
 			}
 			GridPane.setHgrow(btn[i], Priority.ALWAYS);
 		}
-		btn[0].setOnAction(e->dev.setRegister(_v->{},1,0x21));//DC-1 on
-		btn[1].setOnAction(e->dev.setRegister(_v->{},1,0x20));//DC-1 off
-		btn[2].setOnAction(e->dev.setRegister(_v->{},1,0x23));//DC-2 on
-		btn[3].setOnAction(e->dev.setRegister(_v->{},1,0x22));//DC-2 off
-		btn[4].setOnAction(e->dev.setRegister(_v->{},1,0x02));//RUN on
-		btn[5].setOnAction(e->dev.setRegister(_v->{},1,0x01));//RUB off
+		btn[0].setOnAction(e->dev.asyncSetRegister(tkn->show_error(tkn),1,0x21));//DC-1 on
+		btn[1].setOnAction(e->dev.asyncSetRegister(tkn->show_error(tkn),1,0x20));//DC-1 off
+		btn[2].setOnAction(e->dev.asyncSetRegister(tkn->show_error(tkn),1,0x23));//DC-2 on
+		btn[3].setOnAction(e->dev.asyncSetRegister(tkn->show_error(tkn),1,0x22));//DC-2 off
+		btn[4].setOnAction(e->dev.asyncSetRegister(tkn->show_error(tkn),1,0x02));//RUN on
+		btn[5].setOnAction(e->dev.asyncSetRegister(tkn->show_error(tkn),1,0x01));//RUB off
 		
 		final Label[] txt = new Label[4];
 		for(int i=0; i<txt.length; i++) {
@@ -480,11 +332,17 @@ public class DevSPIK2k extends DevTTY {
 		txt[2].setOnMouseClicked(e->set_txt_value(dev,txt[2],6));
 		txt[3].setText("Toff-: ");
 		txt[3].setOnMouseClicked(e->set_txt_value(dev,txt[3],7));
-		tmpTxt = txt;
 
 		//final AnimationTimer wait_device = new AnimationTimer() {
 		//};
 		//-------------------------------------//
+		
+		JFXButton btn_test = new JFXButton();
+		btn_test.setMaxWidth(Double.MAX_VALUE);
+		btn_test.getStyleClass().add("btn-raised-1");
+		btn_test.setOnAction(e->{
+			dev.asyncGetRegister(null,4, 4);
+		});
 		
 		final GridPane lay1 = new GridPane();
 		lay1.getStyleClass().addAll("box-pad-inner");
@@ -504,7 +362,9 @@ public class DevSPIK2k extends DevTTY {
 		lay0.add(txt[ 2], 0, 7, 4, 1);
 		lay0.add(txt[ 3], 0, 8, 4, 1);		
 		lay0.add(new Separator(), 0, 9, 4, 1);
-		lay0.add(lay1, 0,10, 4, 3);
+		lay0.add(lay1, 0, 10, 4, 3);
+		lay0.add(btn_test, 0, 14, 4, 1);
+		
 		return lay0;
 	}
 }

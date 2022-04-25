@@ -226,13 +226,19 @@ public abstract class DevBase implements Runnable {
 		is_emergent.set(false);
 	}
 	
-	protected void sleep(final long millisec) {
+	protected void block_sleep_msec(final long msec) {
 		try {
-			TimeUnit.MILLISECONDS.sleep(millisec);
+			TimeUnit.MILLISECONDS.sleep(msec);
 		} catch (InterruptedException e1) {
 		}
 	}
 	
+	protected void block_sleep_sec(final long sec) {
+		try {
+			TimeUnit.SECONDS.sleep(sec);
+		} catch (InterruptedException e1) {
+		}
+	}
 	//-----------------------------------//
 	
 	public static class TTY_NAME {

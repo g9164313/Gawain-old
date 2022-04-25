@@ -78,7 +78,7 @@ public class StepSetFilm extends Bumper {
 				Application.invokeLater(()->PanBase.notifyError("失敗", "無法設定薄膜參數!!"));
 				return;
 			}
-			next_step();
+			notify_async();
 		});
 	};
 	
@@ -91,7 +91,7 @@ public class StepSetFilm extends Bumper {
 				Application.invokeLater(()->PanBase.notifyError("失敗", "無法使用薄膜參數!!"));
 				return;
 			}
-			next_step();
+			notify_async();
 		});
 	};
 	

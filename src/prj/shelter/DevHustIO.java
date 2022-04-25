@@ -20,6 +20,8 @@ import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
 import javafx.util.StringConverter;
+import jssc.SerialPort;
+import jssc.SerialPortException;
 import narl.itrc.DevTTY;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
@@ -31,31 +33,49 @@ import narl.itrc.UtilPhysical;
  * @author qq
  *
  */
-@SuppressWarnings("restriction")
 public class DevHustIO extends DevTTY {
 	
-	private final char NUL = 0;
-	private final char CR_ = 0x0D;
-	//private final char DC1 = 17;
-	private final char DC2 = 0x12;
-	//private final char DC3 = 19;
-	private final char DC4 = 0x14;
+	private final byte NUL = 0;
+	private final byte CR_ = 0x0D;	
+	//private final byte DC1 = 17;
+	private final byte DC2 = 0x12;
+	//private final byte DC3 = 19;	
+	private final byte DC4 = 0x14;
+	private final byte PER = 37;//'%', percent
 	
 	public DevHustIO(){
 		TAG = "Hust-IO";
-		readTimeout=50;
-		flowControl=2;
 	}
-	public DevHustIO(final String path){
-		this();
-		setPathName(path);
+	@Override
+	public void afterOpen() {
+		exec("O9000","N00000010000000001");//start report
+		final String LOOPER = "looper"; 
+		addState(LOOPER, ()->looper());
+		playFlow(LOOPER);
 	}
-
+	@Override
+	public void beforeClose(){
+		exec("O9000","N1");//stop report
+		stop_radiaton();
+	}
+	
+	private void looper() {
+		try {
+			parse_report(make_report());
+		} catch (SerialPortException e) {
+			Misc.loge("[%s] make report - %s", TAG, e.getMessage());
+		}
+	}
+	
 	///** method.1
-	private String make_report(){
+	private String make_report() throws SerialPortException{
+		final SerialPort dev = port.get();
+		if(dev.isOpened()==false) {
+			return "";
+		}
 		char cc;
 		do{
-			cc = (char)readByte();
+			cc = (char)dev.readBytes(1)[0];
 			if(cc==NUL){
 				continue;
 			}else if(cc==DC2){
@@ -66,7 +86,7 @@ public class DevHustIO extends DevTTY {
 		}while(true);
 		String txt = "";
 		do{
-			cc = (char)readByte();
+			cc = (char)dev.readBytes(1)[0];
 			if(cc==NUL){
 				continue;
 			}else if(cc==DC2 || cc==DC4){
@@ -101,8 +121,7 @@ public class DevHustIO extends DevTTY {
 			.trim();
 		
 		//O9001H007004U 0500.000R 00000018 <-- 靜止
-		//O9001H20?104U 5911.257R 00000018 <-- 移動中
-		
+		//O9001H20?104U 5911.257R 00000018 <-- 移動中		
 		if(txt.matches("[O]\\p{ASCII}{4}[H]\\p{ASCII}{6}?[U]\\p{ASCII}{9}[R]\\p{ASCII}{9}")==false) {
 			Misc.loge("%s) wrong report-->%s", TAG, txt);
 			return;
@@ -132,7 +151,7 @@ public class DevHustIO extends DevTTY {
 			left_time_count = -1L;
 		}
 
-		Application.invokeAndWait(()->{
+		Application.invokeLater(()->{
 			
 			H_code.setValue(h_val);
 			O_code.setValue(o_val);
@@ -151,7 +170,6 @@ public class DevHustIO extends DevTTY {
 			}else {
 				locationText.set(u_val+" mm");
 			}
-			
 			if(left_time_count>=0L) {
 				leftTimeText.set(Misc.tick2text(
 					Math.abs(left_time_count - left_time_total),
@@ -163,13 +181,23 @@ public class DevHustIO extends DevTTY {
 	}
 	
 	public void exec(final String... cmd){
-		final byte[] beg = {DC2,'%',CR_};
-		final byte[] end = {'%',DC4};
-		writeByte(beg);
-		for(String txt:cmd){
-			writeTxt(txt+CR_);
+		final SerialPort dev = port.get();
+		if(dev.isOpened()==false) {
+			return;
 		}
-		writeByte(end);
+		try {
+			dev.writeByte(DC2);
+			dev.writeByte(PER);
+			dev.writeByte(CR_);
+			for(String txt:cmd){
+				dev.writeString(txt);
+				dev.writeByte(CR_);
+			}
+			dev.writeByte(PER);
+			dev.writeByte(DC4);
+		} catch (SerialPortException e) {
+			Misc.loge("[%s] exec - %s", TAG, e.getMessage());
+		}
 	}
 			
 	private void make_radiaton(final Activity act) {
@@ -219,19 +247,6 @@ public class DevHustIO extends DevTTY {
 		}else{
 			exec("O9000","N0000111",String.format("G01X%.2f",val));
 		}
-	}
-	
-	@Override
-	protected void afterOpen() {
-		exec("O9000","N00000010000000001");//start report
-		final String LOOPER = "looper"; 
-		addState(LOOPER, ()->parse_report(make_report()));
-		playFlow(LOOPER);
-	}
-	@Override
-	protected void beforeClose(){
-		exec("O9000","N1");//stop report
-		stop_radiaton();
 	}
 	//-------------------------------------------//
 
@@ -323,14 +338,14 @@ public class DevHustIO extends DevTTY {
 			try {			
 				move_to_abs(position);			
 				do {
-					parse_report(make_report());			
+					looper();			
 					TimeUnit.MILLISECONDS.sleep(100);			
 				}while(move_on==true);		
 			
 				left_time_total = left_time;				
 				make_radiaton(act_value);			
 				do {
-					parse_report(make_report());
+					looper();
 					TimeUnit.MILLISECONDS.sleep(100);
 				}while(radiate==true);
 				
