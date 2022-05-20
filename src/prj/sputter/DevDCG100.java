@@ -93,7 +93,7 @@ public class DevDCG100 extends DevTTY {
 	
 	private void state_monitor() {
 		try { 
-			Thread.sleep(500); 
+			Thread.sleep(250); 
 		}catch(InterruptedException e) { 
 			return;
 		}
@@ -259,6 +259,7 @@ public class DevDCG100 extends DevTTY {
 		for(String cc:cmd){
 			final String res = exec(cc);
 			if(res.endsWith("*")==false) {
+				Misc.logv("[%s] %s FAIL!!!",TAG,cc);//trace DCG command
 				Application.invokeAndWait(()->{
 					Alert alt = new Alert(AlertType.ERROR);
 					alt.setTitle("DCG100");
@@ -267,8 +268,9 @@ public class DevDCG100 extends DevTTY {
 					alt.showAndWait();
 				});
 				return;
-			}
-			Misc.logv("[%s] %s",TAG,res);//trace DCG command
+			}else {
+				Misc.logv("[%s] %s work...",TAG,cc);//trace DCG command	
+			}			
 			try {
 				TimeUnit.MILLISECONDS.sleep(200);
 			} catch (Exception e) {
@@ -369,6 +371,7 @@ public class DevDCG100 extends DevTTY {
 		
 		final Label txt_pv = new Label();
 		txt_pv.setMaxWidth(100.);
+		txt_pv.textProperty().bind(dev.watt.asString("%3.0f W"));
 		//GridPane.setHgrow(txt_pv, Priority.ALWAYS);		
 		final JFXTextField box_sv = new JFXTextField("100");
 		box_sv.setMaxWidth(100.);
@@ -386,14 +389,14 @@ public class DevDCG100 extends DevTTY {
 		btn[1].getStyleClass().add("btn-raised-0");
 		
 		btn[0].setOnAction(e->{
-			txt_pv.getStyleClass().add("font-pv1");
+			/*txt_pv.getStyleClass().add("font-pv1");
 			final StringProperty pp = txt_pv.textProperty();			
 			switch(opt.getSelectedIndex()) {
 			case 0: pp.bind(dev.watt.asString("%3.0f W")); break;
 			case 1: pp.bind(dev.volt.asString("%5.2f V")); break;
 			case 2: pp.bind(dev.amps.asString("%5.2f A")); break;
 			default: txt_pv.setText("???"); break;
-			}
+			}*/
 			String txt_sv = box_sv.getText().trim();
 			if(txt_sv.matches("\\d+")==false) {
 				return;
@@ -409,9 +412,9 @@ public class DevDCG100 extends DevTTY {
 			dev.asyncExec(spx,"CHT=C","TRG");
 		});
 		btn[1].setOnAction(e->{
-			txt_pv.getStyleClass().remove("font-pv1");
-			txt_pv.textProperty().unbind();
-			txt_pv.setText("");
+			//txt_pv.getStyleClass().remove("font-pv1");
+			//txt_pv.textProperty().unbind();
+			//txt_pv.setText("");
 			dev.asyncExec("OFF");
 		});
 		

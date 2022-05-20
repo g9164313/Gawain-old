@@ -22,6 +22,11 @@ public abstract class DevTTY extends DevBase {
 		afterOpen();
 	}
 
+	public void open(DevTTY tty) {
+		port = tty.port;//we share the same line!!!!
+		afterOpen();
+	}
+	
 	@Override
 	public void close() {
 		if(port.isPresent()==false) {
@@ -144,12 +149,12 @@ public abstract class DevTTY extends DevBase {
 	};
 	//-----------------------------------------
 	
-	private static final byte STX = 0x02;
-	private static final byte ETX = 0x03;
-	private static final byte DLE = 0x10;//跳出資料通訊
+	protected static final byte STX = 0x02;
+	protected static final byte ETX = 0x03;
+	protected static final byte DLE = 0x10;//跳出資料通訊
 	
-	private static final byte ACK = 0x06;
-	private static final byte NAK = 0x15;
+	protected static final byte ACK = 0x06;
+	protected static final byte NAK = 0x15;
 	
 	private int checksum(
 		final byte[] data, 
@@ -201,104 +206,49 @@ public abstract class DevTTY extends DevBase {
 		return buf;
 	}
 	
-	protected int[] RK512_unpack_AD(final byte[] buf){
-		final int[] empty = new int[] {-1};
-		if(buf.length<=10) {
-			Misc.dump_byte(buf);
-			Misc.logw("[%s] invalid AD packet",TAG);
-			return empty;
-		}
-		if(buf[0]!=0 || buf[1]!=0 || buf[2]!='A' || buf[3]!='D'){
-			Misc.dump_byte(buf);
-			Misc.logw("[%s] invalid AD packet",TAG);
-			return empty;
-		}
-		final int size = ((((int)buf[6])&0xFF)<<8) + (((int)buf[7])&0xFF);
-		int[] val = new int[1+size];//first is address~~~
-		val[0] =  ((((int)buf[4])&0xFF)<<8) + (((int)buf[5])&0xFF);
-		for(int i=0; i<size; i++){
-			val[1+i] = ((((int)buf[10+i*2+0])&0xFF)<<8) + (((int)buf[11+i*2])&0xFF);			
-		}
-		return val;
-	}
-	
-	protected byte[] protocol_3964R_listen(final int timeout_ms) throws 
-		SerialPortException, SerialPortTimeoutException 
+	protected byte[] protocol_3964R_listen(final SerialPort dev) 
+		throws SerialPortException
 	{
-		final SerialPort dev = port.get();
-		if(dev.isOpened()==false) {
-			return new byte[0];
-		}
 		ArrayList<Byte> buf = new ArrayList<Byte>();
 		byte[] cc;
-		if(timeout_ms>0) {
-			cc = dev.readBytes(1,timeout_ms);
-		}else {
-			cc = dev.readBytes(1);
-		}
-		if(cc[0]==STX) {				
-			dev.writeByte(DLE);//host give conversation
-			do {
-				//buf[0:2]--> token
-				//buf[  3]--> error code
-				//buf[...]--> data or nothing
-				//buf[ -3]--> DLE
-				//buf[ -2]--> ETX
-				//buf[ -1]--> checksum
-				cc = dev.readBytes(2);
-				buf.add(cc[0]);
-				buf.add(cc[1]);			
-			}while(!(cc[0]==DLE && cc[1]==ETX));
-			cc[0] = dev.readBytes(1)[0];
-			buf.add(cc[0]);//BBC, last byte is checksum!!!
-			dev.writeByte(DLE);//host close conversation
-		}else {
-			//what else happened!!!!
-			Misc.loge("[%s] protocol_3964R_listen - unknown response(%d)",TAG, (int)cc[0]);
-		}
+		dev.writeByte(DLE);//host give conversation
+		do {
+			//buf[ -3]--> DLE
+			//buf[ -2]--> ETX
+			//buf[ -1]--> checksum			
+			try {
+				cc = dev.readBytes(2,1000);
+			} catch (SerialPortTimeoutException e) {
+				Misc.loge("[protocol_3964R_listen] no response!! - size=%d", buf.size());
+				return new byte[0];
+			}			
+			buf.add(cc[0]);
+			buf.add(cc[1]);			
+		}while(!(cc[0]==DLE && cc[1]==ETX));
+		cc[0] = dev.readBytes(1)[0];//BBC
+		buf.add(cc[0]);//BBC, last byte is checksum!!!
+		dev.writeByte(DLE);//host close conversation
 		return Misc.list2byte(buf); 
-	}	
+	}
 	
-	protected boolean protocol_3964R_reveal(
-		final int addr, 
-		final int cnt,
-		int... values
-	) {
-		final SerialPort dev = port.get();
-		if(dev.isOpened()==false) {
+	protected boolean protocol_3964R_express(final SerialPort dev,final byte[] pkg)
+		throws SerialPortException
+	{
+		byte cc;
+		//device send a response
+		cc = dev.readBytes(1)[0];
+		if(cc!=DLE) {
+			Misc.logw("protocol_3964R_express.1=%d", cc);
 			return false;
-		}		
-		try {
-			//host start to conversation
-			dev.writeByte(STX);			
-			try {
-				//host close conversation
-				byte cc = dev.readBytes(1,100)[0];
-				if(cc!=DLE) {
-					Misc.loge("[%s] protocol_3964R_reveal - invalid respose (%d)", TAG, (int)cc);
-					return false;
-				}
-			} catch (SerialPortTimeoutException e) {
-				Misc.loge("[%s] protocol_3964R_reveal - timeout.2", TAG);
-				return false;
-			}			
-			//host send package~~~
-			dev.writeBytes(RK512_package(addr,cnt,values));			
-			try {
-				//host close conversation
-				byte cc = dev.readBytes(1,100)[0];
-				if(cc!=DLE) {
-					Misc.loge("[%s] protocol_3964R_reveal - invalid respose (%d)", TAG, (int)cc);
-					return false;
-				}
-			} catch (SerialPortTimeoutException e) {
-				Misc.loge("[%s] protocol_3964R_reveal - timeout.2", TAG);
-				return false;
-			}			
-		} catch (SerialPortException e) {
-			Misc.loge("[%s] %s", TAG, e.getMessage());
+		}
+		//host write data
+		dev.writeBytes(pkg);
+		//device close talking
+		cc = dev.readBytes(1)[0];
+		if(cc!=DLE) {
+			Misc.logw("protocol_3964R_express.2=%d", cc);
 			return false;
-		}		
+		}
 		return true;
 	}
 	

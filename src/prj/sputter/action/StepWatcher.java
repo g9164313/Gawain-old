@@ -2,8 +2,6 @@ package prj.sputter.action;
 
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
-import com.sun.glass.ui.Application;
-
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
@@ -12,7 +10,6 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
 
 import narl.itrc.Misc;
-import narl.itrc.PanBase;
 import narl.itrc.Stepper;
 
 public class StepWatcher extends Bumper {
@@ -21,9 +18,11 @@ public class StepWatcher extends Bumper {
 	public final static String TAG_WATCH= "監控";
 	
 	public StepWatcher(){
-		set_mesg(ACT_NAME);
-		set(op_1,op_3,
-			op_4,op_5,
+		set(
+			shutter_open,
+			op_3,
+			turn_off,
+			turn_off_wait,
 			op_6
 		);
 	}
@@ -47,30 +46,6 @@ public class StepWatcher extends Bumper {
 	
 	long tick_beg = -1L, tick_end = -1L;
 
-	final Runnable op_1 = ()->{
-		//open shutter
-		final String txt = "開啟檔板";
-		set_mesg(ACT_NAME,txt);
-		wait_async();
-		sqm1.shutter_and_zeros(true, ()->{
-			Misc.logv("%s: %s", ACT_NAME, txt);
-			tick_beg = System.currentTimeMillis();
-			notify_async();
-		}, ()->{
-			Misc.logv("%s: %s", ACT_NAME, txt+"失敗");
-			abort_step();
-			Application.invokeLater(()->PanBase.notifyError("失敗", "無法控制擋板!!"));
-		});
-		stats.setWindowSize(Integer.valueOf(box_deri.getText().trim()));
-		stats.clear();
-	};
-	//final Runnable op_2 = ()->{
-	//	set_mesg(
-	//		"等待檔板",
-	//		String.format("%s",Misc.tick2text(waiting_time(5000),true)
-	//	));		
-	//};
-	
 	final void PID_feedback() {
 		int gain,maxw,minw;
 		float goal,thres;
@@ -106,8 +81,11 @@ public class StepWatcher extends Bumper {
 	
 	final Runnable op_3 = ()->{
 		//monitor shutter
+		if(tick_beg<=0L){
+			tick_beg = System.currentTimeMillis();
+		}
 		tick_end = System.currentTimeMillis();
-		set_mesg(
+		show_mesg(
 			ACT_NAME,
 			Misc.tick2text(tick_end-tick_beg,true),
 			sqm1.getTextThick()
@@ -135,40 +113,15 @@ public class StepWatcher extends Bumper {
 			hold_step();
 		}
 	};
-	final Runnable op_4 = ()->{
-		//extinguish plasma		
-		set_mesg("關閉高壓");
-		Misc.logv("%s: 關閉高壓",ACT_NAME);
-		wait_async();		
-		dcg1.asyncBreakIn(()->{
-			if(dcg1.exec("OFF").endsWith("*")==false) {
-				abort_step();
-				Application.invokeLater(()->PanBase.notifyError("失敗", "無法關閉!!"));
-			}else {
-				notify_async();
-			}
-		});
-	};	
-	final Runnable op_5 = ()->{
-		int vv = (int)dcg1.volt.get();
-		int ww = (int)dcg1.watt.get();
-		if(vv>=30 && ww>=1){
-			hold_step();
-		}else{
-			next_step();
-		}
-		set_mesg(
-			"放電中",
-			String.format("%3dV %3dW",vv,ww)
-		);
-	};
+	
 	final Runnable op_6 = ()->{
 		final String time = Misc.tick2text(tick_end-tick_beg,true);
-		set_mesg(
+		show_mesg(
 			ACT_NAME,
 			time,
 			sqm1.getTextThick()
 		);
+		tick_beg = -1L;//for next turn~~~
 		Misc.logv(
 			"%s: %s [%s][%s]", 
 			ACT_NAME, 
@@ -180,20 +133,21 @@ public class StepWatcher extends Bumper {
 	
 	@Override
 	public Node getContent(){
-
-		inf_rate.setPrefWidth(80);
-		inf_avg.setPrefWidth(80);
-		inf_dev.setPrefWidth(80);
 		
+		show_mesg(ACT_NAME);
+		
+		inf_rate.setPrefWidth(83);
+		inf_avg.setPrefWidth(83);
+		inf_dev.setPrefWidth(83);		
 		for(TextField obj:box_args) {
-			obj.setPrefWidth(80);
+			obj.setPrefWidth(83);
 		}
 
 		box_deri.setText(""+stats.getWindowSize());
 		
 		GridPane lay = new GridPane();
 		lay.getStyleClass().addAll("box-pad");
-		lay.addColumn(0, msg);
+		lay.addColumn(0, msg[0],msg[1],msg[2]);
 		lay.add(new Separator(Orientation.VERTICAL), 1, 0, 1, 3);
 		lay.addColumn(2,new Label("成長速率"),new Label("統計值"),new Label("標準差"));
 		lay.addColumn(3,inf_rate,inf_avg,inf_dev);

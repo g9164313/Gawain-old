@@ -224,7 +224,8 @@ public class DevCouple extends DevModbus {
 		int mvolt = (int)(volt * 1000f);//IB IL format
 		writeVals(aout_addr,mvolt);
 	}
-	/*private void set_all_mass_flow(
+	
+	public void set_all_mass_flow(
 		final String ar_sccm,
 		final String n2_sccm,
 		final String o2_sccm
@@ -234,8 +235,8 @@ public class DevCouple extends DevModbus {
 			sccm2value(n2_sccm),
 			sccm2value(o2_sccm)
 		);
-	}	
-	private void set_all_mass_flow(
+	}
+	public void set_all_mass_flow(
 		final float ar_val,
 		final float n2_val,
 		final float o2_val
@@ -249,7 +250,7 @@ public class DevCouple extends DevModbus {
 		if(o2_val>=0.f) {
 			set_mass_flow(8008, o2_val, o2_max_sccm);
 		}
-	}*/
+	}
 
 	public void asyncSetMassFlow(
 		final float ar_sccm,
@@ -276,14 +277,14 @@ public class DevCouple extends DevModbus {
 		float o2_mass=sccm2value(o2_sccm);
 		asyncSetMassFlow(ar_mass,n2_mass,o2_mass);
 	}
-	public void asyncSetArFlow(final String sccm) {
-		SV_FlowAr.set(sccm2value(sccm));
+	public void setPropArFlow(final String sccm) {
+		set_flow_prop(SV_FlowAr,sccm);
 	}
-	public void asyncSetN2Flow(final String sccm) {
-		SV_FlowN2.set(sccm2value(sccm));
+	public void setPropN2Flow(final String sccm) {
+		set_flow_prop(SV_FlowN2,sccm);
 	}
-	public void asyncSetO2Flow(final String sccm) {
-		SV_FlowO2.set(sccm2value(sccm));
+	public void setPropO2Flow(final String sccm) {
+		set_flow_prop(SV_FlowO2,sccm);
 	}
 	private float sccm2value(final String sccm) {
 		if(sccm.length()==0) {
@@ -295,6 +296,17 @@ public class DevCouple extends DevModbus {
 		}
 		return -1f;
 	}
+	private void set_flow_prop(final FloatProperty prop,final String sccm) {
+		if(sccm.length()==0) {
+			return;
+		}
+		float val = sccm2value(sccm);
+		if(val<0.) {
+			return;
+		}
+		prop.set(val);
+	}
+	
 	
 	public void asyncAdjustArFlow(
 		final float dxx,
@@ -334,26 +346,29 @@ public class DevCouple extends DevModbus {
 	}
 	//-------------------------------//
 	
-	public void asyncSelectGunHub(
-		final boolean bipolar,
-		final boolean unipolar,
-		final boolean gun1,
-		final boolean gun2
-	) {	asyncBreakIn(()->{
-		if(bipolar==true) {
-			Misc.logv("電極切換:bipolar");
-			writeVals(8005, 1);
-		}else if(unipolar==true) {
-			Misc.logv("電極切換:unipolar, %s",(gun1==true)?("gun-1"):("gun-2"));
+	public void select_gun_hub(
+		final boolean polar,	
+		final boolean gun1
+	) {
+		if(polar==true) {
+			writeVals(8005, 1);//bipolar - Gun1 and Gun2
+		}else{
 			int val = 2;
 			if(gun1==true) {
-				val = val | 4;
+				val = val | 4;//gun-1
+			}else{
+				val = val | 8;//gun-2
 			}
-			if(gun2==true) {
-				val = val | 8;
-			}
-			writeVals(8005, val);
+			writeVals(8005, val);//unipolar - Gun1 or Gun2
 		}
+	}
+	
+	
+	public void asyncSelectGunHub(
+		final boolean polar,	
+		final boolean gun1
+	) {	asyncBreakIn(()->{
+		select_gun_hub(polar,gun1);
 	});}
 	
 	public void asyncMotorPump(final int dir) {	asyncBreakIn(()->{

@@ -61,7 +61,7 @@ public abstract class DevBase implements Runnable {
 					try {
 						taskFlow.wait();
 					} catch (InterruptedException e) {
-						Misc.logv("%s is interrupted!!", TAG);
+						//Misc.logv("%s is interrupted!!", TAG);//debug message~~~
 					}
 				}
 				continue;
@@ -118,7 +118,7 @@ public abstract class DevBase implements Runnable {
 			}
 		}
 		taskFlow = null;//reset, because thread is 'dead'
-	}
+	}	
 	public void nextState(final String name) {
 		next_state_name.set(name);
 		if(taskFlow.getState()==Thread.State.WAITING) {
@@ -130,7 +130,6 @@ public abstract class DevBase implements Runnable {
 		}
 	}
 	
-	private Thread orph_break_in = null;//independent break-in task
 	/**
 	 * Caller won't be blocked.
 	 * @param work - runnable code
@@ -138,31 +137,24 @@ public abstract class DevBase implements Runnable {
 	 */
 	public DevBase asyncBreakIn(final Runnable work) {
 		if(taskFlow==null) {
-			if(orph_break_in!=null) {
-				if(orph_break_in.isAlive()==true) {
-					Misc.logw("%s is busy!!",TAG);
-					return this;
-				}
-			}
-			orph_break_in = new Thread(work,TAG+"-breakin");
-			orph_break_in.start();
+			new Thread(()->{
+				work.run();
+				state_task.put("",null);
+			},TAG+"-breakin").start();
 			return this;
 		}
 		if(state_task.containsKey(NAME_BREAK_IN)==true){
 			return this;
 		}
 		state_task.put(NAME_BREAK_IN, work);
+		taskFlow.interrupt();//task may be sleepy~~~
 		return this;
 	}
+	
 	public boolean isAsyncDone(){
-		if(orph_break_in!=null){
-			return !orph_break_in.isAlive();
-		}
-		if(taskFlow!=null){
-			return !state_task.containsKey(NAME_BREAK_IN);
-		}
-		return true;
+		return !state_task.containsKey(NAME_BREAK_IN);
 	}
+	
 	public void blockWaiting(){
 		while(isAsyncDone()==false) {
 			try {
@@ -172,28 +164,6 @@ public abstract class DevBase implements Runnable {
 		}
 	}
 	
-	/**
-	 * Device will wait for GUI thread.
-	 * Important!! the caller(GUI thread) will be blocking by I/O operation.
-	 * @param work - runnable code
-	 * @return self
-	 */
-	/*public DevBase syncBreakIn(final Runnable work) {
-		if(taskFlow==null) {
-			work.run();
-			return this;
-		}
-		nextState("");
-		do{
-			try {
-				TimeUnit.MILLISECONDS.sleep(25L);
-			} catch (InterruptedException e1) {
-			}
-		}while(taskFlow.getState()!=Thread.State.WAITING);
-		work.run();
-		//nextState(prev_state_name);		
-		return this;
-	}*/
 	
 	//TODO: how to check emergence???
 	private static final AtomicBoolean is_emergent = new AtomicBoolean(false);

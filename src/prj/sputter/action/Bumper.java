@@ -1,10 +1,10 @@
 package prj.sputter.action;
 
-import java.util.concurrent.TimeUnit;
-
 import com.sun.glass.ui.Application;
 
+import javafx.scene.control.Alert;
 import javafx.scene.control.Label;
+import javafx.scene.control.Alert.AlertType;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
 import narl.itrc.Stepper;
@@ -23,17 +23,30 @@ public abstract class Bumper extends Stepper {
 	public static LayLogger logg;
 	
 	protected Label[] msg = {
-		new Label(), new Label(), new Label(),
+		new Label(), new Label(), new Label(), new Label(),
 	};
-		
-	protected void set_mesg(final String... txt) {		
-		for(int i=1; i<msg.length; i++) {
+	
+	public Bumper(){
+		for(Label obj:msg){
+			obj.setPrefWidth(150.);
+		}
+	}
+	
+	protected void show_mesg(final String... txt) {		
+		for(int i=0; i<msg.length; i++) {			
 			if(i>=txt.length) {
 				msg[i].setText("");
 			}else {
+				if(txt[i]==null) {
+					continue;
+				}
 				msg[i].setText(txt[i]);
 			}
-		}
+		}		
+	}
+	
+	protected void print_mesg(final String... txt) {
+		show_mesg(txt);
 		String inf = "["+txt[0]+"],";
 		for(int i=1; i<txt.length; i++) {
 			if(txt[i].length()==0) {
@@ -72,17 +85,38 @@ public abstract class Bumper extends Stepper {
 	}
 	//-------------------------------//
 	
-	protected final Runnable close_shutter = ()->{		
+	protected final Runnable shutter_close = ()->{		
 		final String tag = "關閉擋板";
-		set_mesg(tag);
+		show_mesg(tag);
 		wait_async();
-		sqm1.shutter_and_zeros(false,()->{
+		sqm1.shutter(false,()->{
 			Misc.logv(tag);
 			notify_async();
 		}, ()->{
 			Misc.logv(tag+"失敗");
 			abort_step();
-			Application.invokeLater(()->PanBase.notifyError("失敗", "無法控制擋板!!"));
+			
+			final Alert dia = new Alert(AlertType.WARNING);
+			dia.setTitle("！！警告！！");
+			dia.setHeaderText("無法"+tag);
+			dia.showAndWait();
+		});
+	};
+	
+	protected final Runnable shutter_open = ()->{		
+		final String tag = "開啟擋板";
+		show_mesg(tag);
+		wait_async();
+		sqm1.shutter_and_zeros(true,()->{
+			Misc.logv(tag);
+			notify_async();
+		}, ()->{
+			Misc.logv(tag+"失敗");
+			abort_step();
+			final Alert dia = new Alert(AlertType.WARNING);
+			dia.setTitle("！！警告！！");
+			dia.setHeaderText("無法"+tag);
+			dia.showAndWait();
 		});
 	};
 	
@@ -93,7 +127,7 @@ public abstract class Bumper extends Stepper {
 	
 	protected final Runnable spik_get_pulse = ()->{
 		final String tag = "設定脈衝";
-		set_mesg(tag);
+		show_mesg(tag);
 		wait_async();
 		spik.asyncGetRegister(tkn->{
 			t_on_pos = tkn.values[0];
@@ -107,47 +141,86 @@ public abstract class Bumper extends Stepper {
 	
 	protected final Runnable spik_apply_pulse = ()->{
 		final String tag = "設定脈衝";
-		set_mesg(tag);
+		show_mesg(tag);
 		wait_async();
-		spik.asyncSetRegister(tkn->{		
+		spik.asyncSetRegister(tkn->{
 			notify_async();
+			if(tkn.response[3]!=0) {
+				//abort_step();
+				Misc.logw("SPIK200 無響應");
+				Misc.dump_byte(tkn.response);
+			}else{
+				spik.Ton_pos.set(t_on_pos);
+				spik.Tof_pos.set(t_off_pos);
+				spik.Ton_neg.set(t_on_neg);
+				spik.Tof_neg.set(t_off_neg);
+			}
 		}, 4, t_on_pos, t_off_pos, t_on_neg, t_off_neg);
 		hold_step();
 	};
 	
 	protected final Runnable spik_running = ()->{
 		final String tag = "啟動 H-Pin";
-		set_mesg(tag);
+		show_mesg(tag);
 		wait_async();
 		spik.asyncSetRegister(tkn->{			
 			notify_async();
 		}, 1, 2);
-		hold_step();
 	};
 	
 	protected int dcg_power = -1;
+	protected int dcg_t_rise  = 5000;//5 sec
+	protected int dcg_t_stable= 60000*3;//3 min
+	
 	protected final Runnable turn_on = ()->{
-		final String tag = "啟動 DCG";
-		final int T_RISE = 3000;//3 sec
-		final int T_STABLE = 60000*3;//3 min
-		set_mesg(tag);
+		final String tag = "啟動 DCG";		
+		show_mesg(tag);
 		wait_async();
 		dcg1.asyncBreakIn(()->{
 			if(dcg_power>0) {
 				dcg1.exec("CHL=W");
 				dcg1.exec("SPW="+dcg_power);
-				dcg1.exec("SPR="+T_RISE);//unit is millisecond
+				dcg1.exec("SPR="+dcg_t_rise);//unit is millisecond
 			}
 			{
 				dcg1.exec("TRG");
-				block_delay(T_RISE+T_STABLE);
+				//block_delay(T_RISE+T_STABLE);
 			}
 			notify_async();
 		});
 	};
+		
+	protected final Runnable turn_on_wait = ()->{
+		final long total = dcg_t_rise+dcg_t_stable; 
+		final long remain= waiting_time(total);
+		show_mesg(
+			"等待輸出",
+			Misc.tick2text(remain,true)+"/"+Misc.tick2text(total ,true),
+			String.format("%5.1fV",dcg1.volt.get()),
+			String.format("%5.3fA",dcg1.amps.get())
+		);
+		if(remain>dcg_t_stable) {
+			return;			
+		}
+
+		final int vv = dcg1.volt.getValue().intValue();
+		final int aa = spik.ARC_count.get();
+		if(vv<700 || aa<100) {
+			if(remain==0) {	next_step(); }
+			return;
+		}
+		dcg1.asyncExec("OFF");
+		abort_step();		
+		Application.invokeLater(()->{
+			final Alert dia = new Alert(AlertType.WARNING);
+			dia.setTitle("！！警告！！");
+			dia.setHeaderText("點火失敗");
+			dia.showAndWait();
+		});		
+	};
 	
 	protected final Runnable turn_off = ()->{
-		set_mesg("關閉高壓");
+		show_mesg("關閉高壓");
 		wait_async();		
 		dcg1.asyncBreakIn(()->{
 			if(dcg1.exec("OFF").endsWith("*")==false) {
@@ -159,25 +232,27 @@ public abstract class Bumper extends Stepper {
 		});
 	};
 	
-	protected final Runnable waiting = ()->{
-		int vv = (int)dcg1.volt.get();
-		int ww = (int)dcg1.watt.get();
-		if(vv>=30 && ww>=1){
+	private long tick_wait = -1L;
+	
+	protected final Runnable turn_off_wait = ()->{
+		if(tick_wait<0L){
+			tick_wait = System.currentTimeMillis();
+		}
+		long remian_msec = System.currentTimeMillis() - tick_wait;
+		
+		show_mesg(
+			"放電中",
+			Misc.tick2text(remian_msec,true),
+			String.format("%5.1fV",dcg1.volt.get()),
+			String.format("%5.3fA",dcg1.amps.get())
+		);		
+		
+		final int vv = dcg1.volt.intValue();
+		if(vv>300){
 			hold_step();
 		}else{
+			tick_wait = -1L;
 			next_step();
 		}
-		set_mesg(
-			"放電中",
-			String.format("%3dV %3dW",vv,ww)
-		);
 	};
-	
-	private void block_delay(int msec) {
-		try {
-			TimeUnit.MILLISECONDS.sleep(msec);
-		} catch (InterruptedException e2) {
-			e2.printStackTrace();
-		}
-	}
 }

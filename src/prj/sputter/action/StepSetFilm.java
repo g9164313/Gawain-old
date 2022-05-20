@@ -5,18 +5,18 @@ import java.util.Optional;
 import com.jfoenix.controls.JFXButton;
 import com.sun.glass.ui.Application;
 
-import eu.hansolo.tilesfx.Tile;
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
+
 import narl.itrc.Gawain;
 import narl.itrc.Misc;
 import narl.itrc.PadTouch;
 import narl.itrc.PanBase;
-import narl.itrc.Stepper;
+
 
 public class StepSetFilm extends Bumper {
 	
@@ -33,7 +33,6 @@ public class StepSetFilm extends Bumper {
 	private static final String TAG6 = "sensor-bit";
 	
 	private final static String init_txt = "薄膜設定";
-	private Label msg1 = new Label(init_txt);
 
 	private TextField[] args = {
 		new TextField(),//film name
@@ -84,7 +83,7 @@ public class StepSetFilm extends Bumper {
 	
 	final Runnable op_2 = ()->{	
 		wait_async();
-		msg1.setText("切換中");
+		show_mesg("切換中");
 		sqm1.asyncBreakIn(()->{
 			if(sqm1.exec("D1").charAt(0)!='A') {
 				abort_step();
@@ -96,7 +95,7 @@ public class StepSetFilm extends Bumper {
 	};
 	
 	final Runnable op_3 = ()->{
-		msg1.setText(init_txt);
+		show_mesg(init_txt);
 		float val = Float.valueOf(box_f_thick.getText().trim());//final thickness
 		sqm1.maxThick.set(val+0.01f);
 		next_step();
@@ -133,7 +132,7 @@ public class StepSetFilm extends Bumper {
 				Application.invokeAndWait(()->{
 					String[] val = sqm1.split_a_text(txt);
 					for(int i=0; i<args.length; i++){
-						args[i].setText(val[i+1]);
+						args[i].setText(val[i]);
 					}
 				});
 			}else{
@@ -144,13 +143,13 @@ public class StepSetFilm extends Bumper {
 		
 	@Override
 	public Node getContent(){
-		msg1.setPrefWidth(150);
+		show_mesg(init_txt);
 		for(TextField box:args){
-			box.setMaxWidth(80);
+			box.setMaxWidth(83);
 		}
 		
 		JFXButton btn = new JFXButton("選取");		
-		btn.setMaxSize(80, Double.MAX_VALUE);
+		btn.setMaxWidth(Double.MAX_VALUE);
 		btn.setOnAction(e->select_film());
 		btn.getStyleClass().add("btn-raised-1");
 		//GridPane.setHgrow(btn, Priority.ALWAYS);
@@ -158,19 +157,19 @@ public class StepSetFilm extends Bumper {
 		
 		GridPane lay = new GridPane();
 		lay.getStyleClass().addAll("box-pad");
-		lay.addColumn(0, msg1);
-		lay.add(new Separator(Orientation.VERTICAL), 1, 0, 1, 4);
-		lay.addColumn(2, 
-			new Label("密度"), box_density, 
-			new Label("Z 因子"), box_z_ratio
+		lay.addColumn(0, msg[0], msg[1]);
+		lay.add(new Separator(Orientation.VERTICAL), 1, 0, 1, 2);
+		lay.addRow(0,
+			new Label("密度"), box_density,
+			new Label("Tooling"), box_tooling
 		);
-		lay.addColumn(3, 
-			new Label("Tooling"), box_tooling,
+		lay.addRow(1,
+			new Label("Z 因子"), box_z_ratio,
 			new Label("感測器編號"), box_sensor
 		);
-		lay.add(new Separator(Orientation.VERTICAL), 4, 0, 1, 4);
-		lay.addColumn(5, new Label("最終厚度(kÅ)"), box_f_thick);
-		lay.add(btn, 5, 2, 1, 2);
+		lay.add(new Separator(Orientation.VERTICAL), 6, 0, 1, 2);
+		lay.addRow(0, new Label("最終厚度(kÅ)"), box_f_thick);
+		lay.add(btn, 7, 1, 2, 1);
 		
 		return lay;
 	}

@@ -108,9 +108,9 @@ public class DevSQM2Usb extends DevBase {
 		"",// Tooling
 	};
 		
-	private static final String UNKNOW_HIGH = "??? Å";
-	private static final String UNKNOW_RATE = "??? Å/s";
-	private static final String UNKNOW_TIME = "?:??:??";
+	private static final String UNKNOW_HIGH = "？ Å";
+	private static final String UNKNOW_RATE = "？ Å/s";
+	private static final String UNKNOW_TIME = "？:？？:？？";
 	
 	public final StringProperty  filmTitle = new SimpleStringProperty("");
 	
@@ -320,7 +320,7 @@ public class DevSQM2Usb extends DevBase {
 	public void zeroThickness() { zeros(true, false); }
 	public void zeroTimer() { zeros(false, true); }
 	public void zeros() { zeros(true, true); }
-	
+
 	public void setFilmData(final String[] data) {
 		filmTitle.set(data[0]);
 		asyncBreakIn(()->{

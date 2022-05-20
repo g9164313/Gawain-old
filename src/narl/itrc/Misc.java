@@ -11,6 +11,7 @@ import java.io.ObjectOutputStream;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.UUID;
 
 import javafx.event.ActionEvent;
@@ -221,7 +222,7 @@ public class Misc {
 	 * @param txt - the string of integer value(including leading zero)
 	 * @return integer value
 	 */
-	public static int txt2int(String txt){
+	public static int txt2int(String txt,final int def){
 		txt = txt.replace("\\s","").trim();
 		if(txt.matches("^[+-]?[\\d]+")==false){
 			return 0;
@@ -232,7 +233,39 @@ public class Misc {
 		while(txt.charAt(0)=='0' && txt.length()>1){
 			txt = txt.substring(1);
 		}
-		return Integer.valueOf(txt);
+		try {
+			return Integer.valueOf(txt);
+		}catch(NumberFormatException e) {
+			Misc.loge(e.getMessage());
+			return def;
+		}
+	}
+	public static int txt2int(final String txt) {
+		return txt2int(txt,0);
+	}
+	
+	public static float txt2float(final String txt,final float def) {
+		try {
+			return Float.valueOf(txt);
+		}catch(NumberFormatException e) {
+			Misc.loge(e.getMessage());
+			return def;
+		}
+	}
+	public static float txt2float(final String txt) {
+		return txt2float(txt,0f);
+	}
+	
+	public static double txt2double(final String txt,final double def) {
+		try {
+			return Double.valueOf(txt);
+		}catch(NumberFormatException e) {
+			Misc.loge(e.getMessage());
+			return def;
+		}
+	}
+	public static double txt2double(final String txt) {
+		return txt2double(txt,0.);
 	}
 	
 	/**
@@ -509,19 +542,7 @@ public class Misc {
 		return txt.substring(beg,end);
 	}
 	//------------------------------------------
-	
-	public static void dump_byte(final byte[] buf) {
-		try {
-			final String name = Gawain.getRootPath()+"pack_"+UUID.randomUUID().toString()+".bin";
-			FileOutputStream fs = new FileOutputStream(name);
-			fs.write(buf);
-			fs.close();
-			Misc.loge("[Dump] %s", name);
-		}catch(SecurityException | IOException e) {			
-			Misc.loge("[Dump] %s", e.getMessage());
-		}
-	}
-	
+
 	public static byte[] list2byte(final ArrayList<Byte> src) {
 		final int cnt = src.size();
 		byte[] dst = new byte[cnt];
@@ -547,11 +568,11 @@ public class Misc {
 			return dst;
 		}
 		Class<?> clzz = src.get(0).getClass();
-		if(clzz==Float.TYPE) {
+		if(clzz==Float.class) {
 			for(int i=0; i<cnt; i++) {				
 				dst[i] = ((Float)src.get(i)).floatValue();
 			}
-		}else if(clzz==Double.TYPE) {
+		}else if(clzz==Double.class) {
 			for(int i=0; i<cnt; i++) {				
 				dst[i] = ((Double)src.get(i)).floatValue();
 			}
@@ -565,11 +586,11 @@ public class Misc {
 			return dst;
 		}
 		Class<?> clzz = src.get(0).getClass();
-		if(clzz==Float.TYPE) {
+		if(clzz==Float.class) {
 			for(int i=0; i<cnt; i++) {				
 				dst[i] = ((Float)src.get(i)).doubleValue();
 			}
-		}else if(clzz==Double.TYPE) {
+		}else if(clzz==Double.class) {
 			for(int i=0; i<cnt; i++) {				
 				dst[i] = ((Double)src.get(i)).doubleValue();
 			}
@@ -577,6 +598,18 @@ public class Misc {
 		return dst;
 	}
 	//----------------------------------------//
+	
+	public static void dump_byte(final byte[] buf) {
+		try {
+			final String name = Gawain.getRootPath()+"pack_"+UUID.randomUUID().toString()+".bin";
+			FileOutputStream fs = new FileOutputStream(name);
+			fs.write(buf);
+			fs.close();
+			Misc.loge("[Dump] %s", name);
+		}catch(SecurityException | IOException e) {			
+			Misc.loge("[Dump] %s", e.getMessage());
+		}
+	}
 	
 	public static void asynSerialize2file(		
 		final Object obj,
@@ -639,16 +672,53 @@ public class Misc {
 		return obj;
 	}
 
-	/**
-	 * a wrap for GUI-thread application.
-	 */
-	/*public static void invoke(final Runnable work) {
-		if(Application.isEventThread()==true) {
-			work.run();
-		}else {
-			Application.invokeAndWait(work);
+	@SuppressWarnings("unchecked")
+	public static class BiMap<K,V> extends HashMap<K,V> {
+		private static final long serialVersionUID = 2076368437439402996L;
+		
+		public final HashMap<V,K> dict = new HashMap<V,K>();
+		
+		public BiMap<K,V> init(Object... args){
+			final int len = args.length - args.length%2;
+			for(int i=0; i<len; i+=2) {				
+				K k = (K)args[i+0];
+				V v = (V)args[i+1];
+				put(k, v);
+				dict.put(v, k);
+			}
+			return this;
+		}				
+		public V bi_put(K key, V value) {
+			V v = super.put(key, value);
+			if(v!=null) {
+				dict.remove(v);
+			}			
+			dict.put(value, key);
+			return v;
 		}
-	}*/
+		public V bi_putIfAbsent(K key, V value) {
+			V v = super.putIfAbsent(key, value);
+			if(v==null) {
+				dict.put(value, key);
+			}
+			return v;
+		}		
+	};
+	
+	public static void invokeLater(final Runnable func) {
+		if(com.sun.glass.ui.Application.isEventThread()) {
+			func.run();
+		}else {
+			com.sun.glass.ui.Application.invokeLater(func);
+		}
+	}
+	public static void invokeWait(final Runnable func) {
+		if(com.sun.glass.ui.Application.isEventThread()) {
+			func.run();
+		}else {
+			com.sun.glass.ui.Application.invokeAndWait(func);
+		}
+	}
 }
 
 

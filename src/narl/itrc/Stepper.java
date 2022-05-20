@@ -285,7 +285,7 @@ public abstract class Stepper extends HBox {
 	 *  0--> no async
 	 * -1--> async done~~~ 
 	 */
-	public final AtomicInteger async= new AtomicInteger(0);	
+	protected final AtomicInteger async= new AtomicInteger(0);	
 	protected void wait_async(){
 		async.set(1);
 		hold_step();
@@ -298,7 +298,7 @@ public abstract class Stepper extends HBox {
 		new Thread(()->{
 			tsk.run();
 			notify_async();			
-		},"steper-task").start();
+		},"stepper-task").start();
 	}
 	protected void notify_async(final int stp){
 		async.set(-1);
@@ -308,7 +308,7 @@ public abstract class Stepper extends HBox {
 		notify_async(LEAD);
 	}
 
-	private long tick = -1L;	
+	protected long tick = -1L;	
 	protected long waiting_time(long msec){
 		if(tick<=0L){
 			tick = System.currentTimeMillis();

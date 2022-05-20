@@ -459,37 +459,44 @@ public class DevSQM160 extends DevBase {
 			Misc.loge("[%s] INTERRUPT in command-S-T",TAG);
 		}
 	}
-	public void cmd_U(final boolean flg) {
+	public void cmd_U(
+		final boolean flg,
+		final Runnable event_done,
+		final Runnable event_fail
+	) {
 		try {
+			String u_txt = "";
 			if(flg==true) {
 				Misc.logv("[%s] 打開擋板",TAG);
-				exec("U1");
+				u_txt = exec("U1");
 			}else {
 				Misc.logv("[%s] 關閉擋板",TAG);
-				exec("U0");
+				u_txt = exec("U0");
 			}
+			Application.invokeLater(()->shutter.set(flg));
 			TimeUnit.MILLISECONDS.sleep(250);
+			if(u_txt.charAt(0)=='A') {
+				if(event_done!=null) { event_done.run(); }
+			}else{
+				if(event_fail!=null) { event_fail.run(); }
+			}			
 		} catch (InterruptedException e) {
 			Misc.loge("[%s] INTERRUPT in command-U",TAG);
 		}
 	}
-	
-	public void shutter(final boolean flag) {asyncBreakIn(()->{
-		//U1 --> shutter open
-		//U0 --> shutter close
-		final String u_txt = exec((flag)?("U1"):("U0"));
-		if(u_txt.length()==0) {
-			Misc.logw("[%s] shutter command fail!!!", TAG);
-			return;
-		}
-		if(u_txt.charAt(0)!='A'){
-			Misc.logw("[%s] shutter fail!!!", TAG);
-		}
-		nextState(STG_MONT);
-	});}
 		
 	public void zeros() {asyncBreakIn(()->{
 		cmd_S_T();
+		nextState(STG_MONT);
+	});}
+	public void shutter(
+		final boolean on_off,
+		final Runnable event_done,
+		final Runnable event_fail
+	) {asyncBreakIn(()->{
+		//U1 --> True: shutter open
+		//U0 --> False: shutter close
+		cmd_U(on_off,event_done,event_fail);
 		nextState(STG_MONT);
 	});}
 	public void shutter_and_zeros(
@@ -498,13 +505,7 @@ public class DevSQM160 extends DevBase {
 		final Runnable event_fail
 	){asyncBreakIn(()->{		
 		cmd_S_T();
-		final String cmd = (on_off)?("U1"):("U0");
-		final String u_txt = exec(cmd);
-		if(u_txt.charAt(0)=='A') {
-			if(event_done!=null) { event_done.run(); }
-		}else{
-			if(event_fail!=null) { event_fail.run(); }
-		}
+		cmd_U(on_off,event_done,event_fail);
 		nextState(STG_MONT);
 	});}
 	
@@ -587,12 +588,12 @@ public class DevSQM160 extends DevBase {
 		final JFXButton btn_shutter_on = new JFXButton("檔板開");
 		btn_shutter_on.getStyleClass().add("btn-raised-2");
 		btn_shutter_on.setMaxWidth(Double.MAX_VALUE);
-		btn_shutter_on.setOnAction(e->dev.shutter(true));
+		btn_shutter_on.setOnAction(e->dev.shutter(true,null,null));
 		
 		final JFXButton btn_shutter_off = new JFXButton("檔板關");
 		btn_shutter_off.getStyleClass().add("btn-raised-0");
 		btn_shutter_off.setMaxWidth(Double.MAX_VALUE);
-		btn_shutter_off.setOnAction(e->dev.shutter(false));
+		btn_shutter_off.setOnAction(e->dev.shutter(false,null,null));
 
 		final ImageView img_sh1 =  Misc.getIconView("lock-open-outline.png");
 		final ImageView img_sh2 =  Misc.getIconView("lock-outline.png");

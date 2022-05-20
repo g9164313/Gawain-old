@@ -342,7 +342,15 @@ public class Ladder extends BorderPane {
 			timer.play();
 		}		
 	}
-	private void abort(){	
+	private void abort(){		
+		queue.forEach(foot->{
+			//clear state and clock for next turn~~~
+			if(foot.step==null){
+				return;
+			}
+			foot.step.tick = 0L;
+			foot.step.async.set(0);
+		});
 		timer.stop();
 		recipe.getSelectionModel()
 			.getSelectedItem()
@@ -412,7 +420,8 @@ public class Ladder extends BorderPane {
 		cur.indicate(true);
 		if(cur.step.equals(prv.step)==false) {
 			prv.indicate(false);
-		}		
+		}	
+
 		//working!! After work is done, check asynchronous state.
 		int async = cur.step.async.get();
 		if(async==0){

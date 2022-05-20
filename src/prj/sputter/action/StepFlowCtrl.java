@@ -1,6 +1,9 @@
 package prj.sputter.action;
 
+import java.util.ArrayList;
+
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
+import org.apache.commons.math3.stat.inference.TestUtils;
 
 import com.jfoenix.controls.JFXTextField;
 
@@ -17,115 +20,139 @@ import narl.itrc.Misc;
 public class StepFlowCtrl extends Bumper {
 
 	public StepFlowCtrl() {
-		set(op1,op2,op3);
+		set(op1,op2);
+		for(int i=0; i<box_sval.length; i++) {
+			box_sval[i].setUserData(sval[i]);
+			sval[i].box = box_sval[i];
+		}
 	}
 	
-	private Label status = new Label();
-	private TextField[] box_sval = {
-		new TextField(), 
-		new TextField(), 
-		new TextField()
-	};
-	private Label[] txt_mean = {
-		new Label(),
-		new Label(),
-		new Label()
-	};
-	
-	private void arrange_prop(
-		final TextField box,
-		final Label txt		
-	) {
-		txt.setText("----");
-		txt.setUserData(null);	
-		if(box.getText().length()!=0) {
-			//FIXME:here sampling~~~
-			txt.setUserData(new DescriptiveStatistics(5));
+	private class SetValue {
+		TextField box = null;
+		float goal = -1f;
+		ArrayList<Float> roll = new ArrayList<Float>();
+			
+		void init() {
+			goal = -1f;
+			roll.clear();
+			final String sccm = box.getText();
+			if(sccm.length()!=0) {
+				try{
+					float val = Float.valueOf(sccm);
+					box.getStyleClass().remove("error");
+					goal = val;
+					return;
+				}catch(NumberFormatException e) {
+					box.getStyleClass().add("error");
+				}
+			}
+			goal = -1f;
 		}
-	};
-	
-	private boolean reach_stable(
-		final ReadOnlyFloatProperty prop,
-		final TextField box,
-		final Label txt
-	) {
-		DescriptiveStatistics sts = (DescriptiveStatistics)txt.getUserData();
-		if(sts==null) {
-			return true;
-		}else {
-			sts.addValue(prop.doubleValue());
-		}
-		String sval = box.getText();		
-		if(sval.length()==0) { 
-			return true;
-		}
-		try {
-			float val = Float.valueOf(sval);
-			float avg = (float)sts.getMean();
-			txt.setText(String.format("%.2fsccm",avg));
-			//FIXME:how to decide stable state?
-			if(Math.abs(val-avg)<0.7) {
+		boolean reach_stable(final ReadOnlyFloatProperty prop) {
+			if(goal<=0f) { 
 				return true;
 			}
-		}catch(NumberFormatException e) {
-			e.printStackTrace();			
+			roll.add(prop.get());
+			if(roll.size()<25) {
+				return false;
+			}
+			roll.remove(0);//skip old data~~~
+			double[] sample = get_sample_set();
+			DescriptiveStatistics stats = new DescriptiveStatistics(sample);
+			if(stats.getN()>=2) {
+				double p_val = TestUtils.tTest(goal, sample);
+				//p_val = Math.abs(p_val);
+				Misc.logv(String.format(
+					"AVG: %5.2f, DEV: %5.3f, P:%.3f", 
+					stats.getMean(), stats.getStandardDeviation(), p_val
+				));				
+				if(p_val<=0.3){
+					return true;
+				}
+			}		
+			return false;
 		}
-		return false;
-	}
+		
+		double[] get_sample_set() {
+			ArrayList<Float> buf = new ArrayList<Float>();
+			for(Float v:roll) {
+				if(buf.contains(v)==false) {
+					buf.add(v);
+				}
+			}
+			double[] res;
+			final int len = buf.size();
+			if(len<2) {
+				res = new double[2];
+				res[0] = buf.get(0);
+				res[1] = buf.get(0);
+			}else {
+				res = new double[len];
+				for(int i=0; i<len; i++) {
+					res[i] = buf.get(i);
+				}
+			}
+			return res; 
+		}		
+	};
+	private SetValue[] sval = {
+		new SetValue(),//Ar
+		new SetValue(),//N2
+		new SetValue(),//O2
+	};
+	private TextField[] box_sval = {
+		new TextField(),//Ar 
+		new TextField(),//N2 
+		new TextField(),//O2
+	};
+	
+	final String action_name = "準備氣體";
 	
 	final Runnable op1 = ()->{
-		status.setText("準備氣體");
-		arrange_prop(box_sval[0],txt_mean[0]);
-		arrange_prop(box_sval[1],txt_mean[1]);
-		arrange_prop(box_sval[2],txt_mean[2]);
-		coup.asyncSetMassFlow(
-			box_sval[0].getText(), 
-			box_sval[2].getText(), 
-			box_sval[1].getText()
-		);
-		next_step();
+		show_mesg(action_name);
+		for(SetValue sv:sval) {
+			sv.init();
+		}
+		wait_async();
+		coup.asyncBreakIn(()->{
+			coup.set_all_mass_flow(
+				sval[0].goal, 
+				sval[1].goal, 
+				sval[2].goal
+			);
+			notify_async();
+		});
 	};
 		
 	final Runnable op2 = ()->{
-		status.setText("穩定中");
+		show_mesg("穩定中");
 		boolean flg = true;
-		flg &= reach_stable(coup.PV_FlowAr,box_sval[0],txt_mean[0]);
-		flg &= reach_stable(coup.PV_FlowO2,box_sval[1],txt_mean[1]);
-		flg &= reach_stable(coup.PV_FlowN2,box_sval[2],txt_mean[2]);		
+		flg &= sval[0].reach_stable(coup.PV_FlowAr);
+		flg &= sval[1].reach_stable(coup.PV_FlowN2);
+		flg &= sval[2].reach_stable(coup.PV_FlowO2);		
 		if(flg==true) {
+			show_mesg(action_name);
 			next_step();
 		}else {
 			hold_step();
 		}
 	};
 	
-	final Runnable op3 = ()->{
-		//clear message
-		status.setText("");
-		for(TextField obj:box_sval) { obj.setUserData(null); }
-		next_step();
-	};
-	
 	@Override
 	public Node getContent() {
-		
-		status.setId("status");
-		status.setPrefWidth(150);
+		msg[0].setText("準備氣體");
 		
 		for(TextField obj:box_sval) { 
-			obj.setPrefWidth(97); 
+			obj.setPrefWidth(83); 
 		}
-		for(Label obj:txt_mean) { 
-			obj.setPrefWidth(97);
-		}
-		
 		GridPane lay = new GridPane();
-		lay.getStyleClass().addAll("box-pad");
-		lay.addColumn(0,new Label("流量控制"),status);
-		lay.add(new Separator(Orientation.VERTICAL), 1, 0, 1, 3);
-		lay.addRow(0, new Label("Ar"), new Label("O2"), new Label("N2"));
-		lay.addRow(1, box_sval);
-		lay.addRow(2, txt_mean);
+		lay.getStyleClass().addAll("box-pad");		
+		lay.addColumn(0, msg[0]);		
+		lay.add(new Separator(Orientation.VERTICAL), 1, 0, 1, 1);
+		lay.addRow(0, 
+			new Label("Ar"), box_sval[0],
+			new Label("N2"), box_sval[1],
+			new Label("O2"), box_sval[2]);
 		return lay;
 	}
 	@Override
@@ -179,9 +206,39 @@ public class StepFlowCtrl extends Bumper {
 		for(JFXTextField obj:box) { 
 			obj.setPrefWidth(63);
 		}
-		box[0].setOnAction(e->coup.asyncSetMassFlow(box[0].getText(),"",""));
-		box[1].setOnAction(e->coup.asyncSetMassFlow("",box[1].getText(),""));
-		box[2].setOnAction(e->coup.asyncSetMassFlow("","",box[2].getText()));
+		box[0].setOnAction(event->{
+			try {
+				final String txt = box[0].getText();
+				final float val = Float.valueOf(txt);
+				box[0].getStyleClass().remove("error");
+				Misc.logv("手動調整Ar=%s", txt);
+				coup.asyncSetMassFlow(val,-1f,-1f);
+			}catch(NumberFormatException e) {
+				box[0].getStyleClass().add("error");
+			}
+		});
+		box[1].setOnAction(event->{
+			try {
+				final String txt = box[1].getText();
+				final float val = Float.valueOf(txt);
+				box[1].getStyleClass().remove("error");
+				Misc.logv("手動調整N2=%s", txt);
+				coup.asyncSetMassFlow(-1f,val,-1f);
+			}catch(NumberFormatException e) {
+				box[1].getStyleClass().add("error");
+			}
+		});
+		box[2].setOnAction(event->{
+			try {
+				final String txt = box[2].getText();
+				final float val = Float.valueOf(txt);
+				box[2].getStyleClass().remove("error");
+				Misc.logv("手動調整O2=%s", txt);
+				coup.asyncSetMassFlow(-1f,-1f,val);
+			}catch(NumberFormatException e) {
+				box[2].getStyleClass().add("error");
+			}
+		});
 		
 		final Label[] txt = {
 			new Label(),

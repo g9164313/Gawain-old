@@ -6,29 +6,28 @@ import com.jfoenix.controls.JFXRadioButton;
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.control.CheckBox;
-import javafx.scene.control.Label;
+
 import javafx.scene.control.Separator;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
 import narl.itrc.Misc;
-import narl.itrc.Stepper;
 
-public class StepGunsHub extends Stepper {
+public class StepGunsHub extends Bumper {
 
 	public StepGunsHub(){
-		set(op_1,op_2);
-		lay = init_layout();
+		set(op_1);		
 	}
 	
 	private Pane lay;
 	
+	private void fix_selected(final CheckBox chk,final boolean flg) {
+		chk.setSelected(flg);			
+		chk.setDisable(flg);
+		chk.setStyle("-fx-opacity: 1.0;");
+	}
 	private Pane init_layout() {
-		
-		final Label msg1 = new Label("電極切換");
-		msg1.setId("msg1");		
-		msg1.setPrefWidth(150);
-		
+
 		final JFXRadioButton bipolar = new JFXRadioButton("Bipolar");
 		final JFXRadioButton unipolar= new JFXRadioButton("Unipolar");
 		final JFXCheckBox gun1 = new JFXCheckBox("Gun-1");
@@ -54,32 +53,31 @@ public class StepGunsHub extends Stepper {
 				
 		GridPane lay = new GridPane();
 		lay.getStyleClass().addAll("box-pad");
-		lay.addColumn(0,msg1);
-		lay.add(new Separator(Orientation.VERTICAL), 1, 0, 1, 2);
-		lay.addColumn(2,bipolar,unipolar);
-		lay.add(new Separator(Orientation.VERTICAL), 3, 0, 1, 2);
-		lay.addColumn(4,gun1,gun2);
+		lay.addColumn(0,msg[0]);
+		lay.add(new Separator(Orientation.VERTICAL), 1, 0, 1, 1);
+		lay.addRow(0,bipolar,unipolar,gun1,gun2);
 		return lay;
 	};
 	
 	final Runnable op_1 = ()->{
-		JFXRadioButton rad1 = (JFXRadioButton)lay.lookup("#bipolar");
-		JFXRadioButton rad2 = (JFXRadioButton)lay.lookup("#unipolar");
-		JFXCheckBox chk1 = (JFXCheckBox)lay.lookup("#gun-1");
-		JFXCheckBox chk2 = (JFXCheckBox)lay.lookup("#gun-2");
-		btn_bipolar.setSelected(rad1.isSelected());
-		btn_unipolar.setSelected(rad2.isSelected());
-		chk_gun1.setSelected(chk1.isSelected());
-		chk_gun2.setSelected(chk2.isSelected());
-		select_gunhub();
-		next_step();
-	};
-	final Runnable op_2 = ()->{
-		next_step();//delay for e-gun ready
+		msg[0].setText("電極切換");
+		
+		final JFXRadioButton rad1 = (JFXRadioButton)lay.lookup("#bipolar");
+		//JFXRadioButton rad2 = (JFXRadioButton)lay.lookup("#unipolar");
+		final JFXCheckBox chk1 = (JFXCheckBox)lay.lookup("#gun-1");
+		//JFXCheckBox chk2 = (JFXCheckBox)lay.lookup("#gun-2");
+		
+		wait_async();
+		coup.asyncBreakIn(()->{
+			coup.select_gun_hub(rad1.isSelected(),chk1.isSelected());
+			notify_async();
+		});
 	};
 	
 	@Override
 	public Node getContent() {
+		msg[0].setText("電極切換");
+		lay = init_layout();
 		return lay;
 	}
 	@Override
@@ -147,82 +145,4 @@ public class StepGunsHub extends Stepper {
 			}
 		}
 	}
-
-	//----------------------------------//
-	
-	private final static JFXRadioButton btn_bipolar = new JFXRadioButton("Bipolar");
-	private final static JFXRadioButton btn_unipolar= new JFXRadioButton("Unipolar");
-	private final static JFXCheckBox chk_gun1 = new JFXCheckBox("Gun-1");
-	private final static JFXCheckBox chk_gun2 = new JFXCheckBox("Gun-2");
-	
-	private static void fix_selected(final CheckBox chk,final boolean flg) {
-		chk.setSelected(flg);			
-		chk.setDisable(flg);
-		chk.setStyle("-fx-opacity: 1.0;");
-	}
-	private static void select_gunhub() {
-		Bumper.coup.asyncSelectGunHub(
-			btn_bipolar.isSelected(), 
-			btn_unipolar.isSelected(), 
-			chk_gun1.isSelected(), 
-			chk_gun2.isSelected()
-		);
-	}
-	
-	public static Pane genPanel() {
-		
-		final ToggleGroup grp = new ToggleGroup();
-		btn_bipolar.setToggleGroup(grp);
-		btn_unipolar.setToggleGroup(grp);
-		
-		btn_bipolar.setOnAction(e->{
-			fix_selected(chk_gun1,true);
-			fix_selected(chk_gun2,true);
-			chk_gun1.setOnAction(null);
-			chk_gun2.setOnAction(null);
-			select_gunhub();
-		});		
-		btn_unipolar.setOnAction(e->{
-			fix_selected(chk_gun1,false);
-			fix_selected(chk_gun2,false);
-			chk_gun1.setOnAction(e1->select_gunhub());
-			chk_gun2.setOnAction(e1->select_gunhub());
-			select_gunhub();
-		});
-		
-		final GridPane lay = new GridPane();
-		lay.getStyleClass().addAll("box-pad");
-		lay.addColumn(0, btn_bipolar, btn_unipolar);
-		lay.addColumn(1, chk_gun1, chk_gun2);
-		return lay;
-	}
-	//---------------------
-	
-	public static Pane genCtrlPanel() {
-		
-		final ToggleGroup grp = new ToggleGroup();
-		btn_bipolar.setToggleGroup(grp);
-		btn_unipolar.setToggleGroup(grp);
-		
-		btn_bipolar.setOnAction(e->{
-			fix_selected(chk_gun1,true);
-			fix_selected(chk_gun2,true);
-			chk_gun1.setOnAction(null);
-			chk_gun2.setOnAction(null);
-			select_gunhub();
-		});		
-		btn_unipolar.setOnAction(e->{
-			fix_selected(chk_gun1,false);
-			fix_selected(chk_gun2,false);
-			chk_gun1.setOnAction(e1->select_gunhub());
-			chk_gun2.setOnAction(e1->select_gunhub());
-			select_gunhub();
-		});
-		
-		final GridPane lay = new GridPane();
-		lay.getStyleClass().addAll("box-pad");
-		lay.addColumn(0, btn_bipolar, btn_unipolar);
-		lay.addColumn(1, chk_gun1, chk_gun2);
-		return lay;
-	}	
 }

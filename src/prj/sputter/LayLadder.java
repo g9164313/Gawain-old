@@ -1,6 +1,7 @@
 package prj.sputter;
 
 import narl.itrc.Ladder;
+import narl.itrc.Misc;
 import narl.itrc.Stepper;
 import prj.sputter.action.StepExploit;
 import prj.sputter.action.StepFlowCtrl;
@@ -35,11 +36,13 @@ public class LayLadder extends Ladder {
 	@Override
 	protected void epilogue() {
 		super.epilogue();
-		dcg1.asyncExec("SPW=0");//close power~~~
+		Misc.logw("Lader complete works.");
+		dcg1.asyncExec("OFF");//close power~~~
 		logger.done_progress();
 	}
 	@Override
 	protected void user_abort() {
-		dcg1.asyncExec("SPW=0");
+		Misc.logw("!!User Abort!!");
+		dcg1.asyncExec("OFF");
 	}
 }

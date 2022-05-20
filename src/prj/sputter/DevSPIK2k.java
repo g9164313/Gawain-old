@@ -7,7 +7,9 @@ import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXRadioButton;
 import com.sun.glass.ui.Application;
 
+import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Label;
@@ -40,23 +42,91 @@ public class DevSPIK2k extends DevTTY {
 	}	
 	@Override
 	public void afterOpen() {
-		addState("listen", listen);
-		addState("looper", looper);
+		asyncGetRegister(tkn->{
+			//load default values
+			if(tkn.response==null){
+				Misc.loge("[%s] after-get no, respose!!", TAG);
+				return;
+			}
+			if(tkn.response[2]!=0 || tkn.response[3]!=0){
+				//we got AD pack, why ???
+				Misc.logw("Not empty answer");
+				Misc.dump_byte(tkn.response);
+				return;
+			}
+			Ton_pos.set(tkn.values[0]);
+			Tof_pos.set(tkn.values[1]);
+			Ton_neg.set(tkn.values[2]);
+			Tof_neg.set(tkn.values[3]);
+		},4,4);
+		
+		addState("listener", listener);
+		addState("transmit", transmit);
 		//playFlow("init");
-		playFlow("looper");
+		playFlow("listener");
 	}
 	@Override
 	public void beforeClose() {
 	}
 	//----------------------------------//
 
-	//0* Mode: 
-	//1* State: 
-	//3* Error: 
-	//4* Ton +: 2-32000us, duration of the pulse
-	//5* Toff+: 2-32000us, duration of the pause
-	//6* Ton -: 2-32000us, duration of the pulse
-	//7* Toff-: 2-32000us, duration of the pause
+	public final BooleanProperty Running = new SimpleBooleanProperty(false);//1* Run: 1->off, 2->on 
+	
+	/**
+	 * 0* Operation Mode:         writing
+	 *   0x???1: Bipolar          0x00 - do nothing
+	 *   0x???2: Unipolar neg     0x01 - set bipolar
+	 *   0x???3: Unipolar pos     0x02 - set Unipolar neg
+	 *   0x???4: DC neg(??)       0x03 - set Unipolar pos 
+	 *   0x???5: DC pos           0x04 - set DC neg mode 
+	 *   0x??0?: Multiplex OFF    0x05 - set DC pos mode 
+	 *   0x??1?: Multiplex ON     0x10 - set multiplex off
+	 *   0x?0??: 1us              0x11 - set multiplex on
+	 *   Bit15 : permanent High   
+	 */
+	public final IntegerProperty Mode= new SimpleIntegerProperty(0);
+	
+	/**
+	 * 1* Operation State:              writing
+	 *   Bit15:High  Bit_7:DC2 ON         0x00 - do nothing
+	 *   Bit14:      Bit_6:DC1 ON         0x01 - Running OFF
+	 *   Bit13:      Bit_5:               0x02 - Running ON
+	 *   Bit12:      Bit_4:               0x03 - Clear error
+	 *   Bit11:      Bit_3:ARC Delay ON   0x10 - save CFG to EEPROM
+	 *   Bit10:      Bit_2:Ready          0x20 - DC1 OFF
+	 *   Bit_9:CFG   Bit_1:Running ON     0x21 - DC1 ON
+	 *   Bit_8:CFG   Bit_0:error          0x22 - DC2 OFF
+	 *                                    0x23 - DC2 ON
+	 */
+	public final IntegerProperty State= new SimpleIntegerProperty(0);
+	
+	/**
+	 * 2* Communication-Master:
+	 *   0: serial 1
+	 *   1: serial 2
+	 *   2: HMS-module
+	 *   3: Dualport-RAM 2
+	 */
+	public final IntegerProperty ComState= new SimpleIntegerProperty(0);
+	
+	/**
+	 * 3* Error Status:
+	 *   Bit15:Watchdog reset   Bit_7:Rack-Temp
+	 *   Bit14:Address Reset    Bit_6:Arc Overflow
+	 *   Bit13:Config too long  Bit_5:Arc-
+	 *   Bit12:DC2 Error        Bit_4:Arc+
+	 *   Bit11:DC1 Error        Bit_3:Driver 2R
+	 *   Bit10:Interlock        Bit_2:Driver 2L
+	 *   Bit_9:Heat-Sink2       Bit_1:Driver 1R
+	 *   Bit_8:Heat-Sink1       Bit_0:Driver 1L
+	 */
+	public final IntegerProperty Error = new SimpleIntegerProperty(0);
+	
+	public final IntegerProperty Ton_pos = new SimpleIntegerProperty(-1);//4* Ton +: 2-32000us, duration of the pulse
+	public final IntegerProperty Tof_pos = new SimpleIntegerProperty(-1);//5* Toff+: 2-32000us, duration of the pause
+	public final IntegerProperty Ton_neg = new SimpleIntegerProperty(-1);//6* Ton -: 2-32000us, duration of the pulse
+	public final IntegerProperty Tof_neg = new SimpleIntegerProperty(-1);//7* Toff-: 2-32000us, duration of the pause
+	
 	public final IntegerProperty ARC_count = new SimpleIntegerProperty();//0-10000
 	public final IntegerProperty DC1_V_Act = new SimpleIntegerProperty();//0-4000
 	public final IntegerProperty DC1_I_Act = new SimpleIntegerProperty();//0-4000
@@ -65,40 +135,47 @@ public class DevSPIK2k extends DevTTY {
 	public final IntegerProperty DC2_I_Act = new SimpleIntegerProperty();//0-4000
 	public final IntegerProperty DC2_P_Act = new SimpleIntegerProperty();//0-4000
 	
-	private Runnable listen = ()->{
+	private Runnable listener = ()->{
 		final SerialPort dev = port.get();
 		if(dev.isOpened()==false) {
 			stopFlow();
 			return;
 		}
 		try {
-			byte[] buf = protocol_3964R_listen(50);
-			if(buf.length==0) {
-				//something error happened, listen again!!!!
-				nextState("listen");
-				return;
-			}
-			//it should AD packet
-			int[] val = RK512_unpack_AD(buf);			
-			if(val.length>=8 && val[0]==19) {
-				Application.invokeLater(()->{
-					ARC_count.set(val[1]);
-					DC1_V_Act.set(val[2]);
-					DC1_I_Act.set(val[3]);
-					DC1_P_Act.set(val[4]);
-					DC2_V_Act.set(val[5]);
-					DC2_I_Act.set(val[6]);
-					DC2_P_Act.set(val[7]);						
-				});
-			}			
-			nextState("listen");			
+			//Misc.loge("[%s] listener",TAG);
+			
+			nextState("listener");
+			
+			byte cc = dev.readBytes(1,30)[0];//wait STX code....
+			if(cc==STX) {
+				byte[] buf = protocol_3964R_listen(dev);
+				if(buf.length==0){
+					Misc.logw("[%s] listener - no sound!!!", TAG);
+					return;
+				}
+				final Token tkn = new Token(buf);//unpack AD package
+				if(tkn.address==19 && tkn.count==7) {
+					Application.invokeLater(()->{
+						ARC_count.set(tkn.values[0]);
+						DC1_V_Act.set(tkn.values[1]);
+						DC1_I_Act.set(tkn.values[2]);
+						DC1_P_Act.set(tkn.values[3]);
+						DC2_V_Act.set(tkn.values[4]);
+						DC2_I_Act.set(tkn.values[5]);
+						DC2_P_Act.set(tkn.values[6]);						
+					});
+				}
+			}else {
+				Misc.logw("[%s] listener - response error(%d)", TAG, cc);
+			}	
+						
 		}catch(SerialPortTimeoutException e1) {
-			//device no response, check whether host has works.
+			//device no response, check whether host has packages.
 			//Misc.loge("[%s] listen - %s", TAG, e1.getMessage());
-			nextState("looper");
+			nextState("transmit");
 		} catch (SerialPortException e2) {			
-			Misc.loge("[%s] listen - %s", TAG, e2.getMessage());
-			nextState("listen");
+			Misc.loge("[%s] TTY FAIL - %s", TAG, e2.getMessage());
+			stopFlow();
 		}
 	};
 	
@@ -121,46 +198,123 @@ public class DevSPIK2k extends DevTTY {
 			count  = val.length;
 			values = val;
 		}
+		Token(final byte[] buf){
+			response = buf;
+			if(buf.length==0){
+				address = -1;
+				count = 0;
+				values= null;
+				notify_event();
+				return;
+			}
+			if(buf[3]=='D' && buf.length>=10) {
+				address= byte2int(buf[4],buf[5]);
+				//count  = byte2int(buf[6],buf[7]);//???				
+				if(buf[2]=='A') {
+					count = (buf.length - 10 - 3)/2;
+					unpack(10);
+				}else {
+					count = 0;
+					values= null;
+				}
+			}else {
+				address= -1;
+				count  = 0;
+				values = null;
+			}		
+		}
+		int byte2int(final byte aa, final byte bb) {
+			final int _a = (int)aa;
+			final int _b = (int)bb;
+			return ((_a&0x00FF)<<8) | (_b&0x00FF);
+		}		
 		void unpack() {
+			if(response.length<=7){
+				return;
+			}
+			if(response[2]!=0 || response[3]!=0){
+				values= new int[0];
+				Misc.logw("[Token] unpack non-empty package");
+				Misc.dump_byte(response);				
+				return;
+			}				
+			unpack(4);
+		}
+		void unpack(final int off) {
 			if(values!=null) {
+				return;
+			}
+			if(response.length<=7){
 				return;
 			}
 			values = new int[count];
 			for(int i=0; i<count; i++) {
-				byte aa = response[4+i*2];
-				byte bb = response[5+i*2];
-				values[i] = (((int)aa)&0x00FF)<<8 | bb;
+				byte aa = response[off+0+i*2];
+				byte bb = response[off+1+i*2];
+				values[i] = byte2int(aa,bb);
+			}
+		}
+		void notify_event() {
+			if(event==null) { 
+				return;
+			}
+			if(Application.isEventThread()==true) {
+				event.token_notify(this);
+			}else {
+				Application.invokeLater(()->event.token_notify(this));
 			}
 		}
 	};
-		
+	
 	private final AtomicReference<Token> ref_tkn = new AtomicReference<Token>();
 	
-	private Runnable looper = ()->{
+	private Runnable transmit = ()->{
 		final SerialPort dev = port.get();
 		if(dev.isOpened()==false) {
 			stopFlow();
 			return;
 		}
+		nextState("listener");
 		final Token tkn = ref_tkn.get();
-		if(tkn!=null) {
-			Misc.loge("[%s] looper - transmit",TAG);
-			if(protocol_3964R_reveal(tkn.address, tkn.count, tkn.values)==true) {
-				try {
-					tkn.response = protocol_3964R_listen(-1);
-				} catch (SerialPortTimeoutException | SerialPortException e) {
-					Misc.loge("[%s] looper - %s", TAG, e.getMessage());
-					nextState("listen");
-					return;
-				}
-				tkn.unpack();
-			}			
-			if(tkn.event!=null) {
-				Application.invokeLater(()->tkn.event.token_notify(tkn));
-			}
-			ref_tkn.set(null);//for nest turn~~~~
+		if(tkn==null) {
+			return;
 		}
-		nextState("listen");
+		
+		try {
+			Misc.loge("[%s] transmit",TAG);
+			
+			final byte[] pkg = RK512_package(
+				tkn.address, 
+				tkn.count, 
+				tkn.values
+			);
+			
+			dev.writeByte(STX);//host want communication~~~
+			if(protocol_3964R_express(dev,pkg)==false){
+				return;
+			}
+			
+			byte cc = dev.readBytes(1,500)[0];//wait STX code....
+			if(cc==STX) {
+				tkn.response = protocol_3964R_listen(dev);
+				tkn.unpack();
+				tkn.notify_event();
+			}else {
+				cc = dev.readBytes(1,500)[0];
+				Misc.logw("[%s] transmit - response error(%d)", TAG, cc);
+				nextState("transmit");
+				return;
+			}			
+		} catch (SerialPortTimeoutException e1) {			
+			Misc.logw("[%s] transmit - device no response", TAG);
+			nextState("transmit");
+			return;
+		} catch (SerialPortException e2) {			
+			Misc.loge("[%s] transmit FAIL - %s", TAG, e2.getMessage());
+			stopFlow();
+			return;
+		}
+		ref_tkn.set(null);//for next turn~~~~
 	};
 	
 	public void asyncSetRegister(TokenNotify event, final int addr, int... val) {
@@ -172,7 +326,7 @@ public class DevSPIK2k extends DevTTY {
 			//buf[  5]--> ETX
 			//buf[  6]--> checksum
 			//byte cc = e.response[0];
-		//}; 
+		//};
 		ref_tkn.set(tkn);
 	}
 	public void asyncGetRegister(
@@ -191,8 +345,10 @@ public class DevSPIK2k extends DevTTY {
 		ref_tkn.set(token);
 	} 
 	
-	public void setRunning(boolean flg) {
-		asyncSetRegister(null,1,(flg==true)?(2):(1));
+	public void setRunning(final boolean flg) {
+		asyncSetRegister(tkn->{
+			Running.set(flg);
+		},1,(flg==true)?(2):(1));
 	}
 	
 	//device setting values
@@ -228,8 +384,39 @@ public class DevSPIK2k extends DevTTY {
 	) {
 		asyncSetRegister(null,4,Ton_P_us,Toff_P_us,Ton_N_us,Toff_N_us);
 	}
-	//---------------------------------//
 	
+	private void show_edit_pulse(
+		final String title,
+		final IntegerProperty prop,
+		final int address
+	) {		
+		final TextInputDialog dd1 = new TextInputDialog(""+prop.get());
+		dd1.setTitle("設定 "+title);
+		dd1.setContentText("時間(us)");		
+		Optional<String> res = dd1.showAndWait();
+		if(res.isPresent()==false) {
+			return;
+		}
+		try {
+			final int value = Integer.valueOf(res.get());
+			asyncSetRegister(tkn->{
+				if(tkn.response[3]!=0) {					
+				}
+				Application.invokeLater(()->prop.set(value));
+			}, address, value);			
+		}catch(NumberFormatException exp) {
+			final Alert dia = new Alert(AlertType.ERROR);
+			dia.setTitle("錯誤！！");
+			dia.setHeaderText("輸入必須為整數");
+			dia.showAndWait();
+		}
+	}
+	public void show_Ton_pos() { show_edit_pulse("Ton+" , Ton_pos, 4); }
+	public void show_Tof_pos() { show_edit_pulse("Toff+", Tof_pos, 5); }
+	public void show_Ton_neg() { show_edit_pulse("Ton-" , Ton_neg, 6); }
+	public void show_Tof_neg() { show_edit_pulse("Toff-", Tof_neg, 7); }
+	//---------------------------------//
+		
 	private static void show_error(Token tkn) {
 		if(tkn.response[3]==0) {
 			return;
@@ -244,35 +431,6 @@ public class DevSPIK2k extends DevTTY {
 		dia.setTitle("錯誤！！");
 		dia.setHeaderText(txt);
 		dia.showAndWait();
-	}
-	
-	private static void set_txt_value(
-		final DevSPIK2k dev, 
-		final Label txt, 
-		final int addr
-	) {
-		final int _p = txt.getText().indexOf(':');
-		final String pref = txt
-			.getText()
-			.substring(0,_p);
-		
-		final TextInputDialog dd1 = new TextInputDialog();
-		dd1.setTitle("設定 "+pref);
-		dd1.setContentText("時間(us)");		
-		Optional<String> res = dd1.showAndWait();
-		if(res.isPresent()==false) {
-			return;
-		}
-		
-		try {
-			int val = Integer.valueOf(res.get());
-			dev.asyncSetRegister(tkn->show_error(tkn), addr, val);			
-		}catch(NumberFormatException exp) {
-			final Alert dia = new Alert(AlertType.ERROR);
-			dia.setTitle("錯誤！！");
-			dia.setHeaderText("輸入必須為整數");
-			dia.showAndWait();
-		}
 	}
 	
 	public static Pane genPanel(final DevSPIK2k dev) {
@@ -324,25 +482,21 @@ public class DevSPIK2k extends DevTTY {
 			txt[i].setMaxWidth(Double.MAX_VALUE);			
 			GridPane.setHgrow(txt[i], Priority.ALWAYS);
 		}
-		txt[0].setText("Ton +: ");
-		txt[0].setOnMouseClicked(e->set_txt_value(dev,txt[0],4));
-		txt[1].setText("Toff+: ");
-		txt[1].setOnMouseClicked(e->set_txt_value(dev,txt[1],5));
-		txt[2].setText("Ton -: ");
-		txt[2].setOnMouseClicked(e->set_txt_value(dev,txt[2],6));
-		txt[3].setText("Toff-: ");
-		txt[3].setOnMouseClicked(e->set_txt_value(dev,txt[3],7));
+		txt[0].textProperty().bind(dev.Ton_pos.asString("Ton+ : %3d"));
+		txt[0].setOnMouseClicked(e->dev.show_Ton_pos());
+		txt[1].textProperty().bind(dev.Tof_pos.asString("Toff+: %3d"));
+		txt[1].setOnMouseClicked(e->dev.show_Tof_pos());
+		txt[1].textProperty().bind(dev.Ton_neg.asString("Ton- : %3d"));
+		txt[2].setOnMouseClicked(e->dev.show_Ton_neg());
+		txt[2].textProperty().bind(dev.Tof_neg.asString("Toff-: %3d"));
+		txt[3].setOnMouseClicked(e->dev.show_Tof_neg());
 
-		//final AnimationTimer wait_device = new AnimationTimer() {
-		//};
-		//-------------------------------------//
-		
 		JFXButton btn_test = new JFXButton();
 		btn_test.setMaxWidth(Double.MAX_VALUE);
 		btn_test.getStyleClass().add("btn-raised-1");
-		btn_test.setOnAction(e->{
-			dev.asyncGetRegister(null,4, 4);
-		});
+		//btn_test.setOnAction(e->{
+		//	dev.asyncGetRegister(null,4, 4);
+		//});
 		
 		final GridPane lay1 = new GridPane();
 		lay1.getStyleClass().addAll("box-pad-inner");

@@ -20,10 +20,7 @@ public class StepSetPulse extends Bumper {
 	private static final String TAG3 = "Toff-";
 	
 	private static final String init_text = "脈衝設定";
-	
-	private Label msg1 = new Label(init_text);
-	private Label msg2 = new Label();
-	
+
 	private TextField[] args = {
 		new TextField(""),//T_on+
 		new TextField(""),//T_on-
@@ -36,8 +33,7 @@ public class StepSetPulse extends Bumper {
 	final Runnable op_3 = ()->operation(TAG2,args[2],5);
 	final Runnable op_4 = ()->operation(TAG3,args[3],7);	
 	final Runnable op_5 = ()->{
-		msg1.setText(init_text);
-		msg2.setText("");
+		show_mesg(init_text);
 		next.set(LEAD);
 	};
 	
@@ -49,34 +45,33 @@ public class StepSetPulse extends Bumper {
 		String txt = box.getText();
 		try{
 			final int value= Integer.valueOf(txt.trim());
-			msg1.setText("設定 "+name);
-			msg2.setText("");
-			wait_async();			
-			spik.asyncBreakIn(()->{
-				//TODO!!!:spik.set_register(addr, value);
-				next.set(LEAD);
-			});	
+			show_mesg("設定 "+name);
+			wait_async();
+			spik.asyncSetRegister(tkn->{				
+				notify_async();
+			}, addr, value);
 		}catch(NumberFormatException e){
-			msg1.setText("忽略 "+name);
-			msg2.setText("");
-			next.set(LEAD);
+			show_mesg("忽略 "+name);
+			next_step();
 		}
 	}
 	
 	@Override
 	public Node getContent(){
-		msg1.setPrefWidth(150);
-		msg2.setPrefWidth(150);
+		show_mesg(init_text);
+		
 		for(TextField box:args){
-			box.setMaxWidth(80);
+			box.setMaxWidth(83);
 		}
+		
 		GridPane lay = new GridPane();
 		lay.getStyleClass().addAll("box-pad");
-		lay.add(msg1, 0, 0);
-		lay.add(msg2, 0, 1);
-		lay.add(new Separator(Orientation.VERTICAL), 1, 0, 1, 4);
-		lay.addRow(0, new Label("Ton+"), args[0], new Label("Toff+"), args[2]);
-		lay.addRow(1, new Label("Ton-"), args[1], new Label("Toff-"), args[3]);
+		lay.add(msg[0], 0, 0);
+		lay.add(new Separator(Orientation.VERTICAL), 1, 0, 1, 1);
+		lay.addRow(0,			
+			new Label("Ton+"), args[0], new Label("Toff+"), args[2],
+			new Label("Ton-"), args[1], new Label("Toff-"), args[3]
+		);
 		return lay;
 	}
 	@Override

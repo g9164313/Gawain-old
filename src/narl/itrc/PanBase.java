@@ -7,6 +7,7 @@ import com.jfoenix.controls.JFXDecorator;
 import com.jfoenix.controls.JFXDialog;
 import com.jfoenix.controls.JFXSpinner;
 
+import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.concurrent.Task;
@@ -19,6 +20,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.Control;
 import javafx.scene.control.Label;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.HBox;
@@ -177,8 +179,7 @@ public abstract class PanBase {
 		void action(final Timeline ladder,final Spinner dialog);
 	};
 	
-	private final int LADDER_STEP = 900;
-	
+	private final int LADDER_STEP = 900;	
 	protected void ladderJump(final Timeline ladder,final int step) {
 		ladder.playFromStart();
 		if(step==-1) {
@@ -216,6 +217,20 @@ public abstract class PanBase {
 		dialog.show((StackPane)root());
 	}
 
+	/*public void notifyAsyncDev(
+		final Control ctrl,
+		final DevBase... dev
+	) {		
+		ctrl.setDisable(true);
+		final Timeline monitor = new Timeline();
+		monitor.setCycleCount(Animation.INDEFINITE);
+		monitor.setOnFinished(e->ctrl.setDisable(false));
+		monitor.getKeyFrames().add(new KeyFrame(
+			Duration.millis(100),event->{
+		}));		
+		monitor.stop();
+	}*/
+		
 	/**
 	 * show a spinner, let user know we are working.<p>
 	 * @param task - a working thread.<p>
@@ -226,8 +241,8 @@ public abstract class PanBase {
 	) {
 		final Spinner dlg = new Spinner();
 		dlg.mesg.textProperty().bind(task.messageProperty());
+		dlg.prog.textProperty().bind(task.progressProperty().multiply(100.f).asString("%.0f％"));		
 		dlg.prog.visibleProperty().bind(task.progressProperty().greaterThan(0.f));
-		dlg.prog.textProperty().bind(task.progressProperty().multiply(100.f).asString("%.0f％"));
 		//override old handler~~~
 		final EventHandler<WorkerStateEvent> user_hook = task.getOnSucceeded();
 		task.setOnSucceeded(e->{

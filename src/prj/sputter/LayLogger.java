@@ -23,6 +23,7 @@ import com.jfoenix.controls.JFXRadioButton;
 import eu.hansolo.tilesfx.Tile;
 import eu.hansolo.tilesfx.TileBuilder;
 import eu.hansolo.tilesfx.Tile.SkinType;
+import eu.hansolo.tilesfx.Tile.TextSize;
 import javafx.concurrent.Task;
 import javafx.scene.Node;
 import javafx.scene.control.ToggleGroup;
@@ -30,6 +31,7 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.stage.FileChooser;
 import narl.itrc.Gawain;
@@ -399,6 +401,7 @@ public class LayLogger extends BorderPane {
 		//gauge for DCG-100
 		gag[0] = TileBuilder.create()
 			.skinType(SkinType.SPARK_LINE)
+			.textSize(TextSize.BIGGER)
 			.title("電壓")
 			.unit("Volt")
 			.maxValue(1000)			
@@ -411,6 +414,7 @@ public class LayLogger extends BorderPane {
 			.title("電流")			
 			.unit("Amp")
 			.maxValue(10)
+			.textSize(TextSize.BIGGER)
 			.build();
 		gag[1].setDecimals(2);
 		gag[1].setId("g_amps");
@@ -419,53 +423,62 @@ public class LayLogger extends BorderPane {
 			.skinType(SkinType.SPARK_LINE)
 			.title("功率")			
 			.unit("Watt")
-			.maxValue(5000)				
+			.maxValue(5000)
+			.textSize(TextSize.BIGGER)
 			.build();
 		gag[2].setId("g_watt");
 					
 		gag[3] = TileBuilder.create()
 			.skinType(SkinType.SPARK_LINE)
-			.title("焦耳")			
-			.unit("Joules")
-			.maxValue(5000)			
+			.title("電弧")			
+			.unit("次數")
+			.maxValue(1000)
+			.textSize(TextSize.BIGGER)
 			.build();
-		gag[3].setId("g_joul");
+		gag[3].setId("g_arcount");
 				
 		//gauge for SQM-160
 		gag[4] = TileBuilder.create()			
-			.skinType(SkinType.GAUGE)
-			.title("薄膜速率")	
+			.skinType(SkinType.SPARK_LINE)
+			.title("薄膜速率")
+			.textSize(TextSize.BIGGER)
 			.build();
 		gag[4].setDecimals(3);
 		gag[4].setId("g_rate");
-			
+		
 		gag[5] = TileBuilder.create()
 			.skinType(SkinType.GAUGE)
 			.title("薄膜厚度")
+			.textSize(TextSize.BIGGER)
 			.build();
 		gag[5].setDecimals(3);
 		gag[5].setId("g_high");
 		gag_thick = Optional.of(gag[5]);
 		
 		gag[6] = TileBuilder.create()
-			.skinType(SkinType.SPARK_LINE)
-			.title("Ar")
+			.skinType(SkinType.GAUGE)			
+			.title("Ar")			
 			.unit("SCCM")
+			.textSize(TextSize.BIGGER)
 			.build();
 		gag[6].setDecimals(2);
+		
 		gag[7] = TileBuilder.create()
-			.skinType(SkinType.SPARK_LINE)
-			.title("O2")
+			.skinType(SkinType.GAUGE)
+			.title("O2")			
 			.unit("SCCM")
+			.textSize(TextSize.BIGGER)
 			.build();
 		gag[7].setDecimals(2);
+		
 		gag[8] = TileBuilder.create()
-			.skinType(SkinType.SPARK_LINE)
+			.skinType(SkinType.GAUGE)
 			.title("N2")
 			.unit("SCCM")
+			.textSize(TextSize.BIGGER)
 			.build();
 		gag[8].setDecimals(2);
-
+		
 		/*gag[9] = TileBuilder.create()
 			.skinType(SkinType.SPARK_LINE)
 			.title("ARC")
@@ -474,14 +487,16 @@ public class LayLogger extends BorderPane {
 		gag[9].setId("spik_arc");*/
 			
 		for(Tile obj:gag) {
-			obj.setMaxSize(178.,178.);
+			obj.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+			GridPane.setHgrow(obj, Priority.ALWAYS);
+			GridPane.setVgrow(obj, Priority.ALWAYS);
 		}
+		
 		final GridPane lay = new GridPane();
 		lay.getStyleClass().addAll("box-pad");
 		lay.addRow(0, gag[0],gag[1],gag[2]);
 		lay.addRow(1, gag[3],gag[4],gag[5]);
-		lay.addRow(2, gag[6],gag[7],gag[8]);
-		//lay.addRow(3, gag[9]);
+		lay.addRow(2, gag[6],gag[7],gag[8]);		
 		return lay;
 	}
 	
@@ -489,7 +504,9 @@ public class LayLogger extends BorderPane {
 		gag[0].valueProperty().bind(dev.volt);
 		gag[1].valueProperty().bind(dev.amps);
 		gag[2].valueProperty().bind(dev.watt);
-		gag[3].valueProperty().bind(dev.joul);
+	}
+	public void bindProperty(final DevSPIK2k dev) {		
+		gag[3].valueProperty().bind(dev.ARC_count);
 	}
 	public void bindProperty(final DevSQM160 dev) {
 		
