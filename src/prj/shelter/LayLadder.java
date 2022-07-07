@@ -11,10 +11,8 @@ import java.util.Date;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellReference;
 
-import com.jfoenix.controls.JFXCheckBox;
 import com.sun.glass.ui.Application;
 
-import javafx.beans.property.StringProperty;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.geometry.Orientation;
@@ -23,150 +21,113 @@ import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
 import javafx.scene.layout.GridPane;
 import narl.itrc.Ladder;
+import narl.itrc.Misc;
 import narl.itrc.PanBase;
 import narl.itrc.Stepper;
 
 public class LayLadder extends Ladder {
 	
-	private static DevHustIO hustio;
-	private static DevAT5350 at5350;
-	private static LayAbacus abacus;
+	//private static StringProperty txt_press, txt_humid, txt_celus;
 	
-	private static StringProperty txt_press, txt_humid, txt_celus;
-	
-	public LayLadder(
-		final DevHustIO dev1,
-		final DevAT5350 dev2,
-		final DevCDR06  dev3,
-		final LayAbacus lay1
-	){
-		hustio = dev1;
-		at5350 = dev2;
-
-		txt_press = dev3.getPropPression();
-		txt_humid = dev3.getPropHumidity();
-		txt_celus = dev3.getPropCelsius();
-		
-		abacus= lay1;
-
+	public LayLadder(final LayAbacus lay1){
 		addStep("分隔線", Stepper.Sticker.class);
-		addStep("原點。補償", StepZeros.class);
-		addStep("sweeper", StepSweeper.class);
-		addStep("夾極劑量", StepSweeper.class);
-		//addStep("定點照射", StepRadiate.class,dev1);
-		//addStep("輻射測量", StepMeasure.class,dev1,dev2,dev3);
-		//addStep("劑量  校正", StepCalibrate.class,dev1,dev2,dev3);
+		addStep("原點補償", RadiateStep.Reset.class);
+		addStep(RadiateLoca.NAME, RadiateLoca.class);
+		addStep(RadiateDose.NAME, RadiateDose.class);
+		genButton("校正程序",e->{
+			Stepper stp;
+			for(DevHustIO.Strength ss:DevHustIO.Strength.values()) {
+				
+				stp = genStep(Stepper.Sticker.class);
+				((Stepper.Sticker)stp).setValues("[  校正"+ss.toString()+"  ]");
+				
+				for(String loca:def_location) {
+					stp = genStep(RadiateLoca.class);
+					((RadiateLoca)stp).setValues(loca, "06:00", ss, true, true);
+				}
+				for(String dose:def_doserate(ss)) {
+					stp = genStep(RadiateDose.class);
+					((RadiateDose)stp).setValues(dose, "06:00", ss, true, true, true);
+				}
+			}			
+		});		
+	}
+	
+	private final static String[] def_location = {
+		"50cm", "150cm", "250cm", "350cm", "450cm",
+	};
+	private final static String[] gen_doserate(String... values) {
+		String[] lst = new String[values.length*2];
+		for(int i=0; i<values.length; i++) {
+			final float vv = Float.valueOf(values[i]);
+			final float dd = vv * 0.03f;
+			float up = dd*1.7f;
+			float dw = dd*0.4f;
+			if(up<2f) { up = 2f; }//修正最小的邊界
+			if(dw<1f) {	dw = 1f; }
+			lst[i*2+0] = String.format("%d uSv/hr", (int)(vv+up)); 
+			lst[i*2+1] = String.format("%d uSv/hr", (int)(vv-dw));
+			//Misc.logv("%s ~ %s ~ %s", lst[i*2+0], values[i], lst[i*2+1]);
+		}
+		return lst;
+	}
+	private final static String[] def_doserate(DevHustIO.Strength ss) {
+		String[] lst = null;
+		switch(ss) {		
+		//case V_005Ci: lst = def_dose_low; break;
+		//case V_05Ci : lst = def_dose_middle; break;
+		//case V_3Ci  : lst = def_dose_high; break;
+		default:
+		case V_3Ci  : lst = gen_doserate(
+			"10000","8000","5000","4000","2000",
+			 "1000", "800", "500", "400"
+			 ); break;
+		case V_05Ci : lst = gen_doserate(
+			"1000","800","500","400","200",
+			 "100", "80", "50", "40"
+			 ); break;
+		case V_005Ci: lst = gen_doserate(
+			"100","80","50","40","25","20","10","5"
+			); break;
+		}
+		return lst;
 	}
 	//----------------------------------//
 	
-	public static class StepZeros extends Stepper {
-		public StepZeros() {
-			set(op_1);
+	@Override
+	protected void import_step(){
+		PanBase pan = PanBase.self(this);
+		mark_src = pan.loadFrom();
+		if(mark_src==null){
+			return;
 		}
-		final Label title = new Label();
-		final Label inform= new Label();
-		final JFXCheckBox chk1 = new JFXCheckBox("HustIO 原點");
-		final JFXCheckBox chk2 = new JFXCheckBox("AT5350  補償");
-		
-		final Runnable op_1 = ()->{
-			if(chk1.isSelected()==true) {
-				hustio.asyncMoveTo("");
-			}
-			next_step();
-			//hold_step();
+		/*Alert dlg = new Alert(AlertType.CONFIRMATION);
+		dlg.setTitle("確認");
+		dlg.setHeaderText("使用前次校正值？");
+		//dlg.setContentText("Are you ok with this?");
+		ButtonType[] btn = {
+			new ButtonType("是"),
+			new ButtonType("否"),
 		};
-		final Runnable op_2 = ()->{
-			if(chk1.isSelected() && hustio.isMoving()) {
-				hold_step();
-			}else {
-				next_step();
-			}
-		};
-		final Runnable op_3 = ()->{
-			if(chk2.isSelected()==true) {
-			}
-			next_step();
-		};
-		final Runnable op_4 = ()->{
-			if(chk2.isSelected()==true) {
-				//check at5350 state~~~~
-				hold_step();
-			}else {
-				next_step();
-			}
-		};
-		@Override
-		public Node getContent() {
-			chk1.setSelected(true);
-			chk2.setSelected(true);
-			
-			final GridPane lay = new GridPane();
-			lay.getStyleClass().addAll("box-pad","font-console");
-			lay.addColumn(0,title,inform);
-			lay.add(new Separator(Orientation.VERTICAL), 1, 0, 1, 2);
-			lay.addColumn(2,chk1,chk2);
-			return null;
+		dlg.getButtonTypes().setAll(btn);
+		Optional<ButtonType> res = dlg.showAndWait();
+		if(res.isPresent()==false){
+			return;
+		}*/
+		//mark_data = new File("C:\\Users\\qq\\mark-2017.xls");//debug~~~
+		pan.notifyTask(new TskImport());
+	}
+	
+	@Override
+	protected void export_step(){
+		//mark_data = new File("C:\\Users\\qq\\mark-2017.xls");//debug~~
+		if(mark_src==null){
+			PanBase.notifyWarning("", "請先匯入表格!!");
+			return;
 		}
-		@Override
-		public void eventEdit() {
-		}
-
-		@Override
-		public String flatten() {
-			return "";
-		}
-		@Override
-		public void expand(String txt) {
-		}
+		PanBase.self(this).notifyTask(new TskExport());
 	}
 	//----------------------------------//
-	
-	public static class StepSweeper extends Stepper {
-		public StepSweeper() {
-			
-		}
-		
-		@Override
-		public Node getContent() {
-			GridPane lay = new GridPane();
-			return lay;
-		}
-		@Override
-		public void eventEdit() {
-		}
-		
-		@Override
-		public String flatten() {
-			return "";
-		}
-		@Override
-		public void expand(String txt) {
-		}
-	};
-	//----------------------------------//
-	
-	public static class StepSandwitch extends Stepper {
-		public StepSandwitch() {	
-		}
-		
-		@Override
-		public Node getContent() {
-			return null;
-		}
-		@Override
-		public void eventEdit() {
-		}
-
-		@Override
-		public String flatten() {
-			return "";
-		}
-		@Override
-		public void expand(String txt) {
-		}
-	};
-	//----------------------------------//
-	
 	
 	/**
 	 * 現在數值跟衰減後數值，兩兩一組<p>
@@ -435,38 +396,4 @@ public class LayLadder extends Ladder {
 			}
 		}
 	};
-
-	@Override
-	protected void import_step(){
-		PanBase pan = PanBase.self(this);
-		mark_src = pan.loadFrom();
-		if(mark_src==null){
-			return;
-		}
-		/*Alert dlg = new Alert(AlertType.CONFIRMATION);
-		dlg.setTitle("確認");
-		dlg.setHeaderText("使用前次校正值？");
-		//dlg.setContentText("Are you ok with this?");
-		ButtonType[] btn = {
-			new ButtonType("是"),
-			new ButtonType("否"),
-		};
-		dlg.getButtonTypes().setAll(btn);
-		Optional<ButtonType> res = dlg.showAndWait();
-		if(res.isPresent()==false){
-			return;
-		}*/
-		//mark_data = new File("C:\\Users\\qq\\mark-2017.xls");//debug~~~
-		pan.notifyTask(new TskImport());
-	}
-	
-	@Override
-	protected void export_step(){
-		//mark_data = new File("C:\\Users\\qq\\mark-2017.xls");//debug~~
-		if(mark_src==null){
-			PanBase.notifyWarning("", "請先匯入表格!!");
-			return;
-		}
-		PanBase.self(this).notifyTask(new TskExport());
-	}
 }

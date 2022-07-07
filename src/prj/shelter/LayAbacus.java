@@ -1,59 +1,49 @@
 package prj.shelter;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.Serializable;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import org.apache.commons.math3.analysis.ParametricUnivariateFunction;
 import org.apache.commons.math3.fitting.SimpleCurveFitter;
 import org.apache.commons.math3.fitting.WeightedObservedPoints;
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.DataFormatter;
-import org.apache.poi.ss.usermodel.FormulaEvaluator;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.ss.usermodel.WorkbookFactory;
-import org.apache.poi.ss.util.CellReference;
 
 import com.jfoenix.controls.JFXButton;
-import com.jfoenix.controls.JFXComboBox;
 import com.jfoenix.controls.JFXDatePicker;
+import com.jfoenix.controls.JFXRadioButton;
 
-import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.ReadOnlyObjectProperty;
-import javafx.beans.property.SimpleObjectProperty;
-import javafx.beans.property.StringProperty;
-import javafx.collections.ObservableList;
-import javafx.concurrent.Task;
+import javafx.geometry.Orientation;
 import javafx.scene.control.Label;
+import javafx.scene.control.Separator;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.control.TextField;
+import javafx.scene.control.ToggleGroup;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
 import narl.itrc.Gawain;
-import narl.itrc.PanBase;
+import narl.itrc.Misc;
 import narl.itrc.UtilPhysical;
-import prj.shelter.DevHustIO.Activity;
+import prj.shelter.DevHustIO.Strength;
 
 public class LayAbacus extends BorderPane
 {
-	private final static DateTimeFormatter fmt_day = DateTimeFormatter.ofPattern("yyyy/MM/dd");
-	
-	private final static DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
+	//private final static DateTimeFormatter fmt_day = DateTimeFormatter.ofPattern("yyyy/MM/dd");
+	//private final static DateTimeFormatter fmt_time= DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
 	
 	public static class Mark implements Serializable {
 		static final long serialVersionUID = 6061524050057088702L;
-		final LocalDateTime date;
+		
+		final LocalDateTime time;
 		final String loca;//HusiIO載台位置
-		final String meas;//AT5350測量結果	
+		final String meas;//AT5350測量結果
+		
 		public Mark(
 			final String location, 
 			final String measurement
@@ -65,7 +55,7 @@ public class LayAbacus extends BorderPane
 			final String location, 
 			final String measurement
 		) {
-			date = markday_sec;
+			time = markday_sec;
 			loca = location;
 			meas = measurement;
 		}
@@ -76,33 +66,56 @@ public class LayAbacus extends BorderPane
 			if(meas.length()==0) {
 				return 0f;
 			}
+			SummaryStatistics ss = get_summary(unit);
+			return ss.getMean();
+		}
+		
+		public String getLocation() {
+			return loca;
+		}
+		public String getAvgDose() {
+			SummaryStatistics ss = get_summary(MODEL_DOSE_UNIT);
+			return String.format("%.2f", ss.getMean());
+		}
+		public String getStdDev() {
+			SummaryStatistics ss = get_summary(MODEL_DOSE_UNIT);
+			return String.format("%.5f", ss.getStandardDeviation());
+		}
+		public String getStamp() { 
+			return time.toString();
+		}
+		
+		private SummaryStatistics get_summary(final String unit) {
 			SummaryStatistics ss = new SummaryStatistics();
-			for(String itm:meas.split(",")) {
+			for(String itm:meas.split(",")) {				
+				final int pos = itm.indexOf("#");
+				if(pos>=0) {
+					itm = itm.substring(0,pos);
+				}
+				itm = itm.replace('"',' ').trim();
+				
 				String txt = UtilPhysical.convertScale(itm,unit);
 				if(txt.length()==0) {
 					continue;
 				}
 				ss.addValue(Float.valueOf(txt));
 			}
-			return ss.getMean();
-		}
+			return ss;			
+		}		
 	};
-	
+		
 	public static class Model extends ArrayList<Mark> 
 		implements Serializable, ParametricUnivariateFunction
 	{
 		static final long serialVersionUID = 7859312449362122438L;
 		
-		public static final String LOCA_UNIT = "cm";
-		public static final String DOSE_UNIT = "μSv/hr";
-
 		//Casium-137 --> 30.17 year --> 952 Msec
 		//see WIKI: radioactive nuclides by half-life
 		private long half_life_nuclide = 952000000;//unit is second
-				
-		public LocalDate last_mark_day = LocalDate.now(); 
 		
-		private double getDecay(
+		private LocalDateTime endof = LocalDateTime.now();
+		
+		private double calculate_decay(
 			final LocalDateTime start,
 			final LocalDateTime endof
 		) {
@@ -113,23 +126,21 @@ public class LayAbacus extends BorderPane
 			return Math.exp((-0.693*elapse)/half_life_nuclide);
 		}
 		
-		public Model fitting() {
-			return fitting(LocalDateTime.now());
+		public Model fitting(final LocalDateTime current) {
+			endof =current;//change end of time~~
+			return fitting();
 		}
-		public Model fitting(final LocalDateTime endof) {
-			
+		public Model fitting() {
 			final WeightedObservedPoints obv = new WeightedObservedPoints();			
-			for(Mark mm:this) {
-				final LocalDate day = mm.date.toLocalDate();
-				if(day.isBefore(last_mark_day)==true) {
-					last_mark_day = day;
-				}				
-				double decay = getDecay(mm.date,endof);//RADIOACTIVE DECAY EQUATION				
-				double xx = mm.getX(LOCA_UNIT);
-				double yy = mm.getY(DOSE_UNIT) * decay; 
+			for(Mark mm:this) {				
+				double dd = calculate_decay(mm.time,endof);//RADIOACTIVE DECAY EQUATION				
+				double xx = mm.getX(MODEL_LOCA_UNIT);
+				double yy = mm.getY(MODEL_DOSE_UNIT) * dd; 
 				obv.add(xx, yy);
 			}
-			
+			if(size()<=2) {
+				return this;
+			}
 			double[] starter = {1, 1, 1, 1};		
 			coeff = SimpleCurveFitter
 				.create(this, starter)
@@ -137,99 +148,25 @@ public class LayAbacus extends BorderPane
 			return this;
 		}
 		
-		public Description[] getLocaDesc(double... loca) {
-			ArrayList<Description> lst = new ArrayList<Description>();
-			for(int i=0; i<loca.length; i++) {
-				final double xx = loca[i];
-				final double yy = getDose(xx);
-				if(Double.isNaN(xx)==true) {
-					continue;
-				}
-				final Description obj = new Description();
-				obj.loca = String.format("%8.2f", xx);
-				obj.dose = String.format("%8.2f", yy);
-				lst.add(obj); 
-			}
-			return lst.toArray(new Description[0]);
-		}
-		public Description[] getDoseDesc(double... dose) {
-			ArrayList<Description> lst = new ArrayList<Description>();
-			for(int i=0; i<dose.length; i++) {
-				final double yy = dose[i];
-				final double xx = getLoca(yy);
-				if(Double.isNaN(xx)==true) {
-					continue;
-				}
-				final Description obj = new Description();
-				obj.loca = String.format("%8.2f", xx);
-				obj.dose = String.format("%8.2f", yy);
-				lst.add(obj); 
-			}
-			return lst.toArray(new Description[0]);
-		}
-		public Description[] getMarkDesc() {
-			
-			Description[] lst = new Description[size()];
-
-			for(int i=0; i<size(); i++) {
-				final Mark mark = get(i);
-				
-				final SummaryStatistics ss = new SummaryStatistics();
-				for(String itm:mark.meas.split(",")) {
-					String txt = UtilPhysical.convertScale(itm,"uSv/hr");
-					if(txt.length()==0) {
-						continue;
-					}
-					ss.addValue(Double.valueOf(txt));
-				}
-				
-				final Description obj = new Description();
-				obj.loca= UtilPhysical.convertScale(mark.loca,"cm");
-				obj.dose= String.format("%8.2f", ss.getMean());
-				obj.dev = String.format("%8.2f", ss.getStandardDeviation());
-				obj.stmp= dtf.format(mark.date);
-				lst[i] = obj; 
-			}
-			return lst;
-		}
-		
 		private double[] coeff;
 
 		public double getDose(double loca) {
 			if(coeff==null) { return -1.; }
-			return value(loca,coeff[0],coeff[1],coeff[2],coeff[3]);
+			return value(loca,coeff);
 		}
-		public double[] getDose(double[] loca) {
-			double[] v = new double[loca.length];
-			for(int i=0; i<loca.length; i++) {
-				if(coeff==null) {
-					v[i] = -1.;
-				}else {
-					v[i] = value(loca[i],coeff[0],coeff[1],coeff[2],coeff[3]);
-				}
-			}
-			return v;
-		}
-	
 		public double getLoca(double dose) {
+			if(coeff==null) { return -1.; }
 			return inv_value(dose);
 		}
-		public double[] getLoca(double[] dose) {
-			double[] v = new double[dose.length];
-			for(int i=0; i<dose.length; i++) {
-				v[i] = inv_value(dose[i]);
-			}
-			return v;
-		}
 		
-		public double inv_value(double y) {
-			if(coeff==null) { return -1.; }
-			final double a = coeff[0];
-			final double b = coeff[1];
-			final double c = coeff[2];
-			final double d = coeff[3];
+		public double inv_value(double y, double... parameters) {
+			// 4PL - inverse function
+			final double a = parameters[0];
+			final double b = parameters[1];
+			final double c = parameters[2];
+			final double d = parameters[3];
 			return c * Math.pow(((a-d)/(y-d))-1.,1./b);
-		}		
+		}
 		@Override
 		public double value(double x, double... parameters) {
 			// 4PL - module function
@@ -242,6 +179,7 @@ public class LayAbacus extends BorderPane
 		@Override
 		public double[] gradient(double x, double... parameters) {
 			// 4PL - model partial derivative
+			//see: https://www.numberempire.com/derivativecalculator.php
 			final double a = parameters[0];
 			final double b = parameters[1];
 			final double c = parameters[2];
@@ -257,243 +195,203 @@ public class LayAbacus extends BorderPane
 		}
 	};
 	
-	public static class Description {
-		String stmp="----";
-		String loca="0.", dose="0.", decay="0."; 
-		String dev ="----", min="----", max="----";		
-		public String getLocation() { return loca; }
-		public String getDoseRate() { return dose; }
-		public String getYearDecay() { return decay; }
-		public String getDeviation(){ return dev; }
-		public String getMinimum()  { return min; }
-		public String getMaximum()  { return max; }
-		public String getTimeStamp()  { return stmp; }
+	private HashMap<Strength,Model> mmap = new HashMap<Strength,Model>();
+	
+	public static final String MODEL_LOCA_UNIT = "cm";
+	public static final String MODEL_DOSE_UNIT = "μSv/hr";
+	public static final String MODEL_NAME = "radiation-model.obj";
+	
+	@SuppressWarnings("unchecked")
+	public void reloadLast() {
+		final String path = Gawain.getSockPath();
+		final File fs = new File(path+MODEL_NAME);
+		if(fs.exists()==true) {
+			mmap = (HashMap<Strength, Model>)Misc.deserializeFile(fs);
+		}else {
+			//empty model~~~~
+			mmap.put(Strength.V_005Ci, new Model());
+			mmap.put(Strength.V_05Ci , new Model());
+			mmap.put(Strength.V_3Ci  , new Model());
+		}
+		mmap.forEach((ss,mm)->mm.fitting());
+	}
+	
+	public String predictDoseRate(final Strength ss,final String location) {
+		final Model mm = mmap.get(ss);
+		if(mm==null) { return ""; }
+		final double loca = UtilPhysical.convert(location, MODEL_LOCA_UNIT);
+		final double dose = mm.getDose(loca);
+		return String.format("%.3f %s", dose, MODEL_DOSE_UNIT);
+	};	
+	public String predictLocation(final Strength ss,final String doseRate) {
+		final Model mm = mmap.get(ss);
+		if(mm==null) { return ""; }
+		final double dose = UtilPhysical.convert(doseRate, MODEL_DOSE_UNIT);
+		final double loca = mm.getLoca(dose);
+		return String.format("%.3f %s", loca, MODEL_LOCA_UNIT);
 	};
-	
-	private Model[] model = {
-		null, null, null	
-	};//3Ci, 0.5Ci, 0.05Ci
-	
-	public String predict_loca(
-		final double dose,
-		final SimpleObjectProperty<Activity> activity
+	public void addMark(
+		final Strength ss,
+		final String loca, 
+		final String meas
 	) {
-		double[] loca = {
-			model[0].getLoca(dose),
-			model[1].getLoca(dose),
-			model[2].getLoca(dose),
-		};
-		double tmp = Double.MIN_VALUE;
-		int idx = -1;
-		for(int i=0; i<loca.length; i++) {
-			if(Double.isNaN(loca[i])==true) {
+		final Model mm = mmap.get(ss);
+		if(mm==null) { return; }
+		mm.add(new Mark(loca,meas));
+		mm.fitting();
+	}
+	public void clearAllMark() {
+		mmap.forEach((ss,mm)->mm.clear());		
+	}
+	//----------------------------------------------------
+	
+	/*public Description[] getLocaDesc(double... loca) {
+	ArrayList<Description> lst = new ArrayList<Description>();
+	for(int i=0; i<loca.length; i++) {
+		final double xx = loca[i];
+		final double yy = getDose(xx);
+		if(Double.isNaN(xx)==true) {
+			continue;
+		}
+		final Description obj = new Description();
+		obj.loca = String.format("%8.2f", xx);
+		obj.dose = String.format("%8.2f", yy);
+		lst.add(obj); 
+	}
+	return lst.toArray(new Description[0]);
+}
+public Description[] getDoseDesc(double... dose) {
+	ArrayList<Description> lst = new ArrayList<Description>();
+	for(int i=0; i<dose.length; i++) {
+		final double yy = dose[i];
+		final double xx = getLoca(yy);
+		if(Double.isNaN(xx)==true) {
+			continue;
+		}
+		final Description obj = new Description();
+		obj.loca = String.format("%8.2f", xx);
+		obj.dose = String.format("%8.2f", yy);
+		lst.add(obj); 
+	}
+	return lst.toArray(new Description[0]);
+}
+public Description[] getMarkDesc() {
+	
+	Description[] lst = new Description[size()];
+
+	for(int i=0; i<size(); i++) {
+		final Mark mark = get(i);
+		
+		final SummaryStatistics ss = new SummaryStatistics();
+		for(String itm:mark.meas.split(",")) {
+			String txt = UtilPhysical.convertScale(itm,"uSv/hr");
+			if(txt.length()==0) {
 				continue;
 			}
-			if(tmp<loca[i]) {
-				idx = i;
-				tmp= loca[i];
-			}
+			ss.addValue(Double.valueOf(txt));
 		}
-		switch(idx) {
-		case 0: activity.set(Activity.V_3Ci); break;
-		case 1: activity.set(Activity.V_05Ci); break;
-		case 2: activity.set(Activity.V_005Ci); break;
-		default: return "!!Error!!";
-		}
-		return String.format(
-			"%.2f %s", 
-			loca[idx], Model.LOCA_UNIT
-		);
-	} 
-	
-	public String predict_dose(
-		final double loca,
-		final SimpleObjectProperty<Activity> activity
-	) {
-		final Activity act = activity.get();
-		Model mm = null;
-		switch(act) {
-		case V_3Ci  : mm = model[0]; break;
-		case V_05Ci : mm = model[1]; break;
-		case V_005Ci: mm = model[2]; break;
-		default: return "!!Error!!";
-		}
-		return String.format(
-			"%.2f", 
-			mm.getDose(loca), Model.DOSE_UNIT
-		);
+		
+		final Description obj = new Description();
+		obj.loca= UtilPhysical.convertScale(mark.loca,"cm");
+		obj.dose= String.format("%8.2f", ss.getMean());
+		obj.dev = String.format("%8.2f", ss.getStandardDeviation());
+		obj.stmp= fmt_time.format(mark.date);
+		lst[i] = obj; 
 	}
+	return lst;
+}*/
 	
-	public final ObjectProperty<LocalDate> endofday;
-	private final StringProperty markofday;
-	private final ReadOnlyObjectProperty<String> showby;
-	private final ReadOnlyObjectProperty<DevHustIO.Activity> modelby;
-		
-	private void update_table() {
-		
-		lst_fore.clear();
-		lst_mark.clear();
-		
-		Model mm = null;
-		switch(modelby.get()) {
-		case V_3Ci  : mm = model[0]; break;
-		case V_05Ci : mm = model[1]; break;
-		case V_005Ci: mm = model[2]; break;
-		default: return;
-		}
-		
-		markofday.setValue(mm.last_mark_day.format(fmt_day));
-		
-		final double[] loca = {
-			0.,10.,50.,100.,
-			150.,200.,250.,
-			300.,350.,400.,
-			450.,500.	
-		};
-		final double[] dose = {
-			10000.,
-			 8000.,5000.,4000.,2500.,2000.,1000.,
-			  800., 500., 400., 250., 200., 100., 
-			   80.,  50.,  40.,  25.,  20.,  10.,
-			    5.,				
-		};
-		lst_mark.addAll(mm.getMarkDesc());
-		final String opy_showby = showby.get();
-		if(opy_showby.equals(BY_LOCA)) {			
-			lst_fore.addAll(mm.getLocaDesc(loca));
-		}else if(opy_showby.equals(BY_DOSE)) {
-			lst_fore.addAll(mm.getDoseDesc(dose));
-		}
-	}
-
-	private static final String BY_LOCA = "依位置";
-	private static final String BY_DOSE = "依劑量";
-	private static final String BY_PLOT = "圖表顯示";
-
 	public LayAbacus() {
 		
-		//final LineChart<Number,Number> cht = new LineChart<Number,Number>(
-		//	new NumberAxis(),
-		//	new NumberAxis()
-		//);
+		final TableView<Mark> tab_mark = gen_table_mark();
 		
 		final JFXDatePicker pck_endofday = new JFXDatePicker();
+
 		pck_endofday.setValue(LocalDate.now());
 		pck_endofday.setPrefWidth(160.);
 		pck_endofday.valueProperty().addListener((obv,oldVal,newVal)->{
-			final LocalDateTime day = newVal.atTime(12, 0);
-			model[0].fitting(day);
-			model[1].fitting(day);
-			model[2].fitting(day);
-			update_table();
 		});
-		endofday = pck_endofday.valueProperty();
-		
-		final JFXComboBox<String> cmb_showby = new JFXComboBox<String>();
-		cmb_showby.getItems().addAll(
-			BY_LOCA,
-			BY_DOSE,
-			BY_PLOT
-		);
-		cmb_showby.getSelectionModel().select(1);
-		cmb_showby.setOnAction(e->update_table());
-		showby = cmb_showby.getSelectionModel().selectedItemProperty();
-		
-		final JFXComboBox<DevHustIO.Activity> cmb_activity = new JFXComboBox<DevHustIO.Activity>();
-		cmb_activity.getItems().addAll(
-			DevHustIO.Activity.V_3Ci,
-			DevHustIO.Activity.V_05Ci,
-			DevHustIO.Activity.V_005Ci
-		);
-		cmb_activity.setConverter(DevHustIO.conv_activity);
-		cmb_activity.getSelectionModel().select(1);
-		cmb_activity.setOnAction(e->update_table());
-		modelby = cmb_activity.getSelectionModel().selectedItemProperty();
 
-		/*final JFXComboBox<String> cmb_doseunit = new JFXComboBox<String>();
-		cmb_doseunit.getItems().addAll(
-			Model.DOSE_UNIT
-		);
-		cmb_doseunit.getSelectionModel().select(0);		
-		cmb_doseunit.setOnAction(e->update_table());
-		dose_unit= cmb_doseunit.getSelectionModel().selectedItemProperty();*/
+		final TextField box_loca = new TextField("0 cm");
+		final TextField box_dose = new TextField("0 uSv/hr");
 		
-		final JFXButton btn = new JFXButton("test.1");
-		btn.getStyleClass().add("btn-raised-1");
-		btn.setMaxWidth(Double.MAX_VALUE);
+		final ToggleGroup grp_stng = new ToggleGroup();
+		final JFXRadioButton[] rad_stng = {
+			new JFXRadioButton("0.05Ci"),
+			new JFXRadioButton("0.5Ci"),
+			new JFXRadioButton("3Ci")			
+		};
+		rad_stng[0].setToggleGroup(grp_stng);
+		rad_stng[1].setToggleGroup(grp_stng);
+		rad_stng[2].setToggleGroup(grp_stng);		
+		rad_stng[0].setOnAction(e->update_table(Strength.V_005Ci,tab_mark));
+		rad_stng[1].setOnAction(e->update_table(Strength.V_05Ci ,tab_mark));
+		rad_stng[2].setOnAction(e->update_table(Strength.V_3Ci  ,tab_mark));
+		grp_stng.selectToggle(rad_stng[0]);
 		
-		final Label txt_markofday = new Label("＊＊＊＊＊");
-		markofday = txt_markofday.textProperty();
+		final JFXButton btn_refresh = new JFXButton("更新");
+		btn_refresh.getStyleClass().add("btn-raised-1");
+		btn_refresh.setMaxWidth(Double.MAX_VALUE);
+		btn_refresh.setMaxHeight(Double.MAX_VALUE);
 		
-		final GridPane lay_option = new GridPane();
-		lay_option.getStyleClass().addAll("box-pad","font-console");
-		lay_option.addColumn(0, new Label("標定日："), new Label("衰退至："));
-		lay_option.addColumn(1, txt_markofday, pck_endofday);
-		lay_option.addColumn(2, cmb_activity, cmb_showby);
-
-		setCenter(new HBox(
-			gen_table_marking(),
-			gen_table_forecast()			
-		));
-		setTop(lay_option);
-		//update_table();
+		final GridPane lay1 = new GridPane();
+		lay1.getStyleClass().addAll("box-pad","font-console");
+		lay1.addColumn(0,rad_stng);
+		lay1.add(new Separator(Orientation.VERTICAL), 1, 0, 1, 3);
+		lay1.addColumn(2,new Label("距離"), box_loca);
+		lay1.addColumn(3,new Label("劑量"), box_dose);
+		lay1.addColumn(4,new Label("衰退至"), pck_endofday);
+		
+		lay1.add(btn_refresh, 5, 0, 3, 3);
+		
+		setTop(lay1);
+		setCenter(tab_mark);
 	}
 	//-------------------------------//
-	
-	private ObservableList<Description> lst_fore;
-	private ObservableList<Description> lst_mark;
-	
+
 	@SuppressWarnings("unchecked")
-	private TableView<Description> gen_table_forecast() {
+	private TableView<Mark> gen_table_mark() {
 		
 		@SuppressWarnings("rawtypes")
 		final TableColumn col[] = {
-			new TableColumn<Description,String>("位置("+Model.LOCA_UNIT+")"),
-			new TableColumn<Description,String>("劑量("+Model.DOSE_UNIT+")"),
+			new TableColumn<Mark,String>("位置"),
+			new TableColumn<Mark,String>("平均劑量("+MODEL_DOSE_UNIT+")"),
+			new TableColumn<Mark,String>("標準差 σ"),
+			new TableColumn<Mark,String>("時間戳記"),
 		};
-		col[0].setMinWidth(100);
-		col[1].setMinWidth(133);
+		col[0].setMinWidth(170);
+		col[1].setMinWidth(200);
+		col[2].setMinWidth(170);
+		col[3].setMinWidth(170);
 		
-		col[0].setCellValueFactory(new PropertyValueFactory<Description,String>("Location"));
-		col[1].setCellValueFactory(new PropertyValueFactory<Description,String>("DoseRate"));
-
-		final TableView<Description> table = new TableView<Description>();
+		col[0].setCellValueFactory(new PropertyValueFactory<Mark,String>("getLocation"));
+		col[1].setCellValueFactory(new PropertyValueFactory<Mark,String>("getAvgDose"));
+		col[2].setCellValueFactory(new PropertyValueFactory<Mark,String>("getStdDev"));
+		col[3].setCellValueFactory(new PropertyValueFactory<Mark,String>("getStamp"));
+		
+		final TableView<Mark> table = new TableView<Mark>();
 		table.getStyleClass().addAll("font-console");
 		table.setEditable(false);
 		table.getColumns().addAll(col);
-		lst_fore = table.getItems();
 		return table;
 	}
-	@SuppressWarnings("unchecked")
-	private TableView<Description> gen_table_marking() {
-		
-		@SuppressWarnings("rawtypes")
-		final TableColumn col[] = {
-			new TableColumn<Description,String>("位置("+Model.LOCA_UNIT+")"),
-			new TableColumn<Description,String>("劑量("+Model.DOSE_UNIT+")"),
-			new TableColumn<Description,String>("標準差 σ"),
-			new TableColumn<Description,String>("時間戳記"),
-		};
-		col[0].setMinWidth(100);
-		col[1].setMinWidth(133);
-		col[2].setMinWidth(70);
-		col[3].setMinWidth(167);
-		
-		col[0].setCellValueFactory(new PropertyValueFactory<Description,String>("Location"));
-		col[1].setCellValueFactory(new PropertyValueFactory<Description,String>("DoseRate"));
-		col[2].setCellValueFactory(new PropertyValueFactory<Description,String>("Deviation"));
-		col[3].setCellValueFactory(new PropertyValueFactory<Description,String>("TimeStamp"));
-		
-		final TableView<Description> table = new TableView<Description>();
-		table.getStyleClass().addAll("font-console");
-		table.setEditable(false);
-		table.getColumns().addAll(col);
-		lst_mark = table.getItems();
-		return table;
-	}
+	
+	private void update_table(
+		final Strength ss,
+		final TableView<Mark> tab
+	) {
+		tab.getItems().clear();
+		final Model lst = mmap.get(ss);
+		if(lst==null) {
+			return;
+		}
+		for(Mark mm:lst) {
+			tab.getItems().add(mm);
+		}
+	}	
 	//-------------------------------//
 	
-	public void reload(final File fs) {
+	/*public void reload(final File fs) {
 		if(fs.exists()==false) {
 			return;
 		}
@@ -523,7 +421,7 @@ public class LayAbacus extends BorderPane
 				//the date of experiment~~~
 				final LocalDateTime exp_day = LocalDateTime.parse(
 					get_cell_text(sh,"D3").trim()+" 12:00:00", 
-					dtf
+					fmt_time
 				);
 				
 				Model mm = new Model();
@@ -574,11 +472,5 @@ public class LayAbacus extends BorderPane
 		};
 		tsk.setOnSucceeded(e->update_table());
 		PanBase.self(this).notifyTask("讀取 "+fs.getName(),tsk);
-	}
-	public void reload(final String name) {
-		reload(new File(name));
-	}
-	public void reloadLast() {
-		reload(Gawain.dirRoot.getAbsolutePath()+"mark-2018.xlsx");
-	}
+	}*/
 }

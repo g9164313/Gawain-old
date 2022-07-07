@@ -200,6 +200,14 @@ public class Gawain extends Application {
 	public static String getRootPath() {
 		return dirRoot.getAbsolutePath()+File.separatorChar;
 	}
+	public static String getSockPath() {
+		//old path, in home directory, named ".gawain"
+		String path = Misc.getHomePath() + ".gawain" + File.separatorChar;
+		if(new File(path).exists()==false) {
+			return getRootPath();
+		}
+		return path;
+	}
 	
 	static {
 		URI uri = null;
@@ -223,14 +231,8 @@ public class Gawain extends Application {
 		}else {
 			//Oh, debug mode, code is executed from binary-class directory
 			jarName = "";
-			if(Misc.isUnix()==true) {
-				path = System.getenv("HOME");
-			}else {
-				path = "C:"+System.getenv("HOMEPATH");
-			}
-			path = path + File.separatorChar + ".gawain" + File.separatorChar;
-			fs = new File(path);
-			if(fs.exists()==false){
+			path = Misc.getHomePath() + ".gawain" + File.separatorChar;
+			if(new File(path).exists()==false){
 				if(fs.mkdirs()==false){
 					System.err.printf("we can't create sock-->%s!!\n",path);
 					System.exit(-2);

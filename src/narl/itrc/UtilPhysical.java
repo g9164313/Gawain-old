@@ -179,7 +179,7 @@ public class UtilPhysical {
 	//test sample code
 	//String ans;
 	//ans = UtilPhysical.convert_scale("13 mm", "cm");
-	//ans = UtilPhysical.convert_scale("256  um", "mm");
+	//ans = UtilPhysical.convert_scale("256 um", "mm");
 	//ans = UtilPhysical.convert_scale("67  Pix/mm", "Pix/um");
 	//ans = UtilPhysical.convert_scale("0.256 1/um", "1/mm");
 	//ans = UtilPhysical.convert_scale("60 sec", "min", 0);

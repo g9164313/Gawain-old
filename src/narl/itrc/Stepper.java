@@ -167,15 +167,15 @@ public abstract class Stepper extends HBox {
 	protected void step_jump(final int stp) {
 		next.set((stp>0)?(SPEC_JUMP):(-SPEC_JUMP)+stp); 
 	}
-	protected void next_step(final Runnable beg,final Runnable end) {
+	protected void next_step(final Runnable from,final Runnable to__) {
 		if(works.isPresent()==false) {
 			return;
 		}
-		Runnable[] lst = works.get();
+		final Runnable[] lst = works.get();
 		int bb=0, ee=0;
 		for(int i=0; i<lst.length; i++) {
-			if(beg==lst[i]) { bb = i; }
-			if(end==lst[i]) { ee = i; }
+			if(from==lst[i]) { bb = i; }
+			if(to__==lst[i]) { ee = i; }
 		}
 		next.set(ee-bb);
 	}
@@ -333,7 +333,12 @@ public abstract class Stepper extends HBox {
 	public static String LAST_STICKER = "";
 	
 	public static class Sticker extends Stepper {
-		final Label msg = new Label();
+		private final Label msg = new Label();
+		
+		public Sticker setValues(String txt) {
+			msg.setText(txt);
+			return this;
+		}		
 		@Override
 		public Node getContent(){
 			set(()->{
@@ -345,6 +350,7 @@ public abstract class Stepper extends HBox {
 				LAST_STICKER = txt;
 				next_step();
 			});
+			msg.getStyleClass().add("font-size3");
 			Separator ss1 = new Separator();
 			Separator ss2 = new Separator();
 			HBox.setHgrow(ss1, Priority.ALWAYS);

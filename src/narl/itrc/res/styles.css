@@ -23,6 +23,20 @@
 .font-size20 {
   -fx-font-size: 2.0em;
 }
+.font-size25 {
+  -fx-font-size: 2.5em;
+}
+.font-size30 {
+  -fx-font-size: 3.0em;
+}
+.font-size40 {
+  -fx-font-size: 4.0em;
+}
+.font-size50 {
+  -fx-font-size: 5.0em;
+}
+
+
 .font-console {
   -fx-font-family: 'Consolas';
 }
@@ -72,6 +86,36 @@
   -fx-min-height: 3em;
   -fx-background-color: #64b5f6;
   -fx-text-fill: BLACK;
+}
+
+.btn-raised-10 {
+  -fx-button-type: RAISED;
+  -fx-font-size: 1.1em;
+  -fx-min-height: 1.7em;
+  -fx-border-color: BLACK;
+  -fx-text-fill: BLACK;
+}
+
+.btn-raised-11 {
+  -fx-button-type: RAISED;
+  -fx-font-size: 1.1em;
+  -fx-background-color: WHITE;
+  -fx-text-fill: BLACK;
+  -fx-border-color: BLACK;
+  -fx-border-style: solid;
+  -fx-border-radius: 13px;
+  -fx-border-width : 1.3px;
+}
+
+.red-all {
+  -fx-text-fill: RED;
+  -fx-border-color: RED;
+}
+.red-border {
+  -fx-border-color: RED;
+}
+.black-border {
+  -fx-border-color: BLACK;
 }
 
 

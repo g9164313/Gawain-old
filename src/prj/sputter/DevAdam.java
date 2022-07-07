@@ -41,7 +41,8 @@ public abstract class DevAdam extends DevTTY {
 	protected final static RangeType z150mV  = new RangeType(   0f, 150f, "mV");
 	protected final static RangeType z20mA   = new RangeType(   0f,  20f, "mA");
 	protected final static RangeType z15V    = new RangeType(   0f,  15f, "V");
-			
+	//Thermocouple~~ °C
+		
 	protected static final Misc.BiMap<String, RangeType> range_type = new Misc.BiMap<String, RangeType>().init(
 		"07",r4to20mA,	
 		"08",d10V,		
@@ -127,6 +128,9 @@ public abstract class DevAdam extends DevTTY {
 		if(cmd.endsWith("\r")==false) {
 			cmd = cmd + "\r";
 		}
+		if(port.isPresent()==false) {
+			return "?no_port";
+		}
 		final SerialPort tty = port.get();
 		if(tty.isOpened()==false) {
 			return "?"+cmd;
@@ -167,7 +171,10 @@ public abstract class DevAdam extends DevTTY {
 		public final SimpleStringProperty unit = new SimpleStringProperty("");
 		public final SimpleStringProperty title= new SimpleStringProperty("");//give default value, or it will be null!!!
 
+		public RangeType range_type;
+		
 		void set_range_type(final RangeType rt) {
+			range_type = rt;
 			final Runnable func = ()->{				
 				min.setValue(rt.min);
 				max.setValue(rt.max);

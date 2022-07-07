@@ -1,7 +1,6 @@
 package prj.shelter;
 
 import java.math.BigDecimal;
-import java.util.concurrent.TimeUnit;
 
 import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXCheckBox;
@@ -33,6 +32,7 @@ import narl.itrc.UtilPhysical;
  * @author qq
  *
  */
+@SuppressWarnings("restriction")
 public class DevHustIO extends DevTTY {
 	
 	private final byte NUL = 0;
@@ -44,7 +44,7 @@ public class DevHustIO extends DevTTY {
 	private final byte PER = 37;//'%', percent
 	
 	public DevHustIO(){
-		TAG = "Hust-IO";
+		TAG = "HUSTIO";
 	}
 	@Override
 	public void afterOpen() {
@@ -61,7 +61,8 @@ public class DevHustIO extends DevTTY {
 	
 	private void looper() {
 		try {
-			parse_report(make_report());
+			final String txt = make_report();
+			parse_report(txt);
 		} catch (SerialPortException e) {
 			Misc.loge("[%s] make report - %s", TAG, e.getMessage());
 		}
@@ -76,12 +77,10 @@ public class DevHustIO extends DevTTY {
 		char cc;
 		do{
 			cc = (char)dev.readBytes(1)[0];
-			if(cc==NUL){
+			if(cc==NUL || cc==DC4){
 				continue;
 			}else if(cc==DC2){
 				break;
-			}else if(cc==DC4){
-				continue;
 			}			
 		}while(true);
 		String txt = "";
@@ -112,6 +111,7 @@ public class DevHustIO extends DevTTY {
 	private long left_time_start = -1L;//unit is millisecond
 	private long left_time_count = -1L;//unit is millisecond
 	private long left_time_total = -1L;//unit is millisecond
+	
 	private boolean radiate, move_on;
 	
 	private void parse_report(final String report){
@@ -136,21 +136,16 @@ public class DevHustIO extends DevTTY {
 		move_on = (h_val.charAt(2)=='?')?(true):(false);
 		
 		if(radiate==true) {
-			if(left_time_start<0L) {
-				left_time_start = System.currentTimeMillis();
-				left_time_count = 0L;
-			}else if(left_time_count>0L){
-				left_time_count = System.currentTimeMillis() - left_time_start;
+			if(left_time_start>=0L) {
+				left_time_count = System.currentTimeMillis() - left_time_start;				
+			}
+			if(left_time_total>=0L) {
 				if(left_time_count>=left_time_total) {
 					stop_radiaton();
 				}
 			}
-		}else{
-			//for next turn~~~
-			left_time_start = -1L;
-			left_time_count = -1L;
 		}
-
+		
 		Application.invokeLater(()->{
 			
 			H_code.setValue(h_val);
@@ -162,21 +157,18 @@ public class DevHustIO extends DevTTY {
 			isMoving.setValue(move_on);
 			
 			BigDecimal u_dec = new BigDecimal(u_val);
-			int pp = u_dec.precision();//digital的數量
-			int ss = u_dec.scale();//多少 digital在逗點右邊
+			final int pp = u_dec.precision();//digital的數量
+			final int ss = u_dec.scale();//多少 digital在逗點右邊
 			if((pp-ss)>=2) {
 				u_dec = u_dec.movePointLeft(1);
 				locationText.set(u_dec.toString()+" cm");
 			}else {
 				locationText.set(u_val+" mm");
 			}
-			if(left_time_count>=0L) {
-				leftTimeText.set(Misc.tick2text(
-					Math.abs(left_time_count - left_time_total),
-					false,
-					3
-				));
-			}
+			leftTimeText.set(Misc.tick2text(
+				left_time_count,
+				false, 3
+			));
 		});
 	}
 	
@@ -200,18 +192,19 @@ public class DevHustIO extends DevTTY {
 		}
 	}
 			
-	private void make_radiaton(final Activity act) {
+	private void make_radiaton(final Strength act) {
 		switch(act) {
 		case V_3Ci  : exec("O9000","N0000111","M03"); break;
 		case V_05Ci : exec("O9000","N0000111","M04"); break;
 		case V_005Ci: exec("O9000","N0000111","M05"); break;
 		}
 		exec("O9005","N10000000");
+		left_time_start = System.currentTimeMillis();
 	}
 	private void stop_radiaton() {		
 		exec("O9005","N01000000");
 		left_time_start = -1L;
-		left_time_count = -1L;
+		left_time_total = -1L;
 	}
 	
 	/**
@@ -250,21 +243,19 @@ public class DevHustIO extends DevTTY {
 	}
 	//-------------------------------------------//
 
-	public static enum Activity {
-		
-		V_3Ci,V_05Ci,V_005Ci;
-		
+	public static enum Strength {
+		V_005Ci,V_05Ci,V_3Ci;
 		public String toString() {
 			return conv_activity.toString(this);
 		}
 	};
 
-	public static StringConverter<DevHustIO.Activity> conv_activity = new StringConverter<DevHustIO.Activity>() {
+	public static StringConverter<DevHustIO.Strength> conv_activity = new StringConverter<DevHustIO.Strength>() {
 		final String TXT_3Ci  = "3 Ci";
 		final String TXT_05Ci = "0.5 Ci";
 		final String TXT_005Ci= "0.05 Ci";
 		@Override
-		public String toString(Activity act) {
+		public String toString(Strength act) {
 			switch(act) {
 			case V_3Ci  : return TXT_3Ci;
 			case V_05Ci : return TXT_05Ci;
@@ -273,42 +264,51 @@ public class DevHustIO extends DevTTY {
 			return "???";
 		}
 		@Override
-		public Activity fromString(String txt) {
+		public Strength fromString(String txt) {
 			if(txt.equals(TXT_3Ci)==true) {
-				return DevHustIO.Activity.V_3Ci;
+				return DevHustIO.Strength.V_3Ci;
 			}else if(txt.equals(TXT_05Ci)==true) {
-				return DevHustIO.Activity.V_05Ci;
+				return DevHustIO.Strength.V_05Ci;
 			}else if(txt.equals(TXT_005Ci)==true) {
-				return DevHustIO.Activity.V_005Ci;
+				return DevHustIO.Strength.V_005Ci;
 			}
-			return DevHustIO.Activity.V_005Ci;
+			return DevHustIO.Strength.V_005Ci;
 		}
 	};
 	
-	public final SimpleObjectProperty<Activity> activity = new SimpleObjectProperty<Activity>(Activity.V_005Ci);
-
-	public void asyncRadite(
-		final Activity act_value,
-		final long left_time
-	){
-		if(isRadiant.get()==true) {
-			return;
-		}	
-		asyncRadite(left_time);
+	public final SimpleObjectProperty<Strength> activity = new SimpleObjectProperty<Strength>(Strength.V_005Ci);
+	
+	public DevHustIO setLeftTime(final long left_time) {
+		left_time_total = left_time;
+		return this;
 	}
-	public void asyncRadite(
+	public long getLeftCount() {
+		return left_time_count;
+	}
+	
+	public void asyncRadiation(
+		final Strength act_value,
 		final long left_time
 	){
 		if(isRadiant.get()==true) {
 			return;
 		}
-		final Activity act_value = activity.get();
+		activity.set(act_value);
+		asyncRadiation(left_time);
+	}
+	public void asyncRadiation(
+		final long left_time
+	){
+		if(isRadiant.get()==true) {
+			return;
+		}
+		final Strength act_value = activity.get();
 		asyncBreakIn(()->{
 			left_time_total = left_time;
 			make_radiaton(act_value);
 		});
 	}
-	
+
 	public void asyncHaltOn(){asyncBreakIn(()->{
 		stop_radiaton();
 	});}
@@ -326,7 +326,7 @@ public class DevHustIO extends DevTTY {
 		move_to_abs(value, unit);
 	});}
 	
-	public void asyncWorking(
+	/*public void asyncWorking(
 		final String position,
 		final long left_time		
 	) {
@@ -364,7 +364,7 @@ public class DevHustIO extends DevTTY {
 		}
 		activity.set(act_value);
 		asyncWorking(position,left_time);
-	}
+	}*/
 	
 	public boolean isMoving() {
 		return isMoving.get();
@@ -392,9 +392,9 @@ public class DevHustIO extends DevTTY {
 		rad_act[1].setToggleGroup(grp_act);
 		rad_act[2].setToggleGroup(grp_act);		
 		grp_act.selectToggle(rad_act[0]);
-		rad_act[0].setOnAction(e->dev.activity.set(Activity.V_3Ci));
-		rad_act[1].setOnAction(e->dev.activity.set(Activity.V_05Ci));
-		rad_act[2].setOnAction(e->dev.activity.set(Activity.V_005Ci));
+		rad_act[0].setOnAction(e->dev.activity.set(Strength.V_3Ci));
+		rad_act[1].setOnAction(e->dev.activity.set(Strength.V_05Ci));
+		rad_act[2].setOnAction(e->dev.activity.set(Strength.V_005Ci));
 		
 		box_loca.setPromptText("EX: 10cm");
 		box_loca.setText("10 cm");
@@ -402,20 +402,20 @@ public class DevHustIO extends DevTTY {
 			try{
 				dev.asyncMoveTo(box_loca.getText());
 			}catch(NumberFormatException err){
-				PanBase.notifyError("","不合法的數字表示");
+				PanBase.notifyError("","不合法的數字");
 			}
 		});
 		
-		box_make.setPromptText("EX: 3:27");
+		box_make.setPromptText("範例 3:27(3分27秒)");
 		box_make.setText("03:00");
 		box_make.setPrefColumnCount(8);
 		box_make.setOnAction(e->{
 			final long tick = Misc.text2tick(box_make.getText());
 			if(tick==0) {
-				PanBase.notifyInfo("","請設定照射時間!!");
+				PanBase.notifyInfo("","沒有照射時間!!");
 				return;
 			}
-			dev.asyncRadite(tick);
+			dev.asyncRadiation(tick);
 		});
 		
 		btn_loca.getStyleClass().add("btn-raised-1");

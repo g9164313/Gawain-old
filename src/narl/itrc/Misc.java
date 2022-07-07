@@ -14,6 +14,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.UUID;
 
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
 import javafx.scene.Node;
 import javafx.scene.image.Image;
@@ -25,6 +28,24 @@ public class Misc {
 	public static boolean isUnix() {
 		return System.getProperty("os.name").toLowerCase().contains("win")==false;
 	}
+	public static String getHomePath() {
+		String path;
+		if(Misc.isUnix()==true) {
+			path = System.getenv("HOME");
+			if(path==null) {
+				return ".";
+			}
+		}else {
+			path = System.getenv("HOMEPATH");
+			if(path==null) {
+				return "C:"+File.separatorChar;
+			}else{
+				path = "C:"+path;
+			}
+		}
+		return path+File.separatorChar;
+	}
+	
 	/**
 	 * just show messages, it is like 'stdout'
 	 * @param fmt - pass to 'String.printf()' 
@@ -704,7 +725,75 @@ public class Misc {
 			return v;
 		}		
 	};
+	//-------------------------------------
 	
+	public static Object[] calculate_prefix(final float value) {
+		
+		String[] col = String.format("%.3E", value).split("E");
+		
+		final int exp = Integer.valueOf(col[1]);
+		
+		String prefix;
+		float fix = 1f;
+		final int div = Math.abs(exp) / 3;
+		if(exp>=0) {
+			switch(div) {
+			default:
+			case 5: prefix="P"; fix=1e-15f; break;
+			case 4: prefix="T"; fix=1e-12f; break;
+			case 3: prefix="G"; fix=1e-9f ; break;
+			case 2: prefix="M"; fix=1e-6f ; break;
+			case 1: prefix="k"; fix=1e-3f ; break;
+			case 0: prefix="" ; break;
+			}				
+		}else {
+			switch(div) {
+			case 0: prefix="" ; break;
+			case 1: prefix="m"; fix=1e3f ; break;
+			case 2: prefix="μ"; fix=1e6f ; break;
+			case 3: prefix="n"; fix=1e9f ; break;
+			case 4: prefix="p"; fix=1e12f; break;
+			default:
+			case 5: prefix="f"; fix=1e15f; break;
+			}
+		}
+		
+		return new Object[] {value*fix,prefix};
+	}
+	
+	public static class MetricPrefix extends SimpleStringProperty {
+		
+		public String postfix = "";
+		
+		public MetricPrefix(
+			final ObservableValue<Number> prop,
+			final String unit
+		) {
+			postfix = unit;
+			event.changed(prop, null, prop.getValue());
+			prop.addListener(event);						
+		}
+		
+		private ChangeListener<Number> event = (obv,oldVal,newVal)->{
+			
+			final Object[] arg = calculate_prefix(newVal.floatValue());
+			
+			final float  preval = (float)arg[0];
+			final String prefix = (String)arg[1];
+			
+			String full_text;
+			if(prefix.length()==0) {
+				full_text = String.format("%.3f%s%s", preval, prefix, postfix);
+			}else {
+				full_text = String.format("%.1f%s%s", preval, prefix, postfix);
+			}
+			set(full_text);
+		};		
+	}
+		
+	//-------------------------------------
+	
+	@SuppressWarnings("restriction")
 	public static void invokeLater(final Runnable func) {
 		if(com.sun.glass.ui.Application.isEventThread()) {
 			func.run();
@@ -712,6 +801,7 @@ public class Misc {
 			com.sun.glass.ui.Application.invokeLater(func);
 		}
 	}
+	@SuppressWarnings("restriction")
 	public static void invokeWait(final Runnable func) {
 		if(com.sun.glass.ui.Application.isEventThread()) {
 			func.run();

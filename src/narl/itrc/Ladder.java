@@ -19,6 +19,8 @@ import javafx.animation.Timeline;
 import javafx.beans.binding.BooleanBinding;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.scene.control.Accordion;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.TitledPane;
@@ -32,6 +34,7 @@ import javafx.util.Duration;
  * @author qq
  *
  */
+@SuppressWarnings("restriction")
 public class Ladder extends BorderPane {
 	
 	public Ladder(){
@@ -175,7 +178,7 @@ public class Ladder extends BorderPane {
 				return obj;
 			}
 		}
-		return null;
+		return stp_wrapper.get(0);
 	}
 	private StpWrapper getPack(final Class<?> src){
 		for(StpWrapper obj:stp_wrapper){			
@@ -183,43 +186,75 @@ public class Ladder extends BorderPane {
 				return obj;
 			}
 		}
-		return null;
+		return stp_wrapper.get(0);
 	}
 	public Stepper genStep(final Class<?> clzz){
 		return getPack(clzz).instance();		
 	}
 	
+	public interface EventInitStep {
+		void callback(Stepper stp);
+	};
 	public Ladder addStep(
 		final String title,
 		final Class<?> clazz,
 		final Object... argument
 	){
+		return addStep(title,clazz,null,argument);
+	}
+	public Ladder addStep(
+		final String title,
+		final Class<?> clazz,
+		final EventInitStep event,
+		final Object... argument
+	){
 		final StpWrapper obj = new StpWrapper(title,clazz,argument);
 		stp_wrapper.add(obj);
-		final JFXButton btn = new JFXButton(title);
-		btn.getStyleClass().add("btn-raised-3");
-		btn.setMaxWidth(Double.MAX_VALUE);
-		btn.disableProperty().bind(is_running);
-		btn.setOnAction(e->obj.instance());
-		step_kits.getChildren().add(btn);
-		return this;
+		return genButton(title,e->{
+			final Stepper stp = obj.instance();
+			if(event!=null) {
+				event.callback(stp);
+			}
+		});
 	}
+	
+	public interface EventInitSack {
+		void callback(Stepper[] lst);
+	};	
 	public Ladder addSack(
 		final String title,
 		final Class<?>... sack
+	){
+		return addSack(title,null,sack);
+	}
+	public Ladder addSack(
+		final String title,
+		final EventInitSack event,
+		final Class<?>... sack
+	){	
+		return genButton(title,e->{
+			Stepper[] lst = new Stepper[sack.length];
+			for(int i=0; i<sack.length; i++) {
+				lst[i] = getPack(sack[i]).instance();
+			}
+			if(event!=null) {
+				event.callback(lst);
+			}
+		});
+	}
+	
+	protected Ladder genButton(
+		final String title,
+		final EventHandler<ActionEvent> event
 	){
 		final JFXButton btn = new JFXButton(title);
 		btn.getStyleClass().add("btn-raised-3");
 		btn.setMaxWidth(Double.MAX_VALUE);
 		btn.disableProperty().bind(is_running);
-		btn.setOnAction(e->{
-			for(Class<?> clzz:sack){
-				getPack(clzz).instance();
-			}
-		});
+		btn.setOnAction(event);
 		step_kits.getChildren().add(btn);
 		return this;
-	}	
+	}
 	//--------------------------------//
 	
 	protected void import_step(){
@@ -234,7 +269,7 @@ public class Ladder extends BorderPane {
 				recipe.getItems().clear();
 			}
 		}
-		final Task<?> tsk = new Task<Integer>(){						
+		final Task<?> tsk = new Task<Integer>(){
 			@Override
 			protected Integer call() throws Exception {
 				Scanner stm = new Scanner(fid);

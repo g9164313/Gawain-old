@@ -2,14 +2,13 @@ package prj.sputter;
 
 import java.util.concurrent.TimeUnit;
 
-import com.sun.glass.ui.Application;
-
 import eu.hansolo.tilesfx.Tile;
 import eu.hansolo.tilesfx.TileBuilder;
 import eu.hansolo.tilesfx.Tile.SkinType;
 import eu.hansolo.tilesfx.Tile.TextSize;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.Priority;
 import narl.itrc.Misc;
 
 public class DevAdam4117 extends DevAdam {
@@ -29,7 +28,9 @@ public class DevAdam4117 extends DevAdam {
 		playFlow(STG_INIT);
 	}
 	@Override
-	public void beforeClose() {
+	public void beforeClose() {			
+
+		
 	}
 	//--------------------------------
 	
@@ -41,7 +42,11 @@ public class DevAdam4117 extends DevAdam {
 		nextState(STG_MONT);
 	}
 	
-	void state_monitor() {		
+	void state_monitor() {
+		if(port.isPresent()==false) {
+			nextState("");//we have no port, just go into idle~~~~
+			return;
+		}
 		try {
 			read_all_analog_input();
 			TimeUnit.MILLISECONDS.sleep(100);
@@ -65,7 +70,7 @@ public class DevAdam4117 extends DevAdam {
 		}
 		//response message is like below:
 		//>+00.000+00.000+00.000+00.000+00.000+00.000+00.000+00.000
-		
+
 		for(Channel ch:aout) {
 			final int off = 1 + 7 * ch.id;			
 			final String txt = ans.substring(off, off+7);
@@ -100,6 +105,7 @@ public class DevAdam4117 extends DevAdam {
 		final Tile[] gag = new Tile[8];
 		
 		for(DevAdam4117.Channel ch:dev.aout) {
+
 			Tile tile = TileBuilder.create()
 				.skinType(SkinType.SPARK_LINE)
 				.textSize(TextSize.BIGGER)
@@ -113,6 +119,10 @@ public class DevAdam4117 extends DevAdam {
 			tile.maxValueProperty().bind(ch.max);
 			tile.unitProperty().bind(ch.unit);
 
+			tile.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+			GridPane.setHgrow(tile, Priority.ALWAYS);
+			GridPane.setVgrow(tile, Priority.ALWAYS);
+			
 			gag[ch.id] = tile;
 		}
 

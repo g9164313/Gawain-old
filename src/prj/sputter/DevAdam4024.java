@@ -1,17 +1,16 @@
 package prj.sputter;
 
-import java.util.Optional;
+import com.jfoenix.controls.JFXButton;
 
-import com.jfoenix.controls.JFXSlider;
-import com.jfoenix.controls.JFXTextField;
-
-import javafx.scene.control.Button;
-import javafx.scene.control.ChoiceDialog;
+import javafx.geometry.Pos;
 import javafx.scene.control.Label;
-import javafx.scene.layout.GridPane;
+import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 
 import narl.itrc.Misc;
+import narl.itrc.PadChoise;
+import narl.itrc.PadNumber;
 
 public class DevAdam4024 extends DevAdam {
 
@@ -33,7 +32,6 @@ public class DevAdam4024 extends DevAdam {
 			for(Channel ch:aout) {
 				get_type_range(ch);
 				read_last_output(ch);
-				((AOut)ch).initial_field();
 			}
 			nextState("");
 		});
@@ -45,23 +43,58 @@ public class DevAdam4024 extends DevAdam {
 	}
 	//---------------------
 	
+	private final static String fmt_val = "%+07.3f";
+	
 	//there are 4 analogy-output channel in ADAM4024
 	private class AOut extends Channel {
-		
-		JFXSlider bar = new JFXSlider();
-		JFXTextField box = new JFXTextField();
-		
+		//JFXSlider bar = new JFXSlider();
+		//JFXTextField box = new JFXTextField();
+
 		public AOut(int in) {
 			super(in);
 			title.set("通道"+id);
-			
 		}
 		
-		void reset_value() {Misc.invokeLater(()->{
+		Pane gen_layout() {
+			final double size_h = 47.;
+			
+			Label txt_name = new Label();
+			txt_name.textProperty().bind(title);
+			txt_name.setPrefSize(80, size_h);
+			
+			JFXButton btn_value= new JFXButton();
+			btn_value.getStyleClass().add("btn-raised-10");
+			btn_value.textProperty().bind(txt);
+			btn_value.setPrefSize(100., size_h);
+			btn_value.setOnAction(event->{
+				new PadNumber()
+				.subset(null, min.get(), max.get()).format(fmt_val).popup(opt->{
+					//Misc.logv("number=%s, (%.1f,%.1f)", opt, min.get(), max.get());
+					asyncDirectOuput(this,opt);
+				});
+			});
+			
+			JFXButton btn_unit = new JFXButton();
+			btn_unit.getStyleClass().add("btn-raised-10");
+			btn_unit.textProperty().bind(unit);
+			btn_unit.setPrefSize(64., size_h);
+			btn_unit.setOnAction(event->{
+				new PadChoise<RangeType>(z20mA, r4to20mA, d10V)
+				.assign(range_type).popup(opt->{
+					//Misc.logv("choise=%s", opt.toString());
+					asyncSetRangeType(this,opt);					
+				});
+			});
+			
+			HBox lay = new HBox(txt_name,btn_value,btn_unit);
+			lay.setAlignment(Pos.CENTER_LEFT);
+			return lay;
+		}
+		
+		/*void reset_value() {Misc.invokeLater(()->{
 			box.setText(txt.get());
 			bar.setValue(val.get());
 		});}
-		
 		void initial_field() {
 			Misc.invokeLater(()->{				
 				reset_value();
@@ -88,7 +121,7 @@ public class DevAdam4024 extends DevAdam {
 					}		
 				});
 			});
-		}
+		}*/
 	};
 
 	public final AOut[] aout = {
@@ -118,11 +151,26 @@ public class DevAdam4024 extends DevAdam {
 		}
 	}
 	void direct_output_data(final Channel ch, final double data) {
-		direct_output_data(ch,String.format("%+07.3f", data));
+		direct_output_data(ch,String.format(fmt_val, data));
 	}
 	void direct_output_data(final Channel ch, final float data) {
-		direct_output_data(ch,String.format("%+07.3f", data));
+		direct_output_data(ch,String.format(fmt_val, data));
 	}
+	//---------------------
+	
+	public void asyncDirectOuput(
+		final AOut aout, 
+		final String data
+	) {asyncBreakIn(()->{
+		direct_output_data(aout,data);
+	});}
+	
+	public void asyncDirectOuput(
+		final AOut aout, 
+		final float data
+	) {asyncBreakIn(()->{
+		direct_output_data(aout,data);
+	});}
 	
 	public void asyncSetRangeType(
 		final AOut aout, 
@@ -136,38 +184,16 @@ public class DevAdam4024 extends DevAdam {
 		}		
 		aout.set_range_type(rng);
 		read_last_output(aout);
-		aout.reset_value();
 	});}
-	
 	//---------------------
 	
 	public static Pane genPanel(final DevAdam4024 dev) {
 
-		final GridPane lay = new GridPane();
+		FlowPane lay = new FlowPane();
 		lay.getStyleClass().addAll("box-pad");
 		
-		for(int i=0; i<dev.aout.length; i++) {
-			final AOut aout = dev.aout[i];
-			
-			Label txt = new Label();
-			txt.textProperty().bind(aout.title);
-			txt.setPrefWidth(80);
-			
-			Button btn = new Button();
-			btn.textProperty().bind(aout.unit);
-			btn.setPrefWidth(30);
-			btn.setOnAction(event->{
-				//special, we change channel type and range here!!
-				final ChoiceDialog<RangeType> dia = new ChoiceDialog<RangeType>(
-					z20mA, r4to20mA, d10V
-				);
-				final Optional<RangeType> opt = dia.showAndWait();
-				if(opt.isPresent()==true) {
-					dev.asyncSetRangeType(aout,opt.get());
-				}
-			});	
-			
-			lay.addRow(i,txt, aout.bar, aout.box, btn);
+		for(AOut aout:dev.aout) {
+			lay.getChildren().add(aout.gen_layout());
 		}
 		return lay;
 	}
