@@ -27,12 +27,16 @@ public class UtilPhysical {
 		txt =txt.trim();
 		String[] col = txt.split("[\\s]+");
 		if(col.length!=2) {
-			throw new NumberFormatException("no way to distinguish between digital and unit");
+			//throw new NumberFormatException("no way to distinguish between digital and unit");
+			Misc.loge("[UtilPhysical] no space:%s", txt);
+			return null;
 		}
 		col[0] = col[0].trim();//digital number
 		col[1] = col[1].trim();//unit name
 		if(col[0].matches("[+-]?[\\d.]+(?:[E|e]-?\\d+)?")==false) {
-			throw new NumberFormatException("invalid digital");
+			//throw new NumberFormatException("invalid digital");
+			Misc.loge("[UtilPhysical] no match:%s", col[0]);
+			return null;
 		}
 		return col;
 	}	
@@ -101,6 +105,9 @@ public class UtilPhysical {
 			if(txt.toLowerCase().equals("min")==true) {
 				return 0;
 			}
+			if(txt.equals("Gy")==true) {
+				return 0;
+			}
 			char cc = txt.charAt(0);
 			for(int i=0; i<prefix.length; i++) {
 				if(cc==prefix[i]) {
@@ -135,16 +142,16 @@ public class UtilPhysical {
 		//final BigDecimal I360 = V001.divide(V360,6,RoundingMode.HALF_UP);
 		
 		//one value include numerator and denominator
-		final int[] I360 = {  1, 360};
-		final int[] I060 = {  1,  60};
-		final int[] VONE = {  1,   1};
-		final int[] V060 = { 60,   1};
-		final int[] V360 = {360,   1};
+		final int[] I3600= {   1, 3600};
+		final int[] I060 = {   1,   60};
+		final int[] VONE = {   1,    1};
+		final int[] V060 = {  60,    1};
+		final int[] V3600= {3600,    1};
 		final int[][][] scale = {
-			//------// second, minute, hour
-			/*second*/{VONE  ,I060   , I360},
-			/*minute*/{V060  ,VONE   , I060},
-			/*hour  */{V360  ,V060   , VONE},	
+			//------// second,minute, hour
+			/*second*/{VONE , I060  , I3600},
+			/*minute*/{V060 , VONE  , I060 },
+			/*hour  */{V3600, V060  , VONE },	
 		};
 		int name2index(final String name) {
 			if(name.equals("sec") || name.equals("s")) {
@@ -192,6 +199,9 @@ public class UtilPhysical {
 		final RoundingMode running_mode
 	) {
 		final String[] col = split(phy_numb);
+		if(col==null) {
+			return "";
+		}
 		final String val_numb = col[0];
 		final String src_unit = col[1];
 		if(val_numb.length()==0||src_unit.length()==0) {
@@ -245,7 +255,11 @@ public class UtilPhysical {
 	
 	public static double getDouble(final String txt){
 		try {
-			return Double.valueOf(split(txt)[0]);
+			final String[] col = split(txt);
+			if(col==null) {
+				return 0.;
+			}
+			return Double.valueOf(col[0]);
 		}catch(NumberFormatException e) {
 			Misc.loge("Wrong physcial value --> %s", txt);			
 		}
@@ -253,14 +267,22 @@ public class UtilPhysical {
 	}
 	public static int getInteger(final String txt){
 		try {
-			return Integer.valueOf(split(txt)[0]);
+			final String[] col = split(txt);
+			if(col==null) {
+				return 0;
+			}
+			return Integer.valueOf(col[0]);
 		}catch(NumberFormatException e) {
 			Misc.loge("Wrong physcial value --> %s", txt);			
 		}
 		return 0;
 	}
 	public static String getUnit(final String txt){
-		return split(txt)[1];//SI scale + name
+		final String[] col = split(txt);
+		if(col==null) {
+			return "";
+		}
+		return col[1];//SI scale + unit
 	}
 	
 	public static double convert(
@@ -301,6 +323,9 @@ public class UtilPhysical {
 		String dstUnit
 	) throws NumberFormatException {
 		String[] srcTxt = split(srcValueUnit);
+		if(srcTxt==null) {
+			return 0.;
+		}
 		return convert(
 			srcTxt[0],
 			srcTxt[1],

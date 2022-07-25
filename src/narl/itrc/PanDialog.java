@@ -10,13 +10,12 @@ import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.DialogPane;
-import javafx.scene.layout.Pane;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.ButtonBar.ButtonData;
 
 public abstract class PanDialog<T> extends Dialog<T> {
 
-
-	protected void init(final Pane layout) {
+	protected void init(final Node node) {
 
 		DialogPane pan = new DialogPane() {
 			@Override
@@ -46,7 +45,7 @@ public abstract class PanDialog<T> extends Dialog<T> {
 			ButtonType.CANCEL,
 			ButtonType.OK			
 		);
-		pan.setContent(layout);
+		pan.setContent(node);
 		
 		setDialogPane(pan);
 	} 
@@ -70,4 +69,37 @@ public abstract class PanDialog<T> extends Dialog<T> {
 	}
 	
 	abstract boolean set_result_and_close(ButtonType type);
+	
+	//--------------------------------------------
+	
+	public static class ShowTextArea extends PanDialog<String>{
+
+		public TextArea box = new TextArea();
+		
+		public ShowTextArea() {
+			init(box);
+		}
+		public ShowTextArea(final String txt) {
+			box.setText(txt);
+			init(box);
+		}
+		
+		public ShowTextArea setPrefSize(
+			final double width,
+			final double height
+		) {
+			box.setPrefSize(width, height);
+			return this;
+		}
+		
+		@Override
+		boolean set_result_and_close(ButtonType type) {
+			if(type!=ButtonType.OK) {				
+				setResult(box.getText());
+			}else {
+				setResult(null);
+			}
+			return false;
+		}		
+	}	
 }

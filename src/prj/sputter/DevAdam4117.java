@@ -14,7 +14,7 @@ import narl.itrc.Misc;
 public class DevAdam4117 extends DevAdam {
 
 	public DevAdam4117(final String address) {
-		TAG = "ADAM4117";
+		TAG= "ADAM4117";
 		AA = address;
 	}
 	
@@ -28,16 +28,15 @@ public class DevAdam4117 extends DevAdam {
 		playFlow(STG_INIT);
 	}
 	@Override
-	public void beforeClose() {			
-
-		
+	public void beforeClose() {
 	}
 	//--------------------------------
 	
 	void state_initial() {
 		get_configuration();
-		for(Channel ch:aout) {
-			get_type_range(ch);
+		init_range_type(ain);
+		for(Channel ch:ain) {
+			get_range_type(ch);
 		}	
 		nextState(STG_MONT);
 	}
@@ -57,7 +56,7 @@ public class DevAdam4117 extends DevAdam {
 	//--------------------------------
 	
 	//there are 8 analogy-input channel in ADAM4117
-	public final Channel[] aout = {
+	public final Channel[] ain = {
 		new Channel(0), new Channel(1), new Channel(2), new Channel(3),
 		new Channel(4), new Channel(5), new Channel(6), new Channel(7),
 	};
@@ -71,7 +70,7 @@ public class DevAdam4117 extends DevAdam {
 		//response message is like below:
 		//>+00.000+00.000+00.000+00.000+00.000+00.000+00.000+00.000
 
-		for(Channel ch:aout) {
+		for(Channel ch:ain) {
 			final int off = 1 + 7 * ch.id;			
 			final String txt = ans.substring(off, off+7);
 			final float val = Misc.txt2float(txt);
@@ -104,7 +103,7 @@ public class DevAdam4117 extends DevAdam {
 		
 		final Tile[] gag = new Tile[8];
 		
-		for(DevAdam4117.Channel ch:dev.aout) {
+		for(DevAdam4117.Channel ch:dev.ain) {
 
 			Tile tile = TileBuilder.create()
 				.skinType(SkinType.SPARK_LINE)

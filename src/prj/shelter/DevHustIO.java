@@ -105,7 +105,7 @@ public class DevHustIO extends DevTTY {
 	public final BooleanProperty isMoving = new SimpleBooleanProperty();
 	public final BooleanProperty isRadiant= new SimpleBooleanProperty();
 	
-	public final StringProperty locationText = new SimpleStringProperty("＊＊＊＊＊");
+	public final StringProperty locationText = new SimpleStringProperty("");
 	public final StringProperty leftTimeText = new SimpleStringProperty("00:00:00");
 	
 	private long left_time_start = -1L;//unit is millisecond
@@ -225,6 +225,9 @@ public class DevHustIO extends DevTTY {
 				String val = UtilPhysical.convertScale(position,"mm");
 				if(val.length()==0) {
 					throw new NumberFormatException();
+				}
+				if(val.contains(".")==false) {
+					val = val +".000";
 				}
 				exec("O9000","N0000111",String.format("G01X%s",val));
 			}
@@ -378,9 +381,9 @@ public class DevHustIO extends DevTTY {
 		
 		final JFXTextField box_loca = new JFXTextField();
 		final JFXTextField box_make = new JFXTextField();
-		final JFXButton btn_loca = new JFXButton("移動載台");
-		final JFXButton btn_make = new JFXButton("開始照射");
-		final JFXButton btn_stop = new JFXButton("停止照射");
+		final JFXButton btn_loca = new JFXButton("移動");
+		final JFXButton btn_make = new JFXButton("照射");
+		final JFXButton btn_stop = new JFXButton("中止");
 		
 		final ToggleGroup grp_act = new ToggleGroup();
 		final JFXRadioButton[] rad_act = {
@@ -407,7 +410,7 @@ public class DevHustIO extends DevTTY {
 		});
 		
 		box_make.setPromptText("範例 3:27(3分27秒)");
-		box_make.setText("03:00");
+		box_make.setText("01:00");
 		box_make.setPrefColumnCount(8);
 		box_make.setOnAction(e->{
 			final long tick = Misc.text2tick(box_make.getText());
@@ -424,6 +427,7 @@ public class DevHustIO extends DevTTY {
 		
 		btn_make.getStyleClass().add("btn-raised-1");
 		btn_make.setMaxWidth(Double.MAX_VALUE);
+		btn_make.disableProperty().bind(dev.isRadiant);
 		btn_make.setOnAction(e->box_make.getOnAction().handle(e));
 		
 		btn_stop.getStyleClass().add("btn-raised-0");

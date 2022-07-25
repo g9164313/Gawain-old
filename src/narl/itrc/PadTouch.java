@@ -33,11 +33,8 @@ public class PadTouch extends Dialog<String> {
 		final String numeric_name,
 		final String numeric_value			
 	) {
-		final DialogPane pan = new NumericPad(
-			numeric_style,
-			numeric_name,
-			numeric_value
-		);
+		final DialogPane pan = new NumericPad(numeric_style);
+		setTitle(numeric_name);
 		pan.getButtonTypes().addAll(ButtonType.OK,ButtonType.CANCEL);
 		setDialogPane(pan);		
 	}
@@ -55,29 +52,24 @@ public class PadTouch extends Dialog<String> {
 	}
 	
 	private class NumericPad extends PadPaneBase {
-		NumericPad(
-			final char style,
-			final String title,
-			final String value	
-		){
-			final Label[] txt = {
-				new Label(title), //number of title 
-				new Label(value) // number of value
-			};
-			for(Label obj:txt) {
-				obj.getStyleClass().add("font-size7");
-				obj.setMaxWidth(Double.MAX_VALUE);
-			}
-			txt[1].setAlignment(Pos.CENTER_RIGHT);
-			
-			final Label txt_v = txt[1];
-			
+		
+		NumericPad(final char style){
+		
+			final Label screen = new Label();
+			screen.getStyleClass().addAll(
+				"black-border",
+				"font-size9",
+				"font-console"
+			);
+			screen.setMaxWidth(Double.MAX_VALUE);
+			screen.setAlignment(Pos.CENTER_RIGHT);
+
 			setResultConverter(dia->{
 				ButtonData btn = (dia==null)?(null):(dia.getButtonData());
 				if(btn!=ButtonData.OK_DONE) {
 					return null;				
 				}
-				String res = txt[1].getText();
+				String res = screen.getText();
 				if(res.length()==0) {
 					switch(style) {
 					//integer
@@ -100,66 +92,66 @@ public class PadTouch extends Dialog<String> {
 			final Button btnCls = new JFXButton("C");//special button - clear
 			btnCls.getStyleClass().addAll("btn-raised-2","font-console");
 			btnCls.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
-			btnCls.setOnAction(e->txt_v.setText(""));
+			btnCls.setOnAction(e->screen.setText(""));
 			
 			final Button btnDel = new JFXButton("Del");//special button - delete one character
 			btnDel.getStyleClass().addAll("btn-raised-2","font-console");
 			btnDel.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
 			btnDel.setOnAction(e->{
-				String v = txt_v.getText();
+				String v = screen.getText();
 				if(v.length()==0) {
 					return;
 				}
 				v = v.substring(0, v.length()-1);
-				txt_v.setText(v);
+				screen.setText(v);
 			});
 			
 			final Button btnDot = new JFXButton(".");//special button - dot
 			btnDot.getStyleClass().addAll("btn-raised-1","font-console");
 			btnDot.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
-			btnDot.setOnAction(e->appear_once(btnDot,txt_v));
+			btnDot.setOnAction(e->appear_once(btnDot,screen));
 			
 			final Button btnSign = new JFXButton("-");//special button - sign
 			btnSign.getStyleClass().addAll("btn-raised-1","font-console");
 			btnSign.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
-			btnSign.setOnAction(e->prefix_once(btnSign,txt_v));
+			btnSign.setOnAction(e->prefix_once(btnSign,screen));
 			
 			final Button btnColon = new JFXButton(":");//special button - sign
 			btnColon.getStyleClass().addAll("btn-raised-1","font-console");
 			btnColon.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
-			btnColon.setOnAction(e->append(btnColon,txt_v));
+			btnColon.setOnAction(e->append(btnColon,screen));
 			
 			GridPane lay1 = null;
 			switch(style) {
 			//nature (positive integer, include 0)
 			case 'n':
 			case 'N':
-				lay1 = gen_number_pad(txt_v,btnCls,btnDel);
+				lay1 = gen_number_pad(screen,btnCls,btnDel);
 				break;
 			//integer (positive and negative integer)
 			case 'i':
 			case 'I':
-				lay1 = gen_number_pad(txt_v,btnCls,btnDel,btnSign);
+				lay1 = gen_number_pad(screen,btnCls,btnDel,btnSign);
 				break;
 			//rational (number with decimal point)
 			case 'f':
 			case 'F':
 			case 'q':
 			case 'Q':
-				lay1 = gen_number_pad(txt_v,btnCls,btnDel,btnSign,btnDot);
+				lay1 = gen_number_pad(screen,btnCls,btnDel,btnSign,btnDot);
 				break;
 			//clock or time (hh:mm:ss)
 			case 'c':		
 			case 'C':
 			case 't':
 			case 'T':
-				lay1 = gen_number_pad(txt_v,btnCls,btnDel,btnColon);
+				lay1 = gen_number_pad(screen,btnCls,btnDel,btnColon);
 				break;
 			}
 			
 			final VBox lay0 = new VBox();
 			lay0.getStyleClass().addAll("box-pad");
-			lay0.getChildren().addAll(txt[0], txt[1], lay1);				
+			lay0.getChildren().addAll(screen, lay1);				
 			setContent(lay0);
 		}
 

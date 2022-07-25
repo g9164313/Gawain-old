@@ -17,10 +17,18 @@ public class DevAdam4024 extends DevAdam {
 	public DevAdam4024(final String address) {
 		TAG = "ADAM4024";
 		AA = address;
-		//this module range code is special~~~
+		//this module has special range codes
 		range_type.bi_put("30", z20mA);
 		range_type.bi_put("31", r4to20mA);
 		range_type.bi_put("32", d10V);
+	}
+	
+	public DevAdam4024(
+		final String address,
+		final RangeType... init_rng
+	) {
+		this(address);
+		init_range = init_rng;
 	}
 	
 	private final static String STG_INIT = "init";
@@ -29,10 +37,15 @@ public class DevAdam4024 extends DevAdam {
 	public void afterOpen() {
 		addState(STG_INIT, ()->{
 			get_configuration();
+			init_range_type(aout);
+			if(init_range!=null) {
+				exec("$AA4");
+			}
 			for(Channel ch:aout) {
-				get_type_range(ch);
+				get_range_type(ch);
 				read_last_output(ch);
 			}
+			
 			nextState("");
 		});
 		playFlow(STG_INIT);
@@ -182,7 +195,7 @@ public class DevAdam4024 extends DevAdam {
 			Misc.logw("[%s)%d] unable set range type", TAG, aout.id);
 			return;
 		}		
-		aout.set_range_type(rng);
+		aout.update_property(rng);
 		read_last_output(aout);
 	});}
 	//---------------------

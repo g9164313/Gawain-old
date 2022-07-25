@@ -1,75 +1,115 @@
 package prj.sputter;
 
+import java.util.Optional;
+
 import eu.hansolo.tilesfx.Tile;
 import eu.hansolo.tilesfx.TileBuilder;
+import javafx.beans.property.FloatProperty;
 import javafx.beans.property.ReadOnlyFloatProperty;
 import javafx.beans.property.SimpleFloatProperty;
-import javafx.beans.property.SimpleIntegerProperty;
-import javafx.beans.property.SimpleStringProperty;
-import narl.itrc.Misc;
+import javafx.scene.layout.StackPane;
+import narl.itrc.PadTouch;
 import eu.hansolo.tilesfx.Tile.SkinType;
 import eu.hansolo.tilesfx.Tile.TextSize;
 
 public class LayTool {
 
-	public interface Func{
-		float run(final float src);
+	public interface Translate{
+		float func(final float src);
 	};
 	
-	public static Tile create_vaccum_gauge(
-		final String name,
-		final ReadOnlyFloatProperty prop,
-		//final float v_minium,
-		final float v_under,
-		final float v_over,
-		//final float v_maxium,
-		final String unit, final Func func
+	public static ReadOnlyFloatProperty transform(
+		final FloatProperty observe,		
+		final Translate hook
 	) {
-		//final float min = func.run(v_minium);
-		final float under = func.run(v_under);
-		final float over = func.run(v_over);
-		//final float max = func.run(v_maxium);
-
-		final SimpleFloatProperty v_prop = new SimpleFloatProperty();
-		final SimpleIntegerProperty p_deci = new SimpleIntegerProperty(1);
-		final SimpleStringProperty f_name = new SimpleStringProperty("");//prefix+unit
-				
-		final Tile tile = TileBuilder.create()
-			.skinType(SkinType.SPARK_LINE)
+		final SimpleFloatProperty prop = new SimpleFloatProperty();
+		if(observe==null) {
+			return prop;
+		}
+		observe.addListener((obv,oldVal,newVal)->{
+			prop.set(hook.func(newVal.floatValue()));
+		});		
+		return prop;
+	}
+	
+	public static Tile create_MFC_gauge(
+		final String name, 
+		final String unit,
+		final double max_flow,		
+		final ReadOnlyFloatProperty prop,
+		final Translate hook
+	) {
+		final Tile obj = TileBuilder.create()
+			.skinType(SkinType.BAR_GAUGE)
 			.textSize(TextSize.BIGGER)
 			.title(name)
 			.autoScale(false)
-			.minValue(under)
-			.maxValue(over)
+			.minValue(0.)
+			.maxValue(max_flow)			
 			.unit(unit)
-			.decimals(3)
-			.build();		
-		tile.valueProperty().bind(v_prop);
-		//tile.decimalsProperty().bind(p_deci);
-		//tile.unitProperty().bind(f_name);
-		
-		prop.addListener((obv,oldVal,newVal)->{
-			final float pure = func.run(newVal.floatValue());
-			if(pure<under) {
-				tile.setTitle(name+"(過低)");
-			}else if(over<pure) {
-				tile.setTitle(name+"(過高)");
-			}else {
-				tile.setTitle(name);
+			.decimals(1)
+			.build();
+		//obj.valueProperty().bind(prop);
+		obj.setOnMouseClicked(event->{
+			PadTouch pad = new PadTouch('f',name,"0");
+			Optional<String> res = pad.showAndWait();
+			if(res.isPresent()==true) {
+				if(hook!=null) {
+					hook.func(Float.parseFloat(res.get()));
+				}
 			}
-			v_prop.set(pure);
-			
-			/*final Object[] arg = Misc.calculate_prefix(pure);
-			final float  val = (float)arg[0];
-			final String prx = (String)arg[1];
-			if(prx.length()==0) {
-				p_deci.set(3);
-			}else {
-				p_deci.set(1);
-			}
-			v_prop.set(val);
-			f_name.set(prx+unit);*/
-		});		
-		return tile;
+		});
+		return obj;
 	}
+	
+	public static StackPane create_prefix_gauge(
+		final String name, 
+		final String unit,
+		final ReadOnlyFloatProperty prop
+	) {
+		final float[][] range = {
+			{1e-12f,1e-9f , 1e+9f, 1f },//n
+			{1e-9f, 1e-6f , 1e+6f, 1f },//μ
+			{1e-6f, 1e-3f , 1e+3f, 1f },//m
+			{1e-3f, 1f    , 1f,    3f },
+			{1f   , 1e+3f , 1f,    0f },
+			{1e+3f, 1e+6f , 1e-3f, 0f },//k
+			{1e+6f, 1e+9f , 1e-6f, 0f },//M
+			{1e+9f, 1e+12f, 1e-9f, 0f },//G
+		};
+		final String[] pref = {
+			"n", "μ", "m", 
+			"", "", 
+			"k", "M", "G"
+		};
+
+		final Tile[] lst = new Tile[range.length];
+		for(int i=0; i<lst.length; i++) {
+			final Tile obj = TileBuilder.create()
+				.skinType(SkinType.SPARK_LINE)
+				.textSize(TextSize.BIGGER)
+				.title(name)
+				.autoScale(false)
+				.minValue(range[i][0] * range[i][2])
+				.maxValue(range[i][1] * range[i][2])						
+				.unit(pref[i]+unit)
+				.decimals((int)range[i][3])
+				.build();
+			obj.valueProperty().bind(prop.multiply(range[i][2]));
+			lst[i] = obj;
+		}
+		
+		lst[0].visibleProperty().bind(prop.lessThanOrEqualTo(range[0][1]));
+		lst[1].visibleProperty().bind(prop.greaterThan(range[1][0]).and(prop.lessThanOrEqualTo(range[1][1])));
+		lst[2].visibleProperty().bind(prop.greaterThan(range[2][0]).and(prop.lessThanOrEqualTo(range[2][1])));
+		lst[3].visibleProperty().bind(prop.greaterThan(range[3][0]).and(prop.lessThan(range[3][1])));
+		
+		lst[4].visibleProperty().bind(prop.greaterThanOrEqualTo(range[4][0]).and(prop.lessThan(range[4][1])));
+		lst[5].visibleProperty().bind(prop.greaterThanOrEqualTo(range[5][0]).and(prop.lessThan(range[5][1])));
+		lst[6].visibleProperty().bind(prop.greaterThanOrEqualTo(range[6][0]).and(prop.lessThan(range[6][1])));
+		lst[7].visibleProperty().bind(prop.greaterThanOrEqualTo(range[7][0]));
+		
+		return new StackPane(lst);
+	}
+	
 }

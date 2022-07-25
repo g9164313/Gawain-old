@@ -26,22 +26,6 @@ public class DevModbus extends DevBase {
 		TAG = "modbus-dev";
 	}
 	
-	/**
-	 * Create object and connect device immediately
-	 * @param name - device name and connection attributes
-	 */
-	public DevModbus(final String name){
-		this();
-		devPath = name;
-	}
-	
-	/**
-	 * Choose which type connection, format is below:
-	 * RTU:[device name],[baud-rate],[8n1]
-	 * TCP:[IP address]#[port]
-	 */
-	private String devPath = "";
-	
 	//below variables will be accessed by native code
 	private String rtuName = "";
 	private int    rtuBaud = 9600;
@@ -59,14 +43,24 @@ public class DevModbus extends DevBase {
 	private final static String STG_IGNITE = "ignite";
 	private final static String STG_LOOPER = "looper";
 	
+	
+	/**
+	 * Choose which type connection, format is below:
+	 * RTU:[device name],[baud-rate],[8n1]
+	 * TCP:[IP address]#[port]
+	 */
 	@Override
 	public void open() {
-		if(isLive()==true) {
+		final String path = Gawain.prop().getProperty(TAG, "");
+		if(path.length()==0) {
+			Misc.logw("No default tty name...");
 			return;
 		}
-		if(devPath.matches("^[rR][tT][uU]:[\\/\\w]+,\\d+,[78][neoNEO][12]")==true) {		
-			
-			String[] col = devPath.substring(4).split(",");	
+		open(path);
+	}
+	public void open(final String path) {
+		if(path.matches("^[rR][tT][uU]:[\\/\\w]+,\\d+,[78][neoNEO][12]")==true) {			
+			String[] col = path.substring(4).split(",");	
 			if(col.length>=1) {
 				rtuName = col[0];
 			}
@@ -81,9 +75,9 @@ public class DevModbus extends DevBase {
 			}
 			implOpenRtu();
 			
-		}else if(devPath.matches("^[tT][cC][pP]:\\d{1,3}.\\d{1,3}.\\d{1,3}.\\d{1,3}[#]?[\\d]*")==true) {		
+		}else if(path.matches("^[tT][cC][pP]:\\d{1,3}.\\d{1,3}.\\d{1,3}.\\d{1,3}[#]?[\\d]*")==true) {		
 			
-			String[] col = devPath.substring(4).split("#");
+			String[] col = path.substring(4).split("#");
 			if(col.length>=1) {
 				tcpName = col[0];
 			}
@@ -99,6 +93,7 @@ public class DevModbus extends DevBase {
 			playLoop();
 		}
 	}
+
 	public void playLoop() {
 		if(isFlowing()==true) {
 			return;
@@ -107,12 +102,7 @@ public class DevModbus extends DevBase {
 		addState(STG_LOOPER,()->looper());
 		playFlow(STG_IGNITE);
 	}
-	
-	public void open(final String name) {
-		devPath = name.split(";|@")[0];
-		open();
-	}
-	
+
 	@Override
 	public void close() {		
 		if(handle==0L) {
@@ -281,7 +271,7 @@ public class DevModbus extends DevBase {
 				blocking_delay(looperDelay);
 			}
 		}
-		Application.invokeAndWait(()->{
+		Application.invokeLater(()->{
 			for(RecallCell cc:cells) {
 				cc.update_property();
 			}

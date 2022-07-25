@@ -61,7 +61,9 @@ public abstract class DevAdam extends DevTTY {
 		"55",z15V
 	);
 
-	protected String AA = "00";
+	protected RangeType[] init_range = null;
+	
+	protected String AA="00";
 		
 	protected String TT="00", CC="06", FF="00";
 	
@@ -76,7 +78,7 @@ public abstract class DevAdam extends DevTTY {
 		115200,"0A"
 	);
 
-	protected void get_type_range(final Channel ch) {
+	protected void get_range_type(final Channel ch) {
 		String ans = exec("$"+AA+"8C"+ch.id);
 		if(ans.startsWith("?")==true) {
 			Misc.logw("[%s] unable get type and range about ch%d", TAG, ch.id);
@@ -84,15 +86,36 @@ public abstract class DevAdam extends DevTTY {
 		}
 		final String code = ans.substring(ans.length()-2);		
 		final RangeType rt = range_type.get(code);		
-		ch.set_range_type(rt);
+		ch.update_property(rt);
 	};
 
+	protected void set_range_type(final Channel ch, final RangeType rng) {
+		final String code = range_type.bi_get(rng);
+		final String cmd = "$"+AA+"7C"+ch.id+"R"+code;
+		final String ans = exec(cmd);
+		if(ans.startsWith("?")==true) {
+			Misc.logw("[%s][ch%d] fail to set %s", TAG, ch.id, cmd);
+		}
+		ch.update_property(rng);
+	}
+	protected void init_range_type(final Channel[] ch) {
+		if(init_range==null) {
+			return;
+		}
+		for(int i=0; i<ch.length; i++) {
+			if(i>=init_range.length) {
+				break;
+			}
+			set_range_type(ch[i],init_range[i]);
+		}
+	}
+	
 	protected void set_configuration(String NN) {
 		if(NN==null) {
 			NN = AA;
 		}
 		final String cmd = String.format(
-			"%%s\n",
+			"%%s",
 			AA,NN,TT,CC,FF
 		);
 		final String ans = exec(cmd);
@@ -173,7 +196,7 @@ public abstract class DevAdam extends DevTTY {
 
 		public RangeType range_type;
 		
-		void set_range_type(final RangeType rt) {
+		void update_property(final RangeType rt) {
 			range_type = rt;
 			final Runnable func = ()->{				
 				min.setValue(rt.min);

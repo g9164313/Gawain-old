@@ -708,7 +708,11 @@ public class Misc {
 				dict.put(v, k);
 			}
 			return this;
-		}				
+		}
+		
+		public K bi_get(V value) {
+			return dict.get(value);
+		}		
 		public V bi_put(K key, V value) {
 			V v = super.put(key, value);
 			if(v!=null) {

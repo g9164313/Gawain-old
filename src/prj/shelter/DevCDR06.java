@@ -41,14 +41,14 @@ public class DevCDR06 extends DevModbus {
 		new SimpleFloatProperty(0.f)
 	};
 	private StringProperty[] ch_txt = {
-		new SimpleStringProperty("＊＊＊＊＊"),
-		new SimpleStringProperty("＊＊＊＊＊"),
-		new SimpleStringProperty("＊＊＊＊＊"),
-		new SimpleStringProperty("＊＊＊＊＊"),
-		new SimpleStringProperty("＊＊＊＊＊"),
-		new SimpleStringProperty("＊＊＊＊＊"),
-		new SimpleStringProperty("＊＊＊＊＊"),
-		new SimpleStringProperty("＊＊＊＊＊")
+		new SimpleStringProperty(""),
+		new SimpleStringProperty(""),
+		new SimpleStringProperty(""),
+		new SimpleStringProperty(""),
+		new SimpleStringProperty(""),
+		new SimpleStringProperty(""),
+		new SimpleStringProperty(""),
+		new SimpleStringProperty("")
 	};
 	private StringProperty[] ch_name = {
 		new SimpleStringProperty("壓力"),

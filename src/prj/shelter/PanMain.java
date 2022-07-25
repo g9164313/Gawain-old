@@ -4,24 +4,18 @@ import java.time.LocalDate;
 
 import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXTabPane;
-import com.jfoenix.controls.JFXTextField;
 
 import javafx.scene.Node;
-import javafx.scene.control.Control;
 import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
 import javafx.scene.control.Tab;
-import javafx.scene.control.TextField;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
-import narl.itrc.Gawain;
-import narl.itrc.Misc;
 import narl.itrc.PanBase;
-import narl.itrc.UtilPhysical;
 
 public class PanMain extends PanBase {
 
@@ -47,9 +41,9 @@ public class PanMain extends PanBase {
 	private void on_shown(){
 		abacus.reloadLast();
 		
-		//hustio.open();
-		//at5350.open();
-		//cdr06.open();
+		hustio.open();
+		at5350.open();
+		cdr06.open();
 		//DataBridge.getInstance();		
 	}
 	
@@ -68,10 +62,13 @@ public class PanMain extends PanBase {
 			new Tab("調閱",pogsql),
 			new Tab("照射"),
 			new Tab("標定",abacus),
-			new Tab("程序",ladder),			
+			new Tab("流程",ladder),			
 			new Tab("設備",lay_dev)
 		);
-		lay_tabs.getSelectionModel().select(2);//預設顯示的頁籤
+		//預設顯示的頁籤
+		//lay_tabs.getSelectionModel().select(2);
+		lay_tabs.getSelectionModel().select(3);
+		//lay_tabs.getSelectionModel().select(4);
 
 		final BorderPane lay0 = new BorderPane();
 		lay0.setCenter(lay_tabs);
@@ -118,6 +115,7 @@ public class PanMain extends PanBase {
 		btn_stop.setPrefHeight(btn_height);
 		btn_stop.setOnAction(e->{
 			hustio.asyncHaltOn();
+			//at5350.syncAbort();
 		});
 		AnchorPane.setRightAnchor(btn_stop, 7.);
 		AnchorPane.setLeftAnchor (btn_stop, 7.);

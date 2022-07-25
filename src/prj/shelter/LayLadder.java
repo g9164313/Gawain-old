@@ -5,58 +5,153 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Optional;
 
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellReference;
 
-import com.sun.glass.ui.Application;
-
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
-import javafx.geometry.Orientation;
-import javafx.scene.Node;
-import javafx.scene.control.Label;
-import javafx.scene.control.Separator;
-import javafx.scene.layout.GridPane;
+import javafx.scene.control.ChoiceDialog;
+import javafx.scene.control.TextInputDialog;
 import narl.itrc.Ladder;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
 import narl.itrc.Stepper;
+import narl.itrc.UtilPhysical;
 
 public class LayLadder extends Ladder {
 	
 	//private static StringProperty txt_press, txt_humid, txt_celus;
 	
 	public LayLadder(final LayAbacus lay1){
+		
+		abacus = lay1;
+		epilogue = event_finally;
+		
 		addStep("分隔線", Stepper.Sticker.class);
 		addStep("原點補償", RadiateStep.Reset.class);
 		addStep(RadiateLoca.NAME, RadiateLoca.class);
 		addStep(RadiateDose.NAME, RadiateDose.class);
 		genButton("校正程序",e->{
+			final DevHustIO.Strength[] lst_ss = quest_strength();
+			final String M_TIME = quest_meas_time();
+			if(lst_ss==null||M_TIME==null) {
+				return;
+			}
+			
 			Stepper stp;
-			for(DevHustIO.Strength ss:DevHustIO.Strength.values()) {
+			for(DevHustIO.Strength ss:lst_ss) {
 				
 				stp = genStep(Stepper.Sticker.class);
 				((Stepper.Sticker)stp).setValues("[  校正"+ss.toString()+"  ]");
 				
+				stp =genStep(RadiateStep.Reset.class);
+				((RadiateStep.Reset)stp).setValue(true,true,false);
+				
 				for(String loca:def_location) {
 					stp = genStep(RadiateLoca.class);
-					((RadiateLoca)stp).setValues(loca, "06:00", ss, true, true);
+					((RadiateLoca)stp).setValues(loca, M_TIME, ss, true, true);
 				}
-				for(String dose:def_doserate(ss)) {
+				int cnt = 0;
+				for(String dose:def_doserate(ss,true)) {
+					if(cnt%2==0) { 
+						stp = genStep(Stepper.Sticker.class);
+						((Stepper.Sticker)stp).setValues(String.format("%02d", cnt+1));
+					}
+					cnt++;
 					stp = genStep(RadiateDose.class);
-					((RadiateDose)stp).setValues(dose, "06:00", ss, true, true, true);
+					((RadiateDose)stp).setValues(dose, M_TIME, ss, true, true, true);					
 				}
 			}			
+		});
+		
+		genButton("定點標定",e->{
+			final DevHustIO.Strength[] lst_ss = quest_strength();
+			final String M_TIME = quest_meas_time();
+			if(lst_ss==null||M_TIME==null) {
+				return;
+			}
+			
+			Stepper stp;
+			for(DevHustIO.Strength ss:lst_ss) {
+				
+				stp = genStep(Stepper.Sticker.class);
+				((Stepper.Sticker)stp).setValues("[  觀測"+ss.toString()+"  ]");
+				
+				for(String loca:def_location) {
+					stp = genStep(RadiateLoca.class);
+					((RadiateLoca)stp).setValues(loca, M_TIME, ss, true, true);
+				}
+			}
 		});		
+		genButton("劑量驗證",e->{
+			final DevHustIO.Strength[] lst_ss = quest_strength();
+			final String M_TIME = quest_meas_time();
+			if(lst_ss==null||M_TIME==null) {
+				return;
+			}
+			
+			Stepper stp;
+			for(DevHustIO.Strength ss:lst_ss) {
+				
+				stp = genStep(Stepper.Sticker.class);
+				((Stepper.Sticker)stp).setValues("[  驗證"+ss.toString()+"  ]");
+				
+				for(String dose:def_doserate(ss,false)) {
+					stp = genStep(RadiateDose.class);
+					((RadiateDose)stp).setValues(dose, M_TIME, ss, true, false, false);
+				}
+			}
+		});
+	}
+	
+	private DevHustIO.Strength[] quest_strength(){
+		final ChoiceDialog<String> dia = new ChoiceDialog<String>("All","3Ci","0.05Ci","0.5Ci");
+		dia.setTitle("選取劑量");
+		dia.setHeaderText("");
+		dia.setContentText("");
+		final Optional<String> opt = dia.showAndWait(); 
+		if(opt.isPresent()==false) {
+			return null;
+		}
+		
+		if(opt.get().equals("0.05Ci")) {
+			return new DevHustIO.Strength[] { DevHustIO.Strength.V_005Ci };
+		}else if(opt.get().equals("0.5Ci")) {
+			return new DevHustIO.Strength[] { DevHustIO.Strength.V_05Ci };
+		}else if(opt.get().equals("3Ci")) {
+			return new DevHustIO.Strength[] { DevHustIO.Strength.V_3Ci };
+		}else if(opt.get().equals("All")) {
+			return DevHustIO.Strength.values();
+		}
+		return null;
+	}
+	private String quest_meas_time(){
+		final TextInputDialog dia = new TextInputDialog("1:00");
+		dia.setTitle("照射時間");
+		dia.setHeaderText("");
+		dia.setContentText("");
+		final Optional<String> opt = dia.showAndWait();
+		if(opt.isPresent()==false) {
+			return null;
+		}
+		return opt.get();
 	}
 	
 	private final static String[] def_location = {
-		"50cm", "150cm", "250cm", "350cm", "450cm",
+		"500 cm","400 cm","300 cm","200 cm","100 cm"
 	};
-	private final static String[] gen_doserate(String... values) {
+	private final static String[] gen_doserate(
+		final boolean bound,
+		String... values
+	) {
+		if(bound==false) {
+			return values;
+		}
 		String[] lst = new String[values.length*2];
 		for(int i=0; i<values.length; i++) {
 			final float vv = Float.valueOf(values[i]);
@@ -71,23 +166,24 @@ public class LayLadder extends Ladder {
 		}
 		return lst;
 	}
-	private final static String[] def_doserate(DevHustIO.Strength ss) {
+	private final static String[] def_doserate(DevHustIO.Strength ss,boolean bound) {
 		String[] lst = null;
 		switch(ss) {		
 		//case V_005Ci: lst = def_dose_low; break;
 		//case V_05Ci : lst = def_dose_middle; break;
 		//case V_3Ci  : lst = def_dose_high; break;
 		default:
-		case V_3Ci  : lst = gen_doserate(
-			"10000","8000","5000","4000","2000",
-			 "1000", "800", "500", "400"
+		case V_3Ci  : lst = gen_doserate(bound,
+			  "400", "500", "800","1000",
+			 "2000","4000","5000","8000","10000"
+			 
 			 ); break;
-		case V_05Ci : lst = gen_doserate(
-			"1000","800","500","400","200",
-			 "100", "80", "50", "40"
+		case V_05Ci : lst = gen_doserate(bound,
+			  "40", "50", "80","100",
+			 "200","400","500","800","1000"
 			 ); break;
-		case V_005Ci: lst = gen_doserate(
-			"100","80","50","40","25","20","10","5"
+		case V_005Ci: lst = gen_doserate(bound,
+			"5","10","20","25","40","50","80","100"
 			); break;
 		}
 		return lst;
@@ -96,11 +192,9 @@ public class LayLadder extends Ladder {
 	
 	@Override
 	protected void import_step(){
-		PanBase pan = PanBase.self(this);
-		mark_src = pan.loadFrom();
-		if(mark_src==null){
-			return;
-		}
+		//final PanBase pan = PanBase.self(this);
+		//mark_src = pan.loadFrom();
+		//if(mark_src==null){ return; }
 		/*Alert dlg = new Alert(AlertType.CONFIRMATION);
 		dlg.setTitle("確認");
 		dlg.setHeaderText("使用前次校正值？");
@@ -115,19 +209,28 @@ public class LayLadder extends Ladder {
 			return;
 		}*/
 		//mark_data = new File("C:\\Users\\qq\\mark-2017.xls");//debug~~~
-		pan.notifyTask(new TskImport());
+		//pan.notifyTask(new TskImport());
 	}
 	
 	@Override
 	protected void export_step(){
 		//mark_data = new File("C:\\Users\\qq\\mark-2017.xls");//debug~~
-		if(mark_src==null){
-			PanBase.notifyWarning("", "請先匯入表格!!");
-			return;
-		}
-		PanBase.self(this).notifyTask(new TskExport());
+		final PanBase pan = PanBase.self(this);
+		final TskExport tsk = new TskExport();
+		//tsk.setOnSucceeded(e->{
+			//pan.saveAs(default_name)
+		//});
+		pan.notifyTask(tsk);		
 	}
-	//----------------------------------//
+	
+	private LayAbacus abacus;
+	private final Runnable event_finally = ()->{
+		RadiateStep.hustio.asyncHaltOn();//stop radiation~~~
+		if(abacus==null) { return; }
+		abacus.dumpModel();
+	};
+	
+	//----------------------------------------//
 	
 	/**
 	 * 現在數值跟衰減後數值，兩兩一組<p>
@@ -180,219 +283,190 @@ public class LayLadder extends Ladder {
 		}
 		return cc;
 	}
+	//----------------------------------------//
 	
-	private File mark_src = null;//template and data 
-	
-	private class TskImport extends Task<Void>{
-		TskImport(){
-			recipe.getItems().clear();
-		}
-		@Override
-		protected Void call() throws Exception {			
-			try {
-				Workbook wb = WorkbookFactory.create(mark_src);
-				eva = wb.getCreationHelper().createFormulaEvaluator();
-				fmt = new DataFormatter();
-				//collect_mark(wb.getSheetAt(0));
-				//collect_mark(wb.getSheetAt(1));
-				collect_mark(wb.getSheetAt(2));
-				wb.close();
-			} catch (IOException e) {
-				updateMessage("無法讀取試算表："+e.getMessage());
-			}
-			return null;
-		}
-		void collect_mark(final Sheet sh){
-			String name = sh.getSheetName();
-			updateMessage("從 "+name+" 收集標定點");
-			
-			Application.invokeAndWait(()->{
-				((Stepper.Sticker)genStep(Stepper.Sticker.class)).editValue(name);
-				//((StepArrange)genStep(StepArrange.class)).editValue(name,true,true);
-			});
-			//使用衰減過後的劑量跟距離當成初始值
-			for(String[][] pin:pin_clip){
-				String[] val = {
-					//upper boundary
-					getCellText(sh,pin[1][0]),//dose rate(μSv/hr)
-					getCellText(sh,pin[1][1]),//location(cm)
-					//lower boundary
-					getCellText(sh,pin[1][2]),//dose rate('μSv/hr')
-					getCellText(sh,pin[1][3]),//location(cm)
-				};
-				if(val[0].matches("[-]?\\d+[.]?\\d+")==false){
-					continue;//skip
-				}				
-				updateMessage(String.format(
-					"更新 %s校正刻度: %s-%s, %s-%s", 
-					name,
-					pin[1][0], pin[1][1],
-					pin[1][2], pin[1][3]
-				));				
-				Application.invokeAndWait(()->{
-					//((StepCalibrateBak)genStep(StepCalibrateBak.class)).editValue(
-					//	name, 
-					//	val[0], val[1], pin[1][0],
-					//	val[2], val[3], pin[1][2]
-					//);
-				});
-			}			
-		}
-	};
-	
-	private class TskExport extends Task<Void>{
+	private class TskExport extends Task<Void>{		
+		final File mark_dst;
+		final String mark_day;
 		
-		File mark_dst=null;		
-
 		TskExport(){
-			String name = mark_src.getAbsolutePath();
-			int pos = name.lastIndexOf(File.separatorChar);
-			if(pos<0){
-				return;
-			}
-			Date day = Calendar.getInstance().getTime();  
-			DateFormat fmt = new SimpleDateFormat("yyyyMMdd");
-			name = name.substring(0,pos+1);
-			name = name + "標定-" + fmt.format(day)+".xlsx";
-			mark_dst = new File(name);
+			final DateFormat fmt1 = new SimpleDateFormat("yyyyMMdd");
+			final DateFormat fmt2 = new SimpleDateFormat("yyyy/MM/dd");
+			final Date now_day = Calendar.getInstance().getTime();			
+			mark_dst = new File(
+				Misc.getHomePath()+
+				"標定-"+fmt1.format(now_day)+".xlsx"
+			);
+			mark_day = fmt2.format(now_day);
 		}
 		
 		@Override
 		protected Void call() throws Exception {
-			//updateMessage("複製檔案");
-			//Files.copy(
-			//	mark_src.toPath(), 
-			//	mark_dst.toPath(), 
-			//	StandardCopyOption.REPLACE_EXISTING
-			//);
 			try {
-				Workbook wb = WorkbookFactory.create(mark_src);
+				final Workbook wb = WorkbookFactory.create(true);
 				eva = wb.getCreationHelper().createFormulaEvaluator();
 				fmt = new DataFormatter();
-				//清除第一二項資料
-				clear_old_mark(wb.getSheetAt(0));
-				clear_old_mark(wb.getSheetAt(1));
-				clear_old_mark(wb.getSheetAt(2));
-				//重新填寫資料
-				ObservableList<Stepper> lst = recipe.getItems();
-				for(Stepper stp:lst){
-					updateMessage("確認步驟；"+stp.getClass().getName());
-					//if(stp.getClass()!=StepCalibrateBak.class){
-					//	continue;
-					//}
-					//fill_mark_data(wb,(StepCalibrateBak) stp);
-				}
-				//清除舊有的標定表
-				wb.removeSheetAt(3);
-				update_pin_table(wb);
+				
+				final RadiateDose[][] radi_all = {
+					filter_step(DevHustIO.Strength.V_3Ci),
+					filter_step(DevHustIO.Strength.V_05Ci),
+					filter_step(DevHustIO.Strength.V_005Ci),
+				};
+				
+				dump_step_result(wb,"3Ci"   ,radi_all[0]);
+				dump_step_result(wb,"0.5Ci" ,radi_all[1]);
+				dump_step_result(wb,"0.05Ci",radi_all[2]);
+				dump_metrix_vals(wb,radi_all);
+
 				//export to file
 				FileOutputStream dst = new FileOutputStream(mark_dst);
 				wb.write(dst);
 				dst.close();
 			} catch (IOException e) {
-				updateMessage("無法讀取試算表："+e.getMessage());
+				updateMessage("無法建立試算表："+e.getMessage());
 			}
 			return null;
-		}		
-		private void clear_old_mark(final Sheet sh){			
-			updateMessage(sh.getSheetName()+": 清除資料");
-			final char[] lst = {
-				'B','C','D','E','F','G','H','I','J','K',
-				'L','M','N','O','P','Q','R','S','T','U'
-			};
-			for(char cc:lst){
-				for(int rr=13; rr<33; rr++){
-					get_cell(sh,""+cc+rr).setCellValue("");			
+		}
+		
+		private RadiateDose[] filter_step(final DevHustIO.Strength stng) {
+			ArrayList<RadiateDose> lst = new ArrayList<RadiateDose>();
+			ObservableList<Stepper> all_step = recipe.getItems();
+			for(Stepper stp:all_step){
+				final String name = stp.getClass().getName();
+				updateMessage("檢查 "+name);				
+				if(name.equals(RadiateDose.class.getName())==false) {
+					continue;
+				}
+				final RadiateDose ss = (RadiateDose)stp;				
+				if(ss.cmb_stng.getValue()==stng) {
+					lst.add(ss);
+				}				
+			}
+			return lst.toArray(new RadiateDose[0]); 
+		}
+		
+		private void dump_step_result(
+			final Workbook wb,
+			final String name,
+			final RadiateDose[] lst
+		) {
+			final Sheet sh = wb.createSheet(name);
+			get_cell(sh,"A1").setCellValue("輻射偵檢儀校正實驗室輻射場強度標定紀錄表");
+			
+			get_cell(sh,"B2").setCellValue("電量計：");
+			get_cell(sh,"C2").setCellValue(
+				RadiateStep.at5350.Identify[0].get()+" "+
+				RadiateStep.at5350.Identify[1].get()
+			);
+			
+			get_cell(sh,"F2").setCellValue("游離腔：");
+			get_cell(sh,"G2").setCellValue("PTW TM32002(s/n: 0298)");
+			
+			get_cell(sh,"J2").setCellValue("校正報告：");
+			get_cell(sh,"K2").setCellValue("（NRSL-104140，2015/05/15，INER）90");
+
+			get_cell(sh,"B3").setCellValue("3Ci標定");
+			get_cell(sh,"C3").setCellValue("標定日期：");
+			get_cell(sh,"D3").setCellValue(mark_day);
+						
+			get_cell(sh,"A5").setCellValue("now (μSv/hr)");
+			get_cell(sh,"A6").setCellValue("1年後(μSv/hr)");
+			get_cell(sh,"A7").setCellValue("距離 (cm)");
+			get_cell(sh,"A8").setCellValue("新距離(cm)");
+			get_cell(sh,"A9").setCellValue("個數 (n)");
+			get_cell(sh,"A10").setCellValue("平均 (μSv/hr)");
+			get_cell(sh,"A11").setCellValue("Sigma");
+			get_cell(sh,"A12").setCellValue("%Sigma");
+			get_cell(sh,"A13").setCellValue("計讀值 (μSv/hr)");
+			
+			
+			char s_col = 'D';//skip 2 column~~~
+			get_cell(sh,"B4").setCellValue("1");
+			get_cell(sh,"C4").setCellValue("2");
+			for(int i=0; i<lst.length; i++) {
+				get_cell(sh,String.format("%C4", s_col+i)).setCellValue(String.format("%d", 3+i));
+			}
+			
+			for(int s=0; s<lst.length; s++) {
+				final RadiateDose stp = lst[s];
+				final String last_loca = (String)stp.box_loca.getUserData();
+				final String last_meas = (String)stp.txt_desc.getUserData();
+				final String[] vals = last_meas.split("\n");
+				
+				final char cc = (char)(s_col+s);
+				
+				get_cell(sh,String.format("%C5", cc))
+				.setCellFormula(String.format("%C10",cc));
+				
+				get_cell(sh,String.format("%C6", cc))
+				.setCellFormula(String.format("%C10*0.977",cc));
+				
+				get_cell(sh,String.format("%C7", cc))
+				.setCellValue(last_loca.replace("cm", "").trim());
+				
+				get_cell(sh,String.format("%C8", cc))
+				.setCellFormula(String.format("((%C7+90)*0.988)-90", cc));
+				
+				get_cell(sh,String.format("%C10", cc))
+				.setCellFormula(String.format("AVERAGE(%C13:%C32)", cc, cc));
+				
+				get_cell(sh,String.format("%C11", cc))
+				.setCellFormula(String.format("STDEV(%C13:%C32)", cc, cc));
+				
+				get_cell(sh,String.format("%C12", cc))
+				.setCellFormula(String.format("(%C11/%C10)*100", cc, cc));
+				
+				
+				for(int i=0; i<vals.length; i++) {
+					String txt = vals[i];
+					final int pos = txt.indexOf("#");
+					if(pos>=0) {
+						txt = txt.substring(0,pos);
+					}
+					txt = txt.replace('"',' ').trim();
+					txt = UtilPhysical.convertScale(txt,"μSv/hr");
+					Cell aa = get_cell(sh,String.format("%C%d", cc, 13+i));
+					aa.setCellType(CellType.NUMERIC);
+					aa.setCellValue(Float.valueOf(txt));		
 				}
 			}
-		}		
-		private void fill_mark_data(
-			final Workbook wb
-			//final StepCalibrateBak stp
-		){
-			//Sheet sh = wb.getSheet(stp.ispt_name);
-			//fill_pin_value(sh,stp.pts[0]);
-			//fill_pin_value(sh,stp.pts[1]);			
 		}
-		private void fill_pin_value(
-			final Sheet sh
-			//final StepCalibrateBak.GradValue pts
-		){
-			/*updateMessage(String.format(
-				"%s: 更新欄位-%c", 
-				sh.getSheetName(), pts.col_name
-			));
+		
+		private void dump_metrix_vals(
+			final Workbook wb,
+			final RadiateDose[][] lst_all
+		) {
+			final Sheet sh = wb.createSheet("標定表");
+			get_cell(sh,"A1").setCellValue("3Ci");
+			get_cell(sh,"A2").setCellValue("距離(cm)");
+			get_cell(sh,"B2").setCellValue("劑量(μSv/hr)");
 			
-			get_cell(sh,
-				""+pts.col_name+"7"
-			).setCellValue(
-				pts.pin_loca
-			);//distance
+			get_cell(sh,"D1").setCellValue("0.5Ci");
+			get_cell(sh,"D2").setCellValue("距離(cm)");
+			get_cell(sh,"E2").setCellValue("劑量(μSv/hr)");
 			
-			double[] val = pts.pin_dose;
-			if(val==null){
-				return;
-			}
-			//the value of dose rate
-			for(int rr=13, ii=0; rr<33; rr++, ii++){
-				if(ii>=val.length){
-					break;
-				}
-				get_cell(sh,
-					""+pts.col_name+rr
-				).setCellValue(
-					val[ii]
-				);
-			}*/
-		}
-		private void update_pin_table(final Workbook wb){
-			updateMessage("更新標定表");
-			Sheet[] mrk = {
-				wb.getSheetAt(0),//3Ci
-				wb.getSheetAt(1),//0.5Ci
-				wb.getSheetAt(2),//0.05Ci
+			get_cell(sh,"G1").setCellValue("0.05Ci");
+			get_cell(sh,"G2").setCellValue("距離(cm)");
+			get_cell(sh,"H2").setCellValue("劑量(μSv/hr)");
+			
+			final char[][] cols = {
+				{'A','B'},
+				{'D','E'},
+				{'G','H'},
 			};
-			Sheet pin = wb.createSheet("標定表");
-			get_cell(pin,"A1").setCellValue("3Ci");
-			get_cell(pin,"A2").setCellValue("距離(cm)");
-			get_cell(pin,"B2").setCellValue("劑量(μSv/hr)");
-			tranpose_mark(mrk[0],pin,'A','B');
 			
-			get_cell(pin,"C1").setCellValue("0.5Ci");
-			get_cell(pin,"C2").setCellValue("距離(cm)");
-			get_cell(pin,"D2").setCellValue("劑量(μSv/hr)");
-			tranpose_mark(mrk[1],pin,'C','D');
-			
-			get_cell(pin,"E1").setCellValue("0.05Ci");
-			get_cell(pin,"E2").setCellValue("距離(cm)");
-			get_cell(pin,"F2").setCellValue("劑量(μSv/hr)");
-			tranpose_mark(mrk[2],pin,'E','F');
-		}
-		private void tranpose_mark(
-			final Sheet src,
-			final Sheet dst,
-			final char dst_col1,
-			final char dst_col2
-		){
-			final char[] src_col = {
-				'D','E','F','G','H','I','J','K','L',
-				'M','N','O','P','Q','R','S','T','U'
-			};
-			int dst_row_idx = 5;//skip the first and second row.<p>
-			for(char sc:src_col){
-				String[] val = {
-					getCellText(src,""+sc+"7"),
-					getCellText(src,""+sc+"10"),
-				};
-				try{
-					//trim location value
-					float loc = Float.valueOf(val[0]);
-					val[0] = String.format("%.2f", loc);
-				}catch(NumberFormatException e){					
+			for(int i=0; i<3; i++) {				
+				RadiateDose[] lst = lst_all[i];
+				for(int j=0; j<lst.length; j++) {
+					//final String[] summ = lst[j].lastSummary.split("@");
+					final String[] summ = lst[j].txt_desc.getText().split("@");
+					if(summ.length<2) {
+						continue;
+					}
+					get_cell(sh,String.format("%C%d", cols[i][0], j+5)).setCellValue(summ[0].trim());
+					final String[] vals = summ[1].split("\\s");//avg unit ± dev
+					get_cell(sh,String.format("%C%d", cols[i][1], j+5)).setCellValue(vals[0].trim());
 				}
-				get_cell(dst,""+dst_col1+""+dst_row_idx).setCellValue(val[0]);
-				get_cell(dst,""+dst_col2+""+dst_row_idx).setCellValue(val[1]);
-				dst_row_idx+=1;
 			}
 		}
 	};
