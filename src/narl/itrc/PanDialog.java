@@ -93,12 +93,14 @@ public abstract class PanDialog<T> extends Dialog<T> {
 		}
 		
 		@Override
-		boolean set_result_and_close(ButtonType type) {
-			if(type!=ButtonType.OK) {				
+		boolean set_result_and_close(ButtonType type) {			
+			if(type.equals(ButtonType.OK)) {				
 				setResult(box.getText());
-			}else {
+				return true;
+			}else if(type.equals(ButtonType.CANCEL)){
 				setResult(null);
-			}
+				return true;
+			}			
 			return false;
 		}		
 	}	

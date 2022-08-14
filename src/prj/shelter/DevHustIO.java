@@ -224,7 +224,7 @@ public class DevHustIO extends DevTTY {
 			}else {
 				String val = UtilPhysical.convertScale(position,"mm");
 				if(val.length()==0) {
-					throw new NumberFormatException();
+					return;//TODO:~~~
 				}
 				if(val.contains(".")==false) {
 					val = val +".000";
@@ -318,14 +318,16 @@ public class DevHustIO extends DevTTY {
 	
 	public void asyncMoveTo(
 		final String position
-	) {asyncBreakIn(()->{
+	) {
+		asyncBreakIn(()->{
 		move_to_abs(position);
 	});}
 	
 	public void asyncMoveTo(
 		final double value, 
 		final String unit
-	) {asyncBreakIn(()->{
+	) {
+		asyncBreakIn(()->{
 		move_to_abs(value, unit);
 	});}
 	
@@ -369,6 +371,20 @@ public class DevHustIO extends DevTTY {
 		asyncWorking(position,left_time);
 	}*/
 	
+	/*
+	 * Get location numeric value, unit is 'mm'.
+	 */
+	public float get_location_mm() {
+		try {
+			return Float.parseFloat(U_code.get());
+		}catch(NumberFormatException e) {
+			return 0f;
+		}
+	}
+	public float get_location_cm() {
+		return get_location_mm()/10f;
+	}
+	
 	public boolean isMoving() {
 		return isMoving.get();
 	}
@@ -387,9 +403,9 @@ public class DevHustIO extends DevTTY {
 		
 		final ToggleGroup grp_act = new ToggleGroup();
 		final JFXRadioButton[] rad_act = {
-			new JFXRadioButton("0.05Ci"),
+			new JFXRadioButton("3Ci"),
 			new JFXRadioButton("0.5Ci"),
-			new JFXRadioButton("3Ci")			
+			new JFXRadioButton("0.05Ci")			
 		};
 		rad_act[0].setToggleGroup(grp_act);
 		rad_act[1].setToggleGroup(grp_act);

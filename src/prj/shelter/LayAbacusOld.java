@@ -39,7 +39,7 @@ import narl.itrc.Misc;
 import narl.itrc.UtilPhysical;
 import prj.shelter.DevHustIO.Strength;
 
-public class LayAbacus extends BorderPane
+public class LayAbacusOld extends BorderPane
 {
 	//private final static DateTimeFormatter fmt_day = DateTimeFormatter.ofPattern("yyyy/MM/dd");
 	//private final static DateTimeFormatter fmt_time= DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
@@ -85,7 +85,12 @@ public class LayAbacus extends BorderPane
 			stat = dev.lastSummary();
 		}
 		double getX(final String unit) {
-			return Double.valueOf(UtilPhysical.convertScale(loca,unit));
+			final String val = UtilPhysical.convertScale(loca,unit);
+			if(val.length()==0) {
+				Misc.loge("[LayAbacus] wrong data - %s", loca);
+				return 0.;
+			}
+			return Double.valueOf(val);
 		}
 		double getY(final String unit) {
 			if(meas.length()==0) {
@@ -134,7 +139,7 @@ public class LayAbacus extends BorderPane
 			if(size()<=2) {
 				return this;
 			}
-			double[] init = {1., 1., 1., 1.};
+			double[] init = {1., 1., 1., 1., 70.};
 			if(coeff!=null) {
 				init = coeff;
 			}
@@ -156,11 +161,11 @@ public class LayAbacus extends BorderPane
 		}
 		public String getText() {
 			if(coeff==null) {
-				return "y = d + (a-d) / (1+b^(x/c))";
+				return "y = d + (a-d) / (1+((x+e)/c)^b)";
 			}			
 			return String.format(
-				"y = %.3f + %.3f / (1+(%.3f)^(x/%.3f))", 
-				coeff[3], coeff[0]-coeff[3], coeff[1], coeff[2]
+				"y = %.3f + %.3f / (1+((x+%.3f)/%.3f)^(%.3f))", 
+				coeff[3], coeff[0]-coeff[3], coeff[4], coeff[2], coeff[1]
 			);
 		}
 		
@@ -170,16 +175,25 @@ public class LayAbacus extends BorderPane
 			final double b = parameters[1];
 			final double c = parameters[2];
 			final double d = parameters[3];
-			return c * Math.pow(((a-d)/(y-d))-1.,1./b);
+			final double e = parameters[4];
+			//TODO:problem~~~ how to do '((a-d)/(y-d))-1.)<1.'
+			final double xx = Math.abs(((a-d)/(y-d))-1.);
+			double yy = -e + c * Math.pow(xx,1./b);
+			if(yy<0.) {
+				yy = 0.01;
+			}
+			return yy;
 		}
 		@Override
 		public double value(double x, double... parameters) {
-			// 4PL - module function
+			// 4PL - module function, e is extra, we add it~~~
+			//"y = d + (a-d) / (1+((x+e)/c)^b)"
 			final double a = parameters[0];
 			final double b = parameters[1];
 			final double c = parameters[2];
 			final double d = parameters[3];
-			return d + ((a - d) / (1 + Math.pow(x / c, b)));
+			final double e = parameters[4];
+			return d + ((a - d) / (1 + Math.pow((x+e)/c, b)));
 		}
 		@Override
 		public double[] gradient(double x, double... parameters) {
@@ -189,18 +203,35 @@ public class LayAbacus extends BorderPane
 			final double b = parameters[1];
 			final double c = parameters[2];
 			final double d = parameters[3];
+			final double e = parameters[4];
 			
-			double[] gradients = new double[4];
-			double den = 1 + Math.pow(x / c, b);
-			gradients[0] = 1 / den; //  Yes  a  Derivation 
-			gradients[1] = -((a - d) * Math.pow(x / c, b) * Math.log(x / c)) / (den * den); //  Yes  b  Derivation 
-			gradients[2] = (b * Math.pow(x / c, b - 1) * (x / (c * c)) * (a - d)) / (den * den); //  Yes  c  Derivation 
-			gradients[3] = 1 - (1 / den); //  Yes  d  Derivation 
+			double[] gradients = new double[5];
+			//double den = 1 + Math.pow((x+e)/c, b);
+			//gradients[0] = 1 / den; //  Yes  a  Derivation 
+			//gradients[1] = -((a - d) * Math.pow(x / c, b) * Math.log(x / c)) / (den * den); //  Yes  b  Derivation 
+			//gradients[2] = (b * Math.pow(x / c, b - 1) * (x / (c * c)) * (a - d)) / (den * den); //  Yes  c  Derivation 
+			//gradients[3] = 1 - (1 / den); //  Yes  d  Derivation 
+			
+			//Derivation
+			final double c_b = Math.pow(c, b);
+			final double c_b1 = Math.pow(c, b+1.);
+			final double c_2b = Math.pow(c, 2.*b);
+			final double c_2b1 = Math.pow(c, 2.*b+1.);
+			
+			final double xe_b = Math.pow(x+e, b);
+			final double xe_2b = Math.pow(x+e, 2.*b);
+			final double xe_2b1 = Math.pow(x+e, 2.*b+1.);
+			
+			gradients[0] =  c_b/(xe_b+c_b);
+			gradients[1] = ((c_b*d-a*c_b)*xe_b*Math.log(x+e)+(a*c_b*Math.log(c)-c_b*Math.log(c)*d)*xe_b)/(xe_2b+2*c_b*xe_b+c_2b);
+			gradients[2] = -((b*c_b*d-a*b*c_b)*xe_b)/(c*xe_2b+2*c_b1*xe_b+c_2b1);
+			gradients[3] = xe_b/(xe_b+c_b);
+			gradients[4] = ((b*c_b*d-a*b*c_b)*xe_b)/(xe_2b1+xe_b*(2*c_b*x+2*c_b*e)+c_2b*x+c_2b*e);
 			return gradients;
 		}
 	};
 	
-	private HashMap<Strength,Model> mmap = new HashMap<Strength,Model>();
+	public HashMap<Strength,Model> mmap = new HashMap<Strength,Model>();
 	
 	public static final String MODEL_LOCA_UNIT = "cm";
 	public static final String MODEL_DOSE_UNIT = "μSv/hr";
@@ -221,6 +252,14 @@ public class LayAbacus extends BorderPane
 		mmap.forEach((ss,mm)->mm.fitting());
 	}
 	public void dumpModel() {
+		if(
+			mmap.get(Strength.V_3Ci)==null &&
+			mmap.get(Strength.V_05Ci)==null &&
+			mmap.get(Strength.V_005Ci)==null
+		) {
+			return;//no marks, just a empty model
+		}
+		
 		final String path = Gawain.getSockPath();
 		final File fs = new File(path+MODEL_NAME);
 		if(fs.exists()==true) {
@@ -241,7 +280,7 @@ public class LayAbacus extends BorderPane
 				return;
 			}
 		}
-		mmap.forEach((ss,mm)->mm.fitting());
+		//mmap.forEach((ss,mm)->mm.fitting());
 		Misc.serialize2file(mmap, fs);
 	}
 	
@@ -284,9 +323,12 @@ public class LayAbacus extends BorderPane
 
 		final double dose = UtilPhysical.convert(doseRate, MODEL_DOSE_UNIT);
 		final double loca = mm.getLoca(dose);
+		if(Double.isNaN(loca)) {
+			return "";
+		}
 		return String.format("%.3f %s", loca, MODEL_LOCA_UNIT);
 	};
-
+	
 	public void removeLastMark(final Strength ss) {
 		final Model md = mmap.get(ss);
 		if(md==null) { return; }
@@ -328,7 +370,7 @@ public class LayAbacus extends BorderPane
 	final ToggleGroup grp_stng = new ToggleGroup();
 	final Label txt_info = new Label();
 	
-	public LayAbacus() {
+	public LayAbacusOld() {
 		
 		reloadLast();
 		
@@ -422,14 +464,39 @@ public class LayAbacus extends BorderPane
 		
 		final MenuItem c_cls = new MenuItem("清除");
 		c_cls.setOnAction(e->clearAllMark());
+		
 		final MenuItem c_fit = new MenuItem("計算");
 		c_fit.setOnAction(e->{
 			applyFitting();
 			flush_screen((Strength)grp_stng.getSelectedToggle().getUserData());
 		});
-		table.setContextMenu(new ContextMenu(c_cls,c_fit));
+		
+		final MenuItem c_export = new MenuItem("export");
+
+		final MenuItem c_cls_target = new MenuItem("清除 target");
+		c_cls_target.setOnAction(e->{
+			Strength ss =(Strength)grp_stng.getSelectedToggle().getUserData();
+			clear_item(ss,table.getSelectionModel().getSelectedItem());
+			flush_screen(ss);
+		});
+		
+		table.setContextMenu(new ContextMenu(
+			c_cls,
+			c_fit,
+			c_export,
+			c_cls_target
+		));
 		
 		return table;
+	}
+	
+	private void clear_item(final Strength ss, final Mark target) {
+		final Model mm = mmap.get(ss);
+		if(mm==null) { 
+			return; 
+		}
+		mm.remove(target);
+		mm.fitting();
 	}
 	
 	private void flush_screen(final Strength ss) {

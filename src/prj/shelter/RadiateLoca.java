@@ -9,16 +9,12 @@ public class RadiateLoca extends RadiateStep {
 
 	public RadiateLoca() {
 		box_loca.setOnAction(e->{
-			box_dose.setText(abacus.predictDoseRate(
-				cmb_stng.getValue(), 
-				box_loca.getText()
-			));
 		});
 		box_dose.setDisable(true);		
 		set(op_init, 
 			op_move_pallet, op_wait_pallet, 
-			op_make_radiation, op_prewarm,
-			op_make_measure, op_wait_measure,
+			op_make_radiate, 
+			op_prewarm, op_make_measure, op_wait_measure,
 			op_wait_radiation,
 			op_foot
 		);
@@ -32,7 +28,7 @@ public class RadiateLoca extends RadiateStep {
 		final boolean mark
 	) {
 		box_loca.setText(loca);
-		box_dose.setText(abacus.predictDoseRate(stng,loca));
+		//box_dose.setText();
 		box_left.setText(left);
 		cmb_stng.setValue(stng);
 		chk_meas.setSelected(meas);
@@ -45,11 +41,15 @@ public class RadiateLoca extends RadiateStep {
 		next_step();
 	};
 	final Runnable op_foot = () -> {
-		Misc.logv("[RadiateLoca] foot");
-		event_check_meas();
-		event_check_mark();
 		next_step();
-		show_info(NAME);
+		if(chk_mark.isSelected()==true) {
+			booker.insert(hustio, at5350);
+		}
+		if(chk_trac.isSelected()==true) {
+			
+		}else {
+			show_info(NAME);
+		}
 	};
 
 	@Override
@@ -59,12 +59,14 @@ public class RadiateLoca extends RadiateStep {
 	}
 	@Override
 	public void eventEdit() {
+		show_measure(txt_desc);
 	}
 	@Override
 	public String flatten() {
-		return "";
+		return event_flatten_var();
 	}
 	@Override
 	public void expand(String txt) {
+		event_expand_var(txt);
 	}
 }

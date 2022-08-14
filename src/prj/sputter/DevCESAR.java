@@ -12,6 +12,7 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -34,6 +35,9 @@ public class DevCESAR extends DevTTY {
 
 	public DevCESAR() {
 		TAG = "CESAR";
+	}
+	public DevCESAR(final String tag) {
+		TAG = tag;
 	}
 	
 	@Override
@@ -66,10 +70,24 @@ public class DevCESAR extends DevTTY {
 		
 		final int v_duty = get_pulse_duty();
 
+		int mode = get_active_mode();
+		if(mode==ACTIVE_FRONT_PANEL) {
+			mode = set_active_mode(ACTIVE_HOST);
+		}
+		final int v_mode = mode;
+
 		Application.invokeLater(()->{
 			watt.set(v_watt);
 			freq.set(v_freq);
-			duty.set(v_duty);			
+			duty.set(v_duty);
+			switch(v_mode) {
+			case ACTIVE_HOST: 
+				last_cmd_status.set("遠端操作");
+				break;
+			case ACTIVE_FRONT_PANEL: 
+				last_cmd_status.set("面板控制");
+				break;
+			}
 		});		
 		nextState(STG_WATCH);
 	}
@@ -160,7 +178,7 @@ public class DevCESAR extends DevTTY {
 		String txt = "";
 		switch(code) {
 		case -1: txt = "internal error!!";           break;
-		case  0: break;
+		case  0: return code;
 		case  1: txt = "wrong mode"; break;
 		case  2: txt = "RF is on";   break;
 		case  4: txt = "data is out of range";       break;
@@ -171,7 +189,7 @@ public class DevCESAR extends DevTTY {
 		case 50: txt = "frequency is out of range";  break;
 		case 51: txt = "duty cycle is out of range"; break;
 		case 99: txt = "not implemented";            break;
-		}
+		}		
 		final String _txt = txt;
 		Application.invokeLater(()->last_cmd_status.set(_txt));
 		return code;
@@ -344,24 +362,72 @@ public class DevCESAR extends DevTTY {
 	
 	public void toggleActiveMode() {
 		asyncBreakIn(()->{
-			int mode = get_active_mode();
+			final int mode = get_active_mode();
 			switch(mode) {
 			case ACTIVE_HOST:
-				set_active_mode(ACTIVE_FRONT_PANEL);
+				if(set_active_mode(ACTIVE_FRONT_PANEL)==0) {
+					Application.invokeLater(()->last_cmd_status.set("面板控制"));
+				}
 				break;
 			case ACTIVE_FRONT_PANEL:
-				set_active_mode(ACTIVE_HOST);		
+				if(set_active_mode(ACTIVE_HOST)==0) {
+					Application.invokeLater(()->last_cmd_status.set("遠端操作"));
+				}
 				break;
 			}
 		});
 	}	
 	//-------------------------------------//
 	
-	public static Node genCtrlPanel(final DevCESAR dev) {
+	public static Node genInfoPanel(final DevCESAR dev) {
 		
-		final Button btn_connect = new Button();
-		btn_connect.setGraphic(Misc.getIconView("lan-connect.png"));
-		btn_connect.setOnAction(e->dev.toggleActiveMode());
+		Label txt_watt = new Label();
+		txt_watt.textProperty().bind(dev.watt.asString("%6dW"));
+		txt_watt.setOnMouseClicked(e->{});
+		
+		Label txt_freq = new Label();
+		txt_freq.textProperty().bind(dev.freq.asString("%6dHz"));
+		txt_freq.setOnMouseClicked(e->{});
+		
+		Label txt_duty = new Label();
+		txt_duty.textProperty().bind(dev.duty.asString("%6d%%"));
+		txt_duty.setOnMouseClicked(e->{});
+
+		Label txt_ford = new Label();
+		txt_ford.textProperty().bind(dev.powerForward.asString("%6d"));
+		
+		Label txt_rflt = new Label();
+		txt_rflt.textProperty().bind(dev.powerReflect.asString("%6d"));
+		
+		Label txt_dliv = new Label();
+		txt_dliv.textProperty().bind(dev.powerDelived.asString("%6d"));
+		
+		final Label[] txt = {
+			new Label("功率:"), txt_watt, 
+			new Label("頻率:"), txt_freq, 
+			new Label("週期:"), txt_duty,
+			new Label("輸出:"), txt_ford, 
+			new Label("反射:"), txt_rflt, 
+			new Label("傳遞:"), txt_dliv
+		};
+		
+		for(Label obj:txt) {
+			obj.getStyleClass().addAll("font-size5");
+			if(obj.textProperty().isBound()==true){
+				obj.setMinWidth(100.);
+			}
+			obj.setAlignment(Pos.CENTER_RIGHT);
+		}
+		
+		final GridPane lay0 = new GridPane();
+		lay0.getStyleClass().addAll("box-pad");
+		lay0.addColumn(0, txt[0], txt[2], txt[4], txt[6], txt[8], txt[10]);
+		lay0.addColumn(1, txt[1], txt[3], txt[5], txt[7], txt[9], txt[11]);
+		return lay0;
+	}
+	
+	
+	public static Node genCtrlPanel(final DevCESAR dev) {
 		
 		final Button btn_freq = new Button();
 		btn_freq.setGraphic(Misc.getIconView("settings.png"));
@@ -393,21 +459,27 @@ public class DevCESAR extends DevTTY {
 			dev.setPointLevel(val);
 		});
 		
+		final double width = 200.;
+		
 		final Label txt_freq = new Label();
-		txt_freq.getStyleClass().addAll("font-size7");
 		txt_freq.textProperty().bind(dev.freq.asString("%6dHz"));
 		txt_freq.setOnMouseClicked(e->btn_freq.getOnAction().handle(null));
 		
 		final Label txt_duty = new Label();
-		txt_duty.getStyleClass().addAll("font-size7");
 		txt_duty.textProperty().bind(dev.duty.asString("%6d%%"));
 		txt_duty.setOnMouseClicked(e->btn_duty.getOnAction().handle(null));
 		
 		final Label txt_watt = new Label();
-		txt_watt.getStyleClass().addAll("font-size7");
 		txt_watt.textProperty().bind(dev.watt.asString("%6dW"));
 		txt_watt.setOnMouseClicked(e->btn_watt.getOnAction().handle(null));
-
+		
+		for(Label txt:new Label[] {txt_freq, txt_duty, txt_watt}) {
+			txt.getStyleClass().addAll("font-size7");
+			txt.setMinWidth(width);
+			txt.setAlignment(Pos.CENTER_RIGHT);
+		}
+		//------------------------------------
+		
 		final JFXTextField box_level = new JFXTextField();
 		box_level.setPrefSize(60, 37);
 		box_level.setOnAction(e->{
@@ -428,7 +500,27 @@ public class DevCESAR extends DevTTY {
 		txt_power[0].textProperty().bind(dev.powerForward.asString("%4d"));
 		txt_power[2].textProperty().bind(dev.powerReflect.asString("%4d"));
 		txt_power[4].textProperty().bind(dev.powerDelived.asString("%4d"));
-				
+		
+		final HBox lay4 = new HBox(txt_power);
+		lay4.getStyleClass().addAll("box-pad");
+		HBox.setHgrow(txt_power[0],Priority.ALWAYS);
+		HBox.setHgrow(txt_power[2],Priority.ALWAYS);
+		HBox.setHgrow(txt_power[4],Priority.ALWAYS);	
+		//------------------------------------
+		
+		final Button btn_connect = new Button();
+		btn_connect.setGraphic(Misc.getIconView("lan-connect.png"));
+		btn_connect.setOnAction(e->dev.toggleActiveMode());
+		
+		final Label txt_status = new Label();
+		txt_status.setMaxWidth(Double.MAX_VALUE);
+		txt_status.textProperty().bind(dev.last_cmd_status);
+
+		final HBox lay3 = new HBox(txt_status,btn_connect);
+		lay3.getStyleClass().addAll("box-pad");
+		HBox.setHgrow(txt_status ,Priority.ALWAYS);
+		//------------------------------------
+		
 		final JFXButton btn_on = new JFXButton("ON");
 		btn_on.getStyleClass().add("btn-raised-1");
 		btn_on.setMaxWidth(Double.MAX_VALUE);
@@ -438,31 +530,21 @@ public class DevCESAR extends DevTTY {
 		btn_off.getStyleClass().add("btn-raised-0");
 		btn_off.setMaxWidth(Double.MAX_VALUE);
 		btn_off.setOnAction(e->dev.set_RF_output(false));	
-				
-		final Label txt_status = new Label();
-		txt_status.setMaxWidth(Double.MAX_VALUE);
-		txt_status.textProperty().bind(dev.last_cmd_status);
-
+		
+		final HBox lay2 = new HBox(btn_on,btn_off);
+		lay2.getStyleClass().addAll("box-pad");
+		HBox.setHgrow(btn_on ,Priority.ALWAYS);
+		HBox.setHgrow(btn_off,Priority.ALWAYS);
+		//------------------------------------
+	
 		final GridPane lay1 = new GridPane();
 		lay1.getStyleClass().addAll("box-pad");
 		lay1.addRow(0,txt_freq,btn_freq);
-		lay1.addRow(1,txt_duty,btn_duty);
-		lay1.addRow(2,txt_watt,btn_watt);
-		
-		final VBox lay0 = new VBox(
-			lay1,
-			new HBox(txt_power),
-			new HBox(btn_on,btn_off),
-			new HBox(txt_status,btn_connect)
-		);
-		lay0.getStyleClass().addAll("box-pad");
-		
-		HBox.setHgrow(txt_power[0],Priority.ALWAYS);
-		HBox.setHgrow(txt_power[2],Priority.ALWAYS);
-		HBox.setHgrow(txt_power[4],Priority.ALWAYS);		
-		HBox.setHgrow(btn_on ,Priority.ALWAYS);
-		HBox.setHgrow(btn_off,Priority.ALWAYS);
-		HBox.setHgrow(txt_status ,Priority.ALWAYS);
-		return lay0;
+		lay1.addRow(1,txt_watt,btn_watt);
+		lay1.addRow(2,txt_duty,btn_duty);		
+		lay1.add(lay4, 0, 3, 2, 1);
+		lay1.add(lay3, 0, 4, 2, 1);
+		lay1.add(lay2, 0, 5, 2, 1);
+		return lay1;
 	}	
 }

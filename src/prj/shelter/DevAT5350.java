@@ -1,5 +1,8 @@
 package prj.shelter;
 
+import java.util.ArrayList;
+import java.util.Collections;
+
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 
 import com.jfoenix.controls.JFXButton;
@@ -18,7 +21,9 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import jssc.SerialPort;
 import jssc.SerialPortException;
+import jssc.SerialPortTimeoutException;
 import narl.itrc.DevTTY;
+import narl.itrc.Gawain;
 import narl.itrc.Misc;
 import narl.itrc.PanDialog;
 import narl.itrc.UtilPhysical;
@@ -29,11 +34,24 @@ import narl.itrc.UtilPhysical;
  * @author qq
  *
  */
-@SuppressWarnings("restriction")
+
 public class DevAT5350 extends DevTTY {
 
 	public DevAT5350(){
 		TAG="AT5350";
+		
+		final String f_mode = Gawain.prop().getProperty("AT5350_FETCH","last20");
+		if(f_mode.equals("each")==true) {
+			fetch_mode = FETCH_MODE.F_EACH;
+		}else if(f_mode.equals("last20")==true) {
+			fetch_mode = FETCH_MODE.F_LAST20;
+		}else if(f_mode.equals("cook1")==true) {
+			fetch_mode = FETCH_MODE.F_COOK1;
+		}else if(f_mode.equals("cook2")==true) {
+			fetch_mode = FETCH_MODE.F_COOK2;
+		}else {
+			Misc.logw("[%s] invalid fecth mode: %s (it should be 'each', 'last20' 'cook1' or 'cook2')", f_mode);
+		}
 	}
 	@Override
 	public void afterOpen() {
@@ -62,11 +80,11 @@ public class DevAT5350 extends DevTTY {
 	
 	private Runnable stage_identify = ()->{		
 
-		wxr("CONF:DRAT LOW");
+		wxr("CONF:DRAT LOW");//":DART LOW" is invalid???
 		wxr(":DRAT:FILT ON");
 		//wxr(":DRAT:FILT 100");
 		wxr(":DRAT:DAMP OFF");//這個會影響計時!!!
-		wxr(":DRAT:CORR ON");//no work
+		//wxr(":DRAT:CORR ON");//no work??
 		//wxr(":HVOL ON");
 		//wxr(":HVOL 400");
 
@@ -97,38 +115,49 @@ public class DevAT5350 extends DevTTY {
 
 	private Runnable stage_correct = ()->{
 		wxr(":CORR:AUTO");
-		wxr("*OPC?");//When working, tty reading will be blocked!!!
+		
+		//don't block device in other state
+		//After sending this command,
+		//tty reading will be blocked!!!
+		block_sleep_msec(3*60*1000);//magic trick for preventing device crazy~~~
+		wxr_log("*OPC?");
+
 		Application.invokeLater(()->isIdle.set(true));
 		nextState("");
 	};
 	
+	private static enum FETCH_MODE { 
+		F_EACH, F_LAST20, F_COOK1, F_COOK2,
+	};
 	private String meas_time = "";//unit is second~~~
 	private String meas_filt = "";
+	private String meas_rang = "";//range
 	private String meas_damp = "";	
 	private String meas_corr = "";
 	private String meas_volt = "";
 	private String meas_temp = "";
 	private String meas_pres = "";//kPa, 1atm=100kPa
+	private Runnable fetch_after = null;
 	
+	//Fetch data format is like:
 	//"\"+1.3844E-04 Sv/min #800\",\"+1.3842E-04 Sv/min #900\",\"+1.3840E-04 Sv/min #1000\"";	
 	//text will be cook, remove '"' and ','
-	private String meas_last_array="";
-	
-	public static final String summaryUnit = "uSv/hr";
-	
-	private final SummaryStatistics meas_last_summary = new SummaryStatistics();
-	
-	private Runnable meas_after = null;
-	
+	private FETCH_MODE fetch_mode = FETCH_MODE.F_LAST20;//default value~~~
+	private String fetch_array="";
+	private final SummaryStatistics fetch_summary = new SummaryStatistics();
+
 	private Runnable stage_measure = ()->{
 		//final long t1 = System.currentTimeMillis();
 
-		//apply all parameters!!!!!
+		//apply all settings!!!!!
 		if(check_NRF(meas_filt)==true) {
-			wxr(":FILT ON");
-			wxr(":FILT:VAL "+meas_filt);
+			wxr(":DRAT:FILT ON");
+			wxr(":DRAT:FILT:VAL "+meas_filt);
 		}
-		if(check_NRF(meas_damp)==true) {
+		if(meas_rang.length()!=0) {
+			wxr("CONF:DRAT "+meas_rang);
+		}
+		/*if(check_NRF(meas_damp)==true) {
 			wxr(":DAMP ON");
 			wxr(":DAMP:VAL "+meas_damp);
 		}
@@ -138,7 +167,7 @@ public class DevAT5350 extends DevTTY {
 		if(check_NRF(meas_volt)==true) {
 			wxr(":HVOL ON");
 			wxr(":HVOL:VAL "+meas_volt);
-		}
+		}*/
 		if(meas_temp.length()!=0 || meas_pres.length()!=0) {
 			wxr(":FACT ON");
 			if(check_NRF(meas_temp)==true) {			
@@ -155,72 +184,71 @@ public class DevAT5350 extends DevTTY {
 			count = parse_NR1(wxr("TRIG:COUN?"),1);
 			every = parse_NR1(wxr("TRIG:ECO?" ),1);
 		}else {
-			final long c_sec = Misc.text2tick(meas_time)/100L;//1 sample = 0.1 second
-			/*if(c_sec<=500L) {
-				count = c_sec;
+			final long samp = Misc.text2tick(meas_time)/100L;//1 sample = 0.1 second
+			if(samp<=60) {
+				count = samp;
 				every = 1;
 			}else {
-				count = 500L;
-				every = c_sec/500L;
-				if((c_sec%500L)!=0L) {
-					every+=1;
-					count = c_sec/every;
-				}
-				if(count>500L) {
-					Misc.logw("[stage_measure] RoundUP!! count=%d,every=%d,time=%d", count,every,c_sec);
-					count = 500L;
-				}
-			}*/
-			if(c_sec<=20) {
-				count = c_sec;
-				every = 1;
-			}else {
-				count = 20;
-				every = c_sec/count;
+				count = 60;
+				every = samp/count;
 			}
-
 			wxr("TRIG:COUN "+count);
 			wxr("TRIG:ECO  "+every);
 		}	
 		wxr("INIT");
 		wxr("*TRG");
-		wxr("*OPC?");//When working, tty reading will be blocked!!!
-		
-		//final long t2 = System.currentTimeMillis();
-		//Misc.logv("[stage_measure] %s",Misc.tick2text(t2-t1,true));
-		block_sleep_msec(25);
-		
-		//final String array = wxr(String.format("FETC:ARR? %d", count*every));		
-		final String array = wxr(String.format("FETC:ARR? %d", count));
-		meas_last_array = array.replace('"', ' ').replace(',', '\n');
-		//.replace("\"", "").replace(",", "\n");
-		
-		Misc.logv("[%s] %s", TAG, array);
-		
-		update_summary(
-			meas_last_array,
-			summaryUnit,
-			meas_last_summary
-		);
 
+		Misc.logv("[%s] count=%d, every=%d, flt=%s, rang=%s, temp=%s, pres=%s", 
+			TAG, count, every,
+			meas_filt, meas_rang,
+			meas_temp, meas_pres
+		);
+		
+		//don't block device in other state
+		//After sending this command,
+		//tty reading will be blocked!!!
+		block_sleep_msec(count*every+500);//magic trick for preventing device crazy~~~
+		wxr_log("*OPC?");
+		
+		switch(fetch_mode) {
+		case F_COOK1:		
+		case F_EACH: 
+			fetch_array = wxr(String.format("FETC:ARR? %d", count)); 
+			break;
+		default:
+		case F_COOK2:
+		case F_LAST20:
+			fetch_array = wxr(String.format("FETC:ARR? %d", (count<20)?(count):(20)));
+			break;
+		}
+		fetch_array = fetch_array.replace('"', ' ').replace(',', '\n');
+		summary_data();
+		
+		Misc.logv("[%s][fetch] avg=%.2f, cv=%.2f", 
+			TAG, 
+			fetch_summary.getMean(),
+			fetch_summary.getStandardDeviation()
+		);
+		
 		Application.invokeLater(()->{
 			isIdle.set(true);
-			if(meas_after!=null) {
-				meas_after.run();
+			if(fetch_after!=null) {
+				fetch_after.run();
 			}
 			//reset all parameters for next turn~~~~
 			meas_time = "";
 			meas_filt = "";
+			meas_rang = "";
 			meas_damp = "";	
 			meas_corr = "";
 			meas_volt = "";
 			meas_temp = "";
 			meas_pres = "";
-			meas_after= null;
+			fetch_after= null;
 		});
 		nextState("");
 	};
-
+	
 	private String wxr(String cmd){
 		if(cmd.endsWith("\n")==false){
 			cmd = cmd + "\n";
@@ -234,12 +262,11 @@ public class DevAT5350 extends DevTTY {
 			//the correct communication is that:
 			//Send character, then Receive .
 			for(char cc:cmd.toCharArray()) {			
-				dev.writeByte((byte)cc);			
-				cc = (char)dev.readBytes(1)[0];			
+				dev.writeByte((byte)cc);
+				cc = (char)dev.readBytes(1)[0];		
 			}		
 			if(cmd.contains("?")==false) {
-				//no query statement, just go back~~~
-				return recv;
+				return recv;//no query, just go back~~~
 			}
 			while(true) {			
 				char cc = (char)dev.readBytes(1)[0];
@@ -258,7 +285,69 @@ public class DevAT5350 extends DevTTY {
 		Misc.logv("[%s]%s-->%s", TAG, txt, res);
 		return res;
 	} 
-	
+	//--------------------------------------------
+
+	private void summary_data() {
+		fetch_summary.clear();//reset old data~~~
+		if(fetch_array.length()==0) {
+			return;
+		}
+		ArrayList<Double> lst = new ArrayList<Double>();
+		for(String txt:fetch_array.split("\n")) {
+			final int pos = txt.indexOf("#");
+			if(pos>=0) {
+				txt = txt.substring(0,pos);
+			}
+			final String val = UtilPhysical.convertScale(txt.trim(), "uSv/hr");
+			if(val.length()==0) {
+				continue;
+			}
+			lst.add(Double.parseDouble(val));			
+		}		
+		switch(fetch_mode) {
+		default:
+		case F_EACH:
+		case F_LAST20:
+			for(Double v:lst) {
+				fetch_summary.addValue(v);
+			}
+			break;			
+		case F_COOK1:		
+			cook_data(lst,20);
+			break;
+		case F_COOK2:
+			cook_data(lst,10);
+			break;
+		}
+	}
+	private void cook_data(ArrayList<Double> lst, final int size) {
+		Collections.sort(lst);
+		final int end = lst.size()-size;
+		if(end<=0) { return; }
+		int beg_array = -1;
+		double per_sigma = Double.MAX_VALUE;
+		for(int i=0; i<=end; i++) {
+			SummaryStatistics ss = new SummaryStatistics();			
+			for(int j=i; j<(i+size); j++) {
+				ss.addValue(lst.get(j));
+			}
+			final double ps = Math.abs(ss.getStandardDeviation() / ss.getMean());
+			if(ps<per_sigma) {
+				per_sigma = ps;
+				beg_array = i;
+			}
+		}
+		if(beg_array<0) {
+			return;//is it possible???
+		}
+		
+		String s_txt = "";
+		for(int j=beg_array; j<(beg_array+size); j++) {
+			s_txt = s_txt+ String.format("%.3f uSv/hr #--\n", lst.get(j));		
+			fetch_summary.addValue(lst.get(j));
+		}
+		fetch_array = s_txt;
+	}
 	//------------------------------------------------
 	
 	/**
@@ -286,9 +375,9 @@ public class DevAT5350 extends DevTTY {
 	public void asyncMeasure(
 		final String time,
 		final String filt,
-		final String damp,	
-		final String corr,
-		final String volt,
+		final String rang,	
+		//final String corr,
+		//final String volt,
 		final String temp,
 		final String pres,
 		final Runnable event
@@ -297,73 +386,73 @@ public class DevAT5350 extends DevTTY {
 		asyncBreakIn(()->{
 		meas_time = time;
 		meas_filt = filt;
-		meas_damp = damp;
-		meas_corr = corr;
-		meas_volt = volt;
+		meas_rang = rang;
+		//meas_damp = damp;
+		//meas_corr = corr;
+		//meas_volt = volt;
 		meas_temp = temp;
 		meas_pres = pres;
-		meas_after= event;
+		fetch_after= event;
 		nextState("stage_measure");
 	});}
 	public void asyncMeasure(){
-		asyncMeasure("20","","","","","","",null);
+		asyncMeasure("30","","","","",null);
 	}
 	public void asyncMeasure(
 		final String time
 	){
-		asyncMeasure(time,"","","","","","",null);
+		asyncMeasure(time,"","","","",null);
 	}
 	public void asyncMeasure(
 		final String time,
 		final String temp,
 		final String pres
 	){
-		asyncMeasure(time,"","","","",temp,pres,null);
+		asyncMeasure(time,"","",temp,pres,null);
+	}
+	public void asyncPopMeasure(
+		final String time,
+		final String temp,
+		final String pres		
+	){
+		final Runnable event = ()->{
+			final SummaryStatistics ss = lastSummary();
+			final String txt =String.format(
+				"AVG:%.3f %s ± %.3f\n------------\n%s",
+				ss.getMean(), "uSv/hr", ss.getStandardDeviation(),
+				lastMeasure()
+			);
+			new PanDialog.ShowTextArea(txt)
+			.setPrefSize(100, 400)
+			.showAndWait();
+		};
+		asyncMeasure(time,"","",temp,pres,event);
 	}
 	
 	public void syncAbort(){
 		wxr("ABOR");
 	}
 	
-	//AT5350 example:
-	//SEND --> FETC:ARR? 
-	//RECV --> "-1.1279E-08 Sv/min #774","-1.1279E-08 Sv/min #775","-1.1097E-08 Sv/min #776","-1.1097E-08 Sv/min #777","-1.1097E-08 Sv/min #778","-1.1097E-08 Sv/min #779","-1.1097E-08 Sv/min #780","-1.1279E-08 Sv/min #781","-1.1279E-08 Sv/min #782","-1.1279E-08 Sv/min #783","-1.1279E-08 Sv/min #784","-1.1279E-08 Sv/min #785","-1.1279E-08 Sv/min #786","-1.1097E-08 Sv/min #787","-1.1279E-08 Sv/min #788","-1.1097E-08 Sv/min #789","-1.1097E-08 Sv/min #790","-1.1279E-08 Sv/min #791","-1.1097E-08 Sv/min #792","-1.1097E-08 Sv/min #793"
-
-	public String lastMeasure() {
-		return new String(meas_last_array);
+	/**
+	 * get last measurement, the result will be cook, pattern is below:
+	 * -1.1279E-08 Sv/min #774
+	 * -1.1279E-08 Sv/min #775
+	 * ....
+	 * @return: text for dose rate value
+	 */
+	public String lastMeasure() {		
+		return new String(fetch_array);
 	}
 	public SummaryStatistics lastSummary() {
-		return new SummaryStatistics(meas_last_summary);
+		return new SummaryStatistics(fetch_summary);
 	}
-	private static void update_summary(
-		final String meas,
-		final String unit,
-		final SummaryStatistics stat
-	) {
-		stat.clear();
-		if(meas.length()==0) {
-			return;
-		}
-		for(String txt:meas.split("\n")) {
-			final int pos = txt.indexOf("#");
-			if(pos>=0) {
-				txt = txt.substring(0,pos);
-			}
-			String val = UtilPhysical.convertScale(
-				txt.trim(),
-				unit
-			);
-			if(val.length()==0) {
-				continue;
-			}
-			try {
-				stat.addValue(Float.parseFloat(val));
-			}catch(NumberFormatException e) {
-				Misc.loge("[update_summary] %s", val);//Is it possible???
-			}
-		}
+	public Object[] lastResult() {
+		return new Object[] {
+			lastMeasure(), lastSummary(),
+		};
 	}
-
+	//--------------------------------------
+	
 	/*private static boolean parse_flg(final String txt, boolean def) {
 		final int val = parse_NR1(txt,0);
 		return (val!=0)?(true):(false);
@@ -403,7 +492,7 @@ public class DevAT5350 extends DevTTY {
 		final Label txt_idfy = new Label();
 		txt_idfy.textProperty().bind(dev.Identify[0]);
 		
-		final TextField box_meas_time = new TextField("1:30");
+		final TextField box_meas_time = new TextField("2:00");
 		final TextField box_meas_filt = new TextField();
 		final TextField box_meas_damp = new TextField();
 		final TextField box_meas_corr = new TextField();
@@ -446,17 +535,14 @@ public class DevAT5350 extends DevTTY {
 			dev.asyncMeasure(
 				box_meas_time.getText(),
 				box_meas_filt.getText(),
-				box_meas_damp.getText(),
-				box_meas_corr.getText(),
-				box_meas_volt.getText(),
+				"",
 				box_meas_temp.getText(),
 				box_meas_pres.getText(),
 				()->{
 					final SummaryStatistics ss = dev.lastSummary();
 					final String txt =String.format(
-						"AVG:%.2f %s, DEV:%.4f\n------------\n%s",
-						ss.getMean(), DevAT5350.summaryUnit, 
-						ss.getStandardDeviation(),
+						"AVG:%.3f %s ± %.3f\n------------\n%s",
+						ss.getMean(), "uSv/hr", ss.getStandardDeviation(),
 						dev.lastMeasure()
 					);
 					new PanDialog.ShowTextArea(txt)
@@ -473,11 +559,8 @@ public class DevAT5350 extends DevTTY {
 		lay0.addRow(0, new Label("裝置識別:"), txt_idfy);
 		lay0.addRow(1, new Label("量測時間:"), box_meas_time);
 		lay0.addRow(2, new Label("Filter :"), box_meas_filt);
-		lay0.addRow(3, new Label("Damper :"), box_meas_damp);
-		lay0.addRow(4, new Label("量測補償:"), box_meas_corr);
-		lay0.addRow(5, new Label("量測電壓:"), box_meas_volt);
-		lay0.addRow(6, new Label("量測溫度:"), box_meas_temp);
-		lay0.addRow(7, new Label("量測壓力:"), box_meas_pres);		
+		lay0.addRow(3, new Label("量測溫度:"), box_meas_temp);
+		lay0.addRow(4, new Label("量測壓力:"), box_meas_pres);		
 		lay0.add(btn_meas, 0, 8, 2, 1);
 		lay0.add(btn_corr, 0, 9, 2, 1);
 		lay0.add(btn_attr, 0,10, 2, 1);
@@ -485,7 +568,6 @@ public class DevAT5350 extends DevTTY {
 		return lay0;
 	}
 	//---------[deprecate]-----------//
-
 	/**
 	 * use 'CONF?' to get type and range:
 	 * CURRent - 電流 [LOW|MEDium|HIGH]
@@ -495,59 +577,4 @@ public class DevAT5350 extends DevTTY {
 	 * ICHarge- 累積電荷 integration of current [LOW|MEDium|HIGH]
 	 * IDOSe  - 累積劑量 integration of kerma rate [LOW|MEDium|HIGH]
 	 */
-
-	/*private static void load_param(
-		final DevAT5350 dev,
-		final ComboBox<String> cmb,
-		final ToggleButton[] opt,
-		final TextField[] val
-		
-	){dev.asyncBreakIn(()->{
-		dev.wxr("SYSTem:RWLock");//lock panel
-		
-		final boolean[] flg = new boolean[5];
-		flg[0] = dev.get_flag(":DRATe:FILTer?");
-		flg[1] = dev.get_flag(":DRATe:DAMPer?");
-		flg[2] = dev.get_flag(":DRATe:CORRection?");
-		flg[3] = dev.get_flag(":HVOLtage?");
-		flg[4] = dev.get_flag(":FACTor?");
-		
-		final String[] txt = new String[8];
-		txt[0] = ":"+dev.wxr("CONF?").replace("\"", "");
-		txt[1] = dev.wxr(":DRATe:FILTer:VALue?");
-		txt[2] = dev.wxr(":DRATe:DAMPer:VALue?");
-		txt[3] = dev.wxr(":HVOLtage:VALue?");
-		txt[4] = dev.wxr(":FACTor:TEMP?")
-				.replace("\"", "")
-				.replace("C", "")
-				.trim();
-		txt[5] = dev.wxr(":FACTor:PRES?")
-				.replace("\"", "")
-				.replace("kPa", "")
-				.trim();
-		txt[6] = dev.wxr(":TRIGger:COUNt?");
-		txt[7] = dev.wxr(":TRIGger:ECOunt?");
-		
-		dev.wxr("SYSTem:LOCal\n");//unlock panel
-	});}
-	private static void save_param(
-		final DevAT5350 dev,
-		final ComboBox<String> cmb,
-		final ToggleButton[] opt,
-		final TextField[] val
-	){
-		dev.asyncBreakIn(()->{
-		String res;
-		res = dev.wxr("SYSTem:RWLock\n");//lock panel
-		res = dev.wxr("SYSTem:LOCal\n");//unlock panel
-	});}
-
-	@SuppressWarnings("unchecked")
-	private static TreeView<String> gen_SCPI_tree(final DevAT5350 dev) {
-		final TreeItem<String> current = new TreeItem<String>("range");
-		final TreeItem<String> root = new TreeItem<String>(":");
-		root.setExpanded(true);
-		root.getChildren().add(current);
-		return new TreeView<String>(root);
-	}*/
 }

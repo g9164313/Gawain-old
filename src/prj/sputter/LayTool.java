@@ -49,7 +49,7 @@ public class LayTool {
 			.unit(unit)
 			.decimals(1)
 			.build();
-		//obj.valueProperty().bind(prop);
+		obj.valueProperty().bind(prop);
 		obj.setOnMouseClicked(event->{
 			PadTouch pad = new PadTouch('f',name,"0");
 			Optional<String> res = pad.showAndWait();
@@ -68,9 +68,9 @@ public class LayTool {
 		final ReadOnlyFloatProperty prop
 	) {
 		final float[][] range = {
-			{1e-12f,1e-9f , 1e+9f, 1f },//n
-			{1e-9f, 1e-6f , 1e+6f, 1f },//μ
-			{1e-6f, 1e-3f , 1e+3f, 1f },//m
+			{1e-12f,1e-9f , 1e+9f, 2f },//n
+			{1e-9f, 1e-6f , 1e+6f, 2f },//μ
+			{1e-6f, 1e-3f , 1e+3f, 2f },//m
 			{1e-3f, 1f    , 1f,    3f },
 			{1f   , 1e+3f , 1f,    0f },
 			{1e+3f, 1e+6f , 1e-3f, 0f },//k

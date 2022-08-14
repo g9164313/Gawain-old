@@ -208,6 +208,15 @@ public class Gawain extends Application {
 		}
 		return path;
 	}
+	public static File getSockFile() {
+		//old path, in home directory, named ".gawain"
+		final String path = Misc.getHomePath() + ".gawain" + File.separatorChar;
+		final File fs = new File(path);
+		if(fs.exists()==false) {
+			return fs;
+		}
+		return dirRoot;
+	}
 	
 	static {
 		URI uri = null;

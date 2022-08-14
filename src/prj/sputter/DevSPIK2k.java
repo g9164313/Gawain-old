@@ -11,6 +11,7 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
+import javafx.geometry.Pos;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
@@ -431,6 +432,46 @@ public class DevSPIK2k extends DevTTY {
 		dia.setTitle("錯誤！！");
 		dia.setHeaderText(txt);
 		dia.showAndWait();
+	}
+	//-----------------------------------------
+	
+	public static Pane genInfoPanel(final DevSPIK2k dev) {
+		
+		Label t_on_pos= new Label();
+		t_on_pos.textProperty().bind(dev.Ton_pos.asString("%3d"));
+		t_on_pos.setOnMouseClicked(e->{});
+		
+		Label t_of_pos = new Label();
+		t_of_pos.textProperty().bind(dev.Tof_pos.asString("%3d"));
+		t_of_pos.setOnMouseClicked(e->{});
+		
+		Label t_on_neg = new Label();
+		t_on_neg.textProperty().bind(dev.Ton_neg.asString("%3d"));
+		t_on_neg.setOnMouseClicked(e->{});
+		
+		Label t_of_neg = new Label();
+		t_of_neg.textProperty().bind(dev.Tof_neg.asString("%3d"));
+		t_of_neg.setOnMouseClicked(e->{});
+		
+		Label[] txt = {
+			new Label("Ton+ :"), t_on_pos, 
+			new Label("Toff+:"), t_of_pos, 
+			new Label("Ton- :"), t_on_neg,
+			new Label("Toff-:"), t_of_neg,
+		};
+		for(Label obj:txt) {
+			obj.getStyleClass().addAll("font-size5");
+			if(obj.textProperty().isBound()==true){
+				obj.setMinWidth(100.);
+			}
+			obj.setAlignment(Pos.CENTER_RIGHT);
+		}
+		
+		final GridPane lay0 = new GridPane();
+		lay0.getStyleClass().addAll("box-pad");
+		lay0.addColumn(0, txt[0], txt[2], txt[4], txt[6]);
+		lay0.addColumn(1, txt[1], txt[3], txt[5], txt[7]);
+		return lay0;
 	}
 	
 	public static Pane genPanel(final DevSPIK2k dev) {

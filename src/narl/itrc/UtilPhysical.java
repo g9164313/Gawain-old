@@ -312,8 +312,15 @@ public class UtilPhysical {
 		String srcUnit,
 		String dstUnit
 	) throws NumberFormatException {
+		double s_value = 0.;
+		try {
+			s_value = Double.parseDouble(srcValue);
+		}catch(NumberFormatException e) {
+			Misc.loge("[UtilPhysical] Wrong Number - %s", srcValue);
+			return 0.;
+		}
 		return convert(
-			Double.valueOf(srcValue),
+			s_value,
 			srcUnit,
 			dstUnit
 		);

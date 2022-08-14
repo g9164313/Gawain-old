@@ -544,6 +544,12 @@ public class DevSQM160 extends DevBase {
 	});}	
 	//-------------------------//
 
+	public static Pane genInfoPanel(final DevSQM160 dev) {
+		
+		
+		return null;
+	}
+	
 	public static Pane genCtrlPanel(final DevSQM160 dev) {
 		
 		final Label[] info = new Label[6];

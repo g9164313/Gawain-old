@@ -17,7 +17,7 @@ import narl.itrc.PanBase;
 public class PanMain3 extends PanBase {
 
 	//private DevAdam4024 a4024 = new DevAdam4024("01");	
-	private DevAdam4024 a4024 = new DevAdam4024("01",DevAdam.z5V,DevAdam.z5V,DevAdam.z5V,DevAdam.z5V);
+	private DevAdam4024 a4024 = new DevAdam4024("01");
 	private DevAdam4117 a4117 = new DevAdam4117("11");
 
 	private float MFC_MAX_SCCM = 100f;
@@ -28,8 +28,8 @@ public class PanMain3 extends PanBase {
 	}
 	
 	void on_shown() {
-		//a4117.open();
-		//a4024.open(a4117);
+		a4117.open();
+		a4024.open(a4117);
 	}
 	
 	@Override
@@ -57,7 +57,7 @@ public class PanMain3 extends PanBase {
 		GridPane.setVgrow(ch6, Priority.ALWAYS);
 
 		final Tile mfc = LayTool.create_MFC_gauge(
-			"MFC","sccm",100.,
+			"MFC - 100 sccm","sccm",100.,
 			v_ch0, src->{
 				//clap data~~~
 				if(src>=MFC_MAX_SCCM) {
@@ -70,18 +70,22 @@ public class PanMain3 extends PanBase {
 				a4024.asyncDirectOuput(a4024.aout[0], dst);
 				return 0f;
 			});
+		mfc.setMinHeight(200);
 		
 		final Label[] txt_info = {
 			new Label("前級真空計:"), new Label(),
 			new Label("腔體真空計:"), new Label(),
 		};
+		for(Label txt:txt_info) {
+			txt.getStyleClass().add("font-size25");
+		}
 		txt_info[1].setMinWidth(200);
 		txt_info[1].textProperty().bind(v_ch7.asString("%1.2E"));//前級真空計
 		txt_info[3].setMinWidth(200);
 		txt_info[3].textProperty().bind(v_ch6.asString("%1.2E"));//腔體真空計
 		
 		final VBox lay2 = new VBox(txt_info);
-		lay2.getStyleClass().addAll("box-pad","font-size20");
+		lay2.getStyleClass().addAll("box-pad");
 		
 		final GridPane lay1 = new GridPane();
 		lay1.getStyleClass().addAll("box-pad");
