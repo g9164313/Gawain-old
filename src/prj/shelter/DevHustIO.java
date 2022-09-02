@@ -32,7 +32,6 @@ import narl.itrc.UtilPhysical;
  * @author qq
  *
  */
-@SuppressWarnings("restriction")
 public class DevHustIO extends DevTTY {
 	
 	private final byte NUL = 0;

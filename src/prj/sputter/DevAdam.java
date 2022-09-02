@@ -2,8 +2,12 @@ package prj.sputter;
 
 import com.sun.glass.ui.Application;
 
+import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleFloatProperty;
 import javafx.beans.property.SimpleStringProperty;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.StackPane;
 import jssc.SerialPort;
 import jssc.SerialPortException;
 import jssc.SerialPortTimeoutException;
@@ -63,7 +67,7 @@ public abstract class DevAdam extends DevTTY {
 
 	protected RangeType[] init_range = null;
 	
-	protected String AA="00";
+	protected String AA="01";
 		
 	protected String TT="00", CC="06", FF="00";
 	
@@ -163,7 +167,7 @@ public abstract class DevAdam extends DevTTY {
 				tty.writeString(cmd);
 				String ans = "";			
 				do {
-					char cc = (char) tty.readBytes(1,500)[0];
+					char cc = (char) tty.readBytes(1,1000)[0];
 					if(cc=='\r') {
 						break;
 					}
@@ -217,4 +221,39 @@ public abstract class DevAdam extends DevTTY {
 			}
 		}
 	};
+	//-------------------------------
+	
+	private static final Image img_check = Misc.getIconImage("radio_checked.png");
+	private static final Image img_close = Misc.getIconImage("radio_uncheck.png");
+	
+	protected static class Pin extends StackPane {
+		ImageView img0 = new ImageView(img_close);
+		ImageView img1 = new ImageView(img_check);
+		final int cid;		
+		Pin(			
+			final BooleanProperty[] prop,
+			final int idx
+		){
+			cid = idx;
+			getChildren().addAll(img0, img1);
+			bind(prop[idx]);
+		}
+		Pin bind(final BooleanProperty prop) {
+			img0.visibleProperty().bind(prop.not());
+			img1.visibleProperty().bind(prop);
+			return this;
+		}
+		boolean getValue() {
+			return img1.visibleProperty().get();
+		}
+	};
+	
+	protected boolean[] int2flag(final String txt) {
+		final int val = Integer.parseInt(txt,16);
+		boolean[] flg = new boolean[8];
+		for(int i=0; i<flg.length; i++) {
+			flg[i] = ((val & (1<<i))!=0);
+		}
+		return flg;
+	}
 }

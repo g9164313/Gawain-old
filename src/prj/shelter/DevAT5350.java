@@ -21,7 +21,6 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import jssc.SerialPort;
 import jssc.SerialPortException;
-import jssc.SerialPortTimeoutException;
 import narl.itrc.DevTTY;
 import narl.itrc.Gawain;
 import narl.itrc.Misc;
@@ -207,7 +206,7 @@ public class DevAT5350 extends DevTTY {
 		//don't block device in other state
 		//After sending this command,
 		//tty reading will be blocked!!!
-		block_sleep_msec(count*every+500);//magic trick for preventing device crazy~~~
+		block_sleep_msec(count*every+1000);//magic trick for preventing device crazy~~~
 		wxr_log("*OPC?");
 		
 		switch(fetch_mode) {

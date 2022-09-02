@@ -14,17 +14,16 @@ import narl.itrc.PadNumber;
 
 public class DevAdam4024 extends DevAdam {
 
-	public DevAdam4024(final String address) {
-		TAG = "ADAM4024";
-		AA = address;
+	public DevAdam4024(final int address) {
+		TAG= "ADAM4024";
+		AA = String.format("%02X", address);
 		//this module has special range codes
 		range_type.bi_put("30", z20mA);
 		range_type.bi_put("31", r4to20mA);
 		range_type.bi_put("32", d10V);
 	}
-	
 	public DevAdam4024(
-		final String address,
+		final int address,
 		final RangeType... init_rng
 	) {
 		this(address);
@@ -44,8 +43,10 @@ public class DevAdam4024 extends DevAdam {
 			for(Channel ch:aout) {
 				get_range_type(ch);
 				read_last_output(ch);
-			}
-			
+				ch.val.addListener((obv,oldVal,newVal)->{
+					asyncDirectOuput(ch.id,newVal.floatValue());
+				});
+			}			
 			nextState("");
 		});
 		playFlow(STG_INIT);
@@ -59,7 +60,7 @@ public class DevAdam4024 extends DevAdam {
 	private final static String fmt_val = "%+07.3f";
 	
 	//there are 4 analogy-output channel in ADAM4024
-	private class AOut extends Channel {
+	public class AOut extends Channel {
 		//JFXSlider bar = new JFXSlider();
 		//JFXTextField box = new JFXTextField();
 
@@ -103,38 +104,6 @@ public class DevAdam4024 extends DevAdam {
 			lay.setAlignment(Pos.CENTER_LEFT);
 			return lay;
 		}
-		
-		/*void reset_value() {Misc.invokeLater(()->{
-			box.setText(txt.get());
-			bar.setValue(val.get());
-		});}
-		void initial_field() {
-			Misc.invokeLater(()->{				
-				reset_value();
-				
-				bar.minProperty().bind(min);
-				bar.maxProperty().bind(max);
-				bar.blockIncrementProperty().bind(max.subtract(min).divide(10));
-				
-				//After setting the initial value, we can add listener
-				bar.valueProperty().addListener((obv,oldVal,newVal)->{
-					if(bar.isFocused()==false) {
-						return;
-					}
-					box.setText(String.format("%5.3f", newVal));
-					direct_output_data(this,newVal.floatValue());
-				});
-				box.setPrefWidth(80.);
-				box.setOnAction(event->{
-					try {
-						final float vv = Float.valueOf(box.getText().trim());
-						bar.adjustValue(vv);
-						direct_output_data(this,vv);
-					}catch(NumberFormatException e) {					
-					}		
-				});
-			});
-		}*/
 	};
 
 	public final AOut[] aout = {
@@ -160,7 +129,8 @@ public class DevAdam4024 extends DevAdam {
 		final String ans = exec("#"+AA+"C"+ch.id+data);
 		if(ans.startsWith("?")==true) {
 			Misc.logw("[%s)%d] unable direct output", TAG, ch.id);
-			return;
+		}else {
+			Misc.logv("[%s)%d] out=%s", TAG, ch.id,data);
 		}
 	}
 	void direct_output_data(final Channel ch, final double data) {
@@ -172,12 +142,28 @@ public class DevAdam4024 extends DevAdam {
 	//---------------------
 	
 	public void asyncDirectOuput(
+		final int idx, 
+		final String data
+	) {
+		if(idx>=aout.length||idx<0) { return; }
+		asyncBreakIn(()->{
+		direct_output_data(aout[idx],data);
+	});}
+	public void asyncDirectOuput(
+		final int idx, 
+		final float data
+	) {
+		if(idx>=aout.length||idx<0) { return; }
+		asyncBreakIn(()->{
+		direct_output_data(aout[idx],data);
+	});}
+	
+	public void asyncDirectOuput(
 		final AOut aout, 
 		final String data
 	) {asyncBreakIn(()->{
 		direct_output_data(aout,data);
 	});}
-	
 	public void asyncDirectOuput(
 		final AOut aout, 
 		final float data

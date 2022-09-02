@@ -11,6 +11,7 @@ import java.util.Scanner;
 
 import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXListView;
+import com.jfoenix.controls.JFXTabPane;
 import com.sun.glass.ui.Application;
 
 import javafx.animation.Animation;
@@ -21,10 +22,14 @@ import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
+import javafx.geometry.Orientation;
 import javafx.scene.control.Accordion;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.Tab;
 import javafx.scene.control.TitledPane;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 
@@ -37,7 +42,7 @@ import javafx.util.Duration;
 @SuppressWarnings("restriction")
 public class Ladder extends BorderPane {
 	
-	public Ladder(){
+	public Ladder(final Orientation dir){
 		
 		timer.setCycleCount(Animation.INDEFINITE);
 		//obj.setOnFinished(e->{});//no callback in INDEFINITE mode.
@@ -88,28 +93,45 @@ public class Ladder extends BorderPane {
 			user_abort();
 		});
 		
-		main_kits.getStyleClass().addAll("box-pad");
-		main_kits.getChildren().addAll(btn);
+		recipe.getStyleClass().addAll("box-pad");
+		recipe.setMinWidth(200.);
 		
-		step_kits.getStyleClass().addAll("box-pad");
-		
-		final TitledPane[] lay = {
-			new TitledPane("操作",main_kits),
-			new TitledPane("步驟",step_kits),
-		};
-		final Accordion accr = new Accordion(lay);
-		accr.setExpandedPane(lay[1]);
-		
-		recipe.getStyleClass().addAll("box-pad","ss1","ss2");
-		recipe.setMinWidth(250.);
+		Pane lay_main=null, lay_step=null;
+		if(dir==Orientation.VERTICAL) {
+			lay_main = new VBox(btn);
+			lay_step = new VBox();		
 
-		setLeft(accr);
+			final Accordion accr = new Accordion(
+				new TitledPane("操作",lay_main),
+				new TitledPane("步驟",step_kits)
+			);
+			accr.setExpandedPane(accr.getPanes().get(1));
+			setLeft(accr);
+
+		}else if(dir==Orientation.HORIZONTAL) {
+			lay_main = new HBox(btn);
+			lay_step = new HBox();		
+			
+			final JFXTabPane tabs = new JFXTabPane();
+			tabs.getTabs().addAll(
+				new Tab("操作",lay_main),
+				new Tab("步驟",lay_step)
+			);
+			tabs.getSelectionModel().select(1);
+			setBottom(tabs);
+		}
+		lay_main.getStyleClass().addAll("box-pad");
+		lay_step.getStyleClass().addAll("box-pad");
+		step_kits = lay_step;
+		
 		setCenter(recipe);
+	}
+	public Ladder(){
+		this(Orientation.VERTICAL);
 	}
 	//--------------------------------//
 	
-	protected VBox main_kits = new VBox();
-	protected VBox step_kits = new VBox();	
+	private Pane step_kits;	
 	protected JFXListView<Stepper> recipe = new JFXListView<Stepper>();
 
 	/**
@@ -247,6 +269,10 @@ public class Ladder extends BorderPane {
 		final String title,
 		final EventHandler<ActionEvent> event
 	){
+		if(step_kits==null) {
+			Misc.loge("[Ladder] no step_kits??");
+			return this;
+		}
 		final JFXButton btn = new JFXButton(title);
 		btn.getStyleClass().add("btn-raised-3");
 		btn.setMaxWidth(Double.MAX_VALUE);

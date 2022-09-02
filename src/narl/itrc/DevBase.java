@@ -283,5 +283,8 @@ public abstract class DevBase implements Runnable {
 			}
 		}
 	};
+	
+	@Override
+	public String toString() { return TAG; }	
 }
 

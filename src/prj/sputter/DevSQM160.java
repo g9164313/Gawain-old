@@ -12,6 +12,7 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleFloatProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckBox;
@@ -546,8 +547,59 @@ public class DevSQM160 extends DevBase {
 
 	public static Pane genInfoPanel(final DevSQM160 dev) {
 		
+		final Label rate = new Label();
+		rate.textProperty().bind(dev.rate [0].concat(dev.unitRate));
 		
-		return null;
+		final Label thic = new Label();
+		thic.textProperty().bind(dev.thick[0].concat(dev.unitThick));
+		
+		final Label film = new Label();
+		film.textProperty().bind(dev.filmName);
+		
+		final Button btn_pick = new Button();
+		btn_pick.setGraphic(Misc.getIconView("toc.png"));
+		btn_pick.setOnAction(e->{
+			PadTouch pad = new PadTouch('N',"薄膜編號:");
+			Optional<String> opt = pad.showAndWait();
+			if(opt.isPresent()==false) {
+				return;
+			}
+			dev.activeFilm(Integer.valueOf(opt.get()));
+		});
+		
+		final Button btn_edit = new Button();
+		btn_edit.setGraphic(Misc.getIconView("wrench.png"));
+		btn_edit.setOnAction(e->{
+			final DialogFilm dia = new DialogFilm(dev.film_data);
+			final Optional<String> opt = dia.showAndWait();
+			if(opt.isPresent()==false) {
+				return;
+			}
+			dev.updateFilm(opt.get());
+		});
+		
+		final Label[] txt ={
+			new Label("速率："), rate,
+			new Label("厚度："), thic,
+			new Label("薄膜："), film,
+		};
+		for(Label obj:txt) {
+			obj.getStyleClass().addAll("font-size5");
+			if(obj.textProperty().isBound()==true){
+				obj.setMinWidth(67.);
+				obj.setMaxWidth(Double.MAX_VALUE);
+			}
+			obj.setAlignment(Pos.CENTER_RIGHT);
+			GridPane.setHgrow(obj, Priority.ALWAYS);
+		}
+		HBox.setHgrow(txt[5], Priority.ALWAYS);
+		
+		final GridPane lay0 = new GridPane();
+		lay0.getStyleClass().addAll("box-pad");
+		lay0.addRow(0, txt[0], txt[1]);
+		lay0.addRow(1, txt[2] ,txt[3]);
+		lay0.addRow(2, txt[4],new HBox(txt[5],btn_pick,btn_edit));
+		return lay0;
 	}
 	
 	public static Pane genCtrlPanel(final DevSQM160 dev) {

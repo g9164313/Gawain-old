@@ -16,7 +16,6 @@ import narl.itrc.DevModbus;
  * @author qq
  *
  */
-@SuppressWarnings("restriction")
 public class DevCDR06 extends DevModbus {
 	
 	public DevCDR06(){

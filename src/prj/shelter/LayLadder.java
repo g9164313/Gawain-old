@@ -79,7 +79,7 @@ public class LayLadder extends Ladder {
 		return null;
 	}
 	private String quest_meas_time(){
-		final TextInputDialog dia = new TextInputDialog("1:00");
+		final TextInputDialog dia = new TextInputDialog("5:00");
 		dia.setTitle("照射時間");
 		dia.setHeaderText("");
 		dia.setContentText("");
@@ -112,10 +112,10 @@ public class LayLadder extends Ladder {
 		 "519.3 uSv/hr", "490.8 uSv/hr",
 		 "416.3 uSv/hr", "390.8 uSv/hr",
 		 "208.3 uSv/hr", "190.9 uSv/hr",
-		 "104.3 uSv/hr",  "97.8 uSv/hr",
-		  "84.3 uSv/hr",  "77.8 uSv/hr",
-		  "53.3 uSv/hr",  "47.8 uSv/hr",
-		  "42.3 uSv/hr",  "37.8 uSv/hr",
+		 "104.3 uSv/hr",  "98.8 uSv/hr",
+		  "84.3 uSv/hr",  "78.8 uSv/hr",
+		  "53.3 uSv/hr",  "48.8 uSv/hr",
+		  "42.3 uSv/hr",  "38.8 uSv/hr",
 	};
 	private final static String[] DEF_V_005CI = {
 		"104.5 uSv/hr", "97.8 uSv/hr",

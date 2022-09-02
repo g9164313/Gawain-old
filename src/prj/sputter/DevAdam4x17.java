@@ -11,11 +11,11 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import narl.itrc.Misc;
 
-public class DevAdam4117 extends DevAdam {
+public class DevAdam4x17 extends DevAdam {
 
-	public DevAdam4117(final String address) {
-		TAG= "ADAM4117";
-		AA = address;
+	public DevAdam4x17(final int address) {
+		TAG= "ADAM4x17";
+		AA = String.format("%02X", address);
 	}
 	
 	private final static String STG_INIT = "init";
@@ -69,12 +69,15 @@ public class DevAdam4117 extends DevAdam {
 		}
 		//response message is like below:
 		//>+00.000+00.000+00.000+00.000+00.000+00.000+00.000+00.000
-
 		for(Channel ch:ain) {
-			final int off = 1 + 7 * ch.id;			
+			final int off = 1 + 7 * ch.id;
+			if((off+7)>ans.length()) {				
+				//What is going on??
+				Misc.loge("invalid - %s", ans);
+				break;
+			}
 			final String txt = ans.substring(off, off+7);
 			final float val = Misc.txt2float(txt);
-			
 			Misc.invokeLater(()->{
 				ch.txt.setValue(txt);
 				ch.val.setValue(val);
@@ -99,11 +102,11 @@ public class DevAdam4117 extends DevAdam {
 	
 	//-------------------------------------------
 	
-	public static Pane genPanel(final DevAdam4117 dev) {
+	public static Pane genPanel(final DevAdam4x17 dev) {
 		
 		final Tile[] gag = new Tile[8];
 		
-		for(DevAdam4117.Channel ch:dev.ain) {
+		for(DevAdam4x17.Channel ch:dev.ain) {
 
 			Tile tile = TileBuilder.create()
 				.skinType(SkinType.SPARK_LINE)

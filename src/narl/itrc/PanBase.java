@@ -3,13 +3,14 @@ package narl.itrc;
 import java.io.File;
 import java.util.List;
 
+import com.jfoenix.controls.JFXCheckBox;
 import com.jfoenix.controls.JFXDecorator;
 import com.jfoenix.controls.JFXDialog;
 import com.jfoenix.controls.JFXSpinner;
 
-import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
+import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.concurrent.Task;
 import javafx.concurrent.WorkerStateEvent;
 import javafx.event.EventHandler;
@@ -20,7 +21,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.ButtonType;
-import javafx.scene.control.Control;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.HBox;
@@ -261,6 +262,25 @@ public abstract class PanBase {
 		return notifyTask("--task--",task);
 	}
 	//----------------------------------------------//
+	
+	/**
+	 * macro-expansion for indicator.<p>
+	 * Check box opacity is 1.<p>
+	 * @param title
+	 * @return
+	 */
+	public static CheckBox genIndicator(
+		final String title,
+		final ReadOnlyBooleanProperty prop
+	) {
+		JFXCheckBox obj = new JFXCheckBox(title);
+		obj.setDisableVisualFocus(true);
+		obj.setDisable(true);		
+		obj.selectedProperty().bind(prop);
+		obj.setStyle("-fx-opacity: 1.0;");
+		obj.setUserData(prop);//keep it, for rebound
+		return obj;
+	}
 	
 	/**
 	 * macro-expansion for information alter dialog

@@ -52,7 +52,7 @@ public class Misc {
 	 * @param arg - pass to 'String.printf()' 
 	 */
 	public static void logv(String fmt,Object... arg){
-		System.out.print(String.format('\21'+fmt+"\20\r\n", arg));
+		synchronized (System.out) { System.out.print(String.format('\21'+fmt+"\20\r\n", arg)); }
 	}
 	/**
 	 * just show messages, it is like 'stdout'
@@ -60,7 +60,7 @@ public class Misc {
 	 * @param arg - pass to 'String.printf()' 
 	 */
 	public static void logw(String fmt,Object... arg){
-		System.out.print(String.format('\22'+fmt+"\20\r\n", arg));
+		synchronized (System.out) { System.out.print(String.format('\22'+fmt+"\20\r\n", arg)); }
 	}
 	/**
 	 * just show messages, it is like 'stderr'
@@ -68,7 +68,7 @@ public class Misc {
 	 * @param arg - pass to 'String.printf()' 
 	 */
 	public static void loge(String fmt,Object... arg){
-		System.out.print(String.format('\23'+fmt+"\20\r\n", arg));
+		synchronized (System.out) { System.out.print(String.format('\23'+fmt+"\20\r\n", arg)); }
 	}	
 	//----------------------------------------//
 

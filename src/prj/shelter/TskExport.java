@@ -5,7 +5,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 
@@ -19,6 +18,7 @@ import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.apache.poi.ss.util.CellReference;
 
 import javafx.concurrent.Task;
+import narl.itrc.Misc;
 import narl.itrc.UtilPhysical;
 import prj.shelter.DevHustIO.Strength;
 import prj.shelter.ManBooker.Mark;
@@ -33,7 +33,8 @@ public class TskExport extends Task<Void> {
 		book = man;
 	}
 
-	private CellStyle sty;
+	private CellStyle sty2;
+	private CellStyle sty4;
 	private DataFormat fmt;
 	//private final DateFormat fmt_day2 = new SimpleDateFormat("yyyyMMdd");
 	private final DateFormat fmt_day1 = new SimpleDateFormat("yyyy/MM/dd");
@@ -46,9 +47,12 @@ public class TskExport extends Task<Void> {
 			
 			//eva = wb.getCreationHelper().createFormulaEvaluator();
 			fmt = wb.createDataFormat();
-			sty = wb.createCellStyle();
-			sty.setDataFormat(fmt.getFormat("0.00"));
-
+			sty2 = wb.createCellStyle();
+			sty2.setDataFormat(fmt.getFormat("0.00"));
+			
+			sty4 = wb.createCellStyle();
+			sty4.setDataFormat(fmt.getFormat("0.0000"));
+			
 			dump_step_result(wb,Strength.V_3Ci);
 			dump_step_result(wb,Strength.V_05Ci);
 			dump_step_result(wb,Strength.V_005Ci);
@@ -176,7 +180,7 @@ public class TskExport extends Task<Void> {
 				txt = txt.replace('"', ' ').trim();
 				txt = UtilPhysical.convertScale(txt, "uSv/hr");
 				aa = get_cell(sh, 12+j, xx);
-				aa.setCellStyle(sty);
+				aa.setCellStyle(sty2);
 				aa.setCellValue(Float.valueOf(txt));
 			}
 			
@@ -185,31 +189,31 @@ public class TskExport extends Task<Void> {
 				continue;
 			}
 			aa = get_cell(sh, 6, xx);
-			aa.setCellStyle(sty);
+			aa.setCellStyle(sty2);
 			aa.setCellValue(mm.loca.replace("cm", "").trim());
 
 			aa = get_cell(sh, 4, xx);
-			aa.setCellStyle(sty);
+			aa.setCellStyle(sty2);
 			aa.setCellFormula(String.format("%C10", cc));
 
 			aa = get_cell(sh, 5, xx);
-			aa.setCellStyle(sty);
+			aa.setCellStyle(sty2);
 			aa.setCellFormula(String.format("%C5*0.977", cc));
 
 			aa = get_cell(sh, 7, xx);
-			aa.setCellStyle(sty);
+			aa.setCellStyle(sty2);
 			aa.setCellFormula(String.format("((%C7+90)*0.988)-90", cc));
 
 			aa = get_cell(sh, 9, xx);
-			aa.setCellStyle(sty);
+			aa.setCellStyle(sty2);
 			aa.setCellFormula(String.format("AVERAGE(%C13:%C32)", cc, cc));
 
 			aa = get_cell(sh,10, xx);
-			aa.setCellStyle(sty);
+			aa.setCellStyle(sty2);
 			aa.setCellFormula(String.format("STDEV(%C13:%C32)", cc, cc));
 
 			aa = get_cell(sh,11, xx);
-			aa.setCellStyle(sty);
+			aa.setCellStyle(sty2);
 			aa.setCellFormula(String.format("(%C11/%C10)*100", cc, cc));
 		}
 	}
@@ -239,10 +243,16 @@ public class TskExport extends Task<Void> {
 				if(mm[j]==null) {
 					continue;
 				}
-				get_cell(sh, String.format("%C%d", cols[i][0], j + 5))
-				.setCellValue(mm[j].loca.replace("cm", "").trim());
-				get_cell(sh, String.format("%C%d", cols[i][1], j + 5))
-				.setCellValue(String.format("%.4f",mm[j].stat.getMean()*60.));//unit is uSv/min
+				final char ref_col = (char)('B'+j);
+				
+				Cell aa;
+				aa = get_cell(sh, String.format("%C%d", cols[i][0], j + 3));
+				aa.setCellStyle(sty4);
+				aa.setCellFormula(String.format("'%s'!%c7", ss[i], ref_col));
+
+				aa = get_cell(sh, String.format("%C%d", cols[i][1], j + 3));
+				aa.setCellStyle(sty4);
+				aa.setCellFormula(String.format("'%s'!%c10 * 60", ss[i], ref_col));//unit is uSv/min
 			}
 		}
 	}

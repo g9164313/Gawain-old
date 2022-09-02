@@ -178,7 +178,7 @@ public class PanMain2 extends PanBase {
 			try {
 				final int val = Integer.valueOf(box_power_on.getText());
 				box_power_on.getStyleClass().remove("error");
-				if(spik.Running.get()==false) {
+				if(spik.Run.get()==false) {
 					final Alert dia = new Alert(AlertType.WARNING);
 					dia.setTitle("！！警告！！");
 					dia.setHeaderText("High-Pin 沒有開啟");

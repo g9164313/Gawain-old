@@ -65,7 +65,7 @@ public abstract class DevTTY extends DevBase {
 			);			
 			port = Optional.of(dev);			
 		} catch (SerialPortException e) {
-			e.printStackTrace();
+			Misc.loge("[%s]", TAG, e.getMessage());
 		}
 	}
 		
@@ -152,6 +152,7 @@ public abstract class DevTTY extends DevBase {
 	protected static final byte STX = 0x02;
 	protected static final byte ETX = 0x03;
 	protected static final byte DLE = 0x10;//跳出資料通訊
+	protected static final byte UNKNOW = 0x25;//'%' ?? what is it meaning in 3964R
 	
 	protected static final byte ACK = 0x06;
 	protected static final byte NAK = 0x15;
@@ -217,10 +218,11 @@ public abstract class DevTTY extends DevBase {
 			//buf[ -2]--> ETX
 			//buf[ -1]--> checksum			
 			try {
-				cc = dev.readBytes(2,1000);
+				cc = dev.readBytes(2,3000);//at least 3 seconds
 			} catch (SerialPortTimeoutException e) {
 				Misc.loge("[protocol_3964R_listen] no response!! - size=%d", buf.size());
-				return new byte[0];
+				dev.writeByte(DLE);
+				return Misc.list2byte(buf);
 			}			
 			buf.add(cc[0]);
 			buf.add(cc[1]);			
@@ -231,7 +233,7 @@ public abstract class DevTTY extends DevBase {
 		return Misc.list2byte(buf); 
 	}
 	
-	protected boolean protocol_3964R_express(final SerialPort dev,final byte[] pkg)
+	protected int protocol_3964R_express(final SerialPort dev,final byte[] pkg)
 		throws SerialPortException
 	{
 		byte cc;
@@ -239,17 +241,17 @@ public abstract class DevTTY extends DevBase {
 		cc = dev.readBytes(1)[0];
 		if(cc!=DLE) {
 			Misc.logw("protocol_3964R_express.1=%d", cc);
-			return false;
+			return -1;
 		}
 		//host write data
 		dev.writeBytes(pkg);
-		//device close talking
+		//slave close talking
 		cc = dev.readBytes(1)[0];
 		if(cc!=DLE) {
 			Misc.logw("protocol_3964R_express.2=%d", cc);
-			return false;
+			return -2;
 		}
-		return true;
+		return 0;
 	}
 	
 	

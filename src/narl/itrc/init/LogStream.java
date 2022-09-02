@@ -83,8 +83,12 @@ public class LogStream {
 			);
 			return fmt.format(stm);
 		}
-		public String getText() { return txt; }
-		public Mesg   setText(final String text) { txt = text; return this; }
+		public String getText() { 
+			return txt; 
+		}
+		public Mesg   setText(final String text) { 
+			txt = text; return this; 
+		}
 		public void callback(Hooker hook) {
 			hook.callback(stm.getTime(), tkn, txt);
 		}

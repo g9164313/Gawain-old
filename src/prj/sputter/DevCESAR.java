@@ -16,10 +16,10 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextInputDialog;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
-import javafx.scene.layout.VBox;
 import narl.itrc.DevTTY;
 import narl.itrc.Misc;
 import narl.itrc.PadTouch;
@@ -62,7 +62,7 @@ public class DevCESAR extends DevTTY {
 		set_active_mode(ACTIVE_HOST);		
 		//set_active_mode(ACTIVE_FRONT_PANEL);
 		
-		int[] parm = get_point_level();
+		int[] parm = get_pulse_watt();
 		final int v_watt  = parm[0];
 		//final int r_mode = parm[1];//regulation mode
 
@@ -80,6 +80,7 @@ public class DevCESAR extends DevTTY {
 			watt.set(v_watt);
 			freq.set(v_freq);
 			duty.set(v_duty);
+			
 			switch(v_mode) {
 			case ACTIVE_HOST: 
 				last_cmd_status.set("遠端操作");
@@ -258,12 +259,12 @@ public class DevCESAR extends DevTTY {
 		return recv[0];
 	}
 	
-	private int set_point_level(final int watt) {
+	private int set_pulse_watt(final int watt) {
 		final byte[] recv = AE_bus(1,8,String.format("%04X",watt));
 		if(recv.length==0) { return code2text(-1); }
 		return code2text(recv[0]);
 	}
-	private int[] get_point_level() {
+	private int[] get_pulse_watt() {
 		final byte[] recv = AE_bus(1,164,"");
 		final int[] parm = new int[2];
 		if(recv.length>=3) {			
@@ -335,9 +336,9 @@ public class DevCESAR extends DevTTY {
 	public void setRFOutput(final boolean on) {
 		asyncBreakIn(()->set_RF_output(on));
 	}
-	public void setPointLevel(final int val) {		
+	public void setPulseWatt(final int val) {		
 		asyncBreakIn(()->{
-			final int code = set_point_level(val);
+			final int code = set_pulse_watt(val);
 			if(code==0) {
 				Application.invokeLater(()->watt.set(val));
 			}
@@ -379,50 +380,75 @@ public class DevCESAR extends DevTTY {
 	}	
 	//-------------------------------------//
 	
+	private static void pop_editor(		
+		final String title,
+		final DevCESAR dev,
+		final IntegerProperty prop
+	) {		
+		final TextInputDialog dia = new TextInputDialog(""+prop.get());
+		dia.setTitle("設定 "+title);
+		dia.setContentText("");		
+		Optional<String> res = dia.showAndWait();
+		if(res.isPresent()==false) {
+			return;
+		}
+		try {
+			final int val = Integer.parseInt(res.get());
+			if(prop==dev.watt) {
+				dev.setPulseWatt(val);
+			}else if(prop==dev.freq) {
+				dev.setPulseFreq(val);
+			}else if(prop==dev.duty) {
+				dev.setPulseDuty(val);
+			}			
+		}catch(NumberFormatException e) {			
+		}		
+	}
+	
 	public static Node genInfoPanel(final DevCESAR dev) {
 		
 		Label txt_watt = new Label();
 		txt_watt.textProperty().bind(dev.watt.asString("%6dW"));
-		txt_watt.setOnMouseClicked(e->{});
-		
+		txt_watt.setOnMouseClicked(e->pop_editor("功率",dev,dev.watt));
+
 		Label txt_freq = new Label();
 		txt_freq.textProperty().bind(dev.freq.asString("%6dHz"));
-		txt_freq.setOnMouseClicked(e->{});
+		txt_freq.setOnMouseClicked(e->pop_editor("頻率",dev,dev.freq));
 		
 		Label txt_duty = new Label();
 		txt_duty.textProperty().bind(dev.duty.asString("%6d%%"));
-		txt_duty.setOnMouseClicked(e->{});
+		txt_duty.setOnMouseClicked(e->pop_editor("週期",dev,dev.duty));
 
 		Label txt_ford = new Label();
-		txt_ford.textProperty().bind(dev.powerForward.asString("%6d"));
+		txt_ford.textProperty().bind(dev.powerForward.asString("%3d(F"));
 		
 		Label txt_rflt = new Label();
-		txt_rflt.textProperty().bind(dev.powerReflect.asString("%6d"));
+		txt_rflt.textProperty().bind(dev.powerReflect.asString("%3d(R"));
 		
 		Label txt_dliv = new Label();
-		txt_dliv.textProperty().bind(dev.powerDelived.asString("%6d"));
+		txt_dliv.textProperty().bind(dev.powerDelived.asString("%3d(D"));
 		
 		final Label[] txt = {
-			new Label("功率:"), txt_watt, 
-			new Label("頻率:"), txt_freq, 
-			new Label("週期:"), txt_duty,
-			new Label("輸出:"), txt_ford, 
-			new Label("反射:"), txt_rflt, 
-			new Label("傳遞:"), txt_dliv
+			new Label("功率:"), txt_watt, txt_ford,
+			new Label("頻率:"), txt_freq, txt_rflt,
+			new Label("週期:"), txt_duty, txt_dliv
 		};
 		
 		for(Label obj:txt) {
 			obj.getStyleClass().addAll("font-size5");
 			if(obj.textProperty().isBound()==true){
-				obj.setMinWidth(100.);
+				obj.setMinWidth(67.);
+				obj.setMaxWidth(Double.MAX_VALUE);
 			}
 			obj.setAlignment(Pos.CENTER_RIGHT);
+			GridPane.setHgrow(obj, Priority.ALWAYS);
 		}
 		
 		final GridPane lay0 = new GridPane();
 		lay0.getStyleClass().addAll("box-pad");
-		lay0.addColumn(0, txt[0], txt[2], txt[4], txt[6], txt[8], txt[10]);
-		lay0.addColumn(1, txt[1], txt[3], txt[5], txt[7], txt[9], txt[11]);
+		lay0.addColumn(0, txt[0], txt[3], txt[6]);
+		lay0.addColumn(1, txt[1], txt[4], txt[7]);
+		lay0.addColumn(2, txt[2], txt[5], txt[8]);
 		return lay0;
 	}
 	
@@ -456,7 +482,7 @@ public class DevCESAR extends DevTTY {
 			final Optional<String> opt = pad.showAndWait();		
 			if(opt.isPresent()==false) { return; }
 			int val = Integer.valueOf(opt.get());
-			dev.setPointLevel(val);
+			dev.setPulseWatt(val);
 		});
 		
 		final double width = 200.;
@@ -486,7 +512,7 @@ public class DevCESAR extends DevTTY {
 			final String txt = box_level.getText().trim();
 			try {
 				final int val = Integer.valueOf(txt);
-				dev.setPointLevel(val);				
+				dev.setPulseWatt(val);				
 			}catch(NumberFormatException e1) {				
 			}
 			box_level.setText("");
