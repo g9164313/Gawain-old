@@ -147,12 +147,12 @@ public abstract class DevTTY extends DevBase {
 			}
 		}
 	};
-	//-----------------------------------------
+	//--------------------------------------------//
 	
 	protected static final byte STX = 0x02;
 	protected static final byte ETX = 0x03;
 	protected static final byte DLE = 0x10;//跳出資料通訊
-	protected static final byte UNKNOW = 0x25;//'%' ?? what is it meaning in 3964R
+	protected static final byte PER = 0x25;//no checksum???
 	
 	protected static final byte ACK = 0x06;
 	protected static final byte NAK = 0x15;
@@ -174,10 +174,14 @@ public abstract class DevTTY extends DevBase {
 		int count,
 		int... values
 	){
-		if(count<=0 && values!=null) {
-			count = values.length;
+		byte[] buf;
+		if(values!=null) {
+			//provide data~~~
+			buf = new byte[10+count*2+3];
+		}else {
+			//read data~~~
+			buf = new byte[10+3];
 		}
-		byte[] buf = new byte[10+count*2+3];
 		//RK512 header
 		buf[0] = 0x00;//Token 
 		buf[1] = 0x00;//Token
@@ -207,53 +211,105 @@ public abstract class DevTTY extends DevBase {
 		return buf;
 	}
 	
-	protected byte[] protocol_3964R_listen(final SerialPort dev) 
-		throws SerialPortException
-	{
-		ArrayList<Byte> buf = new ArrayList<Byte>();
-		byte[] cc;
-		dev.writeByte(DLE);//host give conversation
-		do {
-			//buf[ -3]--> DLE
-			//buf[ -2]--> ETX
-			//buf[ -1]--> checksum			
-			try {
-				cc = dev.readBytes(2,3000);//at least 3 seconds
-			} catch (SerialPortTimeoutException e) {
-				Misc.loge("[protocol_3964R_listen] no response!! - size=%d", buf.size());
-				dev.writeByte(DLE);
-				return Misc.list2byte(buf);
-			}			
-			buf.add(cc[0]);
-			buf.add(cc[1]);			
-		}while(!(cc[0]==DLE && cc[1]==ETX));
-		cc[0] = dev.readBytes(1)[0];//BBC
-		buf.add(cc[0]);//BBC, last byte is checksum!!!
-		dev.writeByte(DLE);//host close conversation
-		return Misc.list2byte(buf); 
-	}
-	
-	protected int protocol_3964R_express(final SerialPort dev,final byte[] pkg)
-		throws SerialPortException
-	{
-		byte cc;
-		//device send a response
-		cc = dev.readBytes(1)[0];
-		if(cc!=DLE) {
-			Misc.logw("protocol_3964R_express.1=%d", cc);
-			return -1;
-		}
-		//host write data
-		dev.writeBytes(pkg);
-		//slave close talking
-		cc = dev.readBytes(1)[0];
-		if(cc!=DLE) {
-			Misc.logw("protocol_3964R_express.2=%d", cc);
+	protected int protocol_964R_wait(
+		final SerialPort dev,
+		final int timeout
+	) {
+		try {
+			//wait device to ready!!!!
+			/*byte cc = dev.readBytes(1, timeout)[0];
+			if(cc!=STX) {
+				Misc.loge("3964R_wait.1: no STX(0x%02X)",(int)cc);
+				return -1;
+			}*/
+			byte cc;
+			do {
+				cc = dev.readBytes(1,timeout)[0];
+			}while(cc!=STX);
+		} catch (SerialPortException e1) {
+			Misc.loge("3964R_wait.2: tty broken");
 			return -2;
+		} catch (SerialPortTimeoutException e1) {
+			//Misc.loge("3964R_wait.3: timeout!!");
+			return -3;
 		}
 		return 0;
 	}
 	
+	protected int protocol_3964R_express(
+		final SerialPort dev,
+		final byte[] pkg
+	){
+		try {
+			//host want communication~~~
+			dev.writeByte(STX);
+			//wait device~~~~~
+			byte cc;
+			do {
+				cc = dev.readBytes(1)[0];
+			}while(cc!=DLE);
+			//host write data
+			dev.writeBytes(pkg);
+			//slave close talking
+			do {
+				cc = dev.readBytes(1)[0];
+			}while(cc!=DLE);
+		} catch (SerialPortException e) {			
+			Misc.loge("3964R_express: tty broken");
+			return -3;
+		}
+		return 0;
+	}	
+	
+	protected byte[] protocol_3964R_listen(
+		final SerialPort dev,
+		int data_count
+	){
+		final int timeout = 3000;
+		byte[] head=null, info=null, data=null, tail=null;		
+		//host try to get data or response~~~~			
+		try {
+			if(dev.readBytes(1)[0]!=STX) {
+				Misc.loge("3964R_listen.0: no STX");
+				return new byte[0];
+			}
+			
+			dev.writeByte(DLE);
+			
+			head = dev.readBytes(4, timeout);//Token, [command|error code]
+			if(head[2]=='A' && head[3]=='D') {
+				info = dev.readBytes(6, timeout);//Address, Count, Reserved
+				data_count = 
+					((((int)info[2])&0x00FF)<<8) | 
+					((((int)info[3])&0x00FF)<<0) ;
+			}
+			if(data_count>0) {
+				data = dev.readBytes(data_count*2, timeout);
+			}
+			tail = dev.readBytes(3, timeout);//DLE, ETX, BBC
+			
+			dev.writeByte(DLE);
+		} catch (SerialPortException e) {
+			Misc.loge("3964R_listen.1: tty broken");
+		} catch (SerialPortTimeoutException e) {
+			Misc.loge("3964R_listen.2: timeout!!");
+		}
+		return chainBytes(head,info,data,tail);
+	}
+	
+	protected byte[] chainBytes(final byte[]... lst) {
+		ArrayList<Byte> dst = new ArrayList<Byte>();
+		for(byte[] src:lst) {
+			if(src==null) {
+				continue;
+			}
+			for(int i=0; i<src.length; i++) {
+				dst.add(src[i]);
+			}
+		}
+		return Misc.list2byte(dst);
+	}
+	//--------------------------------------------//
 	
 	/* implement AE BUS protocol.<p>
 	 * Format:<p>
@@ -285,9 +341,9 @@ public abstract class DevTTY extends DevBase {
 					Misc.logw("[%s] invalid hex: %s (%s)", TAG, txt, hexData);
 				}
 			}
-		}		
-		final int hex_count = hex.size();
+		}
 		
+		final int hex_count = hex.size();
 		final byte[] send;		
 		if(hex_count<=6) {
 			send = new byte[1+1+hex_count+1];
@@ -310,7 +366,8 @@ public abstract class DevTTY extends DevBase {
 		for(int i=0; i<last_index; i++) {			
 			send[last_index] = (byte)(send[last_index] ^ send[i]);
 		}
-				
+		
+		//start to send payload!!!
 		byte[] recv = new byte[0];
 		if(port.isPresent()==false) {
 			return recv;
@@ -423,5 +480,5 @@ public abstract class DevTTY extends DevBase {
 			bb[i] = buf[j];
 		}
 		dev.writeBytes(bb);
-	}	
+	}
 }

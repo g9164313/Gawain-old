@@ -119,10 +119,10 @@ public class PanMain2 extends PanBase {
 		for(JFXButton btn:btn_pulse_edit) {
 			btn.setGraphic(Misc.getIconView("pen.png"));
 		}
-		btn_pulse_edit[0].setOnAction(e->spik.show_Ton_pos());
-		btn_pulse_edit[1].setOnAction(e->spik.show_Tof_pos());
-		btn_pulse_edit[2].setOnAction(e->spik.show_Ton_neg());
-		btn_pulse_edit[3].setOnAction(e->spik.show_Tof_neg());
+		//btn_pulse_edit[0].setOnAction(e->spik.show_Ton_pos());
+		//btn_pulse_edit[1].setOnAction(e->spik.show_Tof_pos());
+		//btn_pulse_edit[2].setOnAction(e->spik.show_Ton_neg());
+		//btn_pulse_edit[3].setOnAction(e->spik.show_Tof_neg());
 		
 		Label[] box_pulse_value = {
 			new Label(),//Ton+

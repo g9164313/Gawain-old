@@ -16,7 +16,59 @@ public class StepMassFlow extends StepCommon {
 		mfc1_sv.setPrefWidth(100.);
 		mfc2_sv.setPrefWidth(100.);
 		mfc3_sv.setPrefWidth(100.);
+		set(op1,
+			run_waiting(1000,null),
+			op2
+		);
 	}
+	
+	private static final Float[] MAX_SCCM = {
+		PanMain.MFC1_MAX_SCCM,
+		PanMain.MFC2_MAX_SCCM,
+		PanMain.MFC3_MAX_SCCM,	
+	};
+	
+	final Runnable op1 = ()->{
+		msg[1].setText("apply");
+		Float[] vals = {
+			box2float(mfc1_sv,null),
+			box2float(mfc2_sv,null),
+			box2float(mfc3_sv,null),
+		};
+		for(int i=0; i<vals.length; i++) {
+			if(vals[i]==null) {
+				continue;
+			}
+			vals[i] = (vals[i] * MAX_SCCM[i]) / 5f;
+		}
+		adam4.asyncDirectOuput(vals);
+	};
+	
+	final Runnable op2 = ()->{
+		msg[1].setText("waiting");
+		Float[] src = {
+			box2float(mfc1_sv,null),
+			box2float(mfc2_sv,null),
+			box2float(mfc3_sv,null),
+		};
+		Float[] dst = {
+			PanMain.mfc1_pv.get(),
+			PanMain.mfc2_pv.get(),
+			PanMain.mfc3_pv.get(),
+		};
+		next_step();
+		for(int i=0; i<src.length; i++) {
+			if(src[i]==null) {
+				continue;
+			}
+			if(Math.abs(src[i]-dst[i])>1f) {
+				//no stable, just waiting~~~~
+				msg[1].setText(String.format("wait MFC-%d",i+1));
+				hold_step(); 
+				return;
+			}
+		}
+	};
 	
 	@Override
 	public Node getContent() {
@@ -43,9 +95,14 @@ public class StepMassFlow extends StepCommon {
 	}
 	@Override
 	public String flatten() {
-		return null;
+		return control2text(
+			mfc1_sv, mfc2_sv, mfc3_sv
+		);
 	}
 	@Override
 	public void expand(String txt) {
+		text2control(txt,
+			mfc1_sv, mfc2_sv, mfc3_sv
+		);
 	}
 }

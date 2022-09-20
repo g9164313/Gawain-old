@@ -11,7 +11,10 @@ import javafx.collections.ObservableList;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.control.CheckBox;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.RadioButton;
 import javafx.scene.control.Separator;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputDialog;
@@ -179,6 +182,35 @@ public abstract class Stepper extends HBox {
 		}
 		next.set(ee-bb);
 	}
+	
+	/** 
+	 *  1--> async going!!!!
+	 *  0--> no async
+	 * -1--> async done~~~ 
+	 */
+	protected final AtomicInteger async= new AtomicInteger(0);	
+	protected void wait_async(){
+		async.set(1);
+		hold_step();
+	}
+	protected void notify_async(final int stp){
+		async.set(-1);
+		next_step(stp);
+	}
+	protected void notify_async(){
+		notify_async(LEAD);
+	}
+	protected void wait_async(final Runnable tsk) {
+		if(async.get()==1) {
+			return;
+		}
+		wait_async();
+		new Thread(()->{
+			tsk.run();
+			async.set(-1);
+			next_step(LEAD);	
+		},"stepper-task").start();
+	}
 	//--------------------------------------------//
 	
 	protected void prepare(){
@@ -278,44 +310,76 @@ public abstract class Stepper extends HBox {
 			}
 		}
 	};
+	
+	public String control2text(Object... lst) {
+		String txt = "";
+		int idx = 0;
+		for(Object obj:lst) {
+			String val = "";
+			if(obj instanceof TextField) {
+				val = ((TextField)obj).getText();
+			}else if(obj instanceof ComboBox<?>) {
+				val = ""+((ComboBox<?>)obj)
+					.getSelectionModel()
+					.getSelectedIndex();
+			}else if(obj instanceof CheckBox) {
+				val = (((CheckBox)obj).isSelected())?("T"):("F");
+			}else if(obj instanceof RadioButton) {
+				val = (((RadioButton)obj).isSelected())?("T"):("F");
+			}else {
+				Misc.loge("[FLATTEN] ?? %s", obj.getClass().getName());
+				continue;
+			}
+			txt = txt + String.format("arg%d=%s, ", idx, val);
+		}
+		return txt;
+	}
+	protected void text2control(String txt, Object... lst) {
+		String[] col = txt.replace("\\s", "").split(", ");
+		final int cnt = (col.length>=lst.length)?(lst.length):(col.length);
+		for(int i=0; i<cnt; i++) {
+			final String[] map = col[i].split("=");
+			//final String key = arg[0];
+			final String val = map[1];
+			final Object obj = lst[i];
+			if(obj instanceof TextField) {
+				((TextField)obj).setText(val);
+			}else if(obj instanceof ComboBox<?>) {
+				((ComboBox<?>)obj)
+					.getSelectionModel()
+					.select(Integer.parseInt(val));
+			}else if(obj instanceof CheckBox) {
+				if(val.charAt(0)=='T') {
+					((CheckBox)obj).setSelected(true);
+				}else if(val.charAt(0)=='F') {
+					((CheckBox)obj).setSelected(false);
+				}else {
+					Misc.loge("[UNFLATEN:CheckBox] %s ? boolean", col[i]);
+				}
+			}else if(obj instanceof RadioButton) {
+				if(val.charAt(0)=='T') {
+					((RadioButton)obj).setSelected(true);
+				}else if(val.charAt(0)=='F') {
+					((RadioButton)obj).setSelected(false);
+				}else {
+					Misc.loge("[UNFLATEN:RadioButton] %s ? boolean", col[i]);
+				}
+			}else {
+				Misc.loge("[UNFLATEN] ?? %s", obj.getClass().getName());
+				continue;
+			}
+		}
+	}	
 	//--------------------------------------------//
 	
-	/** 
-	 *  1--> async going!!!!
-	 *  0--> no async
-	 * -1--> async done~~~ 
-	 */
-	protected final AtomicInteger async= new AtomicInteger(0);	
-	protected void wait_async(){
-		async.set(1);
-		hold_step();
-	}
-	protected void wait_async(final Runnable tsk) {
-		if(async.get()==1) {
-			return;
-		}
-		wait_async();
-		new Thread(()->{
-			tsk.run();
-			notify_async();			
-		},"stepper-task").start();
-	}
-	protected void notify_async(final int stp){
-		async.set(-1);
-		next_step(stp);
-	}
-	protected void notify_async(){
-		notify_async(LEAD);
-	}
-
-	protected long tick = -1L;	
+	private long tick = -1L;	
 	protected long waiting_time(long msec){
 		if(tick<=0L){
 			tick = System.currentTimeMillis();
 		}
 		long pass = System.currentTimeMillis() - tick;
 		if(pass>=msec){
-			tick = -1L;//reset for next turn~~~
+			reset_waiting();//reset for next turn~~~
 			next_step();
 		}else{
 			hold_step();
@@ -325,6 +389,27 @@ public abstract class Stepper extends HBox {
 	}
 	protected long waiting_time(final String time){
 		return waiting_time(Misc.text2tick(time));
+	}
+	protected Runnable run_waiting(
+		final long msec,
+		final Label mesg
+	) {
+		final Runnable obj = ()->{
+			final long rem = waiting_time(msec);
+			if(mesg!=null) {
+				mesg.setText(Misc.tick2text(rem, true));
+			}			
+		};
+		return obj;
+	}
+	protected Runnable run_waiting(
+		final String time,
+		final Label mesg
+	) {
+		return run_waiting(Misc.text2tick(time), mesg);
+	}
+	protected void reset_waiting() {
+		tick = -1L;
 	}
 	//--------------------------------------------//
 	

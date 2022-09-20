@@ -289,6 +289,34 @@ public class Misc {
 		return txt2double(txt,0.);
 	}
 	
+	public static int txt2bit_val(String txt,final int offset) {		
+		String[] col = txt.replace("\\s", "").split(",");
+		int val = 0;
+		for(String v:col) {
+			if(v.matches("\\d+")==true) {
+				final int pa = Integer.parseInt(v) + offset;
+				if(pa<0) {
+					continue;
+				}
+				val = val | (1<<pa);
+			}else if(v.matches("\\d+[-|~]\\d+")) {
+				String[] arg = v.split("[-|~]");
+				final int pa = Integer.parseInt(arg[0]) + offset;
+				final int pb = Integer.parseInt(arg[1]) + offset;
+				if(pa<0 || pb<0 || pa>pb) {
+					continue;
+				}
+				for(int i=pa; i<=pb; i++) {
+					val = val | (1<<i);
+				}
+			}
+		}		
+		return val;
+	}
+	public static int txt2bit_val(String txt) {
+		return txt2bit_val(txt,0);
+	}
+	
 	/**
 	 * change tick(number value) to text.<p>
 	 * @param tick - unit is millisecond.

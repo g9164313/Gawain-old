@@ -43,9 +43,6 @@ public class DevAdam4024 extends DevAdam {
 			for(Channel ch:aout) {
 				get_range_type(ch);
 				read_last_output(ch);
-				ch.val.addListener((obv,oldVal,newVal)->{
-					asyncDirectOuput(ch.id,newVal.floatValue());
-				});
 			}			
 			nextState("");
 		});
@@ -67,6 +64,10 @@ public class DevAdam4024 extends DevAdam {
 		public AOut(int in) {
 			super(in);
 			title.set("通道"+id);
+		}
+		
+		public void assign(float val) {
+			asyncDirectOuput(this,val);
 		}
 		
 		Pane gen_layout() {
@@ -130,7 +131,7 @@ public class DevAdam4024 extends DevAdam {
 		if(ans.startsWith("?")==true) {
 			Misc.logw("[%s)%d] unable direct output", TAG, ch.id);
 		}else {
-			Misc.logv("[%s)%d] out=%s", TAG, ch.id,data);
+			Misc.logv("[%s)%d] out=%s", TAG, ch.id, data);
 		}
 	}
 	void direct_output_data(final Channel ch, final double data) {
@@ -170,6 +171,19 @@ public class DevAdam4024 extends DevAdam {
 	) {asyncBreakIn(()->{
 		direct_output_data(aout,data);
 	});}
+	
+	public void asyncDirectOuput(
+		final Float... val
+	) {asyncBreakIn(()->{
+		final int size = (val.length>aout.length)?(aout.length):(val.length);
+		for(int i=0; i<size; i++) {
+			if(val[i]==null) {
+				continue;
+			}
+			direct_output_data(aout[i],val[i].floatValue());
+		}		
+	});}
+		
 	
 	public void asyncSetRangeType(
 		final AOut aout, 

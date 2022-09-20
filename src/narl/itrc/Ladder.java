@@ -103,7 +103,7 @@ public class Ladder extends BorderPane {
 
 			final Accordion accr = new Accordion(
 				new TitledPane("操作",lay_main),
-				new TitledPane("步驟",step_kits)
+				new TitledPane("步驟",lay_step)
 			);
 			accr.setExpandedPane(accr.getPanes().get(1));
 			setLeft(accr);
@@ -409,7 +409,7 @@ public class Ladder extends BorderPane {
 			if(foot.step==null){
 				return;
 			}
-			foot.step.tick = 0L;
+			foot.step.reset_waiting();
 			foot.step.async.set(0);
 		});
 		timer.stop();

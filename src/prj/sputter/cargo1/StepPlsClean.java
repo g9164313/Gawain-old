@@ -22,7 +22,58 @@ public class StepPlsClean extends StepCommon {
 		watt.setPrefWidth(100.);
 		duty.setPrefWidth(100.);
 		freq.setPrefWidth(100.);
+		set(
+			op1,
+			run_waiting(1000,null),
+			op2, op2_1,
+			run_hold,
+			op4
+		);
 	}
+	
+	final Runnable op1 = ()->{
+		adam1.asyncSetLevel(1, false);//close shutter~~~
+		next_step();
+	};
+	final Runnable op2 = ()->{
+		next_step();
+		msg[1].setText("setting");
+		sar1.applyPulseSetting(
+			box2int(watt), 
+			box2int(freq), 
+			box2int(duty)
+		);		
+	};
+	final Runnable op2_1 = ()->{
+		next_step();
+		int val;
+		val = box2int(watt);
+		if(val>=0 && val!=sar1.watt.get()) {
+			msg[1].setText("watt??");
+			hold_step(); 
+			return;
+		}
+		val = box2int(freq);
+		if(val>=0 && val!=sar1.freq.get()) {
+			msg[1].setText("freq??");
+			hold_step(); 
+			return;
+		}
+		val = box2int(duty);
+		if(val>=0 && val!=sar1.duty.get()) {
+			msg[1].setText("duty??");
+			hold_step(); 
+			return;
+		}
+		msg[1].setText("apply!!");
+		sar1.setRFOutput(true);		
+	};
+	protected final Runnable op4 = ()->{
+		next_step();
+		if(chk_cont.isSelected()==false) {
+			sar1.setRFOutput(false);
+		}
+	};
 	
 	@Override
 	public Node getContent() {

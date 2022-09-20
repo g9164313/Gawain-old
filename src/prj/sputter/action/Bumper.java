@@ -145,10 +145,8 @@ public abstract class Bumper extends Stepper {
 		wait_async();
 		spik.asyncSetRegister(tkn->{
 			notify_async();
-			if(tkn.response[3]!=0) {
-				//abort_step();
+			if(tkn.payload[3]!=0) {
 				Misc.logw("SPIK200 無響應");
-				Misc.dump_byte(tkn.response);
 			}else{
 				spik.Ton_pos.set(t_on_pos);
 				spik.Tof_pos.set(t_off_pos);

@@ -8,13 +8,17 @@ import com.sun.glass.ui.Application;
 
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.layout.GridPane;
@@ -49,6 +53,7 @@ public class DevCESAR extends DevTTY {
 	@Override
 	public void beforeClose() {
 	}
+	//-----------------------------------------
 	
 	private static final String STG_INIT = "initial";
 	private static final String STG_WATCH= "watcher";
@@ -65,9 +70,7 @@ public class DevCESAR extends DevTTY {
 		int[] parm = get_pulse_watt();
 		final int v_watt  = parm[0];
 		//final int r_mode = parm[1];//regulation mode
-
 		final int v_freq = get_pulse_freq();
-		
 		final int v_duty = get_pulse_duty();
 
 		int mode = get_active_mode();
@@ -79,8 +82,7 @@ public class DevCESAR extends DevTTY {
 		Application.invokeLater(()->{
 			watt.set(v_watt);
 			freq.set(v_freq);
-			duty.set(v_duty);
-			
+			duty.set(v_duty);			
 			switch(v_mode) {
 			case ACTIVE_HOST: 
 				last_cmd_status.set("遠端操作");
@@ -103,16 +105,15 @@ public class DevCESAR extends DevTTY {
 		new SimpleBooleanProperty(),//over temperature
 		new SimpleBooleanProperty(),//interlock_open
 		
-		new SimpleBooleanProperty(),//out of setpoint
+		new SimpleBooleanProperty(),//out of set-point
 		
 		new SimpleBooleanProperty(),//current limit
 		new SimpleBooleanProperty(),//PROFIBUS error
 		new SimpleBooleanProperty(),//extend fault
 		new SimpleBooleanProperty(),//CEX is locked		
 	};
-	
+	public final ReadOnlyBooleanProperty RFOut = status[1];
 	public final IntegerProperty runtime = new SimpleIntegerProperty();//unit is seconds
-	
 	public final IntegerProperty powerForward = new SimpleIntegerProperty();
 	public final IntegerProperty powerReflect = new SimpleIntegerProperty();
 	public final IntegerProperty powerDelived = new SimpleIntegerProperty();
@@ -120,6 +121,9 @@ public class DevCESAR extends DevTTY {
 	private void state_watcher() {
 		
 		final byte[] p_status = AE_bus(1,162,"");//process status
+		if(p_status.length<=4) {
+			return;
+		}
 		final boolean[] v_status = {
 			(p_status[0] & 0x04)!=0,
 			(p_status[0] & 0x20)!=0,
@@ -203,7 +207,9 @@ public class DevCESAR extends DevTTY {
 		}else {
 			recv = AE_bus(1,1,"");
 		}
-		if(recv.length==0) { return code2text(-1); }
+		if(recv.length==0) { 
+			return code2text(-1);
+		}
 		return code2text(recv[0]);
 	}
 	
@@ -336,30 +342,53 @@ public class DevCESAR extends DevTTY {
 	public void setRFOutput(final boolean on) {
 		asyncBreakIn(()->set_RF_output(on));
 	}
+	
+	private void event_set_pluse_watt(final int val) {
+		if(val<0) { return; }
+		final int code = set_pulse_watt(val);
+		if(code==0) {
+			Application.invokeLater(()->watt.set(val));
+		}else {
+			Misc.loge("[%s] fail to set Watt(%d)", TAG, val);
+		}
+	}
+	private void event_set_pluse_freq(final int val) {
+		if(val<0) { return; }
+		final int code = set_pulse_freq(val);
+		if(code==0) {
+			Application.invokeLater(()->freq.set(val));
+		}else {
+			Misc.loge("[%s] fail to set Freq(%d)", TAG, val);
+		}
+	}
+	private void event_set_pluse_duty(final int val) {
+		if(val<0) { return; }
+		final int code = set_pulse_duty(val);
+		if(code==0) {
+			Application.invokeLater(()->duty.set(val));
+		}else {
+			Misc.loge("[%s] fail to set Duty(%d)", TAG, val);
+		}
+	}
+	
 	public void setPulseWatt(final int val) {		
-		asyncBreakIn(()->{
-			final int code = set_pulse_watt(val);
-			if(code==0) {
-				Application.invokeLater(()->watt.set(val));
-			}
-		});
+		asyncBreakIn(()->event_set_pluse_watt(val));
 	}
 	public void setPulseFreq(final int val) {		
-		asyncBreakIn(()->{
-			final int code = set_pulse_freq(val);
-			if(code==0) {
-				Application.invokeLater(()->freq.set(val));
-			}
-		});
+		asyncBreakIn(()->event_set_pluse_freq(val));
 	}
 	public void setPulseDuty(final int val) {		
-		asyncBreakIn(()->{
-			final int code = set_pulse_duty(val);
-			if(code==0) {
-				Application.invokeLater(()->duty.set(val));
-			}
-		});
-	}
+		asyncBreakIn(()->event_set_pluse_duty(val));
+	}	
+	public void applyPulseSetting(
+		final int v_watt, 
+		final int v_freq, 
+		final int v_duty
+	) {asyncBreakIn(()->{
+		event_set_pluse_watt(v_watt);
+		event_set_pluse_freq(v_freq);
+		event_set_pluse_duty(v_duty);
+	});}
 	
 	public void toggleActiveMode() {
 		asyncBreakIn(()->{
@@ -444,11 +473,27 @@ public class DevCESAR extends DevTTY {
 			GridPane.setHgrow(obj, Priority.ALWAYS);
 		}
 		
+		final Button btn_active = new Button("啟動輸出");
+		btn_active.setMaxWidth(Double.MAX_VALUE);
+		btn_active.setOnAction(e->{
+			if(dev.RFOut.get()==true) {
+				dev.setRFOutput(false);
+			}else {
+				Alert dia = new Alert(AlertType.CONFIRMATION);
+				dia.setTitle("確認啟動?");
+				dia.setHeaderText("確認啟動 RF 輸出?");
+				if(dia.showAndWait().get()==ButtonType.OK) {
+					dev.setRFOutput(true);
+				}				
+			}			
+		});
+		
 		final GridPane lay0 = new GridPane();
 		lay0.getStyleClass().addAll("box-pad");
 		lay0.addColumn(0, txt[0], txt[3], txt[6]);
 		lay0.addColumn(1, txt[1], txt[4], txt[7]);
 		lay0.addColumn(2, txt[2], txt[5], txt[8]);
+		lay0.add(btn_active, 0, 3, 3, 1);
 		return lay0;
 	}
 	

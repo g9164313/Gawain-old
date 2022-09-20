@@ -116,11 +116,14 @@ public class DevAdam4055 extends DevAdam {
 		});
 	}
 	
-	public void asyncSetLevelAll(final boolean... flg) {
+	public void asyncSetLevelAll(final Boolean... flg) {
 		asyncBreakIn(()->{
 			final int cnt = flg.length % 8;
 			int val = 0;
 			for(int i=0; i<cnt; i++) {
+				if(flg==null) {
+					continue;
+				}
 				if(flg[i]==true) {
 					val = val | (1<<i);
 				}				

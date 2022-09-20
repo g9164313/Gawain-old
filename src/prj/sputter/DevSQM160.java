@@ -530,6 +530,66 @@ public class DevSQM160 extends DevBase {
 			}
 		});
 	}
+	public boolean activeFilm(
+		final int ID,
+		final String name,
+		final float density,		
+		final int tooling,
+		final float z_ratio,		
+		final float spthick,
+		final String sp_time,
+		final int sensors
+	) {
+		if(ID<0 || 100<ID) {
+			PanBase.notifyError("錯誤的ID",String.format("非法的ID(%d), 1~99",ID));
+			return false;
+		}
+		if(density<0.5f || 99.99f<density) {
+			PanBase.notifyError("Density",String.format("非法的Density, 0.5~99.99",density));
+			return false;
+		}
+		if(tooling<10 || 399<tooling) {
+			PanBase.notifyError("Tooling",String.format("非法的tooling, 10~399",tooling));
+			return false;
+		}
+		if(z_ratio<0.1f || 9.999f<z_ratio) {
+			PanBase.notifyError("Z-Ratio",String.format("非法的z_ratio, 0.1~9.999",z_ratio));
+			return false;
+		}
+		if(spthick<0.000f || 9999.000f<spthick) {
+			PanBase.notifyError("厚度",String.format("非法的厚度, 0.000~9999.000",spthick));
+			return false;
+		}
+		if(sensors>=64) {
+			PanBase.notifyError("Sensors",String.format("非法的Sensor it(%d), >=64",sensors));
+			return false;
+		}
+		final String _name = name
+			.toUpperCase()
+			.replace(" ", "_")
+			.concat("__________")			
+			.substring(0, 8);
+		
+		final long s_time = Misc.text2tick(sp_time)/1000L;
+		
+		asyncBreakIn(()->{
+			final String cmd =String.format(
+				"A%c%s %.2f %d %.3f %.3f %.3f %d %d",
+				(char)(ID+48),_name,
+				density, tooling, z_ratio,
+				spthick, spthick, s_time,
+				sensors
+			); 
+			final String res = exec(cmd);
+			if(res.charAt(0)!='A') {
+				Misc.logw("[%s] fail to active film", TAG);				
+			}else {
+				Misc.logv("[%s] update film(%d)", ID);
+			}
+		});
+		return true;
+	}
+	
 	
 	public void updateFilm(final String cmd) {asyncBreakIn(()->{
 		String a_txt = exec(cmd);
@@ -741,6 +801,7 @@ public class DevSQM160 extends DevBase {
 						bit_sum = bit_sum + (1<<i);
 					}
 				}
+				//ID:0-->update current film data
 				return String.format(
 					"A%c%s %s %s %s %s %s %d %d",
 					0+48, 

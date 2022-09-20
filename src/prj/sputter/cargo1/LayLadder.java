@@ -1,18 +1,17 @@
 package prj.sputter.cargo1;
 
-import javafx.geometry.Orientation;
 import narl.itrc.Ladder;
 import narl.itrc.Stepper;
 
 public class LayLadder extends Ladder {
 
 	public LayLadder(){
-		super(Orientation.HORIZONTAL);
 		recipe.setMinWidth(200);
 		prelogue = event_prelogue;
 		epilogue = event_epilogue;		
 		addStep("分隔線", Stepper.Sticker.class);
 		addStep(StepMassFlow.action_name, StepMassFlow.class);
+		addStep(StepGunsHub.action_name, StepGunsHub.class);
 		addStep(StepPlsClean.action_name, StepPlsClean.class);
 		addStep(StepIgniteRF.action_name, StepIgniteRF.class);
 		addStep(StepIgniteDC.action_name, StepIgniteDC.class);
