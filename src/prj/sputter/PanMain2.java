@@ -166,11 +166,11 @@ public class PanMain2 extends PanBase {
 		
 		JFXButton btn_pulse_run = new JFXButton("開啟");
 		btn_pulse_run.getStyleClass().add("btn-raised-1");
-		btn_pulse_run.setOnAction(e->spik.setRunning(true));
+		btn_pulse_run.setOnAction(e->spik.toggleRun(true));
 		
 		JFXButton btn_pulse_off = new JFXButton("關閉");
 		btn_pulse_off.getStyleClass().add("btn-raised-0");
-		btn_pulse_off.setOnAction(e->spik.setRunning(false));
+		btn_pulse_off.setOnAction(e->spik.toggleRun(false));
 		
 		JFXTextField box_power_on = new JFXTextField("100");
 		box_power_on.setPrefWidth(73);

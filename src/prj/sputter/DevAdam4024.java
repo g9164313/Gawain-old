@@ -12,6 +12,11 @@ import narl.itrc.Misc;
 import narl.itrc.PadChoise;
 import narl.itrc.PadNumber;
 
+/**
+ * ADAM4024: 4 analogy-output channel
+ * @author qq
+ *
+ */
 public class DevAdam4024 extends DevAdam {
 
 	public DevAdam4024(final int address) {
@@ -131,6 +136,10 @@ public class DevAdam4024 extends DevAdam {
 		if(ans.startsWith("?")==true) {
 			Misc.logw("[%s)%d] unable direct output", TAG, ch.id);
 		}else {
+			Misc.invokeLater(()->{
+				ch.txt.set(data);
+				ch.val.set(Float.parseFloat(data));			
+			});
 			Misc.logv("[%s)%d] out=%s", TAG, ch.id, data);
 		}
 	}

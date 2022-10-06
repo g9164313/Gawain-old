@@ -243,52 +243,55 @@ public class Misc {
 	 * @param txt - the string of integer value(including leading zero)
 	 * @return integer value
 	 */
-	public static int txt2int(String txt,final int def){
-		txt = txt.replace("\\s","").trim();
-		if(txt.matches("^[+-]?[\\d]+")==false){
-			return 0;
-		}
-		if(txt.charAt(0)=='+'){
-			txt = txt.substring(1);
-		}
-		while(txt.charAt(0)=='0' && txt.length()>1){
-			txt = txt.substring(1);
-		}
+	public static Integer txt2Int(String txt){
+		if(txt.length()==0) { return null; }
 		try {
-			return Integer.valueOf(txt);
+			txt = txt.replace("\\s","").trim();
+			//if(txt.matches("^[+-]?[\\d]+")==false){
+			//	return null;
+			//}
+			//check sign~~~
+			if(txt.charAt(0)=='+'){
+				txt = txt.substring(1);
+			}
+			//remove leading zeros~~~
+			while(txt.charAt(0)=='0' && txt.length()>1){
+				txt = txt.substring(1);
+			}		
+			return Integer.parseInt(txt);
 		}catch(NumberFormatException e) {
 			Misc.loge(e.getMessage());
-			return def;
 		}
+		return null;
+	}
+	public static int txt2int(final String txt,final int def) {
+		final Integer v = txt2Int(txt);
+		if(v==null) { return def; }
+		return v.intValue();
 	}
 	public static int txt2int(final String txt) {
 		return txt2int(txt,0);
 	}
 	
-	public static float txt2float(final String txt,final float def) {
+	public static Float txt2Float(String txt) {
+		if(txt.length()==0) { return null; }
 		try {
-			return Float.valueOf(txt);
+			txt = txt.replace("\\s","").trim();			
+			return Float.parseFloat(txt);
 		}catch(NumberFormatException e) {
-			Misc.loge(e.getMessage());
-			return def;
+			Misc.loge("invalid float format:"+txt);
+			return null;
 		}
+	}
+	public static float txt2float(final String txt,final float def) {
+		final Float v = txt2Float(txt);
+		if(v==null) { return def; }
+		return v.floatValue();
 	}
 	public static float txt2float(final String txt) {
 		return txt2float(txt,0f);
 	}
-	
-	public static double txt2double(final String txt,final double def) {
-		try {
-			return Double.valueOf(txt);
-		}catch(NumberFormatException e) {
-			Misc.loge(e.getMessage());
-			return def;
-		}
-	}
-	public static double txt2double(final String txt) {
-		return txt2double(txt,0.);
-	}
-	
+
 	public static int txt2bit_val(String txt,final int offset) {		
 		String[] col = txt.replace("\\s", "").split(",");
 		int val = 0;
@@ -312,9 +315,6 @@ public class Misc {
 			}
 		}		
 		return val;
-	}
-	public static int txt2bit_val(String txt) {
-		return txt2bit_val(txt,0);
 	}
 	
 	/**

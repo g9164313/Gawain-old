@@ -1,9 +1,11 @@
 package prj.sputter;
 
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 import com.sun.glass.ui.Application;
 
+import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
@@ -15,7 +17,7 @@ import narl.itrc.Misc;
 
 
 /**
- * ADAM-4068 8 channel Relay module.<p>
+ * ADAM-4068 8-channel Relay Output Module.<p>
  * Relay type is a-contact(normal open, working is closed).<p>
  * @author qq
  *
@@ -27,14 +29,12 @@ public class DevAdam4068 extends DevAdam {
 		AA = String.format("%02X", address);
 	}
 	
-	private final static String STG_INIT = "init";
-	
+	private final static String STG_MONT = "monitor";
 	@Override
 	public void afterOpen() {
-		addState(STG_INIT, ()->state_initial());
-		playFlow(STG_INIT);
+		addState(STG_MONT, ()->state_monitor());
+		playFlow(STG_MONT);
 	}
-
 	@Override
 	public void beforeClose() {
 	}
@@ -44,24 +44,27 @@ public class DevAdam4068 extends DevAdam {
 	 * True(1) - relay closing.<p>
 	 * False(0)- relay opening.<p>
 	 */
-	private SimpleBooleanProperty[] sta = {
+	private SimpleBooleanProperty[] flg = {
 		new SimpleBooleanProperty(), new SimpleBooleanProperty(),
 		new SimpleBooleanProperty(), new SimpleBooleanProperty(),
 		new SimpleBooleanProperty(), new SimpleBooleanProperty(),
 		new SimpleBooleanProperty(), new SimpleBooleanProperty()
 	};
+	public final ReadOnlyBooleanProperty[] Relay = {
+		flg[0],flg[1],flg[2],flg[3],
+		flg[4],flg[5],flg[6],flg[7],
+	};
 	
-	void state_initial() {
-		final String ans = exec("$"+AA+"6");
-		if(ans.matches("![0123456789ABCDEF]{4}?00")==true) {
-			final boolean[] bit_o = int2flag(ans.substring(1, 3));			
-			Application.invokeLater(()->{
-				for(int i=0; i<8; i++) {
-					sta[i].set(bit_o[i]);
-				}
-			});
-		}else {
-			Misc.logw("[%s] invalid: $AA6 --> %s", TAG, ans);
+	void state_monitor() {
+		nextState(STG_MONT);
+		if(port.isPresent()==false) {
+			nextState("");//we have no port, just go into idle~~~~
+			return;
+		}
+		try {
+			refresh_flag(flg);
+			TimeUnit.MILLISECONDS.sleep(100);
+		} catch (InterruptedException e) {
 		}
 	}
 	
@@ -74,50 +77,32 @@ public class DevAdam4068 extends DevAdam {
 		if(idx>=8 || idx<0) { 
 			Misc.logw("[%s] invalid index:%d",TAG,idx);
 			return; 
-		}
-		asyncBreakIn(()->{
-			final String val = (flg)?("01"):("00");
-			final String ans = exec("#"+AA+"1"+idx+val);
-			if(ans.charAt(0)=='>') {
-				return;//action is success!!!!
-			}
-			Misc.loge("[%s] fail to set relay(%d): %s", TAG, idx, ans);
-	});}	
+		}		
+		asyncBreakIn(()->set_flag(idx,flg));
+	}	
 	
-	public void asyncSetRelayAll(Boolean... arg) {asyncBreakIn(()->{
-		final int cnt = arg.length % 8;
-		int val = 0;
-		for(int i=0; i<cnt; i++) {
-			if(arg[i]==null) {
-				continue;
-			}
-			if(arg[i]==true) {
-				val = val | (1<<i);
-			}				
-		}
-		final String ans = exec("#"+AA+"00"+String.format("%02X", val));
-		if(ans.charAt(0)=='>') {
-			return;//action is success!!!!
-		}
-		Misc.loge("[%s] fail to set all relay: %s(0x%02X)", TAG, ans, val);
-	});}
+	public void asyncSetAllRelay(final Boolean... flg) {
+		final boolean[] _flg = override_flag(Relay,flg);
+		asyncBreakIn(()->assign_val(flag2val(_flg)));
+	}
 	//--------------------------------------------
 	
 	public static Pane genPanel(final DevAdam4068 dev) {
 		
 		final Pin[] chk = {
-			new Pin(dev.sta,0), new Pin(dev.sta,1), new Pin(dev.sta,2), new Pin(dev.sta,3),
-			new Pin(dev.sta,4), new Pin(dev.sta,5), new Pin(dev.sta,6), new Pin(dev.sta,7),
+			new Pin(dev.flg,0), new Pin(dev.flg,1), new Pin(dev.flg,2), new Pin(dev.flg,3),
+			new Pin(dev.flg,4), new Pin(dev.flg,5), new Pin(dev.flg,6), new Pin(dev.flg,7),
 		};
 		
 		for(Pin pin:chk) {
 			pin.setOnMouseClicked(e->{
-				final boolean flg = pin.getValue();
-				final String txt = (flg)?("斷路?"):("導通?");				
-				Alert dia = new Alert(AlertType.CONFIRMATION,txt);
-				Optional<ButtonType> opt = dia.showAndWait();
+				final boolean flg = pin.getValue();				
+				Optional<ButtonType> opt = new Alert(
+						AlertType.CONFIRMATION,
+						(flg)?("確認是否斷路?"):("確認是否導通?")
+					).showAndWait();
 				if(opt.isPresent()==true) {
-					dev.asyncSetRelay(pin.cid, !flg);
+					dev.asyncSetRelay(pin.idx, !flg);
 				}				
 			});
 		}

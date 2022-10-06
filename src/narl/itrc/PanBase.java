@@ -275,11 +275,16 @@ public abstract class PanBase {
 	) {
 		JFXCheckBox obj = new JFXCheckBox(title);
 		obj.setDisableVisualFocus(true);
-		obj.setDisable(true);		
-		obj.selectedProperty().bind(prop);
+		obj.setDisable(true);
+		if(prop!=null) {
+			obj.selectedProperty().bind(prop);
+		}		
 		obj.setStyle("-fx-opacity: 1.0;");
 		obj.setUserData(prop);//keep it, for rebound
 		return obj;
+	}
+	public static CheckBox genIndicator(final String title) {
+		return genIndicator(title,null);
 	}
 	
 	/**

@@ -36,12 +36,16 @@ import narl.itrc.PadTouch;
  *
  */
 public class DevCESAR extends DevTTY {
-
+	
 	public DevCESAR() {
-		TAG = "CESAR";
+		this(1,"CESAR");
 	}
 	public DevCESAR(final String tag) {
+		this(1,tag);
+	}
+	public DevCESAR(final int addr, final String tag) {
 		TAG = tag;
+		address = addr;
 	}
 	
 	@Override
@@ -54,17 +58,22 @@ public class DevCESAR extends DevTTY {
 	public void beforeClose() {
 	}
 	//-----------------------------------------
-	
+
 	private static final String STG_INIT = "initial";
 	private static final String STG_WATCH= "watcher";
 	
 	public final IntegerProperty watt = new SimpleIntegerProperty();
 	public final IntegerProperty freq = new SimpleIntegerProperty();	
 	public final IntegerProperty duty = new SimpleIntegerProperty();
-
+	
+	final int address;
+	private byte[] AE_bus(final int cmd, final String hexData) {	
+		return AE_bus2(address,cmd,hexData);
+	}
+	
 	private void state_initial() {
-		
-		set_active_mode(ACTIVE_HOST);		
+		final byte[] recv = AE_bus(2,"");
+		//set_active_mode(ACTIVE_HOST);		
 		//set_active_mode(ACTIVE_FRONT_PANEL);
 		
 		int[] parm = get_pulse_watt();
@@ -120,7 +129,7 @@ public class DevCESAR extends DevTTY {
 	
 	private void state_watcher() {
 		
-		final byte[] p_status = AE_bus(1,162,"");//process status
+		final byte[] p_status = AE_bus(162,"");//process status
 		if(p_status.length<=4) {
 			return;
 		}
@@ -203,9 +212,9 @@ public class DevCESAR extends DevTTY {
 	private int set_RF_output(final boolean on) {	
 		byte[] recv;
 		if(on==true) {
-			recv = AE_bus(1,2,"");
+			recv = AE_bus(2,"");
 		}else {
-			recv = AE_bus(1,1,"");
+			recv = AE_bus(1,"");
 		}
 		if(recv.length==0) { 
 			return code2text(-1);
@@ -254,24 +263,25 @@ public class DevCESAR extends DevTTY {
 	private static final int ACTIVE_HOST       = 2;
 	//private static final int ACTIVE_USER_PORT  = 4;
 	private static final int ACTIVE_FRONT_PANEL= 6;
+	
 	private int set_active_mode(final int mode) {
-		final byte[] recv = AE_bus(1,14,String.format("%02X", mode));
+		final byte[] recv = AE_bus(14,String.format("%02X", mode));
 		if(recv.length==0) { return code2text(-1); }
 		return code2text(recv[0]);
 	}
 	private int get_active_mode() {
-		final byte[] recv = AE_bus(1,155,"");
+		final byte[] recv = AE_bus(155,"");
 		if(recv.length==0) { code2text(-1); return ACTIVE_UNKNOW; }
 		return recv[0];
 	}
 	
 	private int set_pulse_watt(final int watt) {
-		final byte[] recv = AE_bus(1,8,String.format("%04X",watt));
+		final byte[] recv = AE_bus(8,String.format("%04X",watt));
 		if(recv.length==0) { return code2text(-1); }
 		return code2text(recv[0]);
 	}
 	private int[] get_pulse_watt() {
-		final byte[] recv = AE_bus(1,164,"");
+		final byte[] recv = AE_bus(164,"");
 		final int[] parm = new int[2];
 		if(recv.length>=3) {			
 			parm[0] = byte2int(false,recv[0], recv[1]);//watt
@@ -285,12 +295,12 @@ public class DevCESAR extends DevTTY {
 	private int set_pulse_freq(int freq) {
 		if(freq<=      0) { freq=      1; }
 		if(freq>=100_000) { freq=100_000; }	
-		final byte[] recv = AE_bus(1,93,String.format("%06X",freq));
+		final byte[] recv = AE_bus(93,String.format("%06X",freq));
 		if(recv.length==0) { return code2text(-1); }
 		return code2text(recv[0]);
 	}
 	private int get_pulse_freq() {
-		final byte[] recv = AE_bus(1,193,"");
+		final byte[] recv = AE_bus(193,"");
 		if(recv.length==0) { return code2text(-1); }
 		return byte2int(false,recv);
 	}
@@ -298,33 +308,33 @@ public class DevCESAR extends DevTTY {
 	private int set_pulse_duty(int duty) {
 		if(duty<0   ) { duty= 0; }
 		if(duty>=100) { duty=99; }		
-		final byte[] recv = AE_bus(1,96,String.format("%04X",duty));
+		final byte[] recv = AE_bus(96,String.format("%04X",duty));
 		if(recv.length==0) { return code2text(-1); }
 		return code2text(recv[0]);
 	}
 	private int get_pulse_duty() {
-		final byte[] recv = AE_bus(1,196,"");
+		final byte[] recv = AE_bus(196,"");
 		if(recv.length==0) { return code2text(-1); }
 		return byte2int(false,recv);
 	}
 	
 	/*private String report_type() {
-		final byte[] recv = AE_bus(1,128,"");
+		final byte[] recv = AE_bus(128,"");
 		if(recv.length==0) { code2text(-1); return ""; }
 		return new String(recv);
 	}*/
 	private int report_power_forward() {
-		final byte[] recv = AE_bus(1,165,"");
+		final byte[] recv = AE_bus(165,"");
 		if(recv.length==0) { return code2text(-1); }
 		return byte2int(false,recv);
 	}
 	private int report_power_reflect() {
-		final byte[] recv = AE_bus(1,166,"");
+		final byte[] recv = AE_bus(166,"");
 		if(recv.length==0) { return code2text(-1); }
 		return byte2int(false,recv);
 	}
 	private int report_power_deliver() {
-		final byte[] recv = AE_bus(1,167,"");
+		final byte[] recv = AE_bus(167,"");
 		if(recv.length==0) { return code2text(-1); }
 		return byte2int(false,recv);
 	}
@@ -334,7 +344,7 @@ public class DevCESAR extends DevTTY {
 		return byte2int(false,recv);//DC bias
 	}*/	
 	private int report_runtime() {
-		final byte[] recv = AE_bus(1,205,"");
+		final byte[] recv = AE_bus(205,"");
 		if(recv.length==0) { return code2text(-1); }
 		return byte2int(false,recv);//unit is second~~~
 	}

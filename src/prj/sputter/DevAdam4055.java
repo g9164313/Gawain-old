@@ -11,11 +11,8 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
-import javafx.scene.layout.StackPane;
 import narl.itrc.Misc;
 
 /**
@@ -32,121 +29,81 @@ public class DevAdam4055 extends DevAdam {
 		AA = String.format("%02X", address);
 	}
 	
-	private final static String STG_INIT = "init";
 	private final static String STG_MONT = "monitor";
-	
 	@Override
 	public void afterOpen() {
-		addState(STG_INIT, ()->state_initial());
 		addState(STG_MONT, ()->state_monitor());
-		playFlow(STG_INIT);
+		playFlow(STG_MONT);
 	}
-
 	@Override
 	public void beforeClose() {
 	}
 	//--------------------------------------------
+
+	private SimpleBooleanProperty[] flg_o = {
+		new SimpleBooleanProperty(), new SimpleBooleanProperty(),
+		new SimpleBooleanProperty(), new SimpleBooleanProperty(),
+		new SimpleBooleanProperty(), new SimpleBooleanProperty(),
+		new SimpleBooleanProperty(), new SimpleBooleanProperty(),
+	};
+	public final ReadOnlyBooleanProperty[] DO = {
+		flg_o[0], flg_o[1], flg_o[2], flg_o[3],
+		flg_o[4], flg_o[5], flg_o[6], flg_o[7],
+	};
 	
-	void state_initial() {
-		nextState(STG_MONT);
-	}
+	private SimpleBooleanProperty[] flg_i = {
+		new SimpleBooleanProperty(), new SimpleBooleanProperty(),
+		new SimpleBooleanProperty(), new SimpleBooleanProperty(),
+		new SimpleBooleanProperty(), new SimpleBooleanProperty(),
+		new SimpleBooleanProperty(), new SimpleBooleanProperty(),
+	};
+	public final ReadOnlyBooleanProperty[] DI = {
+		flg_i[0], flg_i[1], flg_i[2], flg_i[3],
+		flg_i[4], flg_i[5], flg_i[6], flg_i[7],
+	};
 	
 	void state_monitor() {
+		nextState(STG_MONT);
 		if(port.isPresent()==false) {
 			nextState("");//we have no port, just go into idle~~~~
 			return;
 		}
 		try {
-			final String ans = exec("$"+AA+"6");
-			if(ans.matches("![0123456789ABCDEF]{4}?00")==true) {
-				final boolean[] bit_o = int2flag(ans.substring(1, 3));
-				final boolean[] bit_i = int2flag(ans.substring(3, 5));				
-				Application.invokeLater(()->{
-					for(int i=0; i<8; i++) {
-						sta[i].set(bit_o[i]);
-					}
-					for(int i=8; i<16; i++) {
-						sta[i].set(bit_i[i-8]);
-					}
-				});
-			}else {
-				Misc.logw("[%s] invalid: $AA6 --> %s", TAG, ans);
-			}
-			TimeUnit.MILLISECONDS.sleep(100);
+			refresh_flag(flg_o,flg_i);
+			TimeUnit.MILLISECONDS.sleep(25);
 		} catch (InterruptedException e) {
 		}
-		nextState(STG_MONT);
 	}
 	//--------------------------------------------
 
-	private SimpleBooleanProperty[] sta = {
-		//state for output relay
-		new SimpleBooleanProperty(), new SimpleBooleanProperty(),
-		new SimpleBooleanProperty(), new SimpleBooleanProperty(),
-		new SimpleBooleanProperty(), new SimpleBooleanProperty(),
-		new SimpleBooleanProperty(), new SimpleBooleanProperty(),
-		//state for input relay
-		new SimpleBooleanProperty(), new SimpleBooleanProperty(),
-		new SimpleBooleanProperty(), new SimpleBooleanProperty(),
-		new SimpleBooleanProperty(), new SimpleBooleanProperty(),
-		new SimpleBooleanProperty(), new SimpleBooleanProperty(),
-	};
-
-	public final ReadOnlyBooleanProperty[] DO = {
-		sta[0],sta[1],sta[2],sta[3],
-		sta[4],sta[5],sta[6],sta[7],
-	};
-	public final ReadOnlyBooleanProperty[] DI = {
-		sta[ 8],sta[ 9],sta[10],sta[11],
-		sta[12],sta[13],sta[14],sta[15],
-	};
-	
 	public void asyncSetLevel(final int idx,final boolean flg) {		
 		if(idx>=8 || idx<0) { 
 			Misc.logw("[%s] invalid index:%d",TAG,idx);
 			return; 
-		}		
-		asyncBreakIn(()->{
-			final String val = (flg)?("01"):("00");
-			final String ans = exec("#"+AA+"1"+idx+val);
-			if(ans.charAt(0)=='>') {
-				return;//action is success!!!!
-			}
-			Misc.loge("[%s] fail to set output(%d): %s", TAG, idx, ans);
-		});
+		}	
+		asyncBreakIn(()->set_flag(idx,flg));
 	}
 	
-	public void asyncSetLevelAll(final Boolean... flg) {
-		asyncBreakIn(()->{
-			final int cnt = flg.length % 8;
-			int val = 0;
-			for(int i=0; i<cnt; i++) {
-				if(flg==null) {
-					continue;
-				}
-				if(flg[i]==true) {
-					val = val | (1<<i);
-				}				
-			}
-			final String ans = exec("#"+AA+"00"+String.format("%02X", val));
-			if(ans.charAt(0)=='>') {
-				return;//action is success!!!!
-			}
-			Misc.loge("[%s] fail to set output: %s(0x%02X)", TAG, ans, val);
-		});
-	}
+	/**
+	 * Assign Pin value again, if pin no changed, assign null.<p>
+	 * Null will give pin a previous setting value.<p>
+	 * @param flg - reassign pin value
+	 */
+	public void asyncSetAllLevel(final Boolean... flg) {
+		final boolean[] _flg = override_flag(DO,flg);
+		asyncBreakIn(()->assign_val(flag2val(_flg)));
+	}	
 	//--------------------------------------------
 	
-
 	public static Pane genPanel(final DevAdam4055 dev) {
 		
 		final Pin[] chk_do = {
-			new Pin(dev.sta,0), new Pin(dev.sta,1), new Pin(dev.sta,2), new Pin(dev.sta,3),
-			new Pin(dev.sta,4), new Pin(dev.sta,5), new Pin(dev.sta,6), new Pin(dev.sta,7),
+			new Pin(dev.flg_o,0), new Pin(dev.flg_o,1), new Pin(dev.flg_o,2), new Pin(dev.flg_o,3),
+			new Pin(dev.flg_o,4), new Pin(dev.flg_o,5), new Pin(dev.flg_o,6), new Pin(dev.flg_o,7),
 		};
 		final Pin[] chk_di = {
-			new Pin(dev.sta,8), new Pin(dev.sta,9), new Pin(dev.sta,10), new Pin(dev.sta,11),
-			new Pin(dev.sta,12), new Pin(dev.sta,13), new Pin(dev.sta,14), new Pin(dev.sta,15),
+			new Pin(dev.flg_i,0), new Pin(dev.flg_i,1), new Pin(dev.flg_i,2), new Pin(dev.flg_i,3),
+			new Pin(dev.flg_i,4), new Pin(dev.flg_i,5), new Pin(dev.flg_i,6), new Pin(dev.flg_i,7),
 		};
 		
 		for(Pin pin:chk_do) {
@@ -156,14 +113,13 @@ public class DevAdam4055 extends DevAdam {
 				Alert dia = new Alert(AlertType.CONFIRMATION,txt);
 				Optional<ButtonType> opt = dia.showAndWait();
 				if(opt.isPresent()==true) {
-					dev.asyncSetLevel(pin.cid, !flg);
+					dev.asyncSetLevel(pin.idx, !flg);
 				}				
 			});
 		}
 		
 		final GridPane lay = new GridPane();
 		lay.getStyleClass().addAll("box-pad");
-
 		lay.addColumn(0, new Label()   , new Label("DI"), new Label("DO"));
 		lay.addColumn(1, new Label("0"), chk_di[0]      , chk_do[0]      );
 		lay.addColumn(2, new Label("1"), chk_di[1]      , chk_do[1]      );

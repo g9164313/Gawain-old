@@ -203,14 +203,15 @@ public class LogStream {
 	
 	private LogStream(){
 		String[] name = {null,null};
-		if(Gawain.propFlag("LOG_KEEP")==true) {
-			String postfix = Misc.getDateName();
-			name[0] = Gawain.getRootPath()+"stdout-"+postfix+".txt";
-			name[1] = Gawain.getRootPath()+"stderr-"+postfix+".txt";
-		}else {
-			name[0] = Gawain.getRootPath()+"stdout"+".txt";
-			name[1] = Gawain.getRootPath()+"stderr"+".txt";
-		}
+		final String postfix = (
+			Gawain.propFlag("LOG_KEEP")==true
+		)?(
+			"-"+Misc.getDateName()
+		):(
+			""
+		); 
+		name[0] = Gawain.getRootPath()+"stdout"+postfix+".txt";
+		name[1] = Gawain.getRootPath()+"stderr"+postfix+".txt";
 		pip[0].setFile(name[0]);
 		pip[1].setFile(name[1]);
 		System.setOut(pip[0].getNode());

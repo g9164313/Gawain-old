@@ -16,52 +16,55 @@ public class StepMassFlow extends StepCommon {
 		mfc1_sv.setPrefWidth(100.);
 		mfc2_sv.setPrefWidth(100.);
 		mfc3_sv.setPrefWidth(100.);
-		set(op1,
+		set(
+			op1, 
 			run_waiting(1000,null),
-			op2
+			op2,
+			run_waiting(500,null),
+			op3
 		);
 	}
 	
-	private static final Float[] MAX_SCCM = {
-		PanMain.MFC1_MAX_SCCM,
-		PanMain.MFC2_MAX_SCCM,
-		PanMain.MFC3_MAX_SCCM,	
-	};
+	private Float[] val = {null, null, null};
 	
 	final Runnable op1 = ()->{
-		msg[1].setText("apply");
-		Float[] vals = {
-			box2float(mfc1_sv,null),
-			box2float(mfc2_sv,null),
-			box2float(mfc3_sv,null),
-		};
-		for(int i=0; i<vals.length; i++) {
-			if(vals[i]==null) {
-				continue;
-			}
-			vals[i] = (vals[i] * MAX_SCCM[i]) / 5f;
-		}
-		adam4.asyncDirectOuput(vals);
+		msg[1].setText("前閥");
+		
+		val[0] = clip_float(box2float(mfc1_sv,null),null,PanMain.MFC1_MAX_SCCM);
+		val[1] = clip_float(box2float(mfc2_sv,null),null,PanMain.MFC2_MAX_SCCM);
+		val[2] = clip_float(box2float(mfc3_sv,null),null,PanMain.MFC3_MAX_SCCM);
+		
+		adam1.asyncSetAllLevel(
+			null, null,	null,
+			(val[0]!=null)?((val[0]>0.1f)?(true):(false)):(false), 
+			(val[1]!=null)?((val[1]>0.1f)?(true):(false)):(false), 
+			(val[2]!=null)?((val[2]>0.1f)?(true):(false)):(false)
+		);
 	};
 	
 	final Runnable op2 = ()->{
-		msg[1].setText("waiting");
-		Float[] src = {
-			box2float(mfc1_sv,null),
-			box2float(mfc2_sv,null),
-			box2float(mfc3_sv,null),
-		};
+		msg[1].setText("Apply!");
+		adam4.asyncDirectOuput(
+			PanMain.sccm2volt(val[0],PanMain.MFC1_MAX_SCCM), 
+			PanMain.sccm2volt(val[1],PanMain.MFC2_MAX_SCCM), 
+			PanMain.sccm2volt(val[2],PanMain.MFC3_MAX_SCCM)
+		);
+	};
+	
+	final Runnable op3 = ()->{
+		msg[1].setText("");
 		Float[] dst = {
 			PanMain.mfc1_pv.get(),
 			PanMain.mfc2_pv.get(),
 			PanMain.mfc3_pv.get(),
 		};
 		next_step();
-		for(int i=0; i<src.length; i++) {
-			if(src[i]==null) {
+		for(int i=0; i<val.length; i++) {
+			if(val[i]==null) {
 				continue;
 			}
-			if(Math.abs(src[i]-dst[i])>1f) {
+			final float dv = val[i]-dst[i];
+			if(Math.abs(dv)>0.5 && dv>0.f) {
 				//no stable, just waiting~~~~
 				msg[1].setText(String.format("wait MFC-%d",i+1));
 				hold_step(); 

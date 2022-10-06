@@ -38,9 +38,9 @@ public class StepWatcher extends Bumper {
 	final TextField box_goal = box_args[0];
 	final TextField box_maxw = box_args[1];
 	final TextField box_minw = box_args[2];
-	final TextField box_prop = box_args[3];
-	final TextField box_inte = box_args[4];
-	final TextField box_deri = box_args[5];
+	final TextField box_prop = box_args[3];//proportional
+	final TextField box_inte = box_args[4];//integral
+	final TextField box_deri = box_args[5];//derivative
 	
 	private DescriptiveStatistics stats = new DescriptiveStatistics(30);
 	
@@ -154,7 +154,7 @@ public class StepWatcher extends Bumper {
 		lay.add(new Separator(Orientation.VERTICAL), 4, 0, 1, 3);
 		lay.addColumn(5,new Label("目標速率"),new Label("最大功率"),new Label("最小功率"));
 		lay.addColumn(6,box_goal,box_maxw,box_minw);
-		lay.addColumn(7,new Label("P"),new Label("I"),new Label("IT"));
+		lay.addColumn(7,new Label("P"),new Label("I"),new Label("D"));
 		lay.addColumn(8,box_prop,box_inte,box_deri);
 		return lay;
 	}

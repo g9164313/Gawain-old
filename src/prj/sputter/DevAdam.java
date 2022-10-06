@@ -3,6 +3,7 @@ package prj.sputter;
 import com.sun.glass.ui.Application;
 
 import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.SimpleFloatProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.scene.image.Image;
@@ -183,6 +184,75 @@ public abstract class DevAdam extends DevTTY {
 			}
 		}
 	}
+	//---------------------------------------------
+	
+	protected void refresh_flag(
+		final BooleanProperty[]... flag
+	) {
+		final String ans = exec("$"+AA+"6");
+		if(ans.matches("![0123456789ABCDEF]{4}?00")==true) {
+			int cnt = (ans.length()-1)/2;
+			if(cnt>flag.length) {
+				cnt = flag.length;
+			}
+			final boolean[][] bits = new boolean[cnt][]; 
+			for(int i=0; i<cnt; i++) {
+				bits[i] = int2flag(ans.substring(1+i*2, 3+i*2));
+			}	
+			Application.invokeLater(()->{
+				for(int i=0; i<bits.length; i++) {
+					for(int j=0; j<8; j++) {
+						flag[i][j].set(bits[i][j]);
+					}
+				}				
+			});
+		}else {
+			Misc.logw("[%s] invalid: $AA6 --> %s", TAG, ans);
+		}
+	}
+	
+	protected void set_flag(final int idx, final boolean flg) {
+		final String val = (flg)?("01"):("00");
+		final String ans = exec("#"+AA+"1"+idx+val);
+		if(ans.charAt(0)=='>') {
+			return;//action is success!!!!
+		}
+		Misc.loge("[%s] fail to set flag[%d]: %s", TAG, idx, ans);
+	}
+
+	protected boolean[] override_flag(
+		final ReadOnlyBooleanProperty[] src,
+		final Boolean... flg
+	) {
+		final boolean[] dst = new boolean[src.length];
+		for(int i=0; i<src.length; i++) {
+			dst[i] = src[i].get();
+			if(i<flg.length) {
+				if(flg[i]!=null) {
+					dst[i] = flg[i].booleanValue();
+				}
+			}
+		}
+		return dst;
+	}
+	protected int flag2val(final boolean[] flg) {
+		int val = 0;
+		for(int i=0; i<flg.length; i++) {
+			if(flg[i]==true) {
+				val = val | (1<<i);
+			}				
+		}
+		return val;
+	}
+	protected void assign_val(final int val) {
+		final String ans = exec("#"+AA+"00"+String.format("%02X", val));
+		if(ans.charAt(0)=='>') {
+			return;//action is success!!!!
+		}
+		Misc.loge("[%s] fail to set flags: %s(0x%02X)", TAG, ans, val);
+	}
+	
+	//---------------------------------------------
 	
 	public static class Channel {
 		final int id;
@@ -229,14 +299,14 @@ public abstract class DevAdam extends DevTTY {
 	protected static class Pin extends StackPane {
 		ImageView img0 = new ImageView(img_close);
 		ImageView img1 = new ImageView(img_check);
-		final int cid;		
+		final int idx;		
 		Pin(			
 			final BooleanProperty[] prop,
-			final int idx
+			final int index
 		){
-			cid = idx;
+			idx = index;
 			getChildren().addAll(img0, img1);
-			bind(prop[idx]);
+			bind(prop[index]);
 		}
 		Pin bind(final BooleanProperty prop) {
 			img0.visibleProperty().bind(prop.not());

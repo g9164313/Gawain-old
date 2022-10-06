@@ -152,7 +152,7 @@ public abstract class DevTTY extends DevBase {
 	protected static final byte STX = 0x02;
 	protected static final byte ETX = 0x03;
 	protected static final byte DLE = 0x10;//跳出資料通訊
-	protected static final byte PER = 0x25;//no checksum???
+	protected static final byte PER = 0x25;//slave wait??
 	
 	protected static final byte ACK = 0x06;
 	protected static final byte NAK = 0x15;
@@ -211,23 +211,22 @@ public abstract class DevTTY extends DevBase {
 		return buf;
 	}
 	
-	protected int protocol_964R_wait(
+	protected int protocol_3964R_wait(
 		final SerialPort dev,
 		final int timeout
 	) {
 		try {
 			//wait device to ready!!!!
-			/*byte cc = dev.readBytes(1, timeout)[0];
+			byte cc = dev.readBytes(1, timeout)[0];
+			while(cc==PER) {
+				cc = dev.readBytes(1, timeout)[0];
+			}
 			if(cc!=STX) {
-				Misc.loge("3964R_wait.1: no STX(0x%02X)",(int)cc);
+				Misc.loge("[3964R_wait.1]: no STX(0x%02X)",(int)cc);
 				return -1;
-			}*/
-			byte cc;
-			do {
-				cc = dev.readBytes(1,timeout)[0];
-			}while(cc!=STX);
+			}
 		} catch (SerialPortException e1) {
-			Misc.loge("3964R_wait.2: tty broken");
+			Misc.loge("[3964R_wait.2]: tty broken");
 			return -2;
 		} catch (SerialPortTimeoutException e1) {
 			//Misc.loge("3964R_wait.3: timeout!!");
@@ -242,20 +241,25 @@ public abstract class DevTTY extends DevBase {
 	){
 		try {
 			//host want communication~~~
+			byte cc = 0;
 			dev.writeByte(STX);
 			//wait device~~~~~
-			byte cc;
-			do {
-				cc = dev.readBytes(1)[0];
-			}while(cc!=DLE);
+			cc = dev.readBytes(1)[0];
+			if(cc!=DLE) {
+				Misc.loge("[3964R_express.1]: no DLE");
+				return -1;
+			}
+			
 			//host write data
 			dev.writeBytes(pkg);
 			//slave close talking
-			do {
-				cc = dev.readBytes(1)[0];
-			}while(cc!=DLE);
-		} catch (SerialPortException e) {			
-			Misc.loge("3964R_express: tty broken");
+			cc = dev.readBytes(1)[0];
+			if(cc!=DLE) {
+				Misc.loge("[3964R_express.2]: no DLE");
+				return -2;
+			}
+		} catch (SerialPortException e1) {			
+			Misc.loge("[3964R_express.3]: tty broken");
 			return -3;
 		}
 		return 0;
@@ -265,7 +269,6 @@ public abstract class DevTTY extends DevBase {
 		final SerialPort dev,
 		int data_count
 	){
-		final int timeout = 3000;
 		byte[] head=null, info=null, data=null, tail=null;		
 		//host try to get data or response~~~~			
 		try {
@@ -276,25 +279,50 @@ public abstract class DevTTY extends DevBase {
 			
 			dev.writeByte(DLE);
 			
-			head = dev.readBytes(4, timeout);//Token, [command|error code]
+			head = dev.readBytes(4);//Token, [command|error code]
 			if(head[2]=='A' && head[3]=='D') {
-				info = dev.readBytes(6, timeout);//Address, Count, Reserved
+				info = dev.readBytes(6);//Address, Count, Reserved
 				data_count = 
 					((((int)info[2])&0x00FF)<<8) | 
 					((((int)info[3])&0x00FF)<<0) ;
 			}
 			if(data_count>0) {
-				data = dev.readBytes(data_count*2, timeout);
+				data = dev.readBytes(data_count*2);
 			}
-			tail = dev.readBytes(3, timeout);//DLE, ETX, BBC
+			//we should wait for DLE ETX
+			tail = wait_DLE(dev);
+			//tail = dev.readBytes(3);//DLE, ETX, BBC
 			
 			dev.writeByte(DLE);
 		} catch (SerialPortException e) {
 			Misc.loge("3964R_listen.1: tty broken");
-		} catch (SerialPortTimeoutException e) {
-			Misc.loge("3964R_listen.2: timeout!!");
 		}
 		return chainBytes(head,info,data,tail);
+	}
+	private byte[] wait_DLE(final SerialPort dev) throws SerialPortException {
+		byte[] buf = dev.readBytes(3);
+		if(
+			buf[0]==DLE && 
+			buf[1]==ETX
+		) {
+			return buf;
+		}
+		ArrayList<Byte> lst = new ArrayList<Byte>();
+		lst.add(buf[0]);
+		lst.add(buf[1]);
+		lst.add(buf[2]);
+		do{
+			lst.add(dev.readBytes(1)[0]);
+			final int tt = lst.size() - 1;
+			if(
+				lst.get(tt-2)==DLE && 
+				lst.get(tt-1)==ETX
+			) {
+				break;
+			}
+		}while(lst.size()<128);
+		Misc.logw("3964R_wait_DLE: invalid tail!!");
+		return Misc.list2byte(lst);
 	}
 	
 	protected byte[] chainBytes(final byte[]... lst) {
@@ -317,7 +345,7 @@ public abstract class DevTTY extends DevBase {
 	 * Header ==> bit7~3: address, bit2~1:length.<p>
 	 * Parameter is little-endian.<p>
 	 * */	
-	protected byte[] AE_bus(
+	protected byte[] AE_bus2(
 		final int address,
 		final int command,
 		final String hexData
@@ -342,7 +370,7 @@ public abstract class DevTTY extends DevBase {
 				}
 			}
 		}
-		
+
 		final int hex_count = hex.size();
 		final byte[] send;		
 		if(hex_count<=6) {
@@ -376,9 +404,11 @@ public abstract class DevTTY extends DevBase {
 		if(dev.isOpened()==false) {
 			return recv;
 		}
+
 		try {
 			dev.writeBytes(send);
-			byte rr = dev.readBytes(1)[0];			
+			byte rr;
+			rr = dev.readBytes(1)[0];
 			if(rr==NAK || rr!=ACK) {
 				Misc.logw("[%s] Host got NAK or none ACK", TAG);
 				block_sleep_msec(25);//slow transmission
@@ -404,7 +434,7 @@ public abstract class DevTTY extends DevBase {
 			//get checksum and check valid
 			rr = dev.readBytes(1)[0];
 			if(rr!=chks) {
-				Misc.logw("[%s] checksum x%02X!=%02X",TAG,rr,chks);
+				Misc.logw("[%s] AE_Bus: invalid-checksum x%02X!=x%02X",TAG,rr,chks);
 			}
 			//finally, echo to client~~~
 			dev.writeByte(ACK);

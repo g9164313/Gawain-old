@@ -79,9 +79,14 @@ public class DevSPIK2k extends DevTTY {
 	//----------------------------------//
 
 	private Runnable listener = ()->{
+		if(port.isPresent()==false) {
+			Misc.logw("[%s] no TTY port", TAG);
+			stopFlow();
+			return;
+		}
 		final SerialPort dev = port.get();		
 		nextState("transmit");
-		if(protocol_964R_wait(dev,30)!=0) {
+		if(protocol_3964R_wait(dev,30)!=0) {
 			return;
 		}
 		byte[] pkg = protocol_3964R_listen(dev,0);
@@ -94,6 +99,9 @@ public class DevSPIK2k extends DevTTY {
 		for(int i=0; i<size; i++) {
 			final int aa = 10+i*2+0;
 			final int bb = 10+i*2+1;
+			if(bb>=pkg.length) {
+				break;
+			}
 			vals[i] = byte2int(pkg[aa],pkg[bb]);
 		}
 		Application.invokeLater(()->fresh_property(addr,vals));
@@ -169,6 +177,7 @@ public class DevSPIK2k extends DevTTY {
 	public final BooleanProperty Run = new SimpleBooleanProperty(false);//1* Run: 1->off, 2->on 
 	public final BooleanProperty DC1 = new SimpleBooleanProperty(false);
 	public final BooleanProperty DC2 = new SimpleBooleanProperty(false);
+	
 	void apply_state_flag(final int stat) {
 		Run.set((stat & 0x0002)!=0);
 		DC1.set((stat & 0x0040)!=0);
@@ -203,18 +212,18 @@ public class DevSPIK2k extends DevTTY {
 	public final IntegerProperty Ton_neg = new SimpleIntegerProperty(-1);//6* Ton -: 2-32000us, duration of the pulse
 	public final IntegerProperty Tof_neg = new SimpleIntegerProperty(-1);//7* Toff-: 2-32000us, duration of the pause
 	
-	public final IntegerProperty ARC_pos = new SimpleIntegerProperty(-1);
-	public final IntegerProperty ARC_neg = new SimpleIntegerProperty(-1);
-	public final IntegerProperty ARC_delay = new SimpleIntegerProperty(-1);//delay
-	public final IntegerProperty ARC_overflow = new SimpleIntegerProperty(-1);//overflow
-	public final IntegerProperty ARC_interval = new SimpleIntegerProperty(-1);//intervall
+	public final IntegerProperty ARC_pos = new SimpleIntegerProperty(-1);//8*
+	public final IntegerProperty ARC_neg = new SimpleIntegerProperty(-1);//9*
+	public final IntegerProperty ARC_delay = new SimpleIntegerProperty(-1);//10* delay
+	public final IntegerProperty ARC_overflow = new SimpleIntegerProperty(-1);//11* overflow
+	public final IntegerProperty ARC_interval = new SimpleIntegerProperty(-1);//12* interval??
 	
-	public final IntegerProperty DC1_V_Set = new SimpleIntegerProperty(-1);//in 1/4 (V)
-	public final IntegerProperty DC1_I_Set = new SimpleIntegerProperty(-1);//in 1/1024(A)
-	public final IntegerProperty DC1_P_Set = new SimpleIntegerProperty(-1);//in 1/2 (W)
-	public final IntegerProperty DC2_V_Set = new SimpleIntegerProperty(-1);//in 1/4 (V)
-	public final IntegerProperty DC2_I_Set = new SimpleIntegerProperty(-1);//in 1/1024(A)
-	public final IntegerProperty DC2_P_Set = new SimpleIntegerProperty(-1);//in 1/2 (W)
+	public final IntegerProperty DC1_V_Set = new SimpleIntegerProperty(-1);//13* in 1/4 (V)
+	public final IntegerProperty DC1_I_Set = new SimpleIntegerProperty(-1);//14* in 1/1024(A)
+	public final IntegerProperty DC1_P_Set = new SimpleIntegerProperty(60);//15* in 1/2 (W)
+	public final IntegerProperty DC2_V_Set = new SimpleIntegerProperty(-1);//16* in 1/4 (V)
+	public final IntegerProperty DC2_I_Set = new SimpleIntegerProperty(-1);//17* in 1/1024(A)
+	public final IntegerProperty DC2_P_Set = new SimpleIntegerProperty(-1);//18* in 1/2 (W)
 	
 	public final IntegerProperty ARC_count = new SimpleIntegerProperty(-1);
 	public final IntegerProperty DC1_V_Act = new SimpleIntegerProperty(-1);//in 1/4
@@ -320,9 +329,9 @@ public class DevSPIK2k extends DevTTY {
 			//pkg[0:2]--> token
 			//pkg[  3]--> error code
 			//pkg[...]--> Data values(2 byte)
-			//pkg[ -3]--> DLE
-			//pkg[ -2]--> ETX
-			//pkg[ -1]--> checksum
+			//pkg[ -3]--> DLE (forgot this!!!)
+			//pkg[ -2]--> ETX (forgot this!!!)
+			//pkg[ -1]--> checksum (forgot this!!!)
 			payload = pkg;
 			if(values==null) {
 				values = new int[count];
@@ -383,34 +392,40 @@ public class DevSPIK2k extends DevTTY {
 	} 
 	
 	public void setMode(final int cmd) {
+		setMode(null,cmd);
+	}
+	public void setMode(final TokenNotify event,final int cmd) {
 		asyncSetRegister(tkn->{
 			apply_mode_flag(tkn.values[0]);
+			if(event!=null) {
+				event.event_notify(tkn);
+			}
 		},0,cmd);
 	}
 	
-	public void setRunning(final boolean flg) {
+	public void toggleRun(final boolean flg) {
 		asyncSetRegister(tkn->{
 			apply_state_flag(tkn.values[0]);
 		},1,(flg==true)?(0x02):(0x01));
 	}
-	public void setDC1(final boolean flg) {
+	public void toggleDC1(final boolean flg) {
 		asyncSetRegister(tkn->{
 			apply_state_flag(tkn.values[0]);
 		},1,(flg==true)?(0x21):(0x20));
 	}
-	public void setDC2(final boolean flg) {
+	public void toggleDC2(final boolean flg) {
 		asyncSetRegister(tkn->{
 			apply_state_flag(tkn.values[0]);
 		},1,(flg==true)?(0x23):(0x22));
 	}
-	public void setAllOnOff(
+	public void toggle(
 		final boolean run, 
 		final boolean dc1, 
 		final boolean dc2
 	) {
-		setRunning(run);
-		setDC1(dc1);
-		setDC2(dc2);
+		toggleDC1(dc1);
+		toggleDC2(dc2);
+		toggleRun(run);
 	}
 
 	//device setting values
@@ -420,91 +435,116 @@ public class DevSPIK2k extends DevTTY {
 	//7* Toff-: 2-32000us, duration of the pause
 	public void setPulseValue(
 		final TokenNotify event,
-		final int Ton_P_us,
-		final int Toff_P_us,
-		final int Ton_N_us,
-		final int Toff_N_us
-	) {asyncSetRegister(event,
+		final Integer Ton__P_us,
+		final Integer Toff_P_us,
+		final Integer Ton__N_us,
+		final Integer Toff_N_us
+	) {
+		final int[] arg = {
+			(Ton__P_us!=null)?(Ton__P_us.intValue()):(Ton_pos.get()),
+			(Toff_P_us!=null)?(Toff_P_us.intValue()):(Tof_pos.get()),
+			(Ton__N_us!=null)?(Ton__N_us.intValue()):(Ton_neg.get()),
+			(Toff_N_us!=null)?(Toff_N_us.intValue()):(Tof_neg.get()),
+		};
+		asyncSetRegister(event,
 		4,
-		Ton_P_us,Toff_P_us,Ton_N_us,Toff_N_us
+		arg[0],arg[1], arg[2], arg[3]
 	);}
-	
+
 	public void set_DC1(
 		final TokenNotify event,
-		final String txt_vol, 
-		final String txt_amp,
-		final String txt_pow
+		final Float vol, 
+		final Float amp,
+		final Float pow
 	) {set_DC_value(
 		event, 13,
-		txt_vol, DC1_V_Set.get(),
-		txt_amp, DC1_I_Set.get(),
-		txt_pow, DC1_P_Set.get()
+		vol, DC1_V_Set.get(),
+		amp, DC1_I_Set.get(),
+		pow, DC1_P_Set.get()
 	);}
 	public void set_DC2(
 		final TokenNotify event,
-		final String txt_vol, 
-		final String txt_amp,
-		final String txt_pow
+		final Float vol, 
+		final Float amp,
+		final Float pow
 	) {set_DC_value(
 		event, 16,
-		txt_vol, DC2_V_Set.get(),
-		txt_amp, DC2_I_Set.get(),
-		txt_pow, DC2_P_Set.get()
+		vol, DC2_V_Set.get(),
+		amp, DC2_I_Set.get(),
+		pow, DC2_P_Set.get()
 	);}
 	private void set_DC_value(
-		final TokenNotify event,
-		final int address,
-		final String txt_vol, final int pv_vol, 
-		final String txt_amp, final int pv_amp, 
-		final String txt_pow, final int pv_pow
-	) {asyncSetRegister(event,
+		final TokenNotify event, final int address,
+		final Float vol, final int def_vol, 
+		final Float amp, final int def_amp, 
+		final Float pow, final int def_pow
+	) {
+		if(vol==null && amp==null && pow==null) {
+			return;//nothing to do~~~~
+		}
+		final int[] arg = {
+			(vol!=null)?((int)(vol*4f   )):(def_vol),
+			(amp!=null)?((int)(amp*1024f)):(def_amp),
+			(pow!=null)?((int)(pow*2f   )):(def_pow),
+		};
+		asyncSetRegister(event,
 		address,
-		scale_value(txt_vol,4,pv_vol), 
-		scale_value(txt_amp,1024,pv_amp), 
-		scale_value(txt_pow,2,pv_pow)
-	);}
-	private int scale_value(final String txt,final float scale, final int def_val) {
-		int val = def_val;
-		if(txt.length()==0) {
-			return val;
-		}
-		try {
-			val = (int)(Float.parseFloat(txt)*scale);
-		}catch(NumberFormatException e) {
-			Misc.logw("[%s][scale_value] invalid format-%s", TAG, txt);
-		}
-		return val;
-	}
-	//-------------------------------------------------------
-	
-	/*private void show_set_pulse(
-		final String title,
-		final IntegerProperty prop,
-		final String c_text,
-		final int address
-	) {		
-		final TextInputDialog dd1 = new TextInputDialog(""+prop.get());
-		dd1.setTitle("設定 "+title);
-		dd1.setContentText(c_text);		
-		Optional<String> res = dd1.showAndWait();
-		if(res.isPresent()==false) {
+		arg[0], arg[1], arg[2]
+	);}	
+	public void set_DC_value(
+		final TokenNotify event,
+		final char name, final char attr,
+		final Float value, final Float bias
+	) {
+		if(value==null) {
+			return;
+		}		
+		if(name!='1' && name!='2') {
+			Misc.logw("[%s][set_DC_value] no support name", TAG);
 			return;
 		}
-		try {
-			final int value = Integer.valueOf(res.get());
-			asyncSetRegister(tkn->prop.set(value), address, value);			
-		}catch(NumberFormatException exp) {
-			final Alert dia = new Alert(AlertType.ERROR);
-			dia.setTitle("錯誤！！");
-			dia.setHeaderText("輸入必須為整數");
-			dia.showAndWait();
-		}
+		if(attr!='V' && attr!='I' && attr!='P') {
+			Misc.logw("[%s][set_DC_value] no support attribute", TAG);
+			return;
+		}		
+		final int j = (name=='1')?(0):(1);
+		final int i = (attr=='V')?(0):((attr=='I')?(1):(2));
+		final int ii= (bias==null)?(0):(i+1);
+
+		final int[][] addr = {
+			{13, 14, 15},
+			{16, 17, 18},
+		};
+		final int[][] _off = {
+			{0, DC1_V_Set.get(), DC1_I_Set.get(), DC1_P_Set.get()},
+			{0, DC2_V_Set.get(), DC2_I_Set.get(), DC2_P_Set.get()},
+		};
+		final float[] _sca= {4f, 1024f, 2f};
+		
+		final int _val = _off[j][ii]+(int)(value.floatValue()*_sca[i]);
+		
+		final IntegerProperty[][] prop = {
+			{DC1_V_Set, DC1_I_Set, DC1_P_Set},
+			{DC2_V_Set, DC2_I_Set, DC2_P_Set},
+		}; 
+		
+		//Misc.logv("[%s] set DC%C_%C=%d", TAG, name, attr, _val);
+		
+		asyncSetRegister(tkn->{
+			prop[j][i].set(_val);
+			if(event!=null) {
+				event.event_notify(tkn);
+			}
+		}, addr[j][i], _val);
 	}
-	public void show_Ton_pos() { show_set_pulse("Ton+" , Ton_pos, "時間(us)", 4); }
-	public void show_Tof_pos() { show_set_pulse("Toff+", Tof_pos, "時間(us)", 5); }
-	public void show_Ton_neg() { show_set_pulse("Ton-" , Ton_neg, "時間(us)", 6); }
-	public void show_Tof_neg() { show_set_pulse("Toff-", Tof_neg, "時間(us)", 7); }*/
-	//---------------------------------//
+	public void set_DC_value(
+		final TokenNotify event,
+		final char name, final char attr,
+		final Float value
+	) {
+		set_DC_value(event,name,attr,value,null);
+	}
+	//-------------------------------------------------------
 	
 	private static void show_set_Pulse(final DevSPIK2k dev) {
 		final TextField[] box = {
@@ -516,7 +556,6 @@ public class DevSPIK2k extends DevTTY {
 		for(TextField obj:box) {
 			obj.setPrefWidth(60);
 		}
-		
 		GridPane lay = new GridPane();
 		lay.setAlignment(Pos.CENTER);
 		lay.setHgap(10);
@@ -530,13 +569,12 @@ public class DevSPIK2k extends DevTTY {
 		//dia.setHeaderText();
 		dia.getDialogPane().setContent(lay);
 		if(dia.showAndWait().get()==ButtonType.OK) {
-			final int[] val = {
+			dev.setPulseValue(null,
 				Misc.txt2int(box[0].getText(),dev.Ton_pos.get()),
 				Misc.txt2int(box[1].getText(),dev.Tof_pos.get()),
 				Misc.txt2int(box[2].getText(),dev.Ton_neg.get()),
-				Misc.txt2int(box[3].getText(),dev.Tof_neg.get()),
-			};
-			dev.setPulseValue(null,	val[0], val[1], val[2], val[3]);
+				Misc.txt2int(box[3].getText(),dev.Tof_neg.get())
+			);
 		}
 	}
 	
@@ -570,15 +608,15 @@ public class DevSPIK2k extends DevTTY {
 		if(dia.showAndWait().get()==ButtonType.OK) {
 			if(id=='1') {
 				dev.set_DC1(null,
-					box_vol.getText(), 
-					box_amp.getText(), 
-					box_pow.getText()
+					Misc.txt2Float(box_vol.getText()), 
+					Misc.txt2Float(box_amp.getText()), 
+					Misc.txt2Float(box_pow.getText())
 				);
 			}else if(id=='2') {
 				dev.set_DC2(null,
-					box_vol.getText(), 
-					box_amp.getText(), 
-					box_pow.getText()
+					Misc.txt2Float(box_vol.getText()), 
+					Misc.txt2Float(box_amp.getText()), 
+					Misc.txt2Float(box_pow.getText())
 				);
 			}
 		}
@@ -600,11 +638,11 @@ public class DevSPIK2k extends DevTTY {
 		for(JFXRadioButton obj:lst) {
 			obj.setToggleGroup(grp);
 		}
-		lst[0].setUserData(0x01);lst[0].setSelected(dev.ModeBipolar.get());
-		lst[1].setUserData(0x02);lst[1].setSelected(dev.ModeUnipolar_neg.get());
-		lst[2].setUserData(0x03);lst[2].setSelected(dev.ModeUnipolar_pos.get());
-		lst[3].setUserData(0x04);lst[3].setSelected(dev.ModeDC_neg.get());
-		lst[4].setUserData(0x05);lst[4].setSelected(dev.ModeDC_pos.get());
+		lst[0].setUserData(0x01); lst[0].setSelected(dev.ModeBipolar.get());
+		lst[1].setUserData(0x02); lst[1].setSelected(dev.ModeUnipolar_neg.get());
+		lst[2].setUserData(0x03); lst[2].setSelected(dev.ModeUnipolar_pos.get());
+		lst[3].setUserData(0x04); lst[3].setSelected(dev.ModeDC_neg.get());
+		lst[4].setUserData(0x05); lst[4].setSelected(dev.ModeDC_pos.get());
 		//lst[5].setUserData(0x10);
 		//lst[6].setUserData(0x11);
 		
@@ -642,7 +680,7 @@ public class DevSPIK2k extends DevTTY {
 		dia.setHeaderText("確認開關設定");
 		dia.getDialogPane().setContent(lay0);
 		if(dia.showAndWait().get()==ButtonType.OK) {
-			dev.setAllOnOff(chk_run.isSelected(), chk_dc1.isSelected(), chk_dc2.isSelected());	
+			dev.toggle(chk_run.isSelected(), chk_dc1.isSelected(), chk_dc2.isSelected());	
 		}
 	}
 	

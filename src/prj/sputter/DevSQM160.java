@@ -70,7 +70,7 @@ public class DevSQM160 extends DevBase {
 			playFlow(STG_INIT);
 			
 		} catch (SerialPortException e) {
-			e.printStackTrace();
+			Misc.loge("[%s] %s", TAG, e.getMessage());
 		}
 	}
 	
@@ -477,9 +477,9 @@ public class DevSQM160 extends DevBase {
 			Application.invokeLater(()->shutter.set(flg));
 			TimeUnit.MILLISECONDS.sleep(250);
 			if(u_txt.charAt(0)=='A') {
-				if(event_done!=null) { event_done.run(); }
+				if(event_done!=null) { Application.invokeLater(event_done); }
 			}else{
-				if(event_fail!=null) { event_fail.run(); }
+				if(event_fail!=null) { Application.invokeLater(event_fail);}
 			}			
 		} catch (InterruptedException e) {
 			Misc.loge("[%s] INTERRUPT in command-U",TAG);
@@ -536,7 +536,7 @@ public class DevSQM160 extends DevBase {
 		final float density,		
 		final int tooling,
 		final float z_ratio,		
-		final float spthick,
+		final float  sp_thick,
 		final String sp_time,
 		final int sensors
 	) {
@@ -556,8 +556,8 @@ public class DevSQM160 extends DevBase {
 			PanBase.notifyError("Z-Ratio",String.format("非法的z_ratio, 0.1~9.999",z_ratio));
 			return false;
 		}
-		if(spthick<0.000f || 9999.000f<spthick) {
-			PanBase.notifyError("厚度",String.format("非法的厚度, 0.000~9999.000",spthick));
+		if(sp_thick<0.000f || 9999.000f<sp_thick) {
+			PanBase.notifyError("厚度",String.format("非法的厚度, 0.000~9999.000",sp_thick));
 			return false;
 		}
 		if(sensors>=64) {
@@ -577,11 +577,11 @@ public class DevSQM160 extends DevBase {
 				"A%c%s %.2f %d %.3f %.3f %.3f %d %d",
 				(char)(ID+48),_name,
 				density, tooling, z_ratio,
-				spthick, spthick, s_time,
+				sp_thick, sp_thick, s_time,
 				sensors
 			); 
 			final String res = exec(cmd);
-			if(res.charAt(0)!='A') {
+			if(res.charAt(0)!='A') {				
 				Misc.logw("[%s] fail to active film", TAG);				
 			}else {
 				Misc.logv("[%s] update film(%d)", ID);
@@ -589,7 +589,6 @@ public class DevSQM160 extends DevBase {
 		});
 		return true;
 	}
-	
 	
 	public void updateFilm(final String cmd) {asyncBreakIn(()->{
 		String a_txt = exec(cmd);

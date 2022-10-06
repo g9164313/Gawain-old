@@ -19,7 +19,7 @@ public class LayTool {
 	};
 	
 	public static ReadOnlyFloatProperty transform(
-		final FloatProperty observe,		
+		final ReadOnlyFloatProperty observe,		
 		final Translate hook
 	) {
 		final SimpleFloatProperty prop = new SimpleFloatProperty();

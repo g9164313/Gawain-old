@@ -11,7 +11,6 @@ import java.util.Scanner;
 
 import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXListView;
-import com.jfoenix.controls.JFXTabPane;
 import com.sun.glass.ui.Application;
 
 import javafx.animation.Animation;
@@ -24,12 +23,14 @@ import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Orientation;
 import javafx.scene.control.Accordion;
+import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
-import javafx.scene.control.Tab;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TitledPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 
@@ -93,10 +94,12 @@ public class Ladder extends BorderPane {
 			user_abort();
 		});
 		
-		recipe.getStyleClass().addAll("box-pad");
-		recipe.setMinWidth(200.);
+		final double min_w = 200.;
 		
-		Pane lay_main=null, lay_step=null;
+		recipe.getStyleClass().addAll("box-pad");
+		recipe.setMinWidth(min_w);
+		
+		final Pane lay_main, lay_step;
 		if(dir==Orientation.VERTICAL) {
 			lay_main = new VBox(btn);
 			lay_step = new VBox();		
@@ -110,15 +113,31 @@ public class Ladder extends BorderPane {
 
 		}else if(dir==Orientation.HORIZONTAL) {
 			lay_main = new HBox(btn);
-			lay_step = new HBox();		
+			lay_step = new HBox();			
 			
-			final JFXTabPane tabs = new JFXTabPane();
-			tabs.getTabs().addAll(
-				new Tab("操作",lay_main),
-				new Tab("步驟",lay_step)
+			final Button btn_s = new Button();
+			btn_s.setGraphic(Misc.getIconView("skip-next.png"));
+			btn_s.setPrefWidth(64.);
+			btn_s.setPrefHeight(64.);
+			btn_s.setOnAction(e->{
+				if(lay_main.visibleProperty().get()==true) {
+					lay_main.setVisible(false);
+					lay_step.setVisible(true);
+				}else {
+					lay_main.setVisible(true);
+					lay_step.setVisible(false);
+				}
+			});
+			lay_main.setVisible(false);
+			
+			final ScrollPane lay0 = new ScrollPane(
+				new HBox(btn_s,new StackPane(lay_main,lay_step))				
 			);
-			tabs.getSelectionModel().select(1);
-			setBottom(tabs);
+			lay0.setMinWidth(min_w);
+			lay0.setPrefHeight(87.);
+			setBottom(lay0);
+		}else {
+			return;
 		}
 		lay_main.getStyleClass().addAll("box-pad");
 		lay_step.getStyleClass().addAll("box-pad");

@@ -18,9 +18,9 @@ import narl.itrc.PadTouch;
 import narl.itrc.PanBase;
 
 
-public class StepSetFilm extends Bumper {
+public class StepSetFilmOld extends Bumper {
 	
-	public StepSetFilm(){
+	public StepSetFilmOld(){
 		set(op_1,op_2,op_3);
 	}
 	
@@ -32,7 +32,7 @@ public class StepSetFilm extends Bumper {
 	private static final String TAG5 = "set-time";
 	private static final String TAG6 = "sensor-bit";
 	
-	private final static String init_txt = "薄膜設定";
+	public final static String action_name = "薄膜設定";
 
 	private TextField[] args = {
 		new TextField(),//film name
@@ -95,7 +95,7 @@ public class StepSetFilm extends Bumper {
 	};
 	
 	final Runnable op_3 = ()->{
-		show_mesg(init_txt);
+		show_mesg(action_name);
 		float val = Float.valueOf(box_f_thick.getText().trim());//final thickness
 		sqm1.maxThick.set(val+0.01f);
 		next_step();
@@ -143,7 +143,7 @@ public class StepSetFilm extends Bumper {
 		
 	@Override
 	public Node getContent(){
-		show_mesg(init_txt);
+		show_mesg(action_name);
 		for(TextField box:args){
 			box.setMaxWidth(83);
 		}

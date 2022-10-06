@@ -11,6 +11,11 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import narl.itrc.Misc;
 
+/**
+ * ADAM4117: 8 analogy-input channel 
+ * @author qq
+ *
+ */
 public class DevAdam4x17 extends DevAdam {
 
 	public DevAdam4x17(final int address) {
@@ -48,7 +53,7 @@ public class DevAdam4x17 extends DevAdam {
 		}
 		try {
 			read_all_analog_input();
-			TimeUnit.MILLISECONDS.sleep(100);
+			TimeUnit.MILLISECONDS.sleep(25);
 		} catch (InterruptedException e) {
 		}
 		nextState(STG_MONT);

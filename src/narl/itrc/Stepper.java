@@ -331,15 +331,33 @@ public abstract class Stepper extends HBox {
 				continue;
 			}
 			txt = txt + String.format("arg%d=%s, ", idx, val);
+			idx+=1;
+		}
+		//remove last dot~~~
+		txt = txt.trim();
+		if(txt.lastIndexOf(',')==(txt.length()-1)) {
+			txt = txt.substring(0,txt.length()-1);
 		}
 		return txt;
 	}
 	protected void text2control(String txt, Object... lst) {
-		String[] col = txt.replace("\\s", "").split(", ");
+		String[] col = txt.trim().replace("\\s", "").split(", ");
+		if(col.length==0) {
+			return;
+		}
+		//remove last dot~~~
+		String tmp = col[col.length-1];
+		if(tmp.charAt(tmp.length()-1)==',') {
+			col[col.length-1] = tmp.substring(0,tmp.length()-1);
+		}
+		//fill data~~~~
 		final int cnt = (col.length>=lst.length)?(lst.length):(col.length);
 		for(int i=0; i<cnt; i++) {
 			final String[] map = col[i].split("=");
 			//final String key = arg[0];
+			if(map.length==1) {
+				continue;//just empty
+			}
 			final String val = map[1];
 			final Object obj = lst[i];
 			if(obj instanceof TextField) {
