@@ -27,6 +27,8 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import jssc.SerialPort;
+import jssc.SerialPortException;
+import jssc.SerialPortTimeoutException;
 import narl.itrc.DevTTY;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
@@ -50,9 +52,7 @@ public class DevSPIK2k extends DevTTY {
 	public void afterOpen() {
 		//load initial mode, state, pulse setting~~
 		asyncGetRegister(tkn->{			
-			if(tkn.is_valid_ED()==false) {	
-				return; 
-			}
+
 			apply_mode_flag(tkn.values[0]);
 			apply_state_flag(tkn.values[1]);
 			
@@ -69,63 +69,148 @@ public class DevSPIK2k extends DevTTY {
 			DC2_P_Set.set(tkn.values[18]);
 		}, 0, 19);
 		
-		addState("listener", listener);
+		addState("recviver", recviver);
 		addState("transmit", transmit);
-		playFlow("listener");
+		playFlow("recviver");
 	}
 	@Override
 	public void beforeClose() {
 	}
 	//----------------------------------//
-
-	private Runnable listener = ()->{
-		if(port.isPresent()==false) {
-			Misc.logw("[%s] no TTY port", TAG);
-			stopFlow();
-			return;
-		}
-		final SerialPort dev = port.get();		
-		nextState("transmit");
-		if(protocol_3964R_wait(dev,30)!=0) {
-			return;
-		}
-		byte[] pkg = protocol_3964R_listen(dev,0);
-		if(pkg.length<10) {
-			return;
-		}
-		final int addr= byte2int(pkg[4],pkg[5]);
-		final int size= byte2int(pkg[6],pkg[7]);
-		final int[] vals = new int[size];
-		for(int i=0; i<size; i++) {
-			final int aa = 10+i*2+0;
-			final int bb = 10+i*2+1;
-			if(bb>=pkg.length) {
-				break;
-			}
-			vals[i] = byte2int(pkg[aa],pkg[bb]);
-		}
-		Application.invokeLater(()->fresh_property(addr,vals));
-	};
 	
 	private final ConcurrentLinkedQueue<Token> tkn_queue = new ConcurrentLinkedQueue<Token>();
+
+	public static interface TokenNotify {
+		void event_notify(final Token tkn);
+	};
+	
+	public static class Token {
+		public final int address;
+		public final int count;
+		public int[] values;
+		public byte[] payload;
+		TokenNotify event;
+		
+		Token(final int addr, final int cnt, final TokenNotify e){
+			address= addr;
+			count  = cnt;
+			values = null;//讀取資料, send ED package to SPIK2000
+			event  = e;
+		}
+		Token(final int addr, final int[] val, final TokenNotify e){
+			address= addr;
+			count  = val.length;
+			values = val;//寫入資料, send AD package to SPIK2000
+			event  = e;
+		}
+		Token(final byte[] pkg){
+			//we got package from SPIK2000, then answer SPIK2000 with pay-load
+			address= byte2int(pkg[4],pkg[5]);
+			count  = byte2int(pkg[6],pkg[7]);
+			if(pkg[2]=='A' && pkg[3]=='D') {				
+				values = new int[count];
+				for(int i=0; i<count; i++) {
+					final int aa = 10+i*2+0;
+					final int bb = 10+i*2+1;
+					if(bb>=pkg.length) {
+						break;
+					}
+					values[i] = byte2int(pkg[aa],pkg[bb]);
+				}
+				payload = new byte[7];
+				payload[4] = DLE;
+				payload[5] = ETX;
+				payload[6] = 0x04;//BBC
+			}else if(pkg[2]=='E' && pkg[3]=='D') {
+				values  = null;
+				payload = new byte[3+1+2*count+1+1+1];
+				payload[3+1+2*count+0] = DLE;
+				payload[3+1+2*count+1] = ETX;
+				payload[3+1+2*count+2] = 0x04;//BBC
+			}else {
+				values  = null;
+				payload = null;
+			}	
+		}
+		void unpack(final byte[] pkg) {
+			if(pkg==null) { return; }
+			//pkg[0:2]--> token
+			//pkg[  3]--> error code
+			//pkg[...]--> Data values(2 byte)
+			//pkg[ -3]--> DLE
+			//pkg[ -2]--> ETX
+			//pkg[ -1]--> checksum
+			payload = pkg;
+			if(pkg.length>7) {
+				values = new int[count];
+				for(int i=0; i<count; i++) {
+					final int aa = 4+i*2+0;
+					final int bb = 4+i*2+1;
+					if(bb>=payload.length) {
+						Misc.logw("invalid ED response");
+						Misc.dump_byte(pkg);
+						break;
+					}
+					values[i] = byte2int(payload[aa], payload[bb]);
+				}
+			}		
+			if(event==null) { 
+				return; 
+			}
+			if(Application.isEventThread()==true) {
+				event.event_notify(this);
+			}else {
+				Application.invokeLater(()->event.event_notify(this));
+			}
+		}
+	};
+	
+	int count_recv = 0;
+	private Runnable recviver = ()->{
+		if(port.isPresent()==false) {
+			Misc.logw("[%s] no TTY port", TAG);
+			block_sleep_sec(5);
+			return;
+		}
+		final SerialPort dev = port.get();
+		byte[] pkg = protocol_3964R_listen(dev, 0, -1);		
+		//SPIK2000 send something, answer SPIK2000
+		final Token tkn = new Token(pkg);
+		if(tkn.values!=null) {
+			Application.invokeLater(()->fresh_property(tkn.address,tkn.values));
+		}
+		count_recv+=1;
+		if(count_recv<10){//不要太少，盡量清空SPIK2000 的內容
+			nextState("recviver");
+		}else{
+			nextState("transmit");
+		}
+	};
 	
 	private Runnable transmit = ()->{
+		count_recv = 0;
+		nextState("recviver");
+		if(port.isPresent()==false) {
+			Misc.logw("[%s] no TTY port", TAG);
+			block_sleep_sec(5);
+			return;
+		}
+		//try to talk with SPIK2000		
+		if(tkn_queue.isEmpty()==true) {			
+			return;
+		}
+		//Misc.logv("transmit.2");
 		final SerialPort dev = port.get();
-		nextState("listener");	
-		final Token tkn = tkn_queue.poll();
-		if(tkn==null) {
+		Token tkn = tkn_queue.peek();
+		byte[] pkg = RK512_package(tkn.address, tkn.count,	tkn.values);
+		final int res = protocol_3964R_express(dev,pkg);
+		if(res!=0){
 			return;
 		}
-		final byte[] pkg = RK512_package(
-			tkn.address, 
-			tkn.count, 
-			tkn.values
-		);			
-		if(protocol_3964R_express(dev,pkg)!=0){
-			tkn_queue.add(tkn);//re-assign again!!!
-			return;
-		}
-		tkn.unpack_ED(protocol_3964R_listen(dev,(tkn.values==null)?(tkn.count):(0)));		
+		//Misc.logv("transmit.3");
+		pkg = protocol_3964R_listen(dev, -1, (tkn.values==null)?(tkn.count):(0));
+		tkn.unpack(pkg);
+		tkn_queue.poll();
 	};
 	//----------------------------------//
 
@@ -296,83 +381,6 @@ public class DevSPIK2k extends DevTTY {
 			}
 		}
 	}
-	
-	private static int byte2int(final byte aa, final byte bb) {
-		final int _a = (int)aa;
-		final int _b = (int)bb;
-		return ((_a&0x00FF)<<8) | (_b&0x00FF);
-	}
-	public static interface TokenNotify {
-		void event_notify(final Token tkn);
-	};
-	
-	public static class Token {
-		public final int address;
-		public final int count;
-		public int[] values;
-		public byte[] payload;
-		TokenNotify event;
-		
-		Token(final int addr, final int cnt, final TokenNotify e){
-			address= addr;
-			count  = cnt;
-			values = null;//讀取資料
-			event = e;
-		}
-		Token(final int addr, final int[] val, final TokenNotify e){
-			address= addr;
-			count  = val.length;
-			values = val;//寫入資料
-			event = e;
-		}
-		void unpack_ED(final byte[] pkg) {
-			//pkg[0:2]--> token
-			//pkg[  3]--> error code
-			//pkg[...]--> Data values(2 byte)
-			//pkg[ -3]--> DLE (forgot this!!!)
-			//pkg[ -2]--> ETX (forgot this!!!)
-			//pkg[ -1]--> checksum (forgot this!!!)
-			payload = pkg;
-			if(values==null) {
-				values = new int[count];
-				for(int i=0; i<count; i++) {
-					final int aa = 4+i*2+0;
-					final int bb = 4+i*2+1;
-					if(bb>=payload.length) {
-						Misc.logw("invalid ED response");
-						Misc.dump_byte(pkg);
-						break;
-					}
-					values[i] = byte2int(payload[aa], payload[bb]);
-				}
-			}		
-			if(event==null || is_valid_ED()==false) { 
-				return; 
-			}
-			if(Application.isEventThread()==true) {
-				event.event_notify(this);
-			}else {
-				Application.invokeLater(()->event.event_notify(this));
-			}
-		}		
-		private boolean is_valid_ED() {
-			if(payload==null){				
-				return false;
-			}
-			final int t = payload.length-1;
-			if(
-				payload[0+0]==0 &&
-				payload[0+1]==0 &&
-				payload[0+2]==0 &&				
-				payload[0+3]==0 &&
-				payload[t-2]==DLE &&
-				payload[t-1]==ETX				
-			){
-				return true;
-			}
-			return false;
-		}
-	};
 	//----------------------------------//
 	
 	public void asyncSetRegister(
@@ -423,9 +431,9 @@ public class DevSPIK2k extends DevTTY {
 		final boolean dc1, 
 		final boolean dc2
 	) {
-		toggleDC1(dc1);
-		toggleDC2(dc2);
 		toggleRun(run);
+		toggleDC1(dc1);
+		toggleDC2(dc2);		
 	}
 
 	//device setting values
@@ -546,7 +554,7 @@ public class DevSPIK2k extends DevTTY {
 	}
 	//-------------------------------------------------------
 	
-	private static void show_set_Pulse(final DevSPIK2k dev) {
+	public static void show_set_Pulse(final DevSPIK2k dev) {
 		final TextField[] box = {
 			new	TextField(""+dev.Ton_pos.get()),
 			new	TextField(""+dev.Tof_pos.get()),

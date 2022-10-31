@@ -1,4 +1,4 @@
-package prj.sputter.action;
+package prj.sputter.labor1;
 
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
@@ -8,7 +8,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
 import narl.itrc.Misc;
 
-public class StepSetPulse extends Bumper {
+public class StepSetPulse extends StepCommon {
 
 	public StepSetPulse(){
 		set(op_1,op_2,op_3,op_4,op_5);

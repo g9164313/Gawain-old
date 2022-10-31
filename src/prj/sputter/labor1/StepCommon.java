@@ -1,10 +1,10 @@
-package prj.sputter.action;
+package prj.sputter.labor1;
 
 import com.sun.glass.ui.Application;
 
 import javafx.scene.control.Alert;
-import javafx.scene.control.Label;
 import javafx.scene.control.Alert.AlertType;
+import javafx.scene.control.Label;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
 import narl.itrc.Stepper;
@@ -12,9 +12,8 @@ import prj.sputter.DevCouple;
 import prj.sputter.DevDCG100;
 import prj.sputter.DevSPIK2k;
 import prj.sputter.DevSQM160;
-import prj.sputter.LayLogger;
 
-public abstract class Bumper extends Stepper {
+public abstract class StepCommon extends Stepper {
 
 	public static DevCouple coup;
 	public static DevDCG100 dcg1;	
@@ -26,7 +25,7 @@ public abstract class Bumper extends Stepper {
 		new Label(), new Label(), new Label(), new Label(),
 	};
 	
-	public Bumper(){
+	public StepCommon(){
 		for(Label obj:msg){
 			obj.setPrefWidth(150.);
 		}
@@ -143,27 +142,21 @@ public abstract class Bumper extends Stepper {
 		final String tag = "設定脈衝";
 		show_mesg(tag);
 		wait_async();
-		spik.asyncSetRegister(tkn->{
-			notify_async();
-			if(tkn.payload[3]!=0) {
-				Misc.logw("SPIK200 無響應");
-			}else{
-				spik.Ton_pos.set(t_on_pos);
-				spik.Tof_pos.set(t_off_pos);
-				spik.Ton_neg.set(t_on_neg);
-				spik.Tof_neg.set(t_off_neg);
-			}
-		}, 4, t_on_pos, t_off_pos, t_on_neg, t_off_neg);
-		hold_step();
+		spik.setPulseValue(tkn->{
+				notify_async();
+			}, 
+			t_on_pos, t_off_pos, 
+			t_on_neg, t_off_neg
+		);
 	};
 	
-	protected final Runnable spik_running = ()->{
-		final String tag = "啟動 H-Pin";
-		show_mesg(tag);
-		wait_async();
-		spik.asyncSetRegister(tkn->{			
-			notify_async();
-		}, 1, 2);
+	protected final Runnable spik_running = ()->{		
+		if(spik.Run.get()==false){
+			show_mesg("啟動 H-Pin");
+			spik.toggleRun(true);
+		}else{
+			show_mesg("H-Pin 工作中");
+		}
 	};
 	
 	protected int dcg_power = -1;
@@ -182,12 +175,31 @@ public abstract class Bumper extends Stepper {
 			}
 			{
 				dcg1.exec("TRG");
-				//block_delay(T_RISE+T_STABLE);
 			}
 			notify_async();
 		});
 	};
-		
+	protected final Runnable turn_on_dummy = ()->{
+		next_step();
+	};
+	
+	
+	protected Runnable hook_turn_on_wait = ()->{
+		final int vv = dcg1.volt.getValue().intValue();
+		final int aa = spik.ARC_count.get();
+		if(vv<700 && aa<50) {
+			return;
+		}
+		dcg1.asyncExec("OFF");
+		abort_step();		
+		Application.invokeLater(()->{
+			final Alert dia = new Alert(AlertType.WARNING);
+			dia.setTitle("！！警告！！");
+			dia.setHeaderText("點火失敗");
+			dia.showAndWait();
+		});
+	};
+	
 	protected final Runnable turn_on_wait = ()->{
 		final long total = dcg_t_rise+dcg_t_stable; 
 		final long remain= waiting_time(total);
@@ -200,21 +212,11 @@ public abstract class Bumper extends Stepper {
 		if(remain>dcg_t_stable) {
 			return;			
 		}
-
-		final int vv = dcg1.volt.getValue().intValue();
-		final int aa = spik.ARC_count.get();
-		if(vv<700 || aa<100) {
-			if(remain==0) {	next_step(); }
-			return;
-		}
-		dcg1.asyncExec("OFF");
-		abort_step();		
-		Application.invokeLater(()->{
-			final Alert dia = new Alert(AlertType.WARNING);
-			dia.setTitle("！！警告！！");
-			dia.setHeaderText("點火失敗");
-			dia.showAndWait();
-		});		
+		//check plasma is kindled~~~
+		hook_turn_on_wait.run();	
+	};
+	protected final Runnable turn_on_wait_dummy = ()->{
+		next_step();
 	};
 	
 	protected final Runnable turn_off = ()->{
@@ -229,9 +231,12 @@ public abstract class Bumper extends Stepper {
 			}
 		});
 	};
+	protected final Runnable turn_off_dummy = ()->{
+		next_step();
+	};
 	
 	private long tick_wait = -1L;
-	
+	protected int off_volt = 300;
 	protected final Runnable turn_off_wait = ()->{
 		if(tick_wait<0L){
 			tick_wait = System.currentTimeMillis();
@@ -246,11 +251,14 @@ public abstract class Bumper extends Stepper {
 		);		
 		
 		final int vv = dcg1.volt.intValue();
-		if(vv>300){
+		if(vv>=off_volt){
 			hold_step();
 		}else{
 			tick_wait = -1L;
 			next_step();
 		}
+	};
+	protected final Runnable turn_off_wait_dummy = ()->{
+		next_step();
 	};
 }

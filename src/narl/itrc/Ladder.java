@@ -118,7 +118,7 @@ public class Ladder extends BorderPane {
 			final Button btn_s = new Button();
 			btn_s.setGraphic(Misc.getIconView("skip-next.png"));
 			btn_s.setPrefWidth(64.);
-			btn_s.setPrefHeight(64.);
+			btn_s.setMaxHeight(Double.MAX_VALUE);
 			btn_s.setOnAction(e->{
 				if(lay_main.visibleProperty().get()==true) {
 					lay_main.setVisible(false);
@@ -186,8 +186,8 @@ public class Ladder extends BorderPane {
 						}
 					}
 				}
-				obj.items= Optional.of(recipe.getItems());
-				obj.uuid = uuid_text;
+				obj.item= Optional.of(recipe.getItems());
+				obj.uuid= uuid_text;
 				obj = obj.doLayout();
 				recipe.getItems().add(obj);
 				recipe.scrollTo(obj);
@@ -387,7 +387,7 @@ public class Ladder extends BorderPane {
 	private final ArrayDeque<StpFoot> queue = new ArrayDeque<StpFoot>();
 	
 	private final Timeline timer = new Timeline(new KeyFrame(
-		Duration.millis(200),
+		Duration.millis(100),
 		//Duration.seconds(1),
 		e->climbing()
 	));

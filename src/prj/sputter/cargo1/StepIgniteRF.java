@@ -17,23 +17,22 @@ public class StepIgniteRF extends StepCommon {
 		txt_dc.setPrefWidth(100.);
 		set(
 			op1, run_waiting(1000,null),
-			op2, run_waiting(1000,null), 
-			op3, run_holding,
-			op4
+			op2, run_waiting(1000,null),
+			op3, run_waiting(1000,null), 
+			op4, run_holding, op5
 		);
 	}
 
 	final Runnable op1 = ()->{
 		msg[1].setText("關閉檔板");
 		next_step();		
-		adam1.asyncSetAllLevel(false,true,null);		
+		adam1.asyncSetAllLevel(
+			false,
+			chk_sh2.isSelected(), 
+			chk_sh3.isSelected()
+		);		
 	};
 	final Runnable op2 = ()->{
-		msg[1].setText("fire!!");
-		next_step();		
-		sar2.set_onoff(true);		
-	};
-	final Runnable op3 = ()->{
 		next_step();
 		msg[1].setText("apply");
 		sar2.apply_setpoint(
@@ -41,11 +40,22 @@ public class StepIgniteRF extends StepCommon {
 			Misc.txt2Float(txt_dc.getText())
 		);	
 	};
-	protected final Runnable op4 = ()->{
-		msg[1].setText("");
+	final Runnable op3 = ()->{
+		msg[1].setText("Remote!!");
+		next_step();		
+		sar2.set_onoff(true);		
+	};
+	final Runnable op4 = ()->{
+		msg[1].setText("Fire!!");
+		next_step();		
+		sar2.set_RF_fire(true);		
+	};
+	protected final Runnable op5 = ()->{
+		msg[1].setText("cont-");
 		next_step();		
 		if(chk_cont.isSelected()==false) {
-			sar2.set_onoff(false);
+			msg[1].setText("");
+			sar2.set_RF_fire(false);
 		}
 	};
 		

@@ -28,18 +28,19 @@ public class StepRunSPIK extends Stepper {
 	final TextField amp_2 = new TextField();
 	final TextField pow_2 = new TextField();
 	
-	final TextField ramp = new TextField("30");
+	//final TextField ramp = new TextField("30");
 	final TextField hold = new TextField("30");
-	final CheckBox  cont = new CheckBox("保留");
+	final CheckBox  cont = new CheckBox("連續");
 	
 	public StepRunSPIK(final DevSPIK2k device) {
 		dev = device;
 		set(
-			op1, run_waiting(1500,null),
-			op2, op2_1,
-			op3, op3_1,
-			op4, run_holding,
-			op_end
+			op1, run_waiting(3000,null),
+			op2_1, run_waiting(3000,null), op2_2,
+			op3_1, run_waiting(3000,null), 
+			op3_2, run_waiting(3000,null),
+			op4_1, run_waiting(3000,null), op4_2,
+			run_hold, op_end
 		);
 	}
 	
@@ -48,10 +49,7 @@ public class StepRunSPIK extends Stepper {
 		msg[1].setText("V.I.P!!");
 		next_step();
 		
-		dev.set_DC_value(
-			null, '1', 'V', 
-			Misc.txt2Float(vol_1.getText())
-		);
+		dev.set_DC_value(null, '1', 'V', Misc.txt2Float(vol_1.getText()));
 		dev.set_DC_value(null, '1', 'I', Misc.txt2Float(amp_1.getText()));
 		dev.set_DC_value(null, '1', 'P', Misc.txt2Float(pow_1.getText()));
 		
@@ -60,45 +58,72 @@ public class StepRunSPIK extends Stepper {
 		dev.set_DC_value(null, '2', 'P', Misc.txt2Float(pow_2.getText()));
 	};
 	
-	final Runnable op2 = ()->{
-		msg[0].setText("DC1");
-		msg[1].setText("check~");
-		next_step();
-		if(dc_1.isSelected()==true) {
-			dev.toggleDC1(true);
-		}		
-	};
 	final Runnable op2_1 = ()->{
-		next_step();
-		if(dc_1.isSelected()==true && dev.DC1.get()==false) {
-			msg[1].setText("wait~");
-			hold_step();
-		}		
-	};
-	
-	final Runnable op3 = ()->{
-		msg[0].setText("DC2");
-		msg[1].setText("check~");
-		next_step();
-		if(dc_2.isSelected()==true) {
-			dev.toggleDC2(true);
-		}		
-	};
-	final Runnable op3_1 = ()->{
-		next_step();
-		if(dc_2.isSelected()==true && dev.DC2.get()==false) {
-			msg[1].setText("wait~");
-			hold_step();
-		}		
-	};
-	
-	final Runnable op4 = ()->{
-		msg[0].setText("RUN!!");
+		msg[0].setText("-RUN-");
 		msg[1].setText("");
 		next_step();
-		dev.toggleRun(true);		
+		if(dev.Run.get()==false) {
+			dev.toggleRun(true);
+		}		
 	};
-	final Runnable run_holding = ()->{
+	final Runnable op2_2 = ()->{
+		if(dev.Run.get()==true) {
+			msg[1].setText("On!!");
+			next_step();
+		}else {
+			msg[1].setText("wait");
+			hold_step();
+		}
+	};
+	
+	long tick_diff;
+	int  power_set;
+	final Runnable op3_1 = ()->{
+		tick_diff = System.currentTimeMillis();
+		power_set = dev.DC1_P_Set.get();
+		msg[0].setText("-DC1-");
+		msg[1].setText("");
+		next_step();
+		dev.toggleDC1(dc_1.isSelected());
+	};
+	final Runnable op3_2 = ()->{
+		if(dev.DC1.get()==dc_1.isSelected()) {
+			next_step();//TODO: DC1_P_Act no update!!!!
+			/*final int power_cur = dev.DC1_P_Act.get();
+			final int power_dff = Math.abs(power_set-power_cur);			
+			Misc.logv("[StepRunSPIK] pow:%d-->%d", power_set, power_cur);
+			if(power_dff<10) {
+				msg[1].setText("check!!");
+				tick_diff = System.currentTimeMillis() - tick_diff;
+				Misc.logv("[StepRunSPIK] ramp-time:%s", Misc.tick2text(tick_diff,true));
+				next_step();
+			}else {
+				msg[1].setText("W:"+power_dff);
+				hold_step();
+			}*/			
+		}else {
+			msg[1].setText("wait~~");
+			hold_step();
+		}
+	};
+	
+	final Runnable op4_1 = ()->{
+		msg[0].setText("DC2");
+		msg[1].setText("");
+		next_step();
+		dev.toggleDC2(dc_2.isSelected());	
+	};
+	final Runnable op4_2 = ()->{
+		if(dev.DC2.get()==dc_2.isSelected()) {
+			msg[1].setText("check!!");
+			next_step();
+		}else {
+			msg[1].setText("wait~~");
+			hold_step();
+		}		
+	};
+	
+	final Runnable run_hold = ()->{
 		msg[0].setText("HOLD~~");
 		final long rem = waiting_time(hold.getText());		
 		if(rem>0) {
@@ -106,15 +131,17 @@ public class StepRunSPIK extends Stepper {
 		}else {
 			msg[1].setText("");
 		}
-	};
-	
+	};	
 	final Runnable op_end = ()->{
 		msg[0].setText(action_name);
-		if(cont.isSelected()==true) {
-			msg[1].setText("Run");
-		}else {
+		if(cont.isSelected()==false) {
 			msg[1].setText("OFF");
-			dev.toggleRun(false);
+			if(dev.DC1.get()==true) {
+				dev.toggleDC1(false);
+			}
+			if(dev.DC2.get()==true) {
+				dev.toggleDC2(false);
+			}
 		}		
 		next_step();
 	};
@@ -130,7 +157,7 @@ public class StepRunSPIK extends Stepper {
 		for(Control obj:new Control[] {
 			dc_1,vol_1,amp_1,pow_1,
 			dc_2,vol_2,amp_2,pow_2,
-			ramp,hold
+			hold
 		}) {
 			obj.setPrefWidth(87.);
 		}
@@ -146,9 +173,7 @@ public class StepRunSPIK extends Stepper {
 			dc_2, new Label("V:"), vol_2, new Label("I:"), amp_2, new Label("P:"), pow_2
 		);
 		lay.add(new Separator(Orientation.VERTICAL), 9, 0, 1, 2);
-		lay.addColumn(10, new Label("爬升時間:"), new Label("維持時間:"));
-		lay.addColumn(11, ramp, hold);
-		lay.add(cont, 12, 1);
+		lay.addRow(0, new Label("維持時間:"), hold, cont);
 		return lay;
 	}
 	@Override
@@ -160,7 +185,7 @@ public class StepRunSPIK extends Stepper {
 		return control2text(
 			dc_1,vol_1,amp_1,pow_1,
 			dc_2,vol_2,amp_2,pow_2,
-			ramp,hold,cont
+			hold,cont
 		);
 	}
 	@Override
@@ -168,7 +193,7 @@ public class StepRunSPIK extends Stepper {
 		text2control(txt,
 			dc_1,vol_1,amp_1,pow_1,
 			dc_2,vol_2,amp_2,pow_2,
-			ramp,hold,cont
+			hold,cont
 		);
 	}
 }

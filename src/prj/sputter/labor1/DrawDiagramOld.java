@@ -1,4 +1,4 @@
-package narl.itrc;
+package prj.sputter.labor1;
 
 import java.util.Arrays;
 import java.util.Optional;
@@ -20,7 +20,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.SVGPath;
 
 
-public class DrawDiagram extends AnchorPane  {
+public class DrawDiagramOld extends AnchorPane  {
 	
 	protected interface DrawNode<T> {
 		T locate(final int xx, final int yy);

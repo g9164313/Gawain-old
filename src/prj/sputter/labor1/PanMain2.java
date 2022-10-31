@@ -1,4 +1,4 @@
-package prj.sputter;
+package prj.sputter.labor1;
 
 import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXComboBox;
@@ -22,8 +22,10 @@ import javafx.stage.Stage;
 import narl.itrc.Gawain;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
-import prj.sputter.action.Bumper;
-import prj.sputter.action.StepFlowCtrl;
+import prj.sputter.DevCouple;
+import prj.sputter.DevDCG100;
+import prj.sputter.DevSPIK2k;
+import prj.sputter.DevSQM160;
 
 
 public class PanMain2 extends PanBase {
@@ -32,10 +34,10 @@ public class PanMain2 extends PanBase {
 	final DevDCG100 dcg1 = new DevDCG100();	
 	final DevSPIK2k spik = new DevSPIK2k();
 	final DevSQM160 sqm1 = new DevSQM160();
-	final DevSQM2Usb sqm2 = new DevSQM2Usb();
+	//final DevSQM2Usb sqm2 = new DevSQM2Usb();
 	
 	final LayLogger  logger = new LayLogger();	
-	final DrawVaccum digram = new DrawVaccum(coup);	
+	final DrawVaccumOld digram = new DrawVaccumOld(coup);	
 	final LayLadder  ladder = new LayLadder();
 	
 	public PanMain2(final Stage stg) {
@@ -44,11 +46,11 @@ public class PanMain2 extends PanBase {
 		stg.setOnShown(e->on_shown());
 		ladder.logger = logger;
 		ladder.dcg1 = dcg1;
-		Bumper.coup = coup;		
-		Bumper.dcg1 = dcg1;
-		Bumper.spik = spik;
-		Bumper.sqm1 = sqm1;
-		Bumper.logg = logger;
+		StepCommon.coup = coup;		
+		StepCommon.dcg1 = dcg1;
+		StepCommon.spik = spik;
+		StepCommon.sqm1 = sqm1;
+		StepCommon.logg = logger;
 	}
 
 	private void on_shown(){
@@ -60,7 +62,7 @@ public class PanMain2 extends PanBase {
 		dcg1.open();
 		spik.open();
 		sqm1.open();
-		sqm2.open();
+		//sqm2.open();
 		logger.bindProperty(sqm1);
 		logger.bindProperty(dcg1);
 		logger.bindProperty(coup);
@@ -84,12 +86,12 @@ public class PanMain2 extends PanBase {
 		
 		final JFXTabPane lay1 = new JFXTabPane();
 		lay1.getTabs().addAll(
-			new Tab("管路",digram),
+			//new Tab("管路",digram),
 			new Tab("監測",logger),
 			new Tab("製程",ladder),
 			new Tab("裝置",lay3)
 		);
-		lay1.getSelectionModel().select(2);
+		lay1.getSelectionModel().select(1);
 
 		final BorderPane lay0 = new BorderPane();		
 		lay0.setCenter(lay1);		
@@ -119,10 +121,10 @@ public class PanMain2 extends PanBase {
 		for(JFXButton btn:btn_pulse_edit) {
 			btn.setGraphic(Misc.getIconView("pen.png"));
 		}
-		//btn_pulse_edit[0].setOnAction(e->spik.show_Ton_pos());
-		//btn_pulse_edit[1].setOnAction(e->spik.show_Tof_pos());
-		//btn_pulse_edit[2].setOnAction(e->spik.show_Ton_neg());
-		//btn_pulse_edit[3].setOnAction(e->spik.show_Tof_neg());
+		btn_pulse_edit[0].setOnAction(e->DevSPIK2k.show_set_Pulse(spik));
+		btn_pulse_edit[1].setOnAction(e->DevSPIK2k.show_set_Pulse(spik));
+		btn_pulse_edit[2].setOnAction(e->DevSPIK2k.show_set_Pulse(spik));
+		btn_pulse_edit[3].setOnAction(e->DevSPIK2k.show_set_Pulse(spik));
 		
 		Label[] box_pulse_value = {
 			new Label(),//Ton+
@@ -247,17 +249,17 @@ public class PanMain2 extends PanBase {
 		btn_rate1_zero.setGraphic(Misc.getIconView("sync.png"));
 		btn_rate1_zero.setOnAction(e->sqm1.zeros());
 		
-		JFXButton btn_rate2_zero = new JFXButton();
-		btn_rate2_zero.setGraphic(Misc.getIconView("sync.png"));
-		btn_rate2_zero.setOnAction(e->sqm2.zeros());
+		//JFXButton btn_rate2_zero = new JFXButton();
+		//btn_rate2_zero.setGraphic(Misc.getIconView("sync.png"));
+		//btn_rate2_zero.setOnAction(e->sqm2.zeros());
 		
 		Label txt_rate_1 = new Label();
 		txt_rate_1.textProperty().bind(sqm1.rate[0].concat(sqm1.unitRate));
 		txt_rate_1.setPrefWidth(110);
 		
-		Label txt_rate_2 = new Label();
-		txt_rate_2.textProperty().bind(sqm2.rate);
-		txt_rate_2.setPrefWidth(110);
+		//Label txt_rate_2 = new Label();
+		//txt_rate_2.textProperty().bind(sqm2.rate);
+		//txt_rate_2.setPrefWidth(110);
 		
 		Label txt_pow = new Label();
 		txt_pow.textProperty().bind(dcg1.watt.asString("%05.1fW"));
@@ -274,7 +276,7 @@ public class PanMain2 extends PanBase {
 		final GridPane lay = new GridPane();
 		lay.getStyleClass().addAll("box-pad");
 		lay.addRow(0, new Label("速率-1："), new HBox(txt_rate_1, btn_rate1_zero));
-		lay.addRow(1, new Label("速率-2："), new HBox(txt_rate_2, btn_rate2_zero));
+		//lay.addRow(1, new Label("速率-2："), new HBox(txt_rate_2, btn_rate2_zero));
 		lay.addRow(2, new Label("功率："), txt_pow);
 		lay.addRow(3, new Label("電壓："), txt_volt);
 		lay.addRow(4, new Label("電流："), txt_amp);

@@ -20,7 +20,6 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
-import narl.itrc.Misc;
 import narl.itrc.PanBase;
 import prj.sputter.DevAdam4024;
 import prj.sputter.DevAdam4055;
@@ -28,7 +27,7 @@ import prj.sputter.DevAdam4068;
 import prj.sputter.DevAdam4x17;
 import prj.sputter.DevSPIK2k;
 import prj.sputter.DevSQM160;
-import prj.sputter.LayTool;
+import prj.sputter.LayHelper;
 
 public class PanMain extends PanBase {
 	
@@ -184,33 +183,33 @@ public class PanMain extends PanBase {
 	public static final float MFC2_MAX_SCCM = 10f;
 	public static final float MFC3_MAX_SCCM = 30f;
 	
-	public static final ReadOnlyFloatProperty mfc1_pv = LayTool.transform(
+	public static final ReadOnlyFloatProperty mfc1_pv = LayHelper.transform(
 		adam3.ain[0].val, src->{
 		float val = (src*MFC1_MAX_SCCM)/5f;
 		if(val<0f) { val = 0f; }
 		return val;//volt-->sccm
 	});
-	public static final ReadOnlyFloatProperty mfc2_pv = LayTool.transform(
+	public static final ReadOnlyFloatProperty mfc2_pv = LayHelper.transform(
 		adam3.ain[1].val, src->{
 		float val = (src*MFC2_MAX_SCCM)/5f;
 		if(val<0f) { val = 0f; }
 		return val;//volt-->sccm
 	});
-	public static final ReadOnlyFloatProperty mfc3_pv = LayTool.transform(
+	public static final ReadOnlyFloatProperty mfc3_pv = LayHelper.transform(
 		adam3.ain[2].val, src->{
 		float val = (src*MFC3_MAX_SCCM)/5f;
 		if(val<0f) { val = 0f; }
 		return val;//volt-->sccm
 	});
-	public static final ReadOnlyFloatProperty mfc1_sv = LayTool.transform(
+	public static final ReadOnlyFloatProperty mfc1_sv = LayHelper.transform(
 		adam4.aout[0].val, src->{
 		return (src*MFC1_MAX_SCCM)/5f;//volt-->sccm
 	});
-	public static final ReadOnlyFloatProperty mfc2_sv = LayTool.transform(
+	public static final ReadOnlyFloatProperty mfc2_sv = LayHelper.transform(
 		adam4.aout[1].val, src->{
 		return (src*MFC2_MAX_SCCM)/5f;//volt-->sccm
 	});
-	public static final ReadOnlyFloatProperty mfc3_sv = LayTool.transform(
+	public static final ReadOnlyFloatProperty mfc3_sv = LayHelper.transform(
 		adam4.aout[2].val, src->{
 		return (src*MFC3_MAX_SCCM)/5f;//volt-->sccm
 	});

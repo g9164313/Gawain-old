@@ -1,4 +1,4 @@
-package prj.sputter.action;
+package prj.sputter.labor1;
 
 import java.util.Optional;
 
@@ -18,7 +18,7 @@ import narl.itrc.PadTouch;
 import narl.itrc.PanBase;
 
 
-public class StepSetFilmOld extends Bumper {
+public class StepSetFilmOld extends StepCommon {
 	
 	public StepSetFilmOld(){
 		set(op_1,op_2,op_3);

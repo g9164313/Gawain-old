@@ -40,10 +40,12 @@ public class StepIgniteDC extends StepCommon {
 		polar.getSelectionModel().select(0);
 		
 		set(op1, run_waiting(1000,null),
-			op2_1, run_waiting(1000,null),
-			op2_2, run_waiting(1000,null),
-			op2_3, run_waiting(1000,null),
-			op4, op4_1, run_holding, op5
+			op2_1, run_waiting(3000,null),
+			op2_2, run_waiting(3000,null),
+			op2_3, run_waiting(3000,null),
+			op3_1, run_waiting(3000,null),
+			op3_2, run_waiting(6000,null),
+			run_holding, op5
 		);
 	}
 
@@ -84,13 +86,14 @@ public class StepIgniteDC extends StepCommon {
 			}, 0, idx);
 		}
 	};
+
 	final Runnable op2_3 = ()->{
 		msg[0].setText("設定電源");
 		msg[1].setText("");
 		next_step();
 		//wait_async();
 		spik.set_DC1(tkn->{			
-				msg[1].setText("DC1!");
+				msg[1].setText("V.I.P");
 				//notify_async();
 			},
 			Misc.txt2Float(vol.getText()),
@@ -98,33 +101,51 @@ public class StepIgniteDC extends StepCommon {
 			Misc.txt2Float(pow.getText())
 		);
 	};
-
-	final Runnable op4 = ()->{
-		msg[0].setText("-Run-");
+	
+	long tick_cnt;
+	int pow_set1, pow_act2;
+	
+	final Runnable op3_1 = ()->{
+		pow_set1 = spik.DC1_P_Set.get();
+		msg[0].setText("-RUN-");
 		msg[1].setText("On!!");
 		next_step();
-		if(spik.Run.get()==true) {
-			if(spik.DC1.get()==false) {
-				spik.toggle(true, true, false);
-			}
-		}else {
-			spik.toggle(true, true, false);
-		}
+		if(spik.Run.get()==false) {
+			spik.toggleRun(true);
+		}		
 	};
-	final Runnable op4_1 = ()->{
-		msg[1].setText("Ready?");
+	final Runnable op3_2 = ()->{
+		tick_cnt = System.currentTimeMillis();
+		msg[0].setText("-DC1-");
+		msg[1].setText("On!!");
 		next_step();
-		if(spik.Run.get()==false || spik.DC1.get()==false) {
-			hold_step();
-		}
+		if(spik.DC1.get()==false) {
+			spik.toggleDC1(true);
+		}		
 	};
+	final Runnable op3_3 = ()->{
+		msg[0].setText("Ready?");
+		msg[1].setText("");
+		next_step();
+		/*hold_step();
+		if(spik.Run.get()==true && spik.DC1.get()==true) {
+			pow_act2 = spik.DC1_P_Act.get();
+			if(Math.abs(pow_set1-pow_act2)<10) {
+				tick_cnt = System.currentTimeMillis() - tick_cnt;
+				final String txt = "RAMP:"+Misc.tick2text(tick_cnt,true);
+				msg[1].setText(txt);
+				Misc.logv("[%s] SPIK.DC1 RAMP:%s", action_name, txt);
+				next_step();
+			}			
+		}*/
+	};
+	
 	final Runnable op5 = ()->{
-		msg[0].setText(action_name);
-		msg[1].setText("cont-");
+		msg[1].setText("-cont-");
 		next_step();
 		if(chk_cont.isSelected()==false) {
 			msg[1].setText("");
-			spik.toggle(false, false, false);
+			spik.toggleDC1(false);
 		}
 	};
 

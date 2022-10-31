@@ -1,4 +1,4 @@
-package prj.sputter.action;
+package prj.sputter.labor1;
 
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
@@ -12,7 +12,7 @@ import javafx.scene.layout.GridPane;
 import narl.itrc.Misc;
 import narl.itrc.Stepper;
 
-public class StepWatcher extends Bumper {
+public class StepWatcher extends StepCommon {
 	
 	public final static String ACT_NAME = "厚度監控";
 	public final static String TAG_WATCH= "監控";

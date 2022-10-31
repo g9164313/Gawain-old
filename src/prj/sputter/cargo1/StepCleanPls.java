@@ -3,7 +3,6 @@ package prj.sputter.cargo1;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
-import javafx.scene.layout.HBox;
 import narl.itrc.Misc;
 
 /**
@@ -24,45 +23,40 @@ public class StepCleanPls extends StepCommon {
 		set(
 			op1, run_waiting(1000,null),
 			op2, run_waiting(1000,null), 
-			op3, run_holding,
-			op4, run_waiting(1000,null),
-			op5, run_waiting(1000,null)
+			op3, run_waiting(1000,null), 
+			op4, run_holding, op5
 		);
 	}
 	
 	final Runnable op1 = ()->{
-		msg[1].setText("開啟檔板");
-		adam1.asyncSetAllLevel(true, false, false);//open top and close other~~
-		next_step();
+		msg[1].setText("開啟檔板");		
+		next_step();		
+		adam1.asyncSetAllLevel(true);
 	};
 	final Runnable op2 = ()->{
-		msg[1].setText("fire!!");
-		next_step();		
-		sar1.set_onoff(true);		
-	};
-	final Runnable op3 = ()->{
-		msg[1].setText("apply");
+		msg[1].setText("apply~~");
 		next_step();		
 		sar1.apply_setpoint(
 			Misc.txt2Float(txt_rf.getText()),
 			Misc.txt2Float(txt_dc.getText())
 		);		
 	};
-	protected final Runnable op4 = ()->{
-		next_step();			
-		if(chk_cont.isSelected()==false) {
-			msg[1].setText("關檔板");	
-			sar1.set_onoff(false);
-		}else {
-			msg[1].setText("");
-		}
+	final Runnable op3 = ()->{
+		msg[1].setText("Remote!!");
+		next_step();		
+		sar1.set_onoff(true);		
+	};
+	final Runnable op4 = ()->{
+		msg[1].setText("Fire!!");
+		next_step();		
+		sar1.set_RF_fire(true);		
 	};
 	protected final Runnable op5 = ()->{
-		next_step();			
-		if(chk_cont.isSelected()==false) {
-			adam1.asyncSetAllLevel(true, true, true);			
-		}
+		msg[1].setText("關閉檔板");
+		next_step();
+		adam1.asyncSetAllLevel(false);
 	};
+	
 	
 	@Override
 	public Node getContent() {
@@ -73,10 +67,12 @@ public class StepCleanPls extends StepCommon {
 		final Label inf2 = new Label();
 		inf2.textProperty().bind(sar1.txt_reflect.textProperty());
 		
+		chk_cont.setDisable(true);
+		
 		return gen_grid_pane(
 			action_name,"5:00",false,
-			new HBox(new Label("RF輸出(W):"), txt_rf), new HBox(new Label("輸出(W):"), inf1),
-			new HBox(new Label("DC偏壓(W):"), txt_dc), new HBox(new Label("反射(W):"), inf2)
+			new Label("RF輸出(W):"), new Label("DC偏壓(V):"), txt_rf, txt_dc,
+			new Label("輸出(W):"), new Label("反射(W):"), inf1, inf2
 		);
 	}
 	@Override
@@ -84,9 +80,16 @@ public class StepCleanPls extends StepCommon {
 	}
 	@Override
 	public String flatten() {
-		return null;
+		return control2text(
+			box_hold, 
+			txt_rf, txt_dc
+		);
 	}
 	@Override
 	public void expand(String txt) {
+		text2control(txt,
+			box_hold,
+			txt_rf, txt_dc
+		);
 	}
 }

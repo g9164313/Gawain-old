@@ -4,9 +4,12 @@ import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
 import javafx.scene.control.TextField;
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.layout.GridPane;
 import narl.itrc.Misc;
 
@@ -30,11 +33,19 @@ public class StepMonitor extends StepCommon {
 			box.setPrefWidth(97);
 		}
 		set(
-			op1,run_waiting(1000,msg[1]),
-			op2,
-			op3
+			op1,run_waiting(1000,msg[1]),op2,op3,op4
+			//op_sim
 		);
 	}
+	
+	/*final Runnable op_sim = ()->{
+		for(int i=0; i<100; i++) {
+			Misc.logv("[%s] V:%.3f, I:%.3f, P:%.3f",
+				action_name,Math.random(),Math.random(),Math.random()
+			);
+		}
+		next_step();
+	};*/
 	
 	private DescriptiveStatistics stats = new DescriptiveStatistics(30);
 	
@@ -43,15 +54,21 @@ public class StepMonitor extends StepCommon {
 	boolean apply_DC1 = false;
 	float apply_pow = 0f;
 	
+	Float goal, gain, minw, maxw, thres;
+	Integer fsize;
+	
+	private void refresh_box() {
+		goal = Misc.txt2Float(box_goal.getText());	
+		gain = Misc.txt2Float(box_prop.getText());
+		minw = Misc.txt2Float(box_minw.getText());
+		maxw = Misc.txt2Float(box_maxw.getText());
+		thres= Misc.txt2Float(box_inte.getText());
+		fsize= Misc.txt2Int(box_deri.getText());
+	}
+	
 	final void PID_feedback() {
 		stats.addValue(sqm1.meanRate.get());
 		
-		Float   goal = Misc.txt2Float(box_goal.getText());	
-		Float   gain = Misc.txt2Float(box_prop.getText());
-		Float   minw = Misc.txt2Float(box_minw.getText());
-		Float   maxw = Misc.txt2Float(box_maxw.getText());
-		Float   thres= Misc.txt2Float(box_inte.getText());
-		Integer fsize= Misc.txt2Int(box_deri.getText());
 		if(
 			goal==null || gain==null || 
 			thres==null || minw==null || maxw==null 
@@ -83,12 +100,6 @@ public class StepMonitor extends StepCommon {
 			msg[1].setText(String.format("=%.2f=", tst));
 			return;
 		}
-		/*final double tst = TestUtils.t(goal, stats);
-		msg[0].setText(String.format("AVG:%.2f", avg));
-		if(tst>=thres) {
-			msg[1].setText(String.format("=%.2f=", tst));
-			return;
-		}*/
 		
 		if(apply_DC1==true) {
 			msg[1].setText("~wait~");
@@ -119,7 +130,8 @@ public class StepMonitor extends StepCommon {
 	final Runnable op1 = ()->{
 		//open shutter and zero meter!!!
 		apply_DC1= false;
-		apply_pow= spik.DC1_P_Set.get() / 2f;		
+		apply_pow= spik.DC1_P_Set.get() / 2f;
+		refresh_box();
 		wait_async();		
 		sqm1.shutter_and_zeros(true, ()->{
 			tick_beg = System.currentTimeMillis();
@@ -138,14 +150,24 @@ public class StepMonitor extends StepCommon {
 	final Runnable op2 = ()->{		
 		hold_step();
 		msg[0].setText("濺鍍中");
+		msg[1].setText("");
+		Misc.logv("[%s] V:%.3f, I:%.3f, P:%.3f, Rate:%6.3f",
+			action_name,
+			spik.DC1_V_Act.get()/4f, 
+			spik.DC1_I_Act.get()/1024f, 
+			spik.DC1_P_Act.get()/2f,
+			sqm1.meanRate.get()
+		);
+		
 		PID_feedback();
+		
 		//to much ARC, or other error~~~~ 
 		if(
 			spik.Run.get()==false ||
 			spik.DC1.get()==false
 		) {			
 			msg[0].setText("SPIK");
-			msg[0].setText("沉默");
+			msg[1].setText("沉默");
 			abort_step();
 			return;
 		}		
@@ -154,20 +176,33 @@ public class StepMonitor extends StepCommon {
 			adam1.DI[0].get()==true || 
 			adam1.DI[1].get()==false
 		) {
+			//track time stamp~~~~
+			tick_end = System.currentTimeMillis();
+			//shutdown all powers~~~
+			//PanMain.douse_fire();//end all~~~~
+			spik.toggleDC1(false);
 			//close upper-shutter!!!
 			adam1.asyncSetAllLevel(false);
 			next_step();
 		}
 	};
 	final Runnable op3 = ()->{
-		//shutdown all powers~~~
-		tick_end = System.currentTimeMillis();
+		hold_step();
+		final float volt = spik.DC1_V_Act.get()/4f;
+		msg[0].setText("放電中");
+		msg[1].setText(String.format("V:%.1f", volt));
+		if(volt<=300f) {
+			next_step();
+		}
+	};	
+	final Runnable op4 = ()->{		
 		next_step();
+		final String txt = Misc.tick2text(tick_end-tick_beg, true);
 		msg[0].setText(action_name);
-		msg[1].setText(Misc.tick2text(tick_end-tick_beg, true));
-		PanMain.douse_fire();//end all~~~~
+		msg[1].setText(txt);
+		Misc.logv("[監控時間] %s",txt);
 	};
-	
+
 	@Override
 	public Node getContent() {
 		msg[0].setText(action_name);
@@ -196,6 +231,12 @@ public class StepMonitor extends StepCommon {
 	}
 	@Override
 	public void eventEdit() {
+		final Alert dia = new Alert(AlertType.CONFIRMATION);
+		dia.setTitle("設定PID");
+		dia.setHeaderText("確認更新參數?");
+		if(dia.showAndWait().get()==ButtonType.OK) {
+			refresh_box();
+		}
 	}
 	@Override
 	public String flatten() {

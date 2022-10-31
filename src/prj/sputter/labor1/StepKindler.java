@@ -1,4 +1,4 @@
-package prj.sputter.action;
+package prj.sputter.labor1;
 
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
@@ -8,7 +8,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
 import narl.itrc.Misc;
 
-public class StepKindler extends Bumper {
+public class StepKindler extends StepCommon {
 		
 	private final String action_name = "高壓設定";
 	
@@ -17,9 +17,8 @@ public class StepKindler extends Bumper {
 	public StepKindler(){	
 		set(op1,
 			shutter_close,
-			spik_running,
-			turn_on,
-			turn_on_wait
+			spik_running, run_waiting(1000,msg[2]),
+			turn_on, turn_on_wait
 		);
 	}
 	//rad[0].setDisable(true);

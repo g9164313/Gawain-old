@@ -1,4 +1,4 @@
-package prj.sputter;
+package prj.sputter.labor1;
 
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;

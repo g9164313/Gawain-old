@@ -1,4 +1,4 @@
-package prj.sputter.action;
+package prj.sputter.labor1;
 
 import com.jfoenix.controls.JFXCheckBox;
 import com.jfoenix.controls.JFXRadioButton;
@@ -13,7 +13,7 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
 import narl.itrc.Misc;
 
-public class StepGunsHub extends Bumper {
+public class StepGunsHub extends StepCommon {
 
 	public StepGunsHub(){
 		set(op_1);		

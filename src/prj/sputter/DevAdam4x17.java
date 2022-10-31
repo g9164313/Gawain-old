@@ -2,6 +2,8 @@ package prj.sputter;
 
 import java.util.concurrent.TimeUnit;
 
+import com.sun.glass.ui.Application;
+
 import eu.hansolo.tilesfx.Tile;
 import eu.hansolo.tilesfx.TileBuilder;
 import eu.hansolo.tilesfx.Tile.SkinType;
@@ -83,7 +85,7 @@ public class DevAdam4x17 extends DevAdam {
 			}
 			final String txt = ans.substring(off, off+7);
 			final float val = Misc.txt2float(txt);
-			Misc.invokeLater(()->{
+			Application.invokeLater(()->{
 				ch.txt.setValue(txt);
 				ch.val.setValue(val);
 			});

@@ -18,7 +18,7 @@ import narl.itrc.Misc;
 import narl.itrc.PanBase;
 import prj.sputter.DevAdam4024;
 import prj.sputter.DevAdam4068;
-import prj.sputter.LayTool;
+import prj.sputter.LayHelper;
 
 /**
  * support for Cesar 136 USER Port.<p>  
@@ -41,6 +41,8 @@ public class PortCesar extends GridPane {
 	
 	final int MODEA, RF_ON, SV_RF, SV_DC;
 	
+	final float GND_BIAS = 0.045f;
+	
 	public PortCesar(final int... pin) {
 		
 		MODEA = pin[0];
@@ -48,8 +50,8 @@ public class PortCesar extends GridPane {
 		SV_DC = pin[2];
 		SV_RF = pin[3];
 		
-		txt_dc_setp.textProperty().bind(adam5.aout[SV_DC].val.multiply(4000f).divide(10f).asString("%.2f"));
-		txt_rf_setp.textProperty().bind(adam5.aout[SV_RF].val.multiply(600f).divide(10f).asString("%.2f"));
+		txt_rf_setp.textProperty().bind(adam5.aout[SV_RF].val.subtract(GND_BIAS).multiply( 600f).divide(10f).asString("%.2f"));
+		txt_dc_setp.textProperty().bind(adam5.aout[SV_DC].val.subtract(GND_BIAS).multiply(4000f).divide(10f).asString("%.2f"));
 		
 		for(Label obj:new Label[] {txt_forward, txt_reflect, txt_rf_setp, txt_dc_setp}) {
 			obj.setMaxWidth(Double.MAX_VALUE);
@@ -92,7 +94,7 @@ public class PortCesar extends GridPane {
 			dia.setHeaderText("RF output");
 			dia.setContentText((flag==true)?("關閉 RF輸出"):("開啟 RF輸出"));
 			if(dia.showAndWait().get()==ButtonType.OK) {
-				adam2.asyncSetRelay(RF_ON, !flag);
+				set_RF_fire(!flag);
 			}			
 		});
 		
@@ -143,15 +145,18 @@ public class PortCesar extends GridPane {
 		chk_error.selectedProperty().bind(flag_error);
 		chk_rungo.selectedProperty().bind(flag_rungo);
 		
-		final LayTool.Translate v2w = v->{
+		final LayHelper.Translate v2w = v->{
 			return (v*600f)/10f; 
 		};	
-		txt_forward.textProperty().bind(LayTool.transform(val_forward,v2w).asString("%.1f"));
-		txt_reflect.textProperty().bind(LayTool.transform(val_reflect,v2w).asString("%.1f"));
+		txt_forward.textProperty().bind(LayHelper.transform(val_forward,v2w).asString("%.1f"));
+		txt_reflect.textProperty().bind(LayHelper.transform(val_reflect,v2w).asString("%.1f"));
 	}
 	
 	public void set_onoff(final boolean on_off) {
 		adam2.asyncSetRelay(MODEA, on_off);
+	}
+	public void set_RF_fire(final boolean on_off) {
+		adam2.asyncSetRelay(RF_ON, on_off);
 	}
 	public void apply_setpoint(
 		final Float val_rf, 

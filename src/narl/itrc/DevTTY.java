@@ -152,7 +152,7 @@ public abstract class DevTTY extends DevBase {
 	protected static final byte STX = 0x02;
 	protected static final byte ETX = 0x03;
 	protected static final byte DLE = 0x10;//跳出資料通訊
-	protected static final byte PER = 0x25;//slave wait??
+	protected static final byte PER = 0x25;//I guess, device denied host answer
 	
 	protected static final byte ACK = 0x06;
 	protected static final byte NAK = 0x15;
@@ -211,132 +211,165 @@ public abstract class DevTTY extends DevBase {
 		return buf;
 	}
 	
-	protected int protocol_3964R_wait(
+	/**
+	 * Sender  (device or host): STX,___,XXXXX,DLE,ETX,BCC,___<p>
+	 * Receiver(device or host): ___,DLE,_____,___,___,___,DLE<p>
+	 * @param dev - serial port
+	 * @return
+	 */
+	protected byte[] protocol_3964R_listen(
 		final SerialPort dev,
-		final int timeout
-	) {
+		final int head_STX_out,
+		int data_size
+	){
+		//-------------bracket--------------//
 		try {
-			//wait device to ready!!!!
-			byte cc = dev.readBytes(1, timeout)[0];
-			while(cc==PER) {
-				cc = dev.readBytes(1, timeout)[0];
-			}
+			byte cc = (head_STX_out<=0)?(
+				cc = dev.readBytes(1)[0]
+			):(
+				cc = dev.readBytes(1, head_STX_out)[0]
+			);
 			if(cc!=STX) {
-				Misc.loge("[3964R_wait.1]: no STX(0x%02X)",(int)cc);
-				return -1;
+				Misc.loge("[3964R_listen]: no STX(x%02X)",((int)cc)&0xFF);
+				block_sleep_sec(1);
+				return null;
 			}
-		} catch (SerialPortException e1) {
-			Misc.loge("[3964R_wait.2]: tty broken");
-			return -2;
-		} catch (SerialPortTimeoutException e1) {
-			//Misc.loge("3964R_wait.3: timeout!!");
-			return -3;
+			dev.writeByte(DLE);//ready to listen something~~~~
+		} catch (SerialPortTimeoutException e) {
+			//Misc.logv("[3964R_listen] check token~~");
+			return null;
+		} catch (SerialPortException e) {
+			Misc.loge("[3964R_listen]: tty broken");
+			return null;
 		}
-		return 0;
+		//-------------bracket--------------//
+		byte[] head=null, info=null, data=null, tail=null;
+		try {
+			head = dev.readBytes(4);			
+			if(head[3]=='D'){
+				info = dev.readBytes(6);
+				data_size = byte2int(info[2],info[3]);
+				//Token  : 00, 00
+				//command: AD or ED
+				//address: 2 byte
+				//count  : 2 byte
+				//reserve: 0xFF, 0xFF
+				if(head[2]=='A'){
+					data = dev.readBytes(data_size*2);
+				}else if(head[2]=='E'){
+					data = null;
+				}else{
+					Misc.loge("[3964R_listen]: either AD nor ED package");
+					Misc.dump_byte(head);
+					block_sleep_sec(1);
+					return null;
+				}
+			}else if(
+				head[0]==0 && head[1]==0 &&
+				head[2]==0 && head[3]==0
+			){
+				//Token  : 00, 00, 00
+				//Error  : 00
+				if(data_size!=0) {
+					data = dev.readBytes(data_size*2);
+				}else{
+					data = null;
+				}
+			}else{
+				Misc.loge("[3964R_listen]: unknown head");
+				Misc.dump_byte(head);
+				block_sleep_sec(1);
+				return null;
+			}
+			
+			tail = dev.readBytes(3);
+			if(tail[0]!=DLE || tail[1]!=ETX) {
+				ArrayList<Byte> buf = new ArrayList<Byte>();
+				buf.add(tail[0]);
+				buf.add(tail[1]);
+				buf.add(tail[2]);
+				for(;;){
+					buf.add(dev.readBytes(1,50)[0]);
+					final int tt = buf.size() - 1;
+					if(buf.get(tt-2)==DLE && buf.get(tt-1)==ETX) {
+						break;
+					}
+				}
+				tail = Misc.list2byte(buf);
+			}			
+		} catch (SerialPortTimeoutException e) {
+			Misc.loge("[3964R_listen]: tail-DLE timeout");
+		} catch (SerialPortException e) {
+			Misc.loge("[3964R_listen]: tty broken");
+			return null;
+		}
+		//-------------bracket--------------//
+		try {
+			dev.writeByte(DLE);
+		} catch (SerialPortException e) {
+			Misc.loge("[3964R_listen]: tty broken");
+		}
+		return Misc.chainBytes(head,info,data,tail);
 	}
 	
+	/**
+	 * Sender  (device or host): ___,DLE,_____,___,___,___,DLE<p>
+	 * Receiver(device or host): STX,___,XXXXX,DLE,ETX,BCC,___<p>
+	 * @param dev - serial port
+	 * @return
+	 */
 	protected int protocol_3964R_express(
 		final SerialPort dev,
 		final byte[] pkg
 	){
+		if(pkg==null) { return 0; }
+		//-------------bracket--------------//
 		try {
-			//host want communication~~~
-			byte cc = 0;
 			dev.writeByte(STX);
-			//wait device~~~~~
-			cc = dev.readBytes(1)[0];
-			if(cc!=DLE) {
-				Misc.loge("[3964R_express.1]: no DLE");
+			byte cc = dev.readBytes(1)[0];
+			if(cc==PER) {				
+				dev.purgePort(SerialPort.PURGE_RXCLEAR|SerialPort.PURGE_TXCLEAR);
+				Misc.loge("[3964R_express]: %%purge%%");
 				return -1;
-			}
-			
-			//host write data
-			dev.writeBytes(pkg);
-			//slave close talking
-			cc = dev.readBytes(1)[0];
-			if(cc!=DLE) {
-				Misc.loge("[3964R_express.2]: no DLE");
+			}else if(cc!=DLE) {
+				Misc.loge("[3964R_express]: no head-DLE(x%02X)",(int)cc);
 				return -2;
 			}
-		} catch (SerialPortException e1) {			
-			Misc.loge("[3964R_express.3]: tty broken");
-			return -3;
+		} catch (SerialPortException e) {
+			Misc.loge("[3964R_express]: tty broken");
+			return -10;
+		}
+		//-------------bracket--------------//
+		try {
+			dev.writeBytes(pkg);
+		} catch (SerialPortException e) {
+			Misc.loge("[3964R_express]: tty broken");
+			return -10;
+		}
+		//-------------bracket--------------//
+		try {
+			byte cc = dev.readBytes(1,1000)[0];
+			if(cc!=DLE) {
+				Misc.loge("[3964R_express]: no tail-DLE");
+				dev.purgePort(SerialPort.PURGE_TXABORT|SerialPort.PURGE_RXABORT);
+				block_sleep_sec(1);
+				return -4;
+			}
+		} catch (SerialPortTimeoutException e) {
+			Misc.loge("[3964R_express]: tail-DLE timeout");
+			return -5;
+		} catch (SerialPortException e) {
+			Misc.loge("[3964R_express]: tty broken");
+			return -10;
 		}
 		return 0;
+	}
+	
+	protected static int byte2int(final byte aa, final byte bb) {
+		final int _a = (int)aa;
+		final int _b = (int)bb;
+		return ((_a&0x00FF)<<8) | (_b&0x00FF);
 	}	
-	
-	protected byte[] protocol_3964R_listen(
-		final SerialPort dev,
-		int data_count
-	){
-		byte[] head=null, info=null, data=null, tail=null;		
-		//host try to get data or response~~~~			
-		try {
-			if(dev.readBytes(1)[0]!=STX) {
-				Misc.loge("3964R_listen.0: no STX");
-				return new byte[0];
-			}
-			
-			dev.writeByte(DLE);
-			
-			head = dev.readBytes(4);//Token, [command|error code]
-			if(head[2]=='A' && head[3]=='D') {
-				info = dev.readBytes(6);//Address, Count, Reserved
-				data_count = 
-					((((int)info[2])&0x00FF)<<8) | 
-					((((int)info[3])&0x00FF)<<0) ;
-			}
-			if(data_count>0) {
-				data = dev.readBytes(data_count*2);
-			}
-			//we should wait for DLE ETX
-			tail = wait_DLE(dev);
-			//tail = dev.readBytes(3);//DLE, ETX, BBC
-			
-			dev.writeByte(DLE);
-		} catch (SerialPortException e) {
-			Misc.loge("3964R_listen.1: tty broken");
-		}
-		return chainBytes(head,info,data,tail);
-	}
-	private byte[] wait_DLE(final SerialPort dev) throws SerialPortException {
-		byte[] buf = dev.readBytes(3);
-		if(
-			buf[0]==DLE && 
-			buf[1]==ETX
-		) {
-			return buf;
-		}
-		ArrayList<Byte> lst = new ArrayList<Byte>();
-		lst.add(buf[0]);
-		lst.add(buf[1]);
-		lst.add(buf[2]);
-		do{
-			lst.add(dev.readBytes(1)[0]);
-			final int tt = lst.size() - 1;
-			if(
-				lst.get(tt-2)==DLE && 
-				lst.get(tt-1)==ETX
-			) {
-				break;
-			}
-		}while(lst.size()<128);
-		Misc.logw("3964R_wait_DLE: invalid tail!!");
-		return Misc.list2byte(lst);
-	}
-	
-	protected byte[] chainBytes(final byte[]... lst) {
-		ArrayList<Byte> dst = new ArrayList<Byte>();
-		for(byte[] src:lst) {
-			if(src==null) {
-				continue;
-			}
-			for(int i=0; i<src.length; i++) {
-				dst.add(src[i]);
-			}
-		}
-		return Misc.list2byte(dst);
-	}
 	//--------------------------------------------//
 	
 	/* implement AE BUS protocol.<p>

@@ -1,6 +1,7 @@
 package prj.sputter;
 
 import com.jfoenix.controls.JFXButton;
+import com.sun.glass.ui.Application;
 
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
@@ -124,7 +125,7 @@ public class DevAdam4024 extends DevAdam {
 		}
 		final String txt = ans.substring(3);
 		final float val = Misc.txt2float(txt);		
-		Misc.invokeLater(()->{
+		Application.invokeLater(()->{
 			ch.txt.set(txt);
 			ch.val.set(val);			
 		});		
@@ -136,7 +137,7 @@ public class DevAdam4024 extends DevAdam {
 		if(ans.startsWith("?")==true) {
 			Misc.logw("[%s)%d] unable direct output", TAG, ch.id);
 		}else {
-			Misc.invokeLater(()->{
+			Application.invokeLater(()->{
 				ch.txt.set(data);
 				ch.val.set(Float.parseFloat(data));			
 			});

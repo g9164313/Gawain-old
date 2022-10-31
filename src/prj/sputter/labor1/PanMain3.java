@@ -1,4 +1,4 @@
-package prj.sputter;
+package prj.sputter.labor1;
 
 import java.util.Optional;
 
@@ -14,6 +14,9 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import narl.itrc.PanBase;
+import prj.sputter.DevAdam4024;
+import prj.sputter.DevAdam4x17;
+import prj.sputter.LayHelper;
 
 public class PanMain3 extends PanBase {
 	
@@ -37,26 +40,26 @@ public class PanMain3 extends PanBase {
 		
 		//final SimpleFloatProperty test = new SimpleFloatProperty(0.1f);
 		
-		final ReadOnlyFloatProperty v_ch7 = LayTool.transform(a4117.ain[7].val, src->{
+		final ReadOnlyFloatProperty v_ch7 = LayHelper.transform(a4117.ain[7].val, src->{
 			float dst = (float)Math.pow(10f, src-3f);//Pa
 			dst = dst * 0.0075006168f;//Pa-->Torr
 			return dst;
 		});
 		//final ReadOnlyFloatProperty v_ch6 = test;
-		final ReadOnlyFloatProperty v_ch6 = LayTool.transform(a4117.ain[6].val, src->{
+		final ReadOnlyFloatProperty v_ch6 = LayHelper.transform(a4117.ain[6].val, src->{
 			float dst = (float)Math.pow(10f, (src-7.25f)/0.75f-0.125f);
 			return dst;//Torr
 		});
 		
 		final SimpleFloatProperty v_mfc_sv = new SimpleFloatProperty(0);
-		final ReadOnlyFloatProperty v_mfc_pv = LayTool.transform(a4117.ain[0].val, src->{
+		final ReadOnlyFloatProperty v_mfc_pv = LayHelper.transform(a4117.ain[0].val, src->{
 			return (src*MFC_MAX_SCCM)/5f; //0~5V --> 0~100sccm
 		});
 		
-		final Node ch7 = LayTool.create_prefix_gauge("前級真空計","Torr",v_ch7);// fore-line pump		
+		final Node ch7 = LayHelper.create_prefix_gauge("前級真空計","Torr",v_ch7);// fore-line pump		
 		GridPane.setHgrow(ch7, Priority.ALWAYS);
 		GridPane.setVgrow(ch7, Priority.ALWAYS);
-		final Node ch6 = LayTool.create_prefix_gauge("腔體真空計","Torr",v_ch6);
+		final Node ch6 = LayHelper.create_prefix_gauge("腔體真空計","Torr",v_ch6);
 		GridPane.setHgrow(ch6, Priority.ALWAYS);
 		GridPane.setVgrow(ch6, Priority.ALWAYS);
 
@@ -69,7 +72,7 @@ public class PanMain3 extends PanBase {
 			}			
 		});*/
 		
-		final Tile mfc = LayTool.create_MFC_gauge(
+		final Tile mfc = LayHelper.create_MFC_gauge(
 			"MFC - 100 sccm","sccm",100.,
 			v_mfc_pv, src->{
 				//clap data~~~

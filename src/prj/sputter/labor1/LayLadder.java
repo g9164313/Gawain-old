@@ -1,15 +1,9 @@
-package prj.sputter;
+package prj.sputter.labor1;
 
 import narl.itrc.Ladder;
 import narl.itrc.Misc;
 import narl.itrc.Stepper;
-import prj.sputter.action.StepExploit;
-import prj.sputter.action.StepFlowCtrl;
-import prj.sputter.action.StepGunsHub;
-import prj.sputter.action.StepKindler;
-import prj.sputter.action.StepSetFilmOld;
-import prj.sputter.action.StepSetPulse;
-import prj.sputter.action.StepWatcher;
+import prj.sputter.DevDCG100;
 
 public class LayLadder extends Ladder {
 	
@@ -25,17 +19,15 @@ public class LayLadder extends Ladder {
 		addStep("脈衝設定",StepSetPulse.class);
 		addStep("高壓設定",StepKindler.class);		
 		addStep("厚度監控",StepWatcher.class);
-		addStep("實驗用"  ,StepExploit.class);
+		addStep("-實驗用-",StepExploit.class);
 	}
 	
 	@Override
 	protected void prelogue() {
-		super.prelogue();
 		logger.show_progress();
 	}
 	@Override
 	protected void epilogue() {
-		super.epilogue();
 		Misc.logw("Lader complete works.");
 		dcg1.asyncExec("OFF");//close power~~~
 		logger.done_progress();

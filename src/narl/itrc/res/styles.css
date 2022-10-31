@@ -111,13 +111,12 @@
   -fx-text-fill: RED;
   -fx-border-color: RED;
 }
-.red-border {
+.dbg-border {
   -fx-border-color: RED;
+  -fx-border-style: dashed;
+  -fx-border-width: 1.7;
 }
 .black-border {
-  -fx-border-color: BLACK;
-}
-.lock-border {
   -fx-border-color: BLACK;
 }
 

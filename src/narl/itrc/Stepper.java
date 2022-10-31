@@ -42,7 +42,7 @@ public abstract class Stepper extends HBox {
 	private JFXButton btnDrop = new JFXButton();
 	
 	protected Optional<Runnable[]> works = Optional.empty();
-	protected Optional<ObservableList<Stepper>> items = Optional.empty();//we can see other stepper	
+	protected Optional<ObservableList<Stepper>> item = Optional.empty();//we can see other stepper	
 	protected String uuid = "";
 	
 	public Stepper(){
@@ -78,7 +78,7 @@ public abstract class Stepper extends HBox {
 				return;
 			}
 			//Misc.logv(src.toString() + " dropped in " + dst.toString());
-			ObservableList<Stepper> lst = items.get();
+			ObservableList<Stepper> lst = item.get();
 			lst.remove(src);
 			lst.add(lst.indexOf(dst)+1, src);
             e.setDropCompleted(true);
@@ -109,10 +109,10 @@ public abstract class Stepper extends HBox {
 	}
 		
 	private void dropping(){
-		if(items.isPresent()==false){
+		if(item.isPresent()==false){
 			return;
 		}
-		items.get().remove(this);
+		item.get().remove(this);
 	}
 
 	protected void set(Runnable run){
@@ -135,10 +135,10 @@ public abstract class Stepper extends HBox {
 	}
 	
 	protected Stepper get(final int cnt) {		
-		if(items.isPresent()==false) {
+		if(item.isPresent()==false) {
 			return null;
 		}
-		ObservableList<Stepper> lst = items.get();
+		ObservableList<Stepper> lst = item.get();
 		int idx = lst.indexOf(this) + cnt;
 		if(idx<0 || lst.size()<idx) {
 			return null;
@@ -408,7 +408,7 @@ public abstract class Stepper extends HBox {
 	protected long waiting_time(final String time){
 		return waiting_time(Misc.text2tick(time));
 	}
-	protected Runnable run_waiting(
+	public Runnable run_waiting(
 		final long msec,
 		final Label mesg
 	) {
@@ -420,7 +420,7 @@ public abstract class Stepper extends HBox {
 		};
 		return obj;
 	}
-	protected Runnable run_waiting(
+	public Runnable run_waiting(
 		final String time,
 		final Label mesg
 	) {

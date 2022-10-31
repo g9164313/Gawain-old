@@ -262,13 +262,13 @@ public class DevModbus extends DevBase {
 	
 	protected void looper() {
 		if(isLive()==false || cells.size()==0) {
-			blocking_delay(500);
+			block_sleep_msec(500);
 			return;
 		}
 		for(RecallCell cc:cells) {
 			cc.fecth_data();
 			if(looperDelay>0) {
-				blocking_delay(looperDelay);
+				block_sleep_msec(looperDelay);
 			}
 		}
 		Application.invokeLater(()->{
@@ -276,13 +276,6 @@ public class DevModbus extends DevBase {
 				cc.update_property();
 			}
 		});
-	}
-	
-	private void blocking_delay(final int msec) {
-		try {
-			Thread.sleep(msec);
-		} catch (InterruptedException e) {
-		}
 	}
 	
 	/**
@@ -456,7 +449,7 @@ public class DevModbus extends DevBase {
 			if(res>0) {
 				break;
 			}
-			blocking_delay(50);
+			block_sleep_msec(50);
 		}while(true);
 	}
 	public void writeVals_sid(final int s_id,final int addr,final int... vals) {

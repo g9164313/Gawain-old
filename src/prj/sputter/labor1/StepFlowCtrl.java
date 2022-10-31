@@ -1,4 +1,4 @@
-package prj.sputter.action;
+package prj.sputter.labor1;
 
 import java.util.ArrayList;
 
@@ -17,7 +17,7 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
 import narl.itrc.Misc;
 
-public class StepFlowCtrl extends Bumper {
+public class StepFlowCtrl extends StepCommon {
 
 	public StepFlowCtrl() {
 		set(op1,op2);

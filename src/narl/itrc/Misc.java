@@ -214,6 +214,24 @@ public class Misc {
 	}
 	//----------------------------------------//
 
+	/**
+	 * parse text of Python dictionary to java object.<p>
+	 * @param txt
+	 * @return
+	 */
+	public static HashMap<String,String> txt2dict(String txt){
+		HashMap<String,String> map = new HashMap<String,String>();		
+		txt = txt.replace('{', ' ').replace('}', ' ').trim();
+		String[] row = txt.split(",\\s*");
+		for(String itm:row) {
+			String[] col = itm.split(":\\s*");
+			String kk = col[0].replace('\'', ' ').trim();
+			String vv = col[1].trim();
+			map.put(kk, vv);
+		}
+		return map;
+	}
+	
 	public static String hex2txt(byte[] hex){
 		final char[] sign = {
 			'0','1','2','3',
@@ -238,6 +256,29 @@ public class Misc {
 		return hex;
 	}
 	
+	public static int hex2int(final String txt) {
+		return Integer.valueOf(txt,16).byteValue();
+	}
+	public static int hex2int(
+		final byte... buf
+	) {
+		return hex2int(new String(buf));
+	}
+	public static int hex2int(
+		final byte[] buf,
+		final int off,
+		int size
+	) {	
+		if((off+size)>buf.length) {
+			size = buf.length - off;
+		}
+		byte[] txt = new byte[size];
+		for(int i=off; i<size; i++) {
+			txt[i-off] = buf[i];
+		}
+		return hex2int(new String(txt));
+	}
+	
 	/**
 	 * It's same as "Integer.valueOf()", but this function accepts leading zero.<p>
 	 * @param txt - the string of integer value(including leading zero)
@@ -247,18 +288,11 @@ public class Misc {
 		if(txt.length()==0) { return null; }
 		try {
 			txt = txt.replace("\\s","").trim();
-			//if(txt.matches("^[+-]?[\\d]+")==false){
-			//	return null;
-			//}
-			//check sign~~~
-			if(txt.charAt(0)=='+'){
-				txt = txt.substring(1);
-			}
 			//remove leading zeros~~~
 			while(txt.charAt(0)=='0' && txt.length()>1){
 				txt = txt.substring(1);
 			}		
-			return Integer.parseInt(txt);
+			return Integer.decode(txt);
 		}catch(NumberFormatException e) {
 			Misc.loge(e.getMessage());
 		}
@@ -292,6 +326,20 @@ public class Misc {
 		return txt2float(txt,0f);
 	}
 
+	public static Object txt2num(String txt) {
+		if(txt.length()==0) { return null; }
+		txt = txt.replace("\\s","").trim();
+		try {
+			return Integer.decode(txt);
+		}catch(NumberFormatException e) {			
+		}
+		try {			
+			return new Float(Float.parseFloat(txt));		
+		}catch(NumberFormatException e) {			
+		}		
+		return null;
+	}
+	
 	public static int txt2bit_val(String txt,final int offset) {		
 		String[] col = txt.replace("\\s", "").split(",");
 		int val = 0;
@@ -758,6 +806,20 @@ public class Misc {
 		}		
 	};
 	//-------------------------------------
+
+	public static byte[] chainBytes(final byte[]... lst) {
+		ArrayList<Byte> dst = new ArrayList<Byte>();
+		for(byte[] src:lst) {
+			if(src==null) {
+				continue;
+			}
+			for(int i=0; i<src.length; i++) {
+				dst.add(src[i]);
+			}
+		}
+		return Misc.list2byte(dst);
+	}
+	//-------------------------------------
 	
 	public static Object[] calculate_prefix(final float value) {
 		
@@ -822,25 +884,7 @@ public class Misc {
 			set(full_text);
 		};		
 	}
-		
 	//-------------------------------------
-	
-	@SuppressWarnings("restriction")
-	public static void invokeLater(final Runnable func) {
-		if(com.sun.glass.ui.Application.isEventThread()) {
-			func.run();
-		}else {
-			com.sun.glass.ui.Application.invokeLater(func);
-		}
-	}
-	@SuppressWarnings("restriction")
-	public static void invokeWait(final Runnable func) {
-		if(com.sun.glass.ui.Application.isEventThread()) {
-			func.run();
-		}else {
-			com.sun.glass.ui.Application.invokeAndWait(func);
-		}
-	}
 }
 
 

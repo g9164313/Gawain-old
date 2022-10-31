@@ -1,4 +1,4 @@
-package prj.sputter;
+package prj.sputter.labor1;
 
 import java.util.Optional;
 
@@ -23,15 +23,15 @@ import javafx.scene.shape.Line;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.SVGPath;
 import javafx.util.Duration;
-import narl.itrc.DrawDiagram;
 import narl.itrc.Misc;
 import narl.itrc.PadTouch;
+import prj.sputter.DevCouple;
 
-public class DrawVaccum extends DrawDiagram {
+public class DrawVaccumOld extends DrawDiagramOld {
 
 	private final DevCouple coup;
 		
-	public DrawVaccum(final DevCouple dev) {
+	public DrawVaccumOld(final DevCouple dev) {
 		coup = dev;
 		
 		Chamber   oo1 = new Chamber()  .locate(300, 10);

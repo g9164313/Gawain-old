@@ -1,4 +1,4 @@
-package prj.sputter;
+package prj.sputter.labor1;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -39,8 +39,10 @@ import narl.itrc.Misc;
 import narl.itrc.PanBase;
 import narl.itrc.init.LogStream;
 import narl.itrc.init.LogStream.Mesg;
-import prj.sputter.action.StepKindler;
-import prj.sputter.action.StepWatcher;
+import prj.sputter.DevCouple;
+import prj.sputter.DevDCG100;
+import prj.sputter.DevSPIK2k;
+import prj.sputter.DevSQM160;
 
 public class LayLogger extends BorderPane {
 

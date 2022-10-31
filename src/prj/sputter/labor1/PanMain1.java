@@ -1,4 +1,4 @@
-package prj.sputter;
+package prj.sputter.labor1;
 
 import com.jfoenix.controls.JFXTabPane;
 
@@ -13,6 +13,10 @@ import javafx.stage.Stage;
 import narl.itrc.Gawain;
 import narl.itrc.Misc;
 import narl.itrc.PanBase;
+import prj.sputter.DevCESAR;
+import prj.sputter.DevDCG100;
+import prj.sputter.DevSQM160;
+import prj.sputter.LayVacuumSys;
 
 public class PanMain1 extends PanBase {
 	
@@ -21,13 +25,13 @@ public class PanMain1 extends PanBase {
 	final DevSQM160 sqm1 = new DevSQM160();
 	
 	//final LayGauges gauges = LayGauges.getInstance();
-	final LayLogger  logger = new LayLogger();		
-	final LayLadder  ladder = new LayLadder();
+	//final LayLogger  logger = new LayLogger();		
+	//final LayLadder  ladder = new LayLadder();
 	
 	public PanMain1(final Stage stg) {
 		super(stg);
 		stg.setTitle("一號濺鍍機");
-		stg.setOnShown(e->on_shown());
+		//stg.setOnShown(e->on_shown());
 	}
 	
 	private void on_shown(){
@@ -35,7 +39,7 @@ public class PanMain1 extends PanBase {
 		arg = Gawain.prop().getProperty("DCG100", "");
 		if(arg.length()>0) {			
 			dcg1.open(arg);
-			logger.bindProperty(dcg1);
+			//logger.bindProperty(dcg1);
 		}
 		arg = Gawain.prop().getProperty("CESAR", "");
 		if(arg.length()>0) {
@@ -44,14 +48,14 @@ public class PanMain1 extends PanBase {
 		arg = Gawain.prop().getProperty("SQM160", "");
 		if(arg.length()>0) {			
 			sqm1.open(arg);
-			logger.bindProperty(sqm1);
+			//logger.bindProperty(sqm1);
 		}
 	}
 	
 	@Override
 	public Node eventLayout(PanBase self) {
 		
-		final HBox lay3 = new HBox();
+		/*final HBox lay3 = new HBox();
 		lay3.getStyleClass().addAll("box-pad");
 		lay3.getChildren().addAll(
 			DevDCG100.genPanel(dcg1),
@@ -67,11 +71,14 @@ public class PanMain1 extends PanBase {
 			new Tab("製程",ladder),
 			new Tab("裝置",lay3)
 		);
-		lay1.getSelectionModel().select(0);
+		lay1.getSelectionModel().select(0);*/
 
 		final BorderPane lay0 = new BorderPane();
-		lay0.setCenter(lay1);
-		lay0.setRight(lay_ctrl());
+		LayVacuumSys vacc = new LayVacuumSys();
+		vacc.layout_basic();
+		lay0.setCenter(vacc);
+		//lay0.setCenter(lay1);
+		//lay0.setRight(lay_ctrl());
 		return lay0;
 	}
 	
