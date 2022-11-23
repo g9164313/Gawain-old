@@ -8,6 +8,7 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.nio.ByteBuffer;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -807,6 +808,48 @@ public class Misc {
 	};
 	//-------------------------------------
 
+	/**
+	 * Wrap byte buffer to unsigned integer.<p>
+	 * Argument Order is also enddian.<p>
+	 * @param buf
+	 * @return
+	 */
+	public static int byte2int(final byte... buf) {
+		if(buf.length<=0) {
+			return 0;
+		}
+		switch(buf.length) {
+		case 1: return pad_byte(buf[0],0);
+		case 2: return pad_byte(buf[0],0) | pad_byte(buf[1],8);
+		case 3: return pad_byte(buf[0],0) | pad_byte(buf[1],8) | pad_byte(buf[2],16);
+		default:
+		case 4: return pad_byte(buf[0],0) | pad_byte(buf[1],8) | pad_byte(buf[2],16) | pad_byte(buf[3],24);
+		}
+	}
+	private static int pad_byte(final byte val,final int shift) {
+		return (((int)val)&0xFF)<<shift;
+	}
+	
+	public static byte maskInt3(final int val) { return masked_int(val,24); }
+	public static byte maskInt2(final int val) { return masked_int(val,16); }
+	public static byte maskInt1(final int val) { return masked_int(val, 8); }
+	public static byte maskInt0(final int val) { return masked_int(val, 0); }
+	private static byte masked_int(final int val,final int shift) {
+		return (byte)((val>>shift)&0xFF);
+	}
+	
+	public static byte maskLong7(final long val) { return masked_long(val,56); }
+	public static byte maskLong6(final long val) { return masked_long(val,48); }
+	public static byte maskLong5(final long val) { return masked_long(val,40); }
+	public static byte maskLong4(final long val) { return masked_long(val,32); }
+	public static byte maskLong3(final long val) { return masked_long(val,24); }
+	public static byte maskLong2(final long val) { return masked_long(val,16); }
+	public static byte maskLong1(final long val) { return masked_long(val, 8); }
+	public static byte maskLong0(final long val) { return masked_long(val, 0); }
+	private static byte masked_long(final long val,final int shift) {
+		return (byte)((val>>shift)&0xFF);
+	}
+	
 	public static byte[] chainBytes(final byte[]... lst) {
 		ArrayList<Byte> dst = new ArrayList<Byte>();
 		for(byte[] src:lst) {

@@ -16,7 +16,7 @@ import narl.itrc.PanBase;
 import prj.sputter.DevCESAR;
 import prj.sputter.DevDCG100;
 import prj.sputter.DevSQM160;
-import prj.sputter.LayVacuumSys;
+import prj.sputter.perspect.LayVacuumSys;
 
 public class PanMain1 extends PanBase {
 	
@@ -72,13 +72,13 @@ public class PanMain1 extends PanBase {
 			new Tab("裝置",lay3)
 		);
 		lay1.getSelectionModel().select(0);*/
-
-		final BorderPane lay0 = new BorderPane();
+		
 		LayVacuumSys vacc = new LayVacuumSys();
-		vacc.layout_basic();
+		vacc.LayoutBody();
+		
+		final BorderPane lay0 = new BorderPane();
 		lay0.setCenter(vacc);
-		//lay0.setCenter(lay1);
-		//lay0.setRight(lay_ctrl());
+		lay0.setRight(lay_ctrl());
 		return lay0;
 	}
 	

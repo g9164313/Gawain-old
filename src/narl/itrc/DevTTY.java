@@ -151,6 +151,13 @@ public abstract class DevTTY extends DevBase {
 	
 	protected static final byte STX = 0x02;
 	protected static final byte ETX = 0x03;
+	protected static final byte EOT = 0x04;//end of transmission
+	protected static final byte ENQ = 0x05;//enquiry
+
+	protected static final byte LF = 0x0A;//enquiry
+	protected static final byte CL = 0x0C;//enquiry
+	protected static final byte CR = 0x0D;//enquiry
+	
 	protected static final byte DLE = 0x10;//跳出資料通訊
 	protected static final byte PER = 0x25;//I guess, device denied host answer
 	
@@ -219,25 +226,17 @@ public abstract class DevTTY extends DevBase {
 	 */
 	protected byte[] protocol_3964R_listen(
 		final SerialPort dev,
-		final int head_STX_out,
 		int data_size
 	){
 		//-------------bracket--------------//
 		try {
-			byte cc = (head_STX_out<=0)?(
-				cc = dev.readBytes(1)[0]
-			):(
-				cc = dev.readBytes(1, head_STX_out)[0]
-			);
+			byte cc = dev.readBytes(1)[0];
 			if(cc!=STX) {
 				Misc.loge("[3964R_listen]: no STX(x%02X)",((int)cc)&0xFF);
 				block_sleep_sec(1);
 				return null;
 			}
 			dev.writeByte(DLE);//ready to listen something~~~~
-		} catch (SerialPortTimeoutException e) {
-			//Misc.logv("[3964R_listen] check token~~");
-			return null;
 		} catch (SerialPortException e) {
 			Misc.loge("[3964R_listen]: tty broken");
 			return null;
@@ -248,7 +247,7 @@ public abstract class DevTTY extends DevBase {
 			head = dev.readBytes(4);			
 			if(head[3]=='D'){
 				info = dev.readBytes(6);
-				data_size = byte2int(info[2],info[3]);
+				data_size = byte2int(info[2],info[3]);//re-assign!!!
 				//Token  : 00, 00
 				//command: AD or ED
 				//address: 2 byte
@@ -270,7 +269,7 @@ public abstract class DevTTY extends DevBase {
 			){
 				//Token  : 00, 00, 00
 				//Error  : 00
-				if(data_size!=0) {
+				if(data_size>0) {
 					data = dev.readBytes(data_size*2);
 				}else{
 					data = null;

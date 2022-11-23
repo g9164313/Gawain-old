@@ -173,7 +173,7 @@ public class DevSPIK2k extends DevTTY {
 			return;
 		}
 		final SerialPort dev = port.get();
-		byte[] pkg = protocol_3964R_listen(dev, 0, -1);		
+		byte[] pkg = protocol_3964R_listen(dev,-1);		
 		//SPIK2000 send something, answer SPIK2000
 		final Token tkn = new Token(pkg);
 		if(tkn.values!=null) {
@@ -188,17 +188,17 @@ public class DevSPIK2k extends DevTTY {
 	};
 	
 	private Runnable transmit = ()->{
-		count_recv = 0;
+		count_recv = 0;//reset for next phase~~~
 		nextState("recviver");
 		if(port.isPresent()==false) {
 			Misc.logw("[%s] no TTY port", TAG);
 			block_sleep_sec(5);
 			return;
-		}
-		//try to talk with SPIK2000		
+		}		
 		if(tkn_queue.isEmpty()==true) {			
 			return;
 		}
+		//try to talk with SPIK2000
 		//Misc.logv("transmit.2");
 		final SerialPort dev = port.get();
 		Token tkn = tkn_queue.peek();
@@ -208,7 +208,7 @@ public class DevSPIK2k extends DevTTY {
 			return;
 		}
 		//Misc.logv("transmit.3");
-		pkg = protocol_3964R_listen(dev, -1, (tkn.values==null)?(tkn.count):(0));
+		pkg = protocol_3964R_listen(dev,(tkn.values==null)?(tkn.count):(0));
 		tkn.unpack(pkg);
 		tkn_queue.poll();
 	};
@@ -232,7 +232,7 @@ public class DevSPIK2k extends DevTTY {
 	public final BooleanProperty ModeDC_neg = new SimpleBooleanProperty(false);
 	public final BooleanProperty ModeDC_pos = new SimpleBooleanProperty(false);
 	
-	public final BooleanProperty ModeMultiplex_off = new SimpleBooleanProperty(false);
+	public final BooleanProperty ModeMultiplex_off= new SimpleBooleanProperty(false);
 	public final BooleanProperty ModeMultiplex_on = new SimpleBooleanProperty(false);
 	
 	void apply_mode_flag(final int mode) {
@@ -244,7 +244,7 @@ public class DevSPIK2k extends DevTTY {
 		
 		ModeMultiplex_off.set(((mode&0xF0)==0)?(true):(false));
 		ModeMultiplex_on.set(((mode&0xF0)==1)?(true):(false));
-		Misc.logv("[%s]MODE=%04X", TAG, mode);
+		//Misc.logv("[%s]MODE=%04X", TAG, mode);
 	}
 
 	/**
@@ -267,7 +267,7 @@ public class DevSPIK2k extends DevTTY {
 		Run.set((stat & 0x0002)!=0);
 		DC1.set((stat & 0x0040)!=0);
 		DC2.set((stat & 0x0080)!=0);
-		Misc.logv("[%s]STAT=%04X", TAG, stat);
+		//Misc.logv("[%s]STAT=%04X", TAG, stat);
 	}
 	
 	/**
