@@ -1,8 +1,9 @@
-package prj.sputter.perspect;
+package prj.sputter.diagram;
 
-public enum PDir {
+public enum PixDir {
 	
-	HORI, VERT,
+	HORI, LF_RH, RH_LF, 
+	VERT, TP_BM, BM_TP,
 	
 	LF_TP, LF_BM, RH_TP, RH_BM,
 	TP_LF, BM_LF, TP_RH, BM_RH,

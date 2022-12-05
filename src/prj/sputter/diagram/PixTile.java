@@ -1,12 +1,14 @@
-package prj.sputter.perspect;
+package prj.sputter.diagram;
 
 import javafx.geometry.HPos;
 import javafx.geometry.VPos;
+import javafx.scene.Node;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
+import javafx.scene.paint.Color;
 
-public class PElement extends GridPane {
+public class PixTile extends GridPane {
 	
 	protected static final double PIPE_SIZE = 23.;	
 	protected static final double PIPE_STROKE = 2.1; 
@@ -14,16 +16,19 @@ public class PElement extends GridPane {
 	
 	protected static final String STY_EMPTY = 
 		"-fx-background-color: WHITE;";
+	protected static Color C_EMPTY = Color.WHITE;//it sould be same as STY_EMPTY.
+	
 	protected static final String STY_FILL = 
-		"-fx-background-color: BLUE;";
+		"-fx-background-color: DODGERBLUE;";
+	protected static Color C_FILL = Color.DODGERBLUE;//it sould be same as STY_FILL.
 	
 	protected static final String STY_BORD = 
 		"-fx-border-color: BLACK;"+
 		"-fx-border-style: SOLID;";
 	
-	protected static final String STY_VERT = STY_BORD +  
+	protected static final String STY_VERT = STY_BORD + STY_EMPTY +
 		String.format("-fx-border-width: 0px %.1fpx 0px %.1fpx;", PIPE_STROKE, PIPE_STROKE);
-	protected static final String STY_HORN = STY_BORD + 
+	protected static final String STY_HORN = STY_BORD + STY_EMPTY +
 		String.format("-fx-border-width: %.1fpx 0px %.1fpx 0px;", PIPE_STROKE, PIPE_STROKE);
 	
 	public final Region tp = new Region();
@@ -31,9 +36,9 @@ public class PElement extends GridPane {
 	public final Region bm = new Region();
 	public final Region lf = new Region();
 	
-	protected final PDir dir;
+	protected final PixDir dir;
 	
-	public PElement(final PDir direction) {
+	public PixTile(final PixDir direction) {
 		
 		dir = direction;
 		
@@ -53,12 +58,16 @@ public class PElement extends GridPane {
 		add(lf, 0, 1);
 	}
 	
-	void style_line(final PDir dir) {
+	void style_line(final PixDir dir) {
 		switch(dir) {
+		case LF_RH:
+		case RH_LF:
 		case HORI:
 			lf.setStyle(STY_HORN);
 			rh.setStyle(STY_HORN);
-			break; 
+			break;
+		case TP_BM:
+		case BM_TP:
 		case VERT: 
 			tp.setStyle(STY_VERT);
 			bm.setStyle(STY_VERT);
@@ -114,6 +123,19 @@ public class PElement extends GridPane {
 			bm.setStyle(STY_VERT);
 			break;
 		}
+	}
+	
+	protected void set_style_fill(final Node reg) {
+		replace_style(reg,STY_EMPTY,STY_FILL);	
+	}
+	protected void set_style_empty(final Node reg) {
+		replace_style(reg,STY_FILL,STY_EMPTY);	
+	}
+	private void replace_style(
+		final Node reg, 
+		final String txt1, final String txt2
+	) {
+		reg.setStyle(reg.getStyle().replaceAll(txt1, txt2));
 	}
 	
 	private void init_vertical(final Region reg) {

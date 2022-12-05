@@ -15,14 +15,16 @@ import narl.itrc.Misc;
 import narl.itrc.PanBase;
 import prj.sputter.DevCESAR;
 import prj.sputter.DevDCG100;
+import prj.sputter.DevMC1E;
 import prj.sputter.DevSQM160;
-import prj.sputter.perspect.LayVacuumSys;
+import prj.sputter.diagram.LayVacuumSys;
 
 public class PanMain1 extends PanBase {
 	
 	final DevDCG100 dcg1 = new DevDCG100();	
 	final DevCESAR  csar = new DevCESAR();
 	final DevSQM160 sqm1 = new DevSQM160();
+	final DevMC1E fx3u = new DevMC1E("FX3U");
 	
 	//final LayGauges gauges = LayGauges.getInstance();
 	//final LayLogger  logger = new LayLogger();		
@@ -31,6 +33,7 @@ public class PanMain1 extends PanBase {
 	public PanMain1(final Stage stg) {
 		super(stg);
 		stg.setTitle("一號濺鍍機");
+		fx3u.open();
 		//stg.setOnShown(e->on_shown());
 	}
 	
@@ -74,7 +77,7 @@ public class PanMain1 extends PanBase {
 		lay1.getSelectionModel().select(0);*/
 		
 		LayVacuumSys vacc = new LayVacuumSys();
-		vacc.LayoutBody();
+		vacc.LayoutForm1();
 		
 		final BorderPane lay0 = new BorderPane();
 		lay0.setCenter(vacc);

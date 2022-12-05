@@ -153,17 +153,16 @@ public abstract class DevTTY extends DevBase {
 	protected static final byte ETX = 0x03;
 	protected static final byte EOT = 0x04;//end of transmission
 	protected static final byte ENQ = 0x05;//enquiry
-
+	protected static final byte ACK = 0x06;
+	protected static final byte NAK = 0x15;
+	
 	protected static final byte LF = 0x0A;//enquiry
 	protected static final byte CL = 0x0C;//enquiry
 	protected static final byte CR = 0x0D;//enquiry
 	
 	protected static final byte DLE = 0x10;//跳出資料通訊
 	protected static final byte PER = 0x25;//I guess, device denied host answer
-	
-	protected static final byte ACK = 0x06;
-	protected static final byte NAK = 0x15;
-	
+
 	private int checksum(
 		final byte[] data, 
 		final int start, 
